@@ -1,6 +1,5 @@
 #!/usr/bin/env -S deno run -A
-import { cmd as vt } from "./root.ts";
-import "jsr:@std/dotenv/load";
+import { cmd as vt } from "~/root.ts";
 
 export { vt };
 export default vt;
