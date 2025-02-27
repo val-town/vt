@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert";
 import { join } from "jsr:@std/path";
-import { clone } from "~/vit/lib/mod.ts";
-import * as testUtils from "~/vit/lib/test_utils.ts";
+import { clone } from "./clone.ts";
+import * as testUtils from "./test_utils.ts";
 
 Deno.test({
   name: "clone val town project test",

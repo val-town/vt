@@ -19,7 +19,8 @@
     "jsr:@std/text@~1.0.7": "1.0.10",
     "jsr:@valtown/sdk@0.31": "0.31.0",
     "npm:emphasize@7": "7.0.0",
-    "npm:highlight.js@^11.11.1": "11.11.1"
+    "npm:highlight.js@^11.11.1": "11.11.1",
+    "npm:zod@^3.24.2": "3.24.2"
   },
   "jsr": {
     "@cliffy/command@1.0.0-rc.7": {
@@ -125,6 +126,9 @@
         "devlop",
         "highlight.js@11.9.0"
       ]
+    },
+    "zod@3.24.2": {
+      "integrity": "sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ=="
     }
   },
   "workspace": {
@@ -136,7 +140,8 @@
       "jsr:@std/fs@^1.0.13",
       "jsr:@valtown/sdk@0.31",
       "npm:emphasize@7",
-      "npm:highlight.js@^11.11.1"
+      "npm:highlight.js@^11.11.1",
+      "npm:zod@^3.24.2"
     ]
   }
 }

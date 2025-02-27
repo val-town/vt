@@ -1,4 +1,4 @@
-import valtown from "~/valtown.ts";
+import sdk, { defaultBranchId } from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { dirname, join } from "jsr:@std/path";
 import { ensureDir } from "jsr:@std/fs";
@@ -18,17 +18,19 @@ const FILE_TYPE_EXTENSIONS: Record<string, string> = {
  *
  * @param targetDir Directory to clone the project into
  * @param projectId ID of the project to clone (optional, defaults to looking up from .valtown.json)
- * @param branchId ID of the branch to clone
+ * @param branchId ID of the branch of the project to clone. Defaults to main.
  * @param version Version of the project to clone (optional, defaults to latest)
  */
 export async function clone(
   targetDir: string,
   projectId: string,
-  branchId: string,
+  branchId?: string,
   version?: number,
 ): Promise<void> {
+  branchId = branchId || await defaultBranchId(projectId);
+
   // Get all files in project recursively
-  const files = await valtown.projects.files
+  const files = await sdk.projects.files
     .list(projectId, { recursive: true, branch_id: branchId, version });
 
   // Create project directory if it doesn't exist
@@ -70,7 +72,7 @@ async function createFile(
   await ensureDir(dirname(fullPath));
 
   // Fetch the file content
-  const content = await valtown.projects.files.content(
+  const content = await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),
   ) as string;
