@@ -9,7 +9,10 @@ export async function getTestDir(
     suffix: `_${label}`,
   });
 
-  return { testDir, cleanup: () => Deno.remove(testDir, { recursive: true }) };
+  return {
+    testDir,
+    cleanup: async () => await Deno.remove(testDir, { recursive: true }),
+  };
 }
 
 export interface ExpectedProjectInode {

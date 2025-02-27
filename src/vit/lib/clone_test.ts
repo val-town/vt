@@ -26,7 +26,7 @@ Deno.test({
       {
         path: "proudLimeGoose.H.tsx",
         type: "file",
-        content: "// Example content",
+        content: "// Example Content",
       },
       { path: "merryCopperAsp.S.tsx", type: "file" },
       { path: "thoughtfulPeachPrimate", type: "directory" },
@@ -37,6 +37,7 @@ Deno.test({
       {
         path: join("thoughtfulPeachPrimate", "clearAquamarineSmelt.C.tsx"),
         type: "file",
+        content: "const test = \"test\";",
       },
       {
         path: join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
@@ -51,6 +52,6 @@ Deno.test({
     );
     assertEquals(structureValid, true, "Project structure verification failed");
 
-    cleanup();
+    await cleanup();
   },
 });
