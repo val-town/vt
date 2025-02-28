@@ -8,8 +8,7 @@ const STAT_PROMISES_BATCH_SIZE = 50;
 
 export interface FileStatus {
   path: string;
-  status: "modified" | "not_modified" | "deleted" | "created" | "renamed";
-  oldPath?: string; // For renamed files
+  status: "modified" | "not_modified" | "deleted" | "created";
 }
 
 export interface StatusResult {

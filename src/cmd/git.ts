@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import { user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import * as styles from "~/cmd/styling.ts";
@@ -27,6 +27,12 @@ const cloneCmd = new Command()
 
         branchName = branchName || DEFAULT_BRANCH_NAME;
 
+        // By default, if the target directory is the current working directory,
+        // then use the project name as the target directory
+        if (rootPath === undefined) {
+          targetDir = join(targetDir, projectName);
+        }
+
         const vt = await VTClient.init(
           targetDir,
           ownerName,
@@ -35,15 +41,11 @@ const cloneCmd = new Command()
           branchName,
         );
 
-        // By default, if the target directory is the current working directory,
-        // then use the project name as the target directory
-        if (rootPath === undefined) {
-          targetDir = join(targetDir, projectName);
-        }
-
         // Make sure that the directory is safe to clone into (exists, or gets
         // created and then exists, and wasn't nonempty)
-        await checkDirectory(targetDir);
+        await checkDirectory(targetDir, {
+          ignoreGlobs: DEFAULT_IGNORE_PATTERNS,
+        });
 
         spinner.start();
         await vt.clone(targetDir);
@@ -117,9 +119,6 @@ const statusCmd = new Command()
         modified: status.modified.map((file) => ({ path: file.path })),
         created: status.created.map((file) => ({ path: file.path })),
         deleted: status.deleted.map((file) => ({ path: file.path })),
-        renamed: status.renamed.map((file) => ({
-          path: `${file.oldPath} -> ${file.path}`,
-        })),
       };
 
       // Print all changed files

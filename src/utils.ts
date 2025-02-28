@@ -1,12 +1,20 @@
-import { basename } from "@std/path";
+import { basename, globToRegExp } from "@std/path";
 
-export async function isDirectoryEmpty(path: string | URL): Promise<boolean> {
-  // Iterate over the directory entries
-  for await (const _entry of Deno.readDir(path)) {
-    // If we find at least one entry, the directory is not empty
-    return false;
+export async function isDirectoryEmpty(
+  path: string | URL,
+  ignoreGlobs: string[] = [],
+): Promise<boolean> {
+  const ignorePatterns = ignoreGlobs.map((glob) => globToRegExp(glob));
+
+  for await (const entry of Deno.readDir(path)) {
+    // Check if entry matches any ignore pattern
+    const shouldIgnore = ignorePatterns.some((pattern) =>
+      pattern.test(entry.name)
+    );
+    if (!shouldIgnore) {
+      return false;
+    }
   }
-  // If no entries were found, the directory is empty
   return true;
 }
 
@@ -30,10 +38,17 @@ export async function removeEmptyDirs(dir: string) {
  * Creates the directory if it doesn't exist.
  *
  * @param rootPath - The full path to the directory to check/create
+ * @param options - Configuration options
+ * @param options.ignoreGlobs - Glob patterns to ignore when checking if directory is empty
  * @throws Error if the path exists but is not a directory
  * @throws Error if the directory exists but is not empty
  */
-export async function checkDirectory(rootPath: string) {
+export async function checkDirectory(
+  rootPath: string,
+  options: { ignoreGlobs?: string[] } = {},
+) {
+  const { ignoreGlobs = [] } = options;
+
   try {
     const stat = await Deno.lstat(rootPath);
 
@@ -51,8 +66,8 @@ export async function checkDirectory(rootPath: string) {
     throw error; // Re-throw any other errors
   }
 
-  // Check if existing directory is empty
-  if (!(await isDirectoryEmpty(rootPath))) {
+  // Check if existing directory is empty (considering ignored patterns)
+  if (!(await isDirectoryEmpty(rootPath, ignoreGlobs))) {
     throw new Error(
       `Cannot proceed, ./${basename(rootPath)} already exists and is not empty`,
     );
