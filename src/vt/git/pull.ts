@@ -40,7 +40,7 @@ export async function pull({
 
   if (isDirty) {
     throw new Error(
-      "Working directory dirty. Please commit or discard local changes before pulling.",
+      "Working directory dirty. Please back up or discard local changes before pulling.",
     );
   }
 
