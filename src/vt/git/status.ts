@@ -174,24 +174,26 @@ async function getLocalFiles(
   const statPromises: Promise<void>[] = [];
 
   for await (const entry of walk(targetDir)) {
-    // Skip directories
+    // Skip directories, we don't track directories themselves as objects
     if (entry.isDirectory) {
       continue;
     }
 
+    // Check  if this is on the ignore list
     const relativePath = relative(targetDir, entry.path);
     if (shouldIgnorePath(relativePath, ignorePatterns)) {
       continue;
     }
 
-    // Queue up stat operations
+    // Queue up stat operations for files
     statPromises.push(
       Deno.stat(entry.path).then((stat) => {
         if (stat.mtime === null) {
           throw new Error("File modification time is null");
         }
 
-        // Store both the cleaned path and original path
+        // Store both the cleaned path and original path. We'll want access to
+        // the original (real) path for later when we're accessing mtimes.
         const cleanedPath = withoutValExtension(relativePath);
         if (cleanedPath) { // Only add non-empty paths
           files.set(cleanedPath, {
@@ -200,21 +202,18 @@ async function getLocalFiles(
           });
         }
       }).catch(() => {
-        // Skip files we can't stat
+        throw new Error(`Failed to stat file: ${entry.path}`);
       }),
     );
 
-    // Process stats in batches of 50 to maintain reasonable concurrency
+    // Process stats in batches of 50
     if (statPromises.length >= 50) {
       await Promise.all(statPromises);
       statPromises.length = 0;
     }
   }
 
-  // Process any remaining stat operations
-  if (statPromises.length > 0) {
-    await Promise.all(statPromises);
-  }
+  await Promise.all(statPromises);
 
   return files;
 }

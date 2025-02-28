@@ -78,8 +78,10 @@ async function createFile(
     file.type === "file" ? file.name : withValExtension(file.name, file.type),
   );
 
+  // Add all needed parents for creating the file
   await ensureDir(dirname(fullPath));
 
+  // Get and write the file content
   const content = await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),

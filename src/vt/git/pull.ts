@@ -1,6 +1,5 @@
 import sdk from "~/sdk.ts";
 import { clone } from "~/vt/git/clone.ts";
-import type ValTown from "@valtown/sdk";
 import { join } from "jsr:@std/path";
 import { status } from "~/vt/git/status.ts";
 
@@ -26,7 +25,6 @@ export async function pull({
   branchId: string;
   ignoreGlobs: string[];
 }): Promise<void> {
-  // Check directory status
   const statusResult = await status({
     targetDir,
     projectId,
@@ -34,7 +32,7 @@ export async function pull({
     ignoreGlobs,
   });
 
-  // Check if directory is dirty (has any changes)
+  // Check if directory is dirty (has any changes) using `status`'s result
   const isDirty = statusResult.modified.length > 0 ||
     statusResult.created.length > 0 ||
     statusResult.deleted.length > 0 ||
@@ -46,7 +44,7 @@ export async function pull({
     );
   }
 
-  // Get project files to determine what needs to be cloned
+  // Get project files to determine what needs to be cloned.
   const projectFilesResponse = await sdk.projects.files.list(projectId, {
     branch_id: branchId,
     recursive: true,
@@ -58,6 +56,8 @@ export async function pull({
     join(targetDir, file.path)
   );
 
+  // Delete all the "tracked" files so we can pull. TODO: only delete files
+  // that haven't changed.
   for (const filePath of filesToRemove) {
     try {
       await Deno.remove(filePath);
@@ -68,6 +68,7 @@ export async function pull({
     }
   }
 
+  // Get the latest version number
   const latestVersion = (await sdk.projects.branches.retrieve(
     projectId,
     branchId,

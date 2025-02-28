@@ -97,7 +97,7 @@ Deno.test({
       {
         path: "merryCopperAsp.S.tsx",
         type: "file",
-        content: "test;",
+        content: "updated;",
       },
       {
         path: "thoughtfulPeachPrimate",

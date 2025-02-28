@@ -18,14 +18,15 @@ export async function branchIdToName(
   projectId: string,
   branchName: string,
 ): Promise<string> {
+  // The val town SDK does not properly list branches if there is a forked
+  // branch. This seems to be a bug, so we make a direct API call as a somewhat
+  // hacky solution.
+
   const bearerToken = Deno.env.get("VAL_TOWN_BEARER_TOKEN")!;
+
   const response = await fetch(
     `https://api.val.town/v1/projects/${projectId}/branches?limit=100`,
-    {
-      headers: {
-        Authorization: `Bearer ${bearerToken}`,
-      },
-    },
+    { headers: { Authorization: `Bearer ${bearerToken}` } },
   );
 
   if (!response.ok) {
