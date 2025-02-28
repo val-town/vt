@@ -1,11 +1,10 @@
-import sdk, { defaultBranchId } from "~/sdk.ts";
-import type Valtown from "@valtown/sdk";
+// Import necessary modules
 import { dirname, join } from "jsr:@std/path";
 import { ensureDir } from "jsr:@std/fs";
+import sdk, { defaultBranchId } from "~/sdk.ts";
+import type Valtown from "@valtown/sdk";
 
-/**
- * Maps Val Town file types to their extensions
- */
+// Define file type extensions
 const FILE_TYPE_EXTENSIONS: Record<string, string> = {
   "script": ".S.tsx",
   "http": ".H.tsx",
@@ -13,25 +12,27 @@ const FILE_TYPE_EXTENSIONS: Record<string, string> = {
   "interval": ".C.tsx",
 };
 
+interface CloneOptions {
+  targetDir: string;
+  projectId: string;
+  branchId?: string;
+  version?: number;
+}
+
 /**
- * Clones a Val Town project, at a specific revision, to the specified directory
+ * Clones a project by downloading its files and directories to the specified
+ * target directory.
  *
- * @param targetDir Directory to clone the project into
- * @param projectId ID of the project to clone (optional, defaults to looking up from .valtown.json)
- * @param branchId ID of the branch of the project to clone. Defaults to main.
- * @param version Version of the project to clone (optional, defaults to latest)
+ * @param config - Configuration options for cloning the project
  */
-export async function clone(
-  targetDir: string,
-  projectId: string,
-  branchId?: string,
-  version?: number,
-): Promise<void> {
-  branchId = branchId || await defaultBranchId(projectId);
+export async function clone(config: CloneOptions): Promise<void> {
+  const { targetDir, projectId, branchId, version } = config;
+
+  const resolvedBranchId = branchId || await defaultBranchId(projectId);
 
   // Get all files in project recursively
   const files = await sdk.projects.files
-    .list(projectId, { recursive: true, branch_id: branchId, version });
+    .list(projectId, { recursive: true, branch_id: resolvedBranchId, version });
 
   // Create project directory if it doesn't exist
   await ensureDir(targetDir);
@@ -51,33 +52,39 @@ export async function clone(
   }
 }
 
+/**
+ * Creates a directory at the specified path and updates its modification time.
+ *
+ * @param path - The path of the directory to create
+ * @param updatedAt - The date to set as the directory's modification time
+ */
 async function createDirectory(path: string, updatedAt: Date): Promise<void> {
-  // Recursively create dir and update utime
   await ensureDir(path);
   await Deno.utime(path, updatedAt, updatedAt);
 }
 
+/**
+ * Creates a file with the specified content and updates its modification time.
+ *
+ * @param rootPath - The base path where the file will be created
+ * @param projectId - The ID of the project to which the file belongs
+ * @param file - The file metadata from the project
+ */
 async function createFile(
   rootPath: string,
   projectId: string,
   file: Valtown.Projects.FileListResponse,
 ): Promise<void> {
-  // Determine the extension for the file type. Affix .{E|H|C|S}.tsx to vals.
   const extension = file.type === "file" ? "" : FILE_TYPE_EXTENSIONS[file.type];
-
-  // Build the full path with the extension
   const fullPath = join(dirname(rootPath), file.name + extension);
 
-  // Ensure the directory exists
   await ensureDir(dirname(fullPath));
 
-  // Fetch the file content
   const content = await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),
   ) as string;
 
-  // Write the content to the file and update utime
   const updatedAt = new Date(file.updatedAt);
   await Deno.writeTextFile(fullPath, content);
   await Deno.utime(fullPath, updatedAt, updatedAt);

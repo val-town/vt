@@ -65,7 +65,7 @@ export default class VTClient {
       await Deno.stat(vt.configFolder.configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.configFolder.writeConfig({
+        await vt.configFolder.saveConfig({
           projectId,
           currentBranch: branchId,
           version: version,
@@ -91,7 +91,12 @@ export default class VTClient {
     }
 
     // Do the clone using the configuration
-    await clone(targetDir, projectId, currentBranch, version);
+    await clone({
+      targetDir,
+      projectId,
+      branchId: currentBranch,
+      version,
+    });
   }
 
   /**
@@ -100,7 +105,7 @@ export default class VTClient {
    * @returns {Promise<ConfigJsonType>} The vt project configuration.
    */
   public async getConfig(): Promise<ConfigJsonType> {
-    const config = await this.configFolder.readConfig();
+    const config = await this.configFolder.getConfig();
     // Validate the config using zod
     return ConfigSchema.parse(config);
   }
@@ -112,6 +117,6 @@ export default class VTClient {
    * @param {ConfigJsonType} updatedSchema - The new vt project configuration.
    */
   public async updateConfig(updatedSchema: ConfigJsonType): Promise<void> {
-    await this.configFolder.writeConfig(updatedSchema);
+    await this.configFolder.saveConfig(updatedSchema);
   }
 }

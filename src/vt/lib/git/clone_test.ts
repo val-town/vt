@@ -12,6 +12,7 @@ export interface ExpectedProjectInode {
 
 /**
  * Verifies the expected file/directory structure exists at the given path
+ *
  * @param basePath The root directory to check
  * @param expectedInodes List of expected files/directories and their properties
  * @returns Promise<boolean> true if all paths exist and match expected types/content
@@ -87,7 +88,11 @@ Deno.test({
     const branchId = "b9602cf4-f4de-11ef-97f1-569c3dd06744";
 
     // Do the clone
-    await clone(testDir, projectId, branchId);
+    await clone({
+      targetDir: testDir,
+      projectId,
+      branchId,
+    });
 
     // This is what we should get (we know apriori)
     const expectedInodes: ExpectedProjectInode[] = [
@@ -105,7 +110,7 @@ Deno.test({
       {
         path: join("thoughtfulPeachPrimate", "clearAquamarineSmelt.C.tsx"),
         type: "file",
-        content: "const test = \"test\";",
+        content: 'const test = "test";',
       },
       {
         path: join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
