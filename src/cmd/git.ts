@@ -6,7 +6,9 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import * as styles from "~/cmd/styling.ts";
 import { colors } from "@cliffy/ansi/colors";
 import Kia from "kia";
-import { checkDirectory, getActiveDir } from "~/cmd/utils.ts";
+import { checkDirectory } from "~/utils.ts";
+import { join } from "@std/path/join";
+import { basename } from "@std/path";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -15,7 +17,7 @@ const cloneCmd = new Command()
   .action(
     async (_, projectUri: string, rootPath?: string, branchName?: string) => {
       const spinner = new Kia("Cloning project...");
-      const activeDir = getActiveDir(rootPath || Deno.cwd());
+      let targetDir = rootPath || Deno.cwd();
 
       try {
         const { ownerName, projectName } = parseProjectUri(
@@ -25,18 +27,31 @@ const cloneCmd = new Command()
 
         branchName = branchName || DEFAULT_BRANCH_NAME;
 
-        await checkDirectory(activeDir);
-
         const vt = await VTClient.init(
-          activeDir,
+          targetDir,
           ownerName,
           projectName,
           undefined,
           branchName,
         );
+
+        // By default, if the target directory is the current working directory,
+        // then use the project name as the target directory
+        if (rootPath === undefined) {
+          targetDir = join(targetDir, projectName);
+        }
+
+        // Make sure that the directory is safe to clone into (exists, or gets
+        // created and then exists, and wasn't nonempty)
+        await checkDirectory(targetDir);
+
         spinner.start();
-        await vt.clone(activeDir);
-        spinner.succeed(`Project cloned to ${activeDir}`);
+        await vt.clone(targetDir);
+        spinner.succeed(
+          `Project ${ownerName}/${projectName} cloned to ${
+            "./" + basename(targetDir)
+          }`,
+        );
       } catch (error) {
         if (error instanceof Error) {
           spinner.fail(error.message);
