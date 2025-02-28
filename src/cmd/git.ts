@@ -6,6 +6,7 @@ import { isDirectoryEmpty } from "~/utils.ts";
 import VTClient from "~/vt/vt/mod.ts";
 import * as styles from "~/cmd/styling.ts";
 import { colors } from "@cliffy/ansi/colors";
+import Kia from "kia";
 
 function getActiveDir(givenDir: string): string {
   return givenDir || Deno.cwd();
@@ -43,38 +44,34 @@ const cloneCmd = new Command()
   .arguments("<projectUri:string> [cloneDir:string] [branchName:string]")
   .action(
     async (_, projectUri: string, rootPath?: string, branchName?: string) => {
+      const spinner = new Kia("Cloning project...");
       const activeDir = getActiveDir(rootPath || Deno.cwd());
 
-      const { ownerName, projectName } = parseProjectUri(
-        projectUri,
-        user.username!,
-      );
-
-      if (user.username !== ownerName) {
-        throw new Error("You can only clone your own projects");
-      }
-
-      branchName = branchName || DEFAULT_BRANCH_NAME;
-
-      await checkDirectory(activeDir);
-
-      const vt = await VTClient.init(
-        activeDir,
-        ownerName,
-        projectName,
-        undefined,
-        branchName,
-      );
-
       try {
+        const { ownerName, projectName } = parseProjectUri(
+          projectUri,
+          user.username!,
+        );
+
+        branchName = branchName || DEFAULT_BRANCH_NAME;
+
+        await checkDirectory(activeDir);
+
+        const vt = await VTClient.init(
+          activeDir,
+          ownerName,
+          projectName,
+          undefined,
+          branchName,
+        );
+        spinner.start();
         await vt.clone(activeDir);
+        spinner.succeed(`Project cloned to ${activeDir}`);
       } catch (error) {
         if (error instanceof Error) {
-          console.log(styles.error(error.message));
+          spinner.fail(error.message);
         }
       }
-
-      console.log(styles.success(`Project cloned to ${activeDir}`));
     },
   );
 
@@ -82,15 +79,17 @@ const pullCmd = new Command()
   .name("pull")
   .description("Pull the latest changes for a val town project")
   .action(async () => {
+    const spinner = new Kia("Pulling latest changes...");
     const cwd = Deno.cwd();
 
-    const vt = VTClient.from(cwd);
     try {
+      spinner.start();
+      const vt = VTClient.from(cwd);
       await vt.pull(cwd);
-      console.log(styles.success(`Project pulled successfully to ${cwd}`));
+      spinner.succeed(`Project pulled successfully to ${cwd}`);
     } catch (error) {
       if (error instanceof Error) {
-        console.error(styles.error(error.message));
+        spinner.fail(error.message);
       }
     }
   });
@@ -120,11 +119,14 @@ const statusCmd = new Command()
   .name("status")
   .description("Show the working tree status")
   .action(async () => {
+    const spinner = new Kia("Checking status...");
     const cwd = Deno.cwd();
 
-    const vt = VTClient.from(cwd);
     try {
+      spinner.start();
+      const vt = VTClient.from(cwd);
       const status = await vt.status(cwd);
+      spinner.stop(); // Stop spinner before showing status
 
       const statusMap = {
         modified: status.modified.map((file) => ({ path: file.path })),
@@ -160,7 +162,7 @@ const statusCmd = new Command()
       }
     } catch (error) {
       if (error instanceof Error) {
-        console.error(styles.error(error.message));
+        spinner.fail(error.message);
       }
     }
   });

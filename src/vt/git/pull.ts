@@ -2,7 +2,7 @@ import sdk from "~/sdk.ts";
 import { clone } from "~/vt/git/clone.ts";
 import type ValTown from "@valtown/sdk";
 import { join } from "jsr:@std/path";
-import { globToRegExp } from "@std/path/glob-to-regexp";
+import { status } from "~/vt/git/status.ts";
 
 /**
  * Pulls the latest changes from a val town project.
@@ -23,80 +23,63 @@ export async function pull({
 }: {
   targetDir: string;
   projectId: string;
-  branchId?: string;
+  branchId: string;
   ignoreGlobs: string[];
 }): Promise<void> {
-  // Convert ignore globs to RegExp patterns
-  const ignorePatterns = ignoreGlobs.map((glob) => globToRegExp(glob));
+  // Check directory status
+  const statusResult = await status({
+    targetDir,
+    projectId,
+    branchId,
+    ignoreGlobs,
+  });
 
-  // Get a list of all the files that have changed on val town.
+  // Check if directory is dirty (has any changes)
+  const isDirty = statusResult.modified.length > 0 ||
+    statusResult.created.length > 0 ||
+    statusResult.deleted.length > 0 ||
+    statusResult.renamed.length > 0;
+
+  if (isDirty) {
+    throw new Error(
+      "Working directory dirty. Please commit or discard local changes before pulling.",
+    );
+  }
+
+  // Get project files to determine what needs to be cloned
   const projectFilesResponse = await sdk.projects.files.list(projectId, {
     branch_id: branchId,
+    recursive: true,
   });
   const projectFiles = projectFilesResponse.data;
 
-  // Check to see if any files have been updated locally since the last pull/clone
-  const isDirectoryDirty = await isDirty(
-    targetDir,
-    projectFiles,
-    ignorePatterns,
+  // Remove all existing tracked files
+  const filesToRemove = [...statusResult.not_modified].map((file) =>
+    join(targetDir, file.path)
   );
 
-  if (isDirectoryDirty) {
-    throw new Error("Working directory dirty. New changes not yet pushed.");
-  }
-
-  // Remove all files and directories that are tracked by vt and need to be refetched.
-  const removingPromises: Promise<void>[] = [];
-  for await (const dirEntry of Deno.readDir(targetDir)) {
-    const fullPath = `${targetDir}/${dirEntry.name}`;
-    if (
-      !ignorePatterns.some((pattern) => pattern.test(fullPath)) &&
-      !projectFiles.some((file) => file.path === dirEntry.name)
-    ) {
-      removingPromises.push(Deno.remove(fullPath, { recursive: true }));
-    }
-  }
-
-  await Promise.all(removingPromises);
-
-  // Clone the project into the directory (with the appropriate filter)
-  const cloneOptions = {
-    targetDir,
-    branchId,
-    projectId,
-    ignorePatterns: [new RegExp(".*")], // Temporary ignore all files pattern
-    filterFiles: projectFiles.map((file) => file.path), // Only clone files that exist in the project
-  };
-  await clone(cloneOptions);
-}
-
-async function isDirty(
-  targetDir: string,
-  projectFiles: ValTown.Projects.FileListResponse[],
-  ignorePatterns: RegExp[],
-): Promise<boolean> {
-  for (const file of projectFiles) {
-    const filePath = join(targetDir, file.path);
-
-    if (ignorePatterns.some((pattern) => pattern.test(filePath))) {
-      continue;
-    }
-
+  for (const filePath of filesToRemove) {
     try {
-      const stats = await Deno.stat(filePath);
-      const fileModifiedTime = new Date(stats.mtime ?? 0);
-
-      if (fileModifiedTime > new Date(file.updatedAt)) {
-        // The file has been modified locally after the last update
-        return true;
-      }
+      await Deno.remove(filePath);
     } catch (error) {
       if (!(error instanceof Deno.errors.NotFound)) {
-        // If there's an error other than file not found, rethrow it
         throw error;
       }
     }
   }
-  return false;
+
+  const latestVersion = (await sdk.projects.branches.retrieve(
+    projectId,
+    branchId,
+  )).version;
+
+  // Clone fresh files from the project
+  await clone({
+    targetDir,
+    projectId,
+    branchId,
+    version: latestVersion,
+    ignoreGlobs,
+    filterFiles: projectFiles.map((file) => file.path),
+  });
 }

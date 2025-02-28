@@ -155,7 +155,10 @@ async function getProjectFiles(
 
   return new Map(
     projectFilesResponse.data
-      .filter((file) => !shouldIgnorePath(file.path, ignorePatterns))
+      .filter((file) =>
+        file.type !== "directory" &&
+        !shouldIgnorePath(file.path, ignorePatterns)
+      )
       .map((file) => [
         file.path,
         new Date(file.updatedAt).getTime(),
@@ -171,6 +174,11 @@ async function getLocalFiles(
   const statPromises: Promise<void>[] = [];
 
   for await (const entry of walk(targetDir)) {
+    // Skip directories
+    if (entry.isDirectory) {
+      continue;
+    }
+
     const relativePath = relative(targetDir, entry.path);
     if (shouldIgnorePath(relativePath, ignorePatterns)) {
       continue;

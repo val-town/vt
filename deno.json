@@ -18,6 +18,7 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.7",
     "@valtown/sdk": "jsr:@valtown/sdk@^0.31.0",
     "emphasize": "npm:emphasize@^7.0.0",
-    "highlight.js": "npm:highlight.js@^11.11.1"
+    "highlight.js": "npm:highlight.js@^11.11.1",
+    "kia": "https://deno.land/x/kia@0.4.1/mod.ts"
   }
 }

@@ -18,11 +18,32 @@ export async function branchIdToName(
   projectId: string,
   branchName: string,
 ): Promise<string> {
-  for await (const branch of sdk.projects.branches.list(projectId, {})) {
-    if (branch.name == branchName) return branch.id;
+  const bearerToken = Deno.env.get("VAL_TOWN_BEARER_TOKEN")!;
+  const response = await fetch(
+    `https://api.val.town/v1/projects/${projectId}/branches?limit=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${bearerToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch branches: ${response.status} ${response.statusText}`,
+    );
   }
 
-  throw new Error(`Branch "${branchName}" not found in project "${projectId}"`);
+  const data = await response.json();
+  const branch = data.data.find((b: any) => b.name === branchName);
+
+  if (!branch) {
+    throw new Error(
+      `Branch "${branchName}" not found in project "${projectId}"`,
+    );
+  }
+
+  return branch.id;
 }
 
 export const user = await sdk.me.profile.retrieve();
