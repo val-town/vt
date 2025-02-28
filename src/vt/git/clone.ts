@@ -12,11 +12,10 @@ import { removeEmptyDirs } from "~/utils.ts";
  *
  * @param {object} args
  * @param {string} args.targetDir The directory where the project will be cloned
- * @param {string} args.projectId The unique identifier of the project to be cloned
- * @param {string?} args.branchId (optional) The branch ID of the project to clone. Defaults to the default branch not provided
- * @param {number} args.version (optional) The version of the project to clone. If not specified, the latest versio used
+ * @param {string} args.projectId The uuid of the project to be cloned
+ * @param {string} args.branchId (optional) The branch ID to clone.
+ * @param {number} args.version (optional) The version of the project to clone.
  * @param {string[]} args.ignoreGlobs (optional) List of glob patterns for files to ignore
- * @param {string[]} args.filterFiles (optional) List of files to include, ignoring all others
  */
 export async function clone(
   {
@@ -25,14 +24,12 @@ export async function clone(
     branchId,
     version,
     ignoreGlobs,
-    filterFiles,
   }: {
     targetDir: string;
     projectId: string;
     branchId: string;
     version: number;
     ignoreGlobs?: string[];
-    filterFiles?: string[];
   },
 ): Promise<void> {
   const resolvedBranchId = branchId || await defaultBranchId(projectId);
@@ -46,7 +43,7 @@ export async function clone(
   // Process all files and directories
   for (const file of files.data) {
     // Skip if we have a filter list and this file is not in it
-    if (filterFiles && !filterFiles.includes(file.path)) {
+    if (ignoreGlobs && ignoreGlobs.includes(file.path)) {
       continue;
     }
 

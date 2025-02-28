@@ -44,13 +44,6 @@ export async function pull({
     );
   }
 
-  // Get project files to determine what needs to be cloned.
-  const projectFilesResponse = await sdk.projects.files.list(projectId, {
-    branch_id: branchId,
-    recursive: true,
-  });
-  const projectFiles = projectFilesResponse.data;
-
   // Remove all existing tracked files
   const filesToRemove = [...statusResult.not_modified].map((file) =>
     join(targetDir, file.path)
@@ -81,6 +74,5 @@ export async function pull({
     branchId,
     version: latestVersion,
     ignoreGlobs,
-    filterFiles: projectFiles.map((file) => file.path),
   });
 }
