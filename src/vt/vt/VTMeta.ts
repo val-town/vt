@@ -17,7 +17,11 @@ export default class VTMeta {
    *
    * @param rootPath - The root path where the configuration folder is located.
    */
-  constructor(private rootPath: string) {}
+  #rootPath: string;
+
+  constructor(rootPath: string) {
+    this.#rootPath = rootPath;
+  }
 
   /**
    * Gets the full path to the configuration file.
@@ -25,7 +29,7 @@ export default class VTMeta {
    * @returns The full file path as a string.
    */
   public get configFilePath() {
-    return join(this.rootPath, CONFIG_FOLDER_NAME, CONFIG_FILE_NAME);
+    return join(this.#rootPath, CONFIG_FOLDER_NAME, CONFIG_FILE_NAME);
   }
 
   /**
@@ -58,7 +62,7 @@ export default class VTMeta {
     config: z.infer<typeof VTMetaConfigJsonSchema>,
   ): Promise<void> {
     try {
-      await Deno.mkdir(join(this.rootPath, CONFIG_FOLDER_NAME), {
+      await Deno.mkdir(join(this.#rootPath, CONFIG_FOLDER_NAME), {
         recursive: true,
       });
       const data = JSON.stringify(config, null, 2);

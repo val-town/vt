@@ -1,15 +1,9 @@
 import { clone } from "~/vt/git/clone.ts";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import sdk, { branchIdToName } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
-
-const DEFAULT_IGNORE_PATTERNS: string[] = [
-  ".vtignore",
-  ".vt/**",
-  ".vt",
-];
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -19,10 +13,10 @@ const DEFAULT_IGNORE_PATTERNS: string[] = [
  * pull/push a val town project.
  */
 export default class VTClient {
-  private meta: VTMeta;
+  #meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
-    this.meta = new VTMeta(rootPath);
+    this.#meta = new VTMeta(rootPath);
   }
 
   /**
@@ -33,7 +27,7 @@ export default class VTClient {
   private async getIgnoreGlobs(): Promise<string[]> {
     return [
       ...DEFAULT_IGNORE_PATTERNS,
-      ...(await this.meta.loadIgnoreGlobs()),
+      ...(await this.#meta.loadIgnoreGlobs()),
     ];
   }
 
@@ -69,10 +63,10 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.meta.configFilePath);
+      await Deno.stat(vt.#meta.configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.meta.saveConfig({
+        await vt.#meta.saveConfig({
           projectId,
           currentBranch: branchId,
           version: version,
@@ -103,7 +97,7 @@ export default class VTClient {
    * @param targetDir - The directory to clone the project into.
    */
   public async clone(targetDir: string) {
-    const { projectId, currentBranch, version } = await this.meta.loadConfig();
+    const { projectId, currentBranch, version } = await this.#meta.loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
@@ -127,7 +121,7 @@ export default class VTClient {
    * @param targetDir - The directory to pull the project into.
    */
   public async pull(targetDir: string) {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
+    const { projectId, currentBranch } = await this.#meta.loadConfig();
 
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
@@ -150,7 +144,7 @@ export default class VTClient {
    * @returns A StatusResult object containing categorized files.
    */
   public async status(targetDir: string): Promise<StatusResult> {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
+    const { projectId, currentBranch } = await this.#meta.loadConfig();
 
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
