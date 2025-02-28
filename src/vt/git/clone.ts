@@ -44,7 +44,9 @@ export async function clone(
   // Create project directory if it doesn't exist, otherwise noop
   await ensureDir(targetDir);
 
-  // Keep track of everything that was created
+  // Keep track of everything that was created so that we can set the utimes
+  // later. We want to do this after the fact since the very process of cloning
+  // is going to do things like move directories etc.
   const createdPaths: [string, Valtown.Projects.FileListResponse][] = [];
 
   // Process all files and directories

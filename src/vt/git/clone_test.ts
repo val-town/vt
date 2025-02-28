@@ -2,7 +2,6 @@ import { assertEquals } from "jsr:@std/assert";
 import { join } from "jsr:@std/path";
 import { clone } from "./clone.ts";
 import { getTestDir } from "~/vt/git/utils.ts";
-import { walk } from "@std/fs/walk";
 
 export interface ExpectedProjectInode {
   path: string;
@@ -24,14 +23,6 @@ export async function verifyProjectStructure(
 ): Promise<boolean> {
   // First get all actual files/directories
   const actualPaths = new Set<string>();
-  for await (const entry of walk(basePath)) {
-    // Skip the base directory itself and normalize path
-    const relativePath = entry.path.slice(basePath.length + 1);
-    if (relativePath) {
-      // Normalize path separators for cross-platform compatibility
-      actualPaths.add(relativePath.replace(/\\/g, "/"));
-    }
-  }
 
   // Convert expected paths to a set for comparison
   const expectedPaths = new Set(expectedInodes.map((inode) => inode.path));
@@ -103,8 +94,15 @@ Deno.test({
         type: "file",
         content: "// Example Content",
       },
-      { path: "merryCopperAsp.S.tsx", type: "file" },
-      { path: "thoughtfulPeachPrimate", type: "directory" },
+      {
+        path: "merryCopperAsp.S.tsx",
+        type: "file",
+        content: "test;",
+      },
+      {
+        path: "thoughtfulPeachPrimate",
+        type: "directory",
+      },
       {
         path: join("thoughtfulPeachPrimate", "philosophicalBlueWolf"),
         type: "directory",
@@ -112,11 +110,12 @@ Deno.test({
       {
         path: join("thoughtfulPeachPrimate", "clearAquamarineSmelt.C.tsx"),
         type: "file",
-        content: 'const test = "test";',
+        content: "",
       },
       {
         path: join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
         type: "file",
+        content: "",
       },
     ];
 

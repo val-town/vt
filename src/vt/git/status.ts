@@ -1,5 +1,5 @@
 import sdk from "~/sdk.ts";
-import { relative } from "jsr:@std/path";
+import { basename, dirname, join, relative } from "jsr:@std/path";
 import { walk } from "jsr:@std/fs/walk";
 import { withoutValExtension } from "~/vt/git/paths.ts";
 import { globToRegExp } from "@std/path/glob-to-regexp";
@@ -65,27 +65,37 @@ export async function status({
   );
 
   // Compare local files against project files
-  for (const [localPath, localModTime] of localFiles.entries()) {
-    if (!localPath) continue; // Skip empty paths
+  for (const [cleanPath, { originalPath, modTime }] of localFiles.entries()) {
+    if (!cleanPath) continue; // Skip empty paths
 
-    const projectModTime = projectFiles.get(localPath);
+    const projectModTime = projectFiles.get(cleanPath);
 
     if (projectModTime === undefined) {
       // File exists locally but not in project - it's created
       result.created.push({
-        path: localPath,
+        path: cleanPath,
         status: "created",
       });
     } else {
-      // File exists in both places - check if modified
-      if (localModTime > projectModTime) {
-        result.modified.push({
-          path: localPath,
-          status: "modified",
-        });
+      // File exists in both places, so check if modified
+      if (modTime > projectModTime) {
+        // To make sure it is actually modified we have to actually check the
+        // content delta :(. The mtime is a heuristic.
+        const isModified = await isFileModified(
+          targetDir,
+          originalPath,
+          cleanPath,
+          projectId,
+        );
+        if (isModified) {
+          result.modified.push({
+            path: cleanPath,
+            status: "modified",
+          });
+        }
       } else {
         result.not_modified.push({
-          path: localPath,
+          path: cleanPath,
           status: "not_modified",
         });
       }
@@ -105,6 +115,28 @@ export async function status({
   }
 
   return result;
+}
+
+async function isFileModified(
+  targetDir: string,
+  originalPath: string,
+  cleanPath: string,
+  projectId: string,
+): Promise<boolean> {
+  const projectFileContent = await sdk.projects.files.content(
+    projectId,
+    encodeURIComponent(join(
+      dirname(cleanPath),
+      withoutValExtension(basename(cleanPath)),
+    )),
+  );
+
+  // For some reason the local paths seem to have an extra newline
+  const localFileContent = (await Deno.readTextFile(
+    join(targetDir, originalPath),
+  )).slice(0, -1);
+
+  return projectFileContent !== localFileContent;
 }
 
 function shouldIgnorePath(path: string, ignorePatterns: RegExp[]): boolean {
@@ -134,8 +166,8 @@ async function getProjectFiles(
 async function getLocalFiles(
   targetDir: string,
   ignorePatterns: RegExp[],
-): Promise<Map<string, number>> {
-  const files = new Map<string, number>();
+): Promise<Map<string, { originalPath: string; modTime: number }>> {
+  const files = new Map<string, { originalPath: string; modTime: number }>();
   const statPromises: Promise<void>[] = [];
 
   for await (const entry of walk(targetDir)) {
@@ -151,10 +183,13 @@ async function getLocalFiles(
           throw new Error("File modification time is null");
         }
 
-        // Use withoutValExtension to modify the relativePath
+        // Store both the cleaned path and original path
         const cleanedPath = withoutValExtension(relativePath);
         if (cleanedPath) { // Only add non-empty paths
-          files.set(cleanedPath, stat.mtime.getTime());
+          files.set(cleanedPath, {
+            originalPath: relativePath,
+            modTime: stat.mtime.getTime(),
+          });
         }
       }).catch(() => {
         // Skip files we can't stat
