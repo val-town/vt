@@ -3,11 +3,11 @@ import { user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
-import * as styles from "~/cmd/styling.ts";
 import Kia from "kia";
 import { checkDirectory } from "~/utils.ts";
-import { join } from "@std/path/join";
 import { basename } from "@std/path";
+import * as styles from "~/cmd/styling.ts";
+import * as join from "@std/path/join";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -29,7 +29,7 @@ const cloneCmd = new Command()
         // By default, if the target directory is the current working directory,
         // then use the project name as the target directory
         if (rootPath === undefined) {
-          targetDir = join(targetDir, projectName);
+          targetDir = join.join(targetDir, projectName);
         }
 
         const vt = await VTClient.init(

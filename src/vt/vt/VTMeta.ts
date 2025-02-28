@@ -1,18 +1,17 @@
-import { join } from "@std/path";
 import z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
+import * as path from "@std/path";
 
 /**
- * ConfigFolder class for managing the .vt/config.json configuration file.
- *
- * Automatically serialize and deserialize the contents of `config.json`.
+ * The VTMeta class manages .vt/* configuration files and provides abstractions
+ * to mutate and retreive them. Used internally by VTClient.
  */
 export default class VTMeta {
   /**
-   * Creates an instance of ConfigFolder.
+   * Creates an instance of VTMeta.
    *
-   * @param rootPath - The root path where the configuration folder is located.
+   * @param {string} rootPath - The root path where the configuration folder is located.
    */
   #rootPath: string;
 
@@ -23,17 +22,17 @@ export default class VTMeta {
   /**
    * Gets the full path to the configuration file.
    *
-   * @returns The full file path as a string.
+   * @returns {string} The full file path as a string.
    */
-  public get configFilePath() {
-    return join(this.#rootPath, META_FOLDER_NAME, CONFIG_FILE_NAME);
+  public get configFilePath(): string {
+    return path.join(this.#rootPath, META_FOLDER_NAME, CONFIG_FILE_NAME);
   }
 
   /**
    * Reads and parses the configuration file.
    *
-   * @returns A promise that resolves with the parsed configuration data.
-   * @throws Will throw an error if the file cannot be read or parsed.
+   * @returns {Promise} A promise that resolves with the parsed configuration data.
+   * @throws {Error} Will throw an error if the file cannot be read or parsed.
    */
   public async loadConfig(): Promise<z.infer<typeof VTMetaConfigJsonSchema>> {
     const data = await Deno.readTextFile(this.configFilePath);
@@ -51,15 +50,15 @@ export default class VTMeta {
   /**
    * Writes updated configuration data to the configuration file.
    *
-   * @param config - The updated configuration data to be written.
-   * @returns A promise that resolves when the file has been successfully written.
-   * @throws Will log an error if the file cannot be written.
+   * @param config - Updated configuration data to be written.
+   * @returns {Promise} Promise that resolves when the file has been successfully written.
+   * @throws {Error} File cannot be written.
    */
   public async saveConfig(
     config: z.infer<typeof VTMetaConfigJsonSchema>,
   ): Promise<void> {
     try {
-      await Deno.mkdir(join(this.#rootPath, META_FOLDER_NAME), {
+      await Deno.mkdir(path.join(this.#rootPath, META_FOLDER_NAME), {
         recursive: true,
       });
       const data = JSON.stringify(config, null, 2);
@@ -72,8 +71,7 @@ export default class VTMeta {
   /**
    * Loads the ignore list list of globs from ignore files.
    *
-   * @param ignoreGlobs An array of file names to load ignore globs from.
-   * @returns A promise that resolves with a list of glob strings.
+   * @returns {Promise} A promise that resolves with a list of glob strings.
    */
   public async loadIgnoreGlobs(): Promise<string[]> {
     const ignoreGlobs: string[] = [];

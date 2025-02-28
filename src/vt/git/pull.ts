@@ -1,18 +1,20 @@
 import sdk from "~/sdk.ts";
 import { clone } from "~/vt/git/clone.ts";
-import { join } from "jsr:@std/path";
 import { status } from "~/vt/git/status.ts";
+import * as path from "@std/path";
 
 /**
- * Pulls the latest changes from a val town project.
+ * Pulls latest changes from a val town project into a vt folder.
+ * Checks to make sure that a dirty directory (changes locally that would be
+ * overwritten) does not get pulled to.
  *
- * @param args The arguments for the pull operation.
- * @param args.targetDir The directory where the project files will be updated.
- * @param args.projectId The directory path of the local project that needs to be updated.
- * @param args.branchId The branch ID from which to pull the latest changes.
- * @param args.ignoreGlobs A list of glob patterns for files to exclude.
+ * @param args Options for pull operation.
+ * @param {string} args.targetDir The vt project root directory.
+ * @param {string} args.projectId The id of the project to be pulled.
+ * @param {string} args.branchId The branch ID from which to pull the latest changes.
+ * @param {string[]} args.ignoreGlobs A list of glob patterns for files to exclude.
  *
- * @returns A promise that resolves when the pull operation is complete.
+ * @returns Promise that resolves when the pull operation is complete.
  */
 export async function pull({
   targetDir,
@@ -45,7 +47,7 @@ export async function pull({
 
   // Remove all existing tracked files
   const filesToRemove = [...statusResult.not_modified].map((file) =>
-    join(targetDir, file.path)
+    path.join(targetDir, file.path)
   );
 
   // Delete all the "tracked" files so we can pull. TODO: only delete files

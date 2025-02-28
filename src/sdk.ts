@@ -6,6 +6,13 @@ const sdk = new ValTown({
   bearerToken: Deno.env.get(API_KEY_KEY)!,
 });
 
+/**
+ * Retrieves the ID of the default branch for a given project.
+ *
+ * @param {string} projectId The ID of the project to find the default branch for
+ * @returns {Promise} Promise resolving to the ID of the default branch
+ * @throws {Error} Error if the default branch is not found
+ */
 export async function defaultBranchId(projectId: string): Promise<string> {
   for await (const branch of sdk.projects.branches.list(projectId, {})) {
     if (branch.name == DEFAULT_BRANCH_NAME) return branch.id;
@@ -14,6 +21,14 @@ export async function defaultBranchId(projectId: string): Promise<string> {
   throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 }
 
+/**
+ * Converts a branch name to its corresponding branch ID for a given project.
+ *
+ * @param {string} projectId The ID of the project containing the branch
+ * @param {string} branchName The name of the branch to look up
+ * @returns {Promise} Promise resolving to the branch ID
+ * @throws {Error} if the branch is not found or if the API request fails
+ */
 export async function branchIdToName(
   projectId: string,
   branchName: string,
@@ -21,6 +36,8 @@ export async function branchIdToName(
   // Because of a val town bug (see
   // https://www.val.town/v/wolf/ecstaticPeachRat), only unauthenticated
   // requests can query data on val town branches.
+  //
+  // TODO: change this to use branch alias API when it gets added
 
   const response = await fetch(
     `https://api.val.town/v1/projects/${projectId}/branches?limit=100`,

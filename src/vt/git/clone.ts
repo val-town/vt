@@ -1,10 +1,9 @@
-import { globToRegExp } from "@std/path/glob-to-regexp";
-import { dirname, join } from "jsr:@std/path";
-import { ensureDir } from "jsr:@std/fs";
 import sdk, { defaultBranchId } from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { withValExtension } from "~/vt/git/paths.ts";
 import { removeEmptyDirs } from "~/utils.ts";
+import * as path from "@std/path";
+import { ensureDir } from "@std/fs";
 
 /**
  * Clones a project by downloading its files and directories to the specified
@@ -33,7 +32,9 @@ export async function clone(
   },
 ): Promise<void> {
   const resolvedBranchId = branchId || await defaultBranchId(projectId);
-  const ignorePatterns = (ignoreGlobs || []).map((glob) => globToRegExp(glob));
+  const ignorePatterns = (ignoreGlobs || []).map((glob) =>
+    path.globToRegExp(glob)
+  );
   const files = await sdk.projects.files
     .list(projectId, { recursive: true, branch_id: resolvedBranchId, version });
 
@@ -50,7 +51,7 @@ export async function clone(
     // Skip if the file matches any ignore pattern
     if (ignorePatterns.some((pattern) => pattern.test(file.path))) continue;
 
-    const fullPath = join(targetDir, file.path);
+    const fullPath = path.join(targetDir, file.path);
     if (file.type === "directory") {
       await createDirectory(fullPath);
     } else {
@@ -70,13 +71,13 @@ async function createFile(
   projectId: string,
   file: Valtown.Projects.FileListResponse,
 ): Promise<void> {
-  const fullPath = join(
-    dirname(rootPath),
+  const fullPath = path.join(
+    path.dirname(rootPath),
     file.type === "file" ? file.name : withValExtension(file.name, file.type),
   );
 
   // Add all needed parents for creating the file
-  await ensureDir(dirname(fullPath));
+  await ensureDir(path.dirname(fullPath));
 
   // Get and write the file content
   const content = await sdk.projects.files.content(

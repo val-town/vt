@@ -11,6 +11,8 @@ import { status, StatusResult } from "~/vt/git/status.ts";
  *
  * With a VTClient you can do things like clone a val town project, or
  * pull/push a val town project.
+ *
+ * @param {string} rootPath - The root path of the VT directory
  */
 export default class VTClient {
   #meta: VTMeta;
@@ -34,6 +36,13 @@ export default class VTClient {
   /**
    * Initialize the VT instance for a project. You always have to be checked
    * out to *something* so init also takes an initial branch.
+   *
+   * @param {string} rootPath - The root path where the VT instance will be initialized
+   * @param {string} username - The username of the project owner
+   * @param {string} projectName - The name of the project
+   * @param {number} [version=-1] - The version of the project to initialize. -1 for latest version
+   * @param {string} [branchName=DEFAULT_BRANCH_NAME] - The branch name to initialize
+   * @returns {Promise<VTClient>} A new VTClient instance
    */
   public static async init(
     rootPath: string,
@@ -85,7 +94,7 @@ export default class VTClient {
    * directory.
    *
    * @param {string} rootPath - The root path of the existing project.
-   * @returns {Promise<VTClient>} An instance of VTClient initialized from the existing config.
+   * @returns {Promise<VTClient>} An instance of VTClient initialized from existing config.
    */
   public static from(rootPath: string): VTClient {
     return new VTClient(rootPath);
@@ -94,9 +103,10 @@ export default class VTClient {
   /**
    * Clone val town project into a directory using the current configuration.
    *
-   * @param targetDir - The directory to clone the project into.
+   * @param {string} targetDir - The directory to clone the project into.
+   * @returns {Promise<void>}
    */
-  public async clone(targetDir: string) {
+  public async clone(targetDir: string): Promise<void> {
     const { projectId, currentBranch, version } = await this.#meta.loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
@@ -118,9 +128,10 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @param targetDir - The directory to pull the project into.
+   * @param {string} targetDir - The directory to pull the project into.
+   * @returns {Promise<void>}
    */
-  public async pull(targetDir: string) {
+  public async pull(targetDir: string): Promise<void> {
     const { projectId, currentBranch } = await this.#meta.loadConfig();
 
     if (!projectId || !currentBranch) {
@@ -140,8 +151,8 @@ export default class VTClient {
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
-   * @param targetDir - The directory to check status for.
-   * @returns A StatusResult object containing categorized files.
+   * @param {string} targetDir - The directory to check status for.
+   * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
   public async status(targetDir: string): Promise<StatusResult> {
     const { projectId, currentBranch } = await this.#meta.loadConfig();

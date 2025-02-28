@@ -1,7 +1,7 @@
-import { assertEquals } from "jsr:@std/assert";
-import { join } from "jsr:@std/path";
 import { clone } from "./clone.ts";
 import { getTestDir } from "~/vt/git/utils.ts";
+import * as path from "@std/path";
+import { assertEquals } from "@std/assert";
 
 export interface ExpectedProjectInode {
   path: string;
@@ -36,7 +36,7 @@ export async function verifyProjectStructure(
 
   // Check all expected files/directories exist with correct properties
   for (const inode of expectedInodes) {
-    const fullPath = join(basePath, inode.path);
+    const fullPath = path.join(basePath, inode.path);
 
     const stat = await Deno.stat(fullPath);
     const isCorrectType = inode.type === "file"
@@ -104,16 +104,16 @@ Deno.test({
         type: "directory",
       },
       {
-        path: join("thoughtfulPeachPrimate", "philosophicalBlueWolf"),
+        path: path.join("thoughtfulPeachPrimate", "philosophicalBlueWolf"),
         type: "directory",
       },
       {
-        path: join("thoughtfulPeachPrimate", "clearAquamarineSmelt.C.tsx"),
+        path: path.join("thoughtfulPeachPrimate", "clearAquamarineSmelt.C.tsx"),
         type: "file",
         content: "",
       },
       {
-        path: join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
+        path: path.join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
         type: "file",
         content: "",
       },

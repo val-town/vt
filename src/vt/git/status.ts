@@ -1,8 +1,7 @@
 import sdk from "~/sdk.ts";
-import { basename, dirname, join, relative } from "jsr:@std/path";
-import { walk } from "jsr:@std/fs/walk";
 import { withoutValExtension } from "~/vt/git/paths.ts";
-import { globToRegExp } from "@std/path/glob-to-regexp";
+import * as fs from "@std/fs";
+import * as path from "@std/path";
 
 const STAT_PROMISES_BATCH_SIZE = 50;
 
@@ -19,15 +18,17 @@ export interface StatusResult {
 }
 
 /**
- * Scans a directory and determines the status of all files compared to the Val Town project.
+ * Scans a directory and determines the status of all files compared to the Val
+ * Town project on the website. Reports status for files as modified, not
+ * modified, deleted, or created.
  *
- * @param args The arguments for the status operation.
- * @param args.targetDir The directory to scan for changes.
- * @param args.projectId The Val Town project ID.
- * @param args.branchId Optional branch ID to check against.
- * @param args.ignoreGlobs Glob patterns for files to ignore.
+ * @param args Options for status operation.
+ * @param {string} args.targetDir The directory to scan for changes.
+ * @param {string} args.projectId The Val Town project ID.
+ * @param {string} args.branchId Optional branch ID to check against.
+ * @param {string} args.ignoreGlobs Glob patterns for files to ignore.
  *
- * @returns A promise that resolves to a StatusResult object containing categorized files.
+ * @returns Promise that resolves to a StatusResult object containing categorized files.
  */
 export async function status({
   targetDir,
@@ -49,7 +50,7 @@ export async function status({
 
   // Convert ignore globs to RegExp patterns
   const ignorePatterns = ignoreGlobs.map((glob) =>
-    globToRegExp(glob, { extended: true, globstar: true })
+    path.globToRegExp(glob, { extended: true, globstar: true })
   );
 
   // Get all files
@@ -124,15 +125,15 @@ async function isFileModified(
 ): Promise<boolean> {
   const projectFileContent = await sdk.projects.files.content(
     projectId,
-    encodeURIComponent(join(
-      dirname(cleanPath),
-      withoutValExtension(basename(cleanPath)),
+    encodeURIComponent(path.join(
+      path.dirname(cleanPath),
+      withoutValExtension(path.basename(cleanPath)),
     )),
   );
 
   // For some reason the local paths seem to have an extra newline
   const localFileContent = (await Deno.readTextFile(
-    join(targetDir, originalPath),
+    path.join(targetDir, originalPath),
   )).slice(0, -1);
 
   return projectFileContent !== localFileContent;
@@ -172,14 +173,14 @@ async function getLocalFiles(
   const files = new Map<string, { originalPath: string; modTime: number }>();
   const statPromises: Promise<void>[] = [];
 
-  for await (const entry of walk(targetDir)) {
+  for await (const entry of fs.walk(targetDir)) {
     // Skip directories, we don't track directories themselves as objects
     if (entry.isDirectory) {
       continue;
     }
 
     // Check  if this is on the ignore list
-    const relativePath = relative(targetDir, entry.path);
+    const relativePath = path.relative(targetDir, entry.path);
     if (shouldIgnorePath(relativePath, ignorePatterns)) {
       continue;
     }
