@@ -1,9 +1,9 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({
-  bearerToken: Deno.env.get("VAL_TOWN_BEARER_TOKEN")!,
+  bearerToken: Deno.env.get(API_KEY_KEY)!,
 });
 
 export async function defaultBranchId(projectId: string): Promise<string> {
@@ -22,7 +22,7 @@ export async function branchIdToName(
   // branch. This seems to be a bug, so we make a direct API call as a somewhat
   // hacky solution.
 
-  const bearerToken = Deno.env.get("VAL_TOWN_BEARER_TOKEN")!;
+  const bearerToken = Deno.env.get(API_KEY_KEY)!;
 
   const response = await fetch(
     `https://api.val.town/v1/projects/${projectId}/branches?limit=100`,
