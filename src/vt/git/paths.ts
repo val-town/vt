@@ -5,7 +5,7 @@ export const VAL_TYPE_EXTENSIONS: Record<
   "script": { abbreviated: "S", standard: "script" },
   "http": { abbreviated: "H", standard: "http" },
   "email": { abbreviated: "E", standard: "email" },
-  "interval": { abbreviated: "C", standard: "interval" },
+  "interval": { abbreviated: "C", standard: "cron" },
 };
 
 type ValType = keyof typeof VAL_TYPE_EXTENSIONS;
