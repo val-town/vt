@@ -3,7 +3,7 @@ import { user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import { isDirectoryEmpty } from "~/utils.ts";
-import VTClient from "~/vt/vt/mod.ts";
+import VTClient from "~/vt/vt/VTClient.ts";
 import * as styles from "~/cmd/styling.ts";
 import { colors } from "@cliffy/ansi/colors";
 import Kia from "kia";

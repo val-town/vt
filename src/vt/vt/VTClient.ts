@@ -1,7 +1,7 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import sdk, { branchIdToName } from "~/sdk.ts";
-import VTMeta from "~/vt/vt/Meta.ts";
+import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
 
@@ -18,7 +18,7 @@ const DEFAULT_IGNORE_PATTERNS: string[] = [
  * With a VT you can do things like clone a val town project, or pull/push a
  * val town project.
  */
-export default class VTClient {
+export default class VT {
   private meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
@@ -47,7 +47,7 @@ export default class VTClient {
     projectName: string,
     version: number = -1,
     branchName: string = DEFAULT_BRANCH_NAME,
-  ): Promise<VTClient> {
+  ): Promise<VT> {
     const projectId = await sdk.alias.username.projectName.retrieve(
       username,
       projectName,
@@ -65,7 +65,7 @@ export default class VTClient {
         (await sdk.projects.branches.retrieve(projectId, branchId)).version;
     }
 
-    const vt = new VTClient(rootPath);
+    const vt = new VT(rootPath);
 
     try {
       await Deno.stat(vt.meta.configFilePath);
@@ -89,10 +89,10 @@ export default class VTClient {
    * Loads the configuration from the `.vt` folder in the given directory.
    *
    * @param {string} rootPath - The root path of the existing project.
-   * @returns {Promise<VTClient>} An instance of VTClient initialized from the existing config.
+   * @returns {Promise<VT>} An instance of VTClient initialized from the existing config.
    */
-  public static from(rootPath: string): VTClient {
-    return new VTClient(rootPath);
+  public static from(rootPath: string): VT {
+    return new VT(rootPath);
   }
 
   /**
