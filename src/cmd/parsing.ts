@@ -22,4 +22,3 @@ export function parseProjectUri(projectUri: string, currentUsername: string) {
 
   return { ownerName, projectName };
 }
-
