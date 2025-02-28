@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert";
 import { join } from "jsr:@std/path";
 import { clone } from "./clone.ts";
-import { getTestDir } from "~/vt/lib/git/utils.ts";
+import { getTestDir } from "~/vt/git/utils.ts";
 import { walk } from "@std/fs/walk";
 
 export interface ExpectedProjectInode {
@@ -86,12 +86,14 @@ Deno.test({
     // https://www.val.town/x/wolf/vtCliTestProj
     const projectId = "b95fe488-f4de-11ef-97f1-569c3dd06744";
     const branchId = "b9602cf4-f4de-11ef-97f1-569c3dd06744";
+    const version = 8;
 
     // Do the clone
     await clone({
       targetDir: testDir,
       projectId,
       branchId,
+      version,
     });
 
     // This is what we should get (we know apriori)

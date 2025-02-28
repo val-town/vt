@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import manifest from "../../deno.json" with { type: "json" };
-import { cloneCmd } from "~/cmd/git.ts";
+import { cloneCmd, pullCmd, statusCmd } from "~/cmd/git.ts";
 
 const cmd = new Command()
   .name("vt")
@@ -10,5 +10,7 @@ const cmd = new Command()
   );
 
 cmd.command("clone", cloneCmd);
+cmd.command("pull", pullCmd);
+cmd.command("status", statusCmd);
 
 export { cmd };

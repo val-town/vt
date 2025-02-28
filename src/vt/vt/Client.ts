@@ -1,21 +1,15 @@
-import { z } from "zod";
-
-// Define the zod schema for the configuration
-const ConfigSchema = z.object({
-  projectId: z.string(),
-  currentBranch: z.string(),
-  version: z.number(),
-});
-
-// Infer the TypeScript type from the zod schema
-type ConfigJsonType = z.infer<typeof ConfigSchema>;
-
-// Now, use ConfigJsonType in the VTClient class as previously defined
-
-import { clone } from "~/vt/lib/git/clone.ts";
+import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import sdk, { branchIdToName } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/Meta.ts";
+import { pull } from "~/vt/git/pull.ts";
+import { status, StatusResult } from "~/vt/git/status.ts";
+
+const DEFAULT_IGNORE_PATTERNS: string[] = [
+  ".vtignore",
+  ".vt/**",
+  ".vt",
+];
 
 /**
  * The VT class is an abstraction on a VT directory that exposes functionality
@@ -25,10 +19,22 @@ import VTMeta from "~/vt/vt/Meta.ts";
  * val town project.
  */
 export default class VTClient {
-  private configFolder: VTMeta;
+  private meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
-    this.configFolder = new VTMeta(rootPath);
+    this.meta = new VTMeta(rootPath);
+  }
+
+  /**
+   * Gets the list of globs for files that should be ignored by VT.
+   *
+   * @returns {Promise<RegExp[]>} The list of globs to ignore.
+   */
+  private async getIgnoreGlobs(): Promise<string[]> {
+    return [
+      ...DEFAULT_IGNORE_PATTERNS,
+      ...(await this.meta.loadIgnoreGlobs()),
+    ];
   }
 
   /**
@@ -62,16 +68,16 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.configFolder.configFilePath);
+      await Deno.stat(vt.meta.configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.configFolder.saveConfig({
+        await vt.meta.saveConfig({
           projectId,
           currentBranch: branchId,
           version: version,
         });
       } else {
-        console.error("Error during initialization:", error);
+        throw error;
       }
     }
 
@@ -79,12 +85,23 @@ export default class VTClient {
   }
 
   /**
-   * Clone a val town project into a directory using the current configuration.
+   * Static method to create a VTClient instance from an existing project directory.
+   * Loads the configuration from the `.vt` folder in the given directory.
+   *
+   * @param {string} rootPath - The root path of the existing project.
+   * @returns {Promise<VTClient>} An instance of VTClient initialized from the existing config.
+   */
+  public static from(rootPath: string): VTClient {
+    return new VTClient(rootPath);
+  }
+
+  /**
+   * Clone val town project into a directory using the current configuration.
    *
    * @param targetDir - The directory to clone the project into.
    */
   public async clone(targetDir: string) {
-    const { projectId, currentBranch, version } = await this.getConfig();
+    const { projectId, currentBranch, version } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
@@ -96,27 +113,51 @@ export default class VTClient {
       projectId,
       branchId: currentBranch,
       version,
+      ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }
 
   /**
-   * Loads the configuration from the `.vt` folder.
+   * Pull val town project into a vt directory. Updates all the files in the
+   * directory. If the contents are dirty (files have been updated but not
+   * pushed) then this fails.
    *
-   * @returns {Promise<ConfigJsonType>} The vt project configuration.
+   * @param targetDir - The directory to pull the project into.
    */
-  public async getConfig(): Promise<ConfigJsonType> {
-    const config = await this.configFolder.getConfig();
-    // Validate the config using zod
-    return ConfigSchema.parse(config);
+  public async pull(targetDir: string) {
+    const { projectId, currentBranch } = await this.meta.loadConfig();
+
+    if (!projectId || !currentBranch) {
+      throw new Error("Configuration not loaded");
+    }
+
+    // Use the provided pull function
+    await pull({
+      targetDir,
+      projectId,
+      branchId: currentBranch,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+    });
   }
 
   /**
-   * Updates the schema file in the `.vt` folder.
-   * Writes the provided schema object to the schema JSON file.
+   * Get the status of files in the project directory compared to the Val Town project.
    *
-   * @param {ConfigJsonType} updatedSchema - The new vt project configuration.
+   * @param targetDir - The directory to check status for.
+   * @returns A StatusResult object containing categorized files.
    */
-  public async updateConfig(updatedSchema: ConfigJsonType): Promise<void> {
-    await this.configFolder.saveConfig(updatedSchema);
+  public async status(targetDir: string): Promise<StatusResult> {
+    const { projectId, currentBranch } = await this.meta.loadConfig();
+
+    if (!projectId || !currentBranch) {
+      throw new Error("Configuration not loaded");
+    }
+
+    return status({
+      targetDir,
+      projectId,
+      branchId: currentBranch,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+    });
   }
 }

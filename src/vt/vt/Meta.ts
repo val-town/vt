@@ -38,7 +38,7 @@ export default class VTMeta {
    * @returns A promise that resolves with the parsed configuration data.
    * @throws Will throw an error if the file cannot be read or parsed.
    */
-  public async getConfig(): Promise<z.infer<typeof VTMetaConfigJsonSchema>> {
+  public async loadConfig(): Promise<z.infer<typeof VTMetaConfigJsonSchema>> {
     const data = await this.readFile(this.configFilePath);
     const parsedData = JSON.parse(data);
 
@@ -73,26 +73,29 @@ export default class VTMeta {
   }
 
   /**
-   * Loads the ignore list from ignore files.
+   * Loads the ignore list list of globs from ignore files.
    *
-   * @param ignoreFiles - An array of file names to load ignore patterns from.
-   * @returns A promise that resolves when the ignore list has been loaded.
+   * @param ignoreGlobs An array of file names to load ignore globs from.
+   * @returns A promise that resolves with a list of glob strings.
    */
-  private async getIgnorePredicate(
-    ignoreFiles: string[] = [CONFIG_IGNORE_FILE],
-  ): Promise<() => boolean> {
-    const ignoreList: RegExp[] = [];
+  public async loadIgnoreGlobs(): Promise<string[]> {
+    const ignoreGlobs: string[] = [];
 
-    for (const file of ignoreFiles) {
+    for (const file of ignoreGlobs) {
       try {
+        // Read the ignore file
         const content = await this.readFile(file);
-        const lines = content.split("\n").map((line) => line.trim()).filter((
-          line,
-        ) => line && !line.startsWith("#"));
-        ignoreList.push(...lines.map((pattern) => new RegExp(pattern)));
+
+        const lines = content
+          .split("\n") // split by newline
+          .map((line) => line.trim()) // get rid of whitespace
+          .filter((line) => line && !line.startsWith("#")); // commented lines
+
+        // Add all the processed lines from this file to the ignore globs list
+        lines.forEach((line) => ignoreGlobs.push(line));
       } catch (error) {
         if (error instanceof Deno.errors.NotFound) {
-          console.error(`The file ${file} was not found`);
+          console.log(`The file ${file} was not found`);
         } else {
           throw error;
         }
@@ -100,7 +103,7 @@ export default class VTMeta {
       }
     }
 
-    return () => ignoreList.every((pattern) => pattern.test);
+    return ignoreGlobs;
   }
 
   /**
@@ -113,9 +116,7 @@ export default class VTMeta {
     try {
       return await Deno.readTextFile(path);
     } catch (error) {
-      console.error("Error loading internal vt config file:", error);
       throw error;
     }
   }
-
 }
