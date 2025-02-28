@@ -4,7 +4,6 @@ import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import * as styles from "~/cmd/styling.ts";
-import { colors } from "@cliffy/ansi/colors";
 import Kia from "kia";
 import { checkDirectory } from "~/utils.ts";
 import { join } from "@std/path/join";
@@ -80,27 +79,6 @@ const pullCmd = new Command()
       }
     }
   });
-
-export function formatStatus(path: string, status: string): string {
-  const statusColors: Record<string, (text: string) => string> = {
-    modified: colors.yellow,
-    created: colors.green,
-    deleted: colors.red,
-    renamed: colors.blue,
-    not_modified: colors.gray,
-  };
-
-  const statusPrefix: Record<string, string> = {
-    modified: "M",
-    created: "A",
-    deleted: "D",
-    renamed: "R",
-    not_modified: " ",
-  };
-
-  const colorFn = statusColors[status] || colors.white;
-  return `${colorFn(statusPrefix[status] || " ")} ${path}`;
-}
 
 const statusCmd = new Command()
   .name("status")

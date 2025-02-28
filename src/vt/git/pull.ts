@@ -35,8 +35,7 @@ export async function pull({
   // Check if directory is dirty (has any changes) using `status`'s result
   const isDirty = statusResult.modified.length > 0 ||
     statusResult.created.length > 0 ||
-    statusResult.deleted.length > 0 ||
-    statusResult.renamed.length > 0;
+    statusResult.deleted.length > 0;
 
   if (isDirty) {
     throw new Error(

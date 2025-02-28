@@ -16,7 +16,6 @@ export interface StatusResult {
   not_modified: FileStatus[];
   deleted: FileStatus[];
   created: FileStatus[];
-  renamed: FileStatus[];
 }
 
 /**
@@ -46,7 +45,6 @@ export async function status({
     not_modified: [],
     deleted: [],
     created: [],
-    renamed: [],
   };
 
   // Convert ignore globs to RegExp patterns
