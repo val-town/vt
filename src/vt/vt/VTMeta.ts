@@ -39,7 +39,7 @@ export default class VTMeta {
    * @throws Will throw an error if the file cannot be read or parsed.
    */
   public async loadConfig(): Promise<z.infer<typeof VTMetaConfigJsonSchema>> {
-    const data = await this.readFile(this.configFilePath);
+    const data = await Deno.readTextFile(this.configFilePath);
     const parsedData = JSON.parse(data);
 
     const result = VTMetaConfigJsonSchema.safeParse(parsedData);
@@ -84,7 +84,7 @@ export default class VTMeta {
     for (const file of ignoreGlobs) {
       try {
         // Read the ignore file
-        const content = await this.readFile(file);
+        const content = await Deno.readTextFile(file);
 
         const lines = content
           .split("\n") // split by newline
@@ -104,19 +104,5 @@ export default class VTMeta {
     }
 
     return ignoreGlobs;
-  }
-
-  /**
-   * Reads a file and returns its content.
-   *
-   * @param path - The path to the file.
-   * @returns A promise that resolves with the file content.
-   */
-  private async readFile(path: string): Promise<string> {
-    try {
-      return await Deno.readTextFile(path);
-    } catch (error) {
-      throw error;
-    }
   }
 }
