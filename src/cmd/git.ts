@@ -1,40 +1,65 @@
 import { Command } from "@cliffy/command";
 import { user } from "~/sdk.ts";
-import VT from "~/vt/Vt.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { parseProjectUri } from "~/cmd/parsing.ts";
+import { isDirectoryEmpty } from "~/utils.ts";
+import VTClient from "~/vt/vt/mod.ts";
+
+async function checkDirectory(rootPath: string) {
+  try {
+    // Check if the directory exists
+    const stat = await Deno.lstat(rootPath);
+
+    // Ensure it's a directory
+    if (!stat.isDirectory) {
+      throw new Error(`Path ${rootPath} exists but is not a directory.`);
+    }
+
+    // Check if it's empty
+    if (!(await isDirectoryEmpty(rootPath))) {
+      throw new Error(
+        `Destination path ${rootPath} already exists and is not an empty directory.`,
+      );
+    }
+  } catch (error) {
+    // If the error is about the directory not existing, ignore it
+    if (!(error instanceof Deno.errors.NotFound)) {
+      throw error;
+    }
+  }
+}
 
 const cloneCmd = new Command()
   .name("clone")
   .description("Clone a val town project")
   .arguments("<projectUri:string> [cloneDir:string] [branchName:string]")
   .action(
-    async (_, projectUri: string, cloneDir?: string, branchName?: string) => {
-      // Split the project URI into parts
-      const parts = projectUri.split("/");
+    async (_, projectUri: string, rootPath?: string, branchName?: string) => {
+      const { ownerName, projectName } = parseProjectUri(
+        projectUri,
+        user.username!,
+      );
 
-      let ownerName: string;
-      let projectName: string;
-
-      if (parts.length === 1) {
-        // Assume the user is the owner if no owner is provided
-        ownerName = user.username!;
-        projectName = parts[0];
-      } else if (parts.length === 2) {
-        [ownerName, projectName] = parts;
-      } else {
-        throw new Error("Invalid project URI");
-      }
-
-      // Ensure the user is cloning their own project
       if (user.username !== ownerName) {
         throw new Error("You can only clone your own projects");
       }
 
-      cloneDir = cloneDir || Deno.cwd();
+      rootPath = rootPath || Deno.cwd();
       branchName = branchName || DEFAULT_BRANCH_NAME;
 
-      // Use the updated VT.clone method with the branch ID
-      await VT.clone(cloneDir, ownerName, projectName, branchName);
+      await checkDirectory(rootPath);
+
+      // Direct call to VTClient.init
+      const vt = await VTClient.init(
+        rootPath,
+        ownerName,
+        projectName,
+        undefined,
+        branchName,
+      );
+
+      await vt.clone(rootPath);
+      console.log(`Project cloned successfully to ${rootPath}`);
     },
   );
 

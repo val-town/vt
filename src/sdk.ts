@@ -14,14 +14,6 @@ export async function defaultBranchId(projectId: string): Promise<string> {
   throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 }
 
-export async function myProjectNameToId(projectName: string): Promise<string> {
-  for await (const project of sdk.me.projects.list({})) {
-    if (project.name == projectName) return project.id;
-  }
-
-  throw new Error(`Project "${projectName}" not found`);
-}
-
 export async function branchIdToName(
   projectId: string,
   branchName: string,
