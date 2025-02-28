@@ -2,11 +2,11 @@ import sdk from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 /**
- * Retrieves the ID of the main branch for a given project.
+ * Retrieves the ID of the default branch for a given project.
  *
- * @param projectId - The ID of the project to retrieve the main branch from.
- * @returns A promise that resolves to the branch ID as a string.
- * @throws An error if the main branch is not found.
+ * @param {string} projectId - ID of project
+ * @returns Promise that resolves to the branch ID as a string.
+ * @throws Error if the main branch is not found.
  */
 export async function getMainBranchId(projectId: string): Promise<string> {
   for await (const branch of sdk.projects.branches.list(projectId, {})) {

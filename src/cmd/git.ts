@@ -2,41 +2,11 @@ import { Command } from "@cliffy/command";
 import { user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
-import { isDirectoryEmpty } from "~/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import * as styles from "~/cmd/styling.ts";
 import { colors } from "@cliffy/ansi/colors";
 import Kia from "kia";
-
-function getActiveDir(givenDir: string): string {
-  return givenDir || Deno.cwd();
-}
-
-async function checkDirectory(rootPath: string) {
-  try {
-    try {
-      const stat = await Deno.lstat(rootPath);
-
-      if (!stat.isDirectory) {
-        throw new Error(`Path ${rootPath} exists but is not a directory.`);
-      }
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        await Deno.mkdir(rootPath, { recursive: true });
-      } else {
-        throw error;
-      }
-    }
-
-    if (!(await isDirectoryEmpty(rootPath))) {
-      throw new Error(
-        `Destination path ${rootPath} already exists and is not an empty directory.`,
-      );
-    }
-  } catch (error) {
-    throw error;
-  }
-}
+import { checkDirectory, getActiveDir } from "~/cmd/utils.ts";
 
 const cloneCmd = new Command()
   .name("clone")

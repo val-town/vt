@@ -10,7 +10,7 @@ import { status } from "~/vt/git/status.ts";
  * @param args.targetDir The directory where the project files will be updated.
  * @param args.projectId The directory path of the local project that needs to be updated.
  * @param args.branchId The branch ID from which to pull the latest changes.
- * @param args.ignoreGlobs A list of glob patterns for files to exclude from the pull operation.
+ * @param args.ignoreGlobs A list of glob patterns for files to exclude.
  *
  * @returns A promise that resolves when the pull operation is complete.
  */
@@ -60,6 +60,8 @@ export async function pull({
       }
     }
   }
+
+  // TODO: handle renames
 
   // Get the latest version number
   const latestVersion = (await sdk.projects.branches.retrieve(

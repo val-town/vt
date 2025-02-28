@@ -1,14 +1,10 @@
+import { join } from "@std/path";
 import z from "zod";
+import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 
 export const CONFIG_FILE_NAME = "config.json";
 export const CONFIG_FOLDER_NAME = ".vt";
 export const CONFIG_IGNORE_FILE = ".vtignore";
-
-export const VTMetaConfigJsonSchema = z.object({
-  projectId: z.string().uuid(),
-  currentBranch: z.string().uuid(),
-  version: z.number().gte(0),
-});
 
 /**
  * ConfigFolder class for managing the .vt/config.json configuration file.
@@ -29,7 +25,7 @@ export default class VTMeta {
    * @returns The full file path as a string.
    */
   public get configFilePath() {
-    return `${this.rootPath}/${CONFIG_FOLDER_NAME}/${CONFIG_FILE_NAME}`;
+    return join(this.rootPath, CONFIG_FOLDER_NAME, CONFIG_FILE_NAME);
   }
 
   /**
@@ -62,7 +58,7 @@ export default class VTMeta {
     config: z.infer<typeof VTMetaConfigJsonSchema>,
   ): Promise<void> {
     try {
-      await Deno.mkdir(`${this.rootPath}/${CONFIG_FOLDER_NAME}`, {
+      await Deno.mkdir(join(this.rootPath, CONFIG_FOLDER_NAME), {
         recursive: true,
       });
       const data = JSON.stringify(config, null, 2);

@@ -36,6 +36,7 @@ export async function branchIdToName(
   }
 
   const data = await response.json();
+  // deno-lint-ignore no-explicit-any
   const branch = data.data.find((b: any) => b.name === branchName);
 
   if (!branch) {

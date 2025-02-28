@@ -4,6 +4,8 @@ import { walk } from "jsr:@std/fs/walk";
 import { withoutValExtension } from "~/vt/git/paths.ts";
 import { globToRegExp } from "@std/path/glob-to-regexp";
 
+const STAT_PROMISES_BATCH_SIZE = 50;
+
 export interface FileStatus {
   path: string;
   status: "modified" | "not_modified" | "deleted" | "created" | "renamed";
@@ -104,8 +106,6 @@ export async function status({
 
   // Check for files that exist in project but not locally
   for (const [projectPath, _] of projectFiles.entries()) {
-    if (!projectPath) continue; // Skip empty paths
-
     if (!localFiles.has(projectPath)) {
       result.deleted.push({
         path: projectPath,
@@ -113,6 +113,8 @@ export async function status({
       });
     }
   }
+
+  // TODO: handle renames
 
   return result;
 }
@@ -207,7 +209,7 @@ async function getLocalFiles(
     );
 
     // Process stats in batches of 50
-    if (statPromises.length >= 50) {
+    if (statPromises.length >= STAT_PROMISES_BATCH_SIZE) {
       await Promise.all(statPromises);
       statPromises.length = 0;
     }

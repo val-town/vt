@@ -1,11 +1,17 @@
 /**
  * Parses the project URI to extract the owner name and project name.
- * @param projectUri - The project URI provided by the user.
- * @param currentUsername - The current user's username.
+ *
+ * Assumes a project URI is of the format username/projectName
+ *
+ * @param {string} projectUri - The project URI provided by the user.
+ * @param {string} currentUsername - The current user's username.
  * @returns An object containing the ownerName and projectName.
  * @throws An error if the URI format is invalid.
  */
-export function parseProjectUri(projectUri: string, currentUsername: string) {
+export function parseProjectUri(
+  projectUri: string,
+  currentUsername: string,
+): { ownerName: string; projectName: string } {
   const parts = projectUri.split("/");
 
   let ownerName: string;
