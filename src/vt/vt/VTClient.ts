@@ -12,13 +12,13 @@ const DEFAULT_IGNORE_PATTERNS: string[] = [
 ];
 
 /**
- * The VT class is an abstraction on a VT directory that exposes functionality
- * for git command executation on the folder.
+ * The VTClient class is an abstraction on a VT directory that exposes
+ * functionality for git command executation on the folder.
  *
- * With a VT you can do things like clone a val town project, or pull/push a
- * val town project.
+ * With a VTClient you can do things like clone a val town project, or
+ * pull/push a val town project.
  */
-export default class VT {
+export default class VTClient {
   private meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
@@ -47,7 +47,7 @@ export default class VT {
     projectName: string,
     version: number = -1,
     branchName: string = DEFAULT_BRANCH_NAME,
-  ): Promise<VT> {
+  ): Promise<VTClient> {
     const projectId = await sdk.alias.username.projectName.retrieve(
       username,
       projectName,
@@ -59,13 +59,14 @@ export default class VT {
 
     const branchId = await branchIdToName(projectId, branchName);
 
-    // If they choose -1 as the version then change to use the most recent version
+    // If they choose -1 as the version then change to use the most recent
+    // version
     if (version == -1) {
       version =
         (await sdk.projects.branches.retrieve(projectId, branchId)).version;
     }
 
-    const vt = new VT(rootPath);
+    const vt = new VTClient(rootPath);
 
     try {
       await Deno.stat(vt.meta.configFilePath);
@@ -85,14 +86,15 @@ export default class VT {
   }
 
   /**
-   * Static method to create a VTClient instance from an existing project directory.
-   * Loads the configuration from the `.vt` folder in the given directory.
+   * Static method to create a VTClient instance from an existing project
+   * directory. Loads the configuration from the `.vt` folder in the given
+   * directory.
    *
    * @param {string} rootPath - The root path of the existing project.
-   * @returns {Promise<VT>} An instance of VTClient initialized from the existing config.
+   * @returns {Promise<VTClient>} An instance of VTClient initialized from the existing config.
    */
-  public static from(rootPath: string): VT {
-    return new VT(rootPath);
+  public static from(rootPath: string): VTClient {
+    return new VTClient(rootPath);
   }
 
   /**
@@ -141,7 +143,8 @@ export default class VT {
   }
 
   /**
-   * Get the status of files in the project directory compared to the Val Town project.
+   * Get the status of files in the project directory compared to the Val Town
+   * project.
    *
    * @param targetDir - The directory to check status for.
    * @returns A StatusResult object containing categorized files.
