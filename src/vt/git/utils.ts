@@ -1,5 +1,6 @@
 import sdk from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { status, StatusResult } from "~/vt/git/status.ts";
 
 /**
  * Retrieves the ID of the default branch for a given project.
@@ -33,5 +34,19 @@ export async function getTestDir(
   return {
     testDir,
     cleanup: async () => await Deno.remove(testDir, { recursive: true }),
+  };
+}
+
+/**
+ * Check if the target directory is dirty (has unpushed local changes).
+ *
+ * @param {StatusResult} statusResult Result of a status operation.
+ */
+export function isDirty(statusResult: StatusResult) {
+  return {
+    dirty: statusResult.modified.length > 0 ||
+      statusResult.created.length > 0 ||
+      statusResult.deleted.length > 0,
+    statusResult,
   };
 }

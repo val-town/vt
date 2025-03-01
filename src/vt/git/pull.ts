@@ -2,6 +2,7 @@ import sdk from "~/sdk.ts";
 import { clone } from "~/vt/git/clone.ts";
 import { status } from "~/vt/git/status.ts";
 import * as path from "@std/path";
+import { isDirty } from "~/vt/git/utils.ts";
 
 /**
  * Pulls latest changes from a val town project into a vt folder.
@@ -34,12 +35,7 @@ export async function pull({
     ignoreGlobs,
   });
 
-  // Check if directory is dirty (has any changes) using `status`'s result
-  const isDirty = statusResult.modified.length > 0 ||
-    statusResult.created.length > 0 ||
-    statusResult.deleted.length > 0;
-
-  if (isDirty) {
+  if (isDirty(statusResult)) {
     throw new Error(
       "Working directory dirty. Please back up or discard local changes before pulling.",
     );
