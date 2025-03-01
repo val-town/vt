@@ -2,6 +2,7 @@ import sdk, { defaultBranchId } from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { withValExtension } from "~/vt/git/paths.ts";
 import { removeEmptyDirs } from "~/utils.ts";
+import { forNonIgnored, shouldIgnorePath } from "~/vt/git/utils.ts";
 import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
 
@@ -32,32 +33,34 @@ export async function clone(
   },
 ): Promise<void> {
   const resolvedBranchId = branchId || await defaultBranchId(projectId);
-  const ignorePatterns = (ignoreGlobs || []).map((glob) =>
-    path.globToRegExp(glob)
-  );
   const files = await sdk.projects.files
     .list(projectId, { recursive: true, branch_id: resolvedBranchId, version });
 
   // Create project directory if it doesn't exist, otherwise noop
   await ensureDir(targetDir);
 
-  // Process all files and directories
-  for (const file of files.data) {
-    // Skip if we have a filter list and this file is not in it
-    if (ignoreGlobs && ignoreGlobs.includes(file.path)) {
-      continue;
-    }
+  // Process all files and directories. We call forAllIgnored with the function
+  // we want to run on each file (which will only apply our function to non
+  // ignored files). Then we run it on all the files.
+  files.data.forEach(forNonIgnored(
+    // Function to run on files (if they aren't ignored)
+    async (
+      file: Valtown.Projects.FileListResponse,
+      ignorePatterns: RegExp[],
+    ) => {
+      // Skip if the file matches any ignore pattern
+      if (shouldIgnorePath(file.path, ignorePatterns)) return;
 
-    // Skip if the file matches any ignore pattern
-    if (ignorePatterns.some((pattern) => pattern.test(file.path))) continue;
-
-    const fullPath = path.join(targetDir, file.path);
-    if (file.type === "directory") {
-      await createDirectory(fullPath);
-    } else {
-      await createFile(fullPath, projectId, file);
-    }
-  }
+      const fullPath = path.join(targetDir, file.path);
+      if (file.type === "directory") {
+        await createDirectory(fullPath);
+      } else {
+        await createFile(fullPath, projectId, file);
+      }
+    },
+    // The ignore patterns
+    ignoreGlobs || [],
+  ));
 
   removeEmptyDirs(targetDir);
 }
