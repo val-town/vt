@@ -32,4 +32,3 @@ export const VAL_TYPE_EXTENSIONS: Record<
   "email": { abbreviated: "E", standard: "email" },
   "interval": { abbreviated: "C", standard: "cron" },
 };
-
