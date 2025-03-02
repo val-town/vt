@@ -1,4 +1,4 @@
-import { clone } from "./clone.ts";
+import { clone } from "~/vt/git/clone.ts";
 import { getTestDir } from "~/vt/git/utils.ts";
 import * as path from "@std/path";
 import { assertEquals } from "@std/assert";

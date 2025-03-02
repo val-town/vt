@@ -1,6 +1,7 @@
 import sdk from "~/sdk.ts";
+import type ValTown from "@valtown/sdk";
 import { withoutValExtension } from "~/vt/git/paths.ts";
-import { createIgnorePatterns, forNonIgnored, shouldIgnorePath } from "~/vt/git/utils.ts";
+import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 
@@ -138,18 +139,12 @@ async function getProjectFiles(
     recursive: true,
   });
 
-  const processFile = (file: any, ignorePatterns: RegExp[]) => {
-    if (file.type === "directory" || shouldIgnorePath(file.path, ignorePatterns)) {
-      return null;
-    }
-    return [file.path, new Date(file.updatedAt).getTime()];
-  };
-
-  const filterNonNull = (entry: any) => entry !== null;
-  
   const processedFiles = projectFilesResponse.data
-    .map(forNonIgnored(processFile, ignoreGlobs))
-    .filter(filterNonNull);
+    .filter((file) => shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => file.type === "directory")
+    .map((file: ValTown.Projects.FileListResponse) => {
+      return [file.path, new Date(file.updatedAt).getTime()];
+    }) as [string, number][];
 
   return new Map(processedFiles);
 }
@@ -160,7 +155,6 @@ async function getLocalFiles(
 ): Promise<Map<string, { originalPath: string; modTime: number }>> {
   const files = new Map<string, { originalPath: string; modTime: number }>();
   const statPromises: Promise<void>[] = [];
-  const ignorePatterns = createIgnorePatterns(ignoreGlobs);
 
   const processEntry = async (entry: fs.WalkEntry) => {
     // Skip directories, we don't track directories themselves as objects
@@ -170,9 +164,7 @@ async function getLocalFiles(
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnorePath(relativePath, ignorePatterns)) {
-      return;
-    }
+    if (shouldIgnoreGlob(relativePath, ignoreGlobs)) return;
 
     try {
       const stat = await Deno.stat(entry.path);

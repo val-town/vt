@@ -2,6 +2,7 @@ import sdk from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
+import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
 
 /**
  * Retrieves the ID of the default branch for a given project.
@@ -16,47 +17,6 @@ export async function getMainBranchId(projectId: string): Promise<string> {
   }
 
   throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
-}
-
-/**
- * Creates RegExp patterns from glob patterns for ignoring files.
- *
- * @param {string[]} ignoreGlobs Array of glob patterns to convert
- * @returns {RegExp[]} Array of RegExp patterns
- */
-export function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
-  return ignoreGlobs.map((glob) =>
-    path.globToRegExp(glob, { extended: true, globstar: true })
-  );
-}
-
-/**
- * Checks if a path should be ignored based on ignore patterns.
- *
- * @param {string} filePath Path to check
- * @param {RegExp[]} ignorePatterns Array of RegExp patterns to test against
- * @returns {boolean} True if the path should be ignored
- */
-export function shouldIgnorePath(
-  filePath: string,
-  ignorePatterns: RegExp[],
-): boolean {
-  return ignorePatterns.some((pattern) => pattern.test(filePath));
-}
-
-/**
- * Helper that applies a function to non-ignored files.
- *
- * @param {Function} func Function to execute on non-ignored items
- * @param {string[]} ignoreGlobs Glob patterns for files to ignore
- * @returns {Function} New function you call with a file, which runs on the given file if the file isn't ignored.
- */
-export function forNonIgnored<T, U>(
-  func: (item: T, ignorePatterns: RegExp[]) => U,
-  ignoreGlobs: string[],
-): (item: T) => U {
-  const ignorePatterns = createIgnorePatterns(ignoreGlobs);
-  return (item: T) => func(item, ignorePatterns);
 }
 
 /**
@@ -77,6 +37,53 @@ export async function getTestDir(
     testDir,
     cleanup: async () => await Deno.remove(testDir, { recursive: true }),
   };
+}
+
+/**
+ * Creates a temporary directory and returns it with a cleanup function.
+ *
+ * @param {string} prefix Optional prefix for the temporary directory name
+ * @returns Promise that resolves to temporary directory path and cleanup function
+ */
+export async function withTempDir(
+  prefix: string = "vt_",
+): Promise<{ tempDir: string; cleanup: () => Promise<void> }> {
+  const tempDir = await Deno.makeTempDir({ prefix });
+
+  return {
+    tempDir,
+    cleanup: async () => {
+      try {
+        await Deno.remove(tempDir, { recursive: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    },
+  };
+}
+
+/**
+ * Removes contents from a directory while respecting ignore patterns.
+ *
+ * @param {string} directory Directory path to clean
+ * @param {string[]} ignoreGlobs Glob patterns for files to ignore
+ */
+export async function cleanDirectory(
+  directory: string,
+  ignoreGlobs: string[],
+): Promise<void> {
+  const filesToRemove = Deno.readDirSync(directory)
+    .filter((entry) => !shouldIgnoreGlob(entry.name, ignoreGlobs))
+    .map((entry) => ({
+      path: path.join(directory, entry.name),
+      isDirectory: entry.isDirectory,
+    }));
+
+  await Promise.all(
+    filesToRemove.map(({ path: entryPath, isDirectory }) =>
+      Deno.remove(entryPath, { recursive: isDirectory })
+    ),
+  );
 }
 
 /**
