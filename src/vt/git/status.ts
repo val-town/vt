@@ -138,12 +138,15 @@ async function getProjectFiles(
     recursive: true,
   });
 
-  const processedFiles = projectFilesResponse.data
-    .filter((file) => shouldIgnoreGlob(file.path, ignoreGlobs))
-    .filter((file) => file.type === "directory")
-    .map((file: ValTown.Projects.FileListResponse) => {
-      return [file.path, new Date(file.updatedAt).getTime()];
-    }) as [string, number][];
+  const files: ValTown.Projects.FileListResponse[] = [];
+  for await (const file of projectFilesResponse.data) files.push(file);
+
+  const processedFiles = files
+    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => file.type !== "directory")
+    .map((
+      file: ValTown.Projects.FileListResponse,
+    ) => [file.path, new Date(file.updatedAt).getTime()]) as [string, number][];
 
   return new Map(processedFiles);
 }
