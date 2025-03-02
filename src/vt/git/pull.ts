@@ -42,34 +42,27 @@ export async function pull({
   }
 
   // Remove all existing tracked files
-  const filesToRemove = [...statusResult.not_modified].map((file) =>
-    path.join(targetDir, file.path)
-  );
-
-  // Delete all the "tracked" files so we can pull. TODO: only delete files
-  // that haven't changed.
-  for (const filePath of filesToRemove) {
-    try {
-      await Deno.remove(filePath);
-    } catch (error) {
-      if (!(error instanceof Deno.errors.NotFound)) throw error;
-    }
-  }
-
-  // TODO: handle renames
-
-  // Get the latest version number
-  const latestVersion = (await sdk.projects.branches.retrieve(
-    projectId,
-    branchId,
-  )).version;
+  const removalPromises = statusResult.not_modified
+    .map((file) => path.join(targetDir, file.path))
+    .map(async (filePath) => {
+      try {
+        await Deno.remove(filePath);
+      } catch (error) {
+        if (!(error instanceof Deno.errors.NotFound)) throw error;
+      }
+    });
+  await Promise.all(removalPromises);
 
   // Clone fresh files from the project
   await clone({
     targetDir,
     projectId,
     branchId,
-    version: latestVersion,
+    version: await getLatestVersion(projectId, branchId),
     ignoreGlobs,
   });
+}
+
+async function getLatestVersion(projectId: string, branchId: string) {
+  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
 }

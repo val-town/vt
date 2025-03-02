@@ -77,6 +77,7 @@ export async function status({
           cleanPath,
           projectId,
         );
+
         if (isModified) {
           result.modified.push({
             path: cleanPath,
@@ -101,8 +102,6 @@ export async function status({
       });
     }
   }
-
-  // TODO: handle renames
 
   return result;
 }
@@ -158,31 +157,26 @@ async function getLocalFiles(
 
   const processEntry = async (entry: fs.WalkEntry) => {
     // Skip directories, we don't track directories themselves as objects
-    if (entry.isDirectory) {
-      return;
-    }
+    if (entry.isDirectory) return;
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
     if (shouldIgnoreGlob(relativePath, ignoreGlobs)) return;
 
-    try {
-      const stat = await Deno.stat(entry.path);
-      if (stat.mtime === null) {
-        throw new Error("File modification time is null");
-      }
+    // Stat the file to get the modification time
+    const stat = await Deno.stat(entry.path);
+    if (stat.mtime === null) {
+      throw new Error("File modification time is null");
+    }
 
-      // Store both the cleaned path and original path. We'll want access to
-      // the original (real) path for later when we're accessing mtimes.
-      const cleanedPath = withoutValExtension(relativePath);
-      if (cleanedPath) { // Only add non-empty paths
-        files.set(cleanedPath, {
-          originalPath: relativePath,
-          modTime: stat.mtime.getTime(),
-        });
-      }
-    } catch {
-      throw new Error(`Failed to stat file: ${entry.path}`);
+    // Store both the cleaned path and original path. We'll want access to
+    // the original (real) path for later when we're accessing mtimes.
+    const cleanedPath = withoutValExtension(relativePath);
+    if (cleanedPath) { // Only add non-empty paths
+      files.set(cleanedPath, {
+        originalPath: relativePath,
+        modTime: stat.mtime.getTime(),
+      });
     }
   };
 
