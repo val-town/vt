@@ -1,5 +1,5 @@
 import { clone } from "~/vt/git/clone.ts";
-import { getTestDir } from "~/vt/git/utils.ts";
+import { withTempDir } from "~/vt/git/utils.ts";
 import * as path from "@std/path";
 import { assertEquals } from "@std/assert";
 
@@ -71,7 +71,7 @@ Deno.test({
     net: true,
   },
   async fn() {
-    const { testDir, cleanup } = await getTestDir("clone");
+    const { tempDir, cleanup } = await withTempDir("vt_clone");
 
     // The project and branch IDs to test cloning
     // https://www.val.town/x/wolf/vtCliTestProj
@@ -81,7 +81,7 @@ Deno.test({
 
     // Do the clone
     await clone({
-      targetDir: testDir,
+      targetDir: tempDir,
       projectId,
       branchId,
       version,
@@ -121,7 +121,7 @@ Deno.test({
 
     // Now make sure we got what we wanted
     const structureValid = await verifyProjectStructure(
-      testDir,
+      tempDir,
       expectedInodes,
     );
     assertEquals(structureValid, true, "Project structure verification failed");

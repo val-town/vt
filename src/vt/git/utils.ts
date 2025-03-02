@@ -20,26 +20,6 @@ export async function getMainBranchId(projectId: string): Promise<string> {
 }
 
 /**
- * Create temporary directory for testing with a label.
- *
- * @param label A label to append to the temporary directory name.
- * @returns Promise that resolves to temporary directory and cleanup function.
- */
-export async function getTestDir(
-  label: string,
-): Promise<{ testDir: string; cleanup: () => void }> {
-  const testDir = await Deno.makeTempDir({
-    prefix: "vt_",
-    suffix: `_${label}`,
-  });
-
-  return {
-    testDir,
-    cleanup: async () => await Deno.remove(testDir, { recursive: true }),
-  };
-}
-
-/**
  * Creates a temporary directory and returns it with a cleanup function.
  *
  * @param {string} prefix Optional prefix for the temporary directory name
