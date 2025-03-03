@@ -65,12 +65,6 @@ async function createFile(
   projectId: string,
   file: Valtown.Projects.FileListResponse,
 ): Promise<void> {
-  // Skip if file doesn't have a proper path
-  if (!file.path) {
-    console.warn(`Skipping file with missing path: ${file.name}`);
-    return;
-  }
-
   const fullPath = path.join(
     path.dirname(rootPath),
     file.type === "file" // "file" indicates it is NOT a val
