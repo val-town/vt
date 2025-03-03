@@ -1,5 +1,7 @@
 import sdk from "~/sdk.ts";
+import type ValTown from "@valtown/sdk";
 import { withoutValExtension } from "~/vt/git/paths.ts";
+import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 
@@ -48,21 +50,9 @@ export async function status({
     created: [],
   };
 
-  // Convert ignore globs to RegExp patterns
-  const ignorePatterns = ignoreGlobs.map((glob) =>
-    path.globToRegExp(glob, { extended: true, globstar: true })
-  );
-
   // Get all files
-  const localFiles = await getLocalFiles(
-    targetDir,
-    ignorePatterns,
-  );
-  const projectFiles = await getProjectFiles(
-    projectId,
-    branchId,
-    ignorePatterns,
-  );
+  const localFiles = await getLocalFiles(targetDir, ignoreGlobs);
+  const projectFiles = await getProjectFiles(projectId, branchId, ignoreGlobs);
 
   // Compare local files against project files
   for (const [cleanPath, { originalPath, modTime }] of localFiles.entries()) {
@@ -87,6 +77,7 @@ export async function status({
           cleanPath,
           projectId,
         );
+
         if (isModified) {
           result.modified.push({
             path: cleanPath,
@@ -111,8 +102,6 @@ export async function status({
       });
     }
   }
-
-  // TODO: handle renames
 
   return result;
 }
@@ -139,72 +128,63 @@ async function isFileModified(
   return projectFileContent !== localFileContent;
 }
 
-function shouldIgnorePath(path: string, ignorePatterns: RegExp[]): boolean {
-  return ignorePatterns.some((pattern) => pattern.test(path));
-}
-
 async function getProjectFiles(
   projectId: string,
   branchId: string,
-  ignorePatterns: RegExp[],
+  ignoreGlobs: string[],
 ): Promise<Map<string, number>> {
   const projectFilesResponse = await sdk.projects.files.list(projectId, {
     branch_id: branchId,
     recursive: true,
   });
 
-  return new Map(
-    projectFilesResponse.data
-      .filter((file) =>
-        file.type !== "directory" &&
-        !shouldIgnorePath(file.path, ignorePatterns)
-      )
-      .map((file) => [
-        file.path,
-        new Date(file.updatedAt).getTime(),
-      ]),
-  );
+  const files: ValTown.Projects.FileListResponse[] = [];
+  for await (const file of projectFilesResponse.data) files.push(file);
+
+  const processedFiles = files
+    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => file.type !== "directory")
+    .map((
+      file: ValTown.Projects.FileListResponse,
+    ) => [file.path, new Date(file.updatedAt).getTime()]) as [string, number][];
+
+  return new Map(processedFiles);
 }
 
 async function getLocalFiles(
   targetDir: string,
-  ignorePatterns: RegExp[],
+  ignoreGlobs: string[],
 ): Promise<Map<string, { originalPath: string; modTime: number }>> {
   const files = new Map<string, { originalPath: string; modTime: number }>();
   const statPromises: Promise<void>[] = [];
 
-  for await (const entry of fs.walk(targetDir)) {
+  const processEntry = async (entry: fs.WalkEntry) => {
     // Skip directories, we don't track directories themselves as objects
-    if (entry.isDirectory) {
-      continue;
-    }
+    if (entry.isDirectory) return;
 
-    // Check  if this is on the ignore list
+    // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnorePath(relativePath, ignorePatterns)) {
-      continue;
+    if (shouldIgnoreGlob(relativePath, ignoreGlobs)) return;
+
+    // Stat the file to get the modification time
+    const stat = await Deno.stat(entry.path);
+    if (stat.mtime === null) {
+      throw new Error("File modification time is null");
     }
 
-    // Queue up stat operations for files
-    statPromises.push(
-      Deno.stat(entry.path).then((stat) => {
-        if (stat.mtime === null) {
-          throw new Error("File modification time is null");
-        }
+    // Store both the cleaned path and original path. We'll want access to
+    // the original (real) path for later when we're accessing mtimes.
+    const cleanedPath = withoutValExtension(relativePath);
+    if (cleanedPath) { // Only add non-empty paths
+      files.set(cleanedPath, {
+        originalPath: relativePath,
+        modTime: stat.mtime.getTime(),
+      });
+    }
+  };
 
-        // Store both the cleaned path and original path. We'll want access to
-        // the original (real) path for later when we're accessing mtimes.
-        const cleanedPath = withoutValExtension(relativePath);
-        if (cleanedPath) { // Only add non-empty paths
-          files.set(cleanedPath, {
-            originalPath: relativePath,
-            modTime: stat.mtime.getTime(),
-          });
-        }
-      }).catch(() => {
-        throw new Error(`Failed to stat file: ${entry.path}`);
-      }),
-    );
+  for await (const entry of fs.walk(targetDir)) {
+    statPromises.push(processEntry(entry));
 
     // Process stats in batches of 50
     if (statPromises.length >= STAT_PROMISES_BATCH_SIZE) {

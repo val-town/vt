@@ -71,7 +71,7 @@ Deno.test({
     net: true,
   },
   async fn() {
-    const { tempDir, cleanup } = await withTempDir("clone");
+    const { tempDir, cleanup } = await withTempDir("vt_clone");
 
     // The project and branch IDs to test cloning
     // https://www.val.town/x/wolf/vtCliTestProj
