@@ -15,7 +15,12 @@ const cloneCmd = new Command()
   .description("Clone a val town project")
   .arguments("<projectUri:string> [cloneDir:string] [branchName:string]")
   .action(
-    async (_, projectUri: string, rootPath?: string, branchName?: string) => {
+    async (
+      _: unknown,
+      projectUri: string,
+      rootPath?: string,
+      branchName?: string,
+    ) => {
       const spinner = new Kia("Cloning project...");
       let targetDir = rootPath || Deno.cwd();
 
@@ -134,7 +139,7 @@ const checkoutCmd = new Command()
   .name("checkout")
   .description("Check out a different branch")
   .arguments("<branchName:string>")
-  .action(async (_, branchName: string) => {
+  .action(async (_: unknown, branchName: string) => {
     const spinner = new Kia("Checking out branch...");
     const cwd = Deno.cwd();
 

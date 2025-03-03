@@ -1,25 +1,10 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { API_KEY_KEY } from "~/consts.ts";
 
 const sdk = new ValTown({
   bearerToken: Deno.env.get(API_KEY_KEY)!,
 });
-
-/**
- * Retrieves the ID of the default branch for a given project.
- *
- * @param {string} projectId The ID of the project to find the default branch for
- * @returns {Promise} Promise resolving to the ID of the default branch
- * @throws {Error} Error if the default branch is not found
- */
-export async function defaultBranchId(projectId: string): Promise<string> {
-  for await (const branch of sdk.projects.branches.list(projectId, {})) {
-    if (branch.name == DEFAULT_BRANCH_NAME) return branch.id;
-  }
-
-  throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
-}
 
 /**
  * Converts a branch name to its corresponding branch ID for a given project.
@@ -61,17 +46,6 @@ export async function branchIdToName(
   }
 
   return branch.id;
-}
-
-/**
- * Retrieves the ID of the default branch for a given project.
- *
- * @param {string} projectId - ID of the project
- * @returns Promise that resolves to the branch ID as a string
- * @throws {Error} If the main branch is not found
- */
-export function getMainBranchId(projectId: string): Promise<string> {
-  return branchIdToName(projectId, DEFAULT_BRANCH_NAME);
 }
 
 export const user = await sdk.me.profile.retrieve();
