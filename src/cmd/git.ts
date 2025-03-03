@@ -8,7 +8,7 @@ import { checkDirectory } from "~/utils.ts";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
-import { isDirty } from "~/vt/git/utils.ts";
+import { checkDirtyState } from "~/cmd/utils.ts";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -75,8 +75,10 @@ const pullCmd = new Command()
     const cwd = Deno.cwd();
 
     try {
-      spinner.start();
       const vt = VTClient.from(cwd);
+      await checkDirtyState(vt, cwd, "pull");
+
+      spinner.start();
       await vt.pull(cwd);
       spinner.succeed(`Project pulled successfully to ${cwd}`);
     } catch (error) {
@@ -144,17 +146,8 @@ const checkoutCmd = new Command()
     const cwd = Deno.cwd();
 
     try {
-      // First check if the directory is dirty before proceeding
       const vt = VTClient.from(cwd);
-      const status = await vt.status(cwd);
-
-      // Check if there are any uncommitted changes
-      if (isDirty(status)) {
-        spinner.fail(
-          "Cannot checkout with uncommitted changes. Please commit or stash your changes first.",
-        );
-        return;
-      }
+      await checkDirtyState(vt, cwd, "checkout");
 
       spinner.start();
       await vt.checkout(cwd, branchName);

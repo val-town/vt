@@ -5,6 +5,7 @@ import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
 import { checkout } from "~/vt/git/checkout.ts";
+import { isDirty } from "~/vt/git/utils.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -201,5 +202,15 @@ export default class VTClient {
       version:
         (await sdk.projects.branches.retrieve(projectId, toBranchId)).version,
     });
+  }
+
+  /**
+   * Check if the working directory has uncommitted changes.
+   *
+   * @param {string} targetDir - The directory to check for changes
+   * @returns {Promise<boolean>} True if there are uncommitted changes
+   */
+  public async isDirty(targetDir: string): Promise<boolean> {
+    return isDirty(await this.status(targetDir));
   }
 }
