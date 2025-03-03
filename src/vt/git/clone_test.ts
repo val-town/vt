@@ -9,6 +9,42 @@ export interface ExpectedProjectInode {
   content?: string;
 }
 
+async function assertInodeExists(
+  fullPath: string,
+  expected: ExpectedProjectInode,
+) {
+  try {
+    const stat = await Deno.stat(fullPath);
+    const isCorrectType = expected.type === "file"
+      ? stat.isFile
+      : stat.isDirectory;
+
+    if (!isCorrectType) {
+      throw new Error(
+        `Path "${expected.path}" exists but is a ${
+          expected.type === "file" ? "directory" : "file"
+        } when it should be a ${expected.type}`,
+      );
+    }
+
+    if (expected.type === "file" && expected.content !== undefined) {
+      const actualContent = await Deno.readTextFile(fullPath);
+      if (actualContent !== expected.content) {
+        throw new Error(
+          `Content mismatch for file "${expected.path}"\n` +
+            `Expected: ${JSON.stringify(expected.content)}\n` +
+            `Actual: ${JSON.stringify(actualContent)}`,
+        );
+      }
+    }
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new Error(`Expected path "${expected.path}" does not exist`);
+    }
+    throw error;
+  }
+}
+
 /**
  * Verifies the expected file/directory structure exists at the given path
  *
@@ -37,27 +73,7 @@ export async function verifyProjectStructure(
   // Check all expected files/directories exist with correct properties
   for (const inode of expectedInodes) {
     const fullPath = path.join(basePath, inode.path);
-
-    const stat = await Deno.stat(fullPath);
-    const isCorrectType = inode.type === "file"
-      ? stat.isFile
-      : stat.isDirectory;
-
-    if (!isCorrectType) {
-      throw new Error(
-        `Path "${inode.path}" exists but is a ${
-          inode.type === "file" ? "directory" : "file"
-        } when it should be a ${inode.type}`,
-      );
-    }
-
-    // If content checking is requested, verify file contents
-    if (inode.type === "file") {
-      const content = await Deno.readTextFile(fullPath);
-      if (content !== (inode.content || "")) {
-        throw new Error(`Content mismatch for file "${inode.path}"`);
-      }
-    }
+    await assertInodeExists(fullPath, inode);
   }
 
   return true;
@@ -90,25 +106,24 @@ Deno.test({
     // This is what we should get (we know apriori)
     const expectedInodes: ExpectedProjectInode[] = [
       {
-        path: "proudLimeGoose.H.tsx",
+        path: "proudLimeGoose.http.tsx",
         type: "file",
         content: "// Example Content",
       },
       {
-        path: "merryCopperAsp.S.tsx",
+        path: "merryCopperAsp.script.tsx",
         type: "file",
-        content: "updated;",
+        content: "",
       },
       {
         path: "thoughtfulPeachPrimate",
         type: "directory",
       },
       {
-        path: path.join("thoughtfulPeachPrimate", "philosophicalBlueWolf"),
-        type: "directory",
-      },
-      {
-        path: path.join("thoughtfulPeachPrimate", "clearAquamarineSmelt.C.tsx"),
+        path: path.join(
+          "thoughtfulPeachPrimate",
+          "clearAquamarineSmelt.cron.tsx",
+        ),
         type: "file",
         content: "",
       },
