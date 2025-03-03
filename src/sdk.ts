@@ -63,5 +63,16 @@ export async function branchIdToName(
   return branch.id;
 }
 
+/**
+ * Retrieves the ID of the default branch for a given project.
+ *
+ * @param {string} projectId - ID of the project
+ * @returns Promise that resolves to the branch ID as a string
+ * @throws {Error} If the main branch is not found
+ */
+export function getMainBranchId(projectId: string): Promise<string> {
+  return branchIdToName(projectId, DEFAULT_BRANCH_NAME);
+}
+
 export const user = await sdk.me.profile.retrieve();
 export default sdk;
