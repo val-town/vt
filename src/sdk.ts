@@ -13,7 +13,7 @@ const sdk = new ValTown({
  * @returns {Promise} Promise resolving to the ID of the default branch
  * @throws {Error} Error if the default branch is not found
  */
-export async function defaultBranchId(projectId: string): Promise<string> {
+async function defaultBranchId(projectId: string): Promise<string> {
   for await (const branch of sdk.projects.branches.list(projectId, {})) {
     if (branch.name == DEFAULT_BRANCH_NAME) return branch.id;
   }
@@ -29,7 +29,7 @@ export async function defaultBranchId(projectId: string): Promise<string> {
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Error} if the branch is not found or if the API request fails
  */
-export async function branchIdToName(
+async function branchIdToName(
   projectId: string,
   branchName: string,
 ): Promise<string> {
@@ -63,5 +63,22 @@ export async function branchIdToName(
   return branch.id;
 }
 
-export const user = await sdk.me.profile.retrieve();
+/**
+ * Retrieves the ID of the default branch for a given project.
+ *
+ * @param {string} projectId ID of the project
+ * @returns Promise that resolves to the branch ID as a string
+ * @throws {Error} If the main branch is not found
+ */
+async function getMainBranchId(projectId: string): Promise<string> {
+  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+    if (branch.name === DEFAULT_BRANCH_NAME) return branch.id;
+  }
+
+  throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
+}
+
+const user = await sdk.me.profile.retrieve();
+
+export { branchIdToName, defaultBranchId, getMainBranchId, user };
 export default sdk;
