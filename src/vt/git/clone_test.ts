@@ -125,7 +125,7 @@ Deno.test({
           "clearAquamarineSmelt.cron.tsx",
         ),
         type: "file",
-        content: "",
+        content: "const test = \"test\";",
       },
       {
         path: path.join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
