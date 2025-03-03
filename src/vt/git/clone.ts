@@ -52,7 +52,7 @@ export async function clone(
       // Function to run on files (if they aren't ignored)
       (file: Valtown.Projects.FileListResponse) => {
         const fullPath = path.join(targetDir, file.path);
-        return createFile(fullPath, projectId, file);
+        return createFile(fullPath, projectId, branchId, version, file);
       },
     );
   await Promise.all(clonePromises);
@@ -63,6 +63,8 @@ export async function clone(
 async function createFile(
   rootPath: string,
   projectId: string,
+  branchId: string,
+  version: number,
   file: Valtown.Projects.FileListResponse,
 ): Promise<void> {
   const fullPath = path.join(
@@ -79,6 +81,7 @@ async function createFile(
   const content = await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),
+    { branch_id: branchId, version },
   ) as string;
 
   await ensureDir(path.dirname(fullPath));
