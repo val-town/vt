@@ -56,9 +56,7 @@ export async function pull({
     try {
       await Deno.remove(filePath);
     } catch (error) {
-      if (!(error instanceof Deno.errors.NotFound)) {
-        throw error;
-      }
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
     }
   }
 

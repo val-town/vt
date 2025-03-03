@@ -8,6 +8,7 @@ import { checkDirectory } from "~/utils.ts";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
+import { isDirty } from "~/vt/git/utils.ts";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -129,4 +130,35 @@ const statusCmd = new Command()
     }
   });
 
-export { cloneCmd, pullCmd, statusCmd };
+const checkoutCmd = new Command()
+  .name("checkout")
+  .description("Check out a different branch")
+  .arguments("<branchName:string>")
+  .action(async (_, branchName: string) => {
+    const spinner = new Kia("Checking out branch...");
+    const cwd = Deno.cwd();
+
+    try {
+      // First check if the directory is dirty before proceeding
+      const vt = VTClient.from(cwd);
+      const status = await vt.status(cwd);
+
+      // Check if there are any uncommitted changes
+      if (isDirty(status)) {
+        spinner.fail(
+          "Cannot checkout with uncommitted changes. Please commit or stash your changes first.",
+        );
+        return;
+      }
+
+      spinner.start();
+      await vt.checkout(cwd, branchName);
+      spinner.succeed(`Switched to branch '${branchName}'`);
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  });
+
+export { checkoutCmd, cloneCmd, pullCmd, statusCmd };

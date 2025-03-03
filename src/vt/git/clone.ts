@@ -1,7 +1,8 @@
-import sdk, { defaultBranchId } from "~/sdk.ts";
+import sdk from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { withValExtension } from "~/vt/git/paths.ts";
 import { removeEmptyDirs } from "~/utils.ts";
+import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
 import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
 
@@ -31,46 +32,42 @@ export async function clone(
     ignoreGlobs?: string[];
   },
 ): Promise<void> {
-  const resolvedBranchId = branchId || await defaultBranchId(projectId);
-  const ignorePatterns = (ignoreGlobs || []).map((glob) =>
-    path.globToRegExp(glob)
-  );
   const files = await sdk.projects.files
-    .list(projectId, { recursive: true, branch_id: resolvedBranchId, version });
+    .list(projectId, { recursive: true, branch_id: branchId, version });
 
   // Create project directory if it doesn't exist, otherwise noop
   await ensureDir(targetDir);
 
-  // Process all files and directories
-  for (const file of files.data) {
-    // Skip if we have a filter list and this file is not in it
-    if (ignoreGlobs && ignoreGlobs.includes(file.path)) {
-      continue;
-    }
-
-    // Skip if the file matches any ignore pattern
-    if (ignorePatterns.some((pattern) => pattern.test(file.path))) continue;
-
-    const fullPath = path.join(targetDir, file.path);
-    if (file.type === "directory") {
-      await createDirectory(fullPath);
-    } else {
-      await createFile(fullPath, projectId, file);
-    }
-  }
+  // Process all files and directories. We call forAllIgnored with the function
+  // we want to run on each file (which will only apply our function to non
+  // ignored files). Then we run it on all the files.
+  files.data
+    .filter((file) => file.type !== "directory") // we'll create directories when creating files
+    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .forEach(
+      // Function to run on files (if they aren't ignored)
+      async (file: Valtown.Projects.FileListResponse) => {
+        const fullPath = path.join(targetDir, file.path);
+        await createFile(fullPath, projectId, branchId, version, file);
+      },
+    );
 
   removeEmptyDirs(targetDir);
-}
-
-async function createDirectory(path: string): Promise<void> {
-  await ensureDir(path);
 }
 
 async function createFile(
   rootPath: string,
   projectId: string,
+  branchId: string,
+  version: number,
   file: Valtown.Projects.FileListResponse,
 ): Promise<void> {
+  // Skip if file doesn't have a proper path
+  if (!file.path) {
+    console.warn(`Skipping file with missing path: ${file.name}`);
+    return;
+  }
+
   const fullPath = path.join(
     path.dirname(rootPath),
     file.type === "file" ? file.name : withValExtension(file.name, file.type),
@@ -83,8 +80,10 @@ async function createFile(
   const content = await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),
+    { version, branch_id: branchId },
   ) as string;
 
+  await ensureDir(path.dirname(fullPath));
   await Deno.writeTextFile(fullPath, content);
 
   // Set the file's mtime right after creating it

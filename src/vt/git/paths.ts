@@ -1,14 +1,5 @@
-export const VAL_TYPE_EXTENSIONS: Record<
-  string,
-  { abbreviated: string; standard: string }
-> = {
-  "script": { abbreviated: "S", standard: "script" },
-  "http": { abbreviated: "H", standard: "http" },
-  "email": { abbreviated: "E", standard: "email" },
-  "interval": { abbreviated: "C", standard: "cron" },
-};
-
-type ValType = keyof typeof VAL_TYPE_EXTENSIONS;
+import * as path from "@std/path";
+import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
 
 /**
  * Adds val file extension to a filename
@@ -18,9 +9,9 @@ type ValType = keyof typeof VAL_TYPE_EXTENSIONS;
  * @param abbreviated Whether to use val file extension (default: false)
  * @returns Filename with val file extension
  */
-export function withValExtension(
+function withValExtension(
   filename: string,
-  type: ValType,
+  type: keyof typeof VAL_TYPE_EXTENSIONS,
   abbreviated: boolean = false,
 ): string {
   const extension = abbreviated
@@ -38,7 +29,7 @@ export function withValExtension(
  * @param abbreviated Whether to check for val file extension (default: false)
  * @returns Filename without val file extension
  */
-export function withoutValExtension(
+function withoutValExtension(
   filename: string,
   abbreviated: boolean = false,
 ): string {
@@ -53,3 +44,33 @@ export function withoutValExtension(
   }
   return filename;
 }
+
+/**
+ * Creates RegExp patterns from glob patterns for ignoring files.
+ *
+ * @param {string[]} ignoreGlobs Array of glob patterns to convert
+ * @returns {RegExp[]} Array of RegExp patterns
+ */
+function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
+  return ignoreGlobs.map((glob) =>
+    path.globToRegExp(glob, { extended: true, globstar: true })
+  );
+}
+
+/**
+ * Checks if a path should be ignored based on ignore patterns.
+ *
+ * @param {string} filePath Path to check
+ * @param {string[]} ignoreGlobs Array of glob patterns to check against
+ * @returns {boolean} True if the path should be ignored
+ */
+function shouldIgnoreGlob(
+  filePath: string,
+  ignoreGlobs: string[] = [],
+): boolean {
+  return createIgnorePatterns(ignoreGlobs).some((pattern) =>
+    pattern.test(filePath)
+  );
+}
+
+export { shouldIgnoreGlob, withoutValExtension, withValExtension };

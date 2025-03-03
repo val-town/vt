@@ -4,6 +4,7 @@ import sdk, { branchIdToName } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { checkout } from "~/vt/git/checkout.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -166,6 +167,39 @@ export default class VTClient {
       projectId,
       branchId: currentBranch,
       ignoreGlobs: await this.getIgnoreGlobs(),
+    });
+  }
+
+  /**
+   * Check out a different branch of the project.
+   *
+   * @param {string} targetDir - The directory where the checkout should happen
+   * @param {string} branchName - The name of the branch to check out to
+   * @returns {Promise<void>}
+   */
+  public async checkout(targetDir: string, branchName: string): Promise<void> {
+    const { projectId, currentBranch } = await this.#meta.loadConfig();
+
+    if (!projectId || !currentBranch) {
+      throw new Error("Configuration not loaded");
+    }
+
+    const toBranchId = await branchIdToName(projectId, branchName);
+
+    await checkout({
+      targetDir,
+      projectId,
+      toBranchId,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+    });
+
+    // Update the config with the new branch
+    await this.#meta.saveConfig({
+      projectId,
+      currentBranch: toBranchId,
+      // Get the latest version of the new branch
+      version:
+        (await sdk.projects.branches.retrieve(projectId, toBranchId)).version,
     });
   }
 }
