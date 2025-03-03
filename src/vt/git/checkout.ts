@@ -1,4 +1,4 @@
-import { withTempDir } from "~/vt/git/utils.ts";
+import { cleanDirectory, withTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
@@ -47,8 +47,14 @@ export async function checkout({
       ignoreGlobs,
     });
 
+    // Purge their version before copying back over
+    await cleanDirectory(targetDir, ignoreGlobs);
+
     // We cloned with ignoreGlobs so we're safe to copy everything
-    await copy(tempDir, targetDir, { overwrite: true });
+    await copy(tempDir, targetDir, {
+      overwrite: true,
+      preserveTimestamps: true,
+    });
   } finally {
     await cleanup();
   }
