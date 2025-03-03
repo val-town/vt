@@ -41,10 +41,10 @@ export async function clone(
   // Process all files and directories. We call forAllIgnored with the function
   // we want to run on each file (which will only apply our function to non
   // ignored files). Then we run it on all the files.
-  files.data
+  const clonePromises = files.data
     .filter((file) => file.type !== "directory") // we'll create directories when creating files
     .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
-    .forEach(
+    .map(
       // Function to run on files (if they aren't ignored)
       async (file: Valtown.Projects.FileListResponse) => {
         const fullPath = path.join(targetDir, file.path);
@@ -52,7 +52,9 @@ export async function clone(
       },
     );
 
-  removeEmptyDirs(targetDir);
+  await Promise.all(clonePromises)
+
+  await removeEmptyDirs(targetDir);
 }
 
 async function createFile(
