@@ -1,6 +1,6 @@
 name: VT Testing
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   test:
@@ -13,4 +13,6 @@ jobs:
           deno-version: v2.x
 
       - name: Run deno test script
+        env:
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
         run: deno run test
