@@ -174,8 +174,8 @@ const branchCmd = new Command()
         [
           colors.bold("Name"),
           colors.bold("Version"),
-          colors.bold("Created At"),
-          colors.bold("Updated At"),
+          colors.bold("Created On"),
+          colors.bold("Updated On"),
         ],
         ...sortedBranches.map(
           (branch) => [
