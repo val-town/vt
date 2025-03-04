@@ -6,7 +6,7 @@ import { testCases } from "~/vt/git/test_utils.ts";
 
 for (const testCase of testCases) {
   Deno.test({
-    name: testCase.name,
+    name: "test cloning " + testCase.name,
     permissions: {
       read: true,
       write: true,
