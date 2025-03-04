@@ -82,19 +82,16 @@ interface TestCase {
   branchId: string;
   version: number;
   expectedInodes: ExpectedProjectInode[];
+  modifiedFiles: { path: string; newContent: string }[];
+  deletedFiles: string[];
 }
 
 export const testCases: TestCase[] = [
   {
-    name: "vtCliTestProj",
-
-    // The project and branch IDs to test cloning
-    // https://www.val.town/x/wolf/vtCliTestProj
+    name: "status detects modified and deleted files",
     projectId: "b95fe488-f4de-11ef-97f1-569c3dd06744",
     branchId: "b9602cf4-f4de-11ef-97f1-569c3dd06744",
     version: 8,
-
-    // Set the content
     expectedInodes: [
       {
         path: "proudLimeGoose.http.tsx",
@@ -111,7 +108,7 @@ export const testCases: TestCase[] = [
         type: "directory",
       },
       {
-        path: `thoughtfulPeachPrimate/clearAquamarineSmelt.cron.tsx`,
+        path: "thoughtfulPeachPrimate/clearAquamarineSmelt.cron.tsx",
         type: "file",
         content: 'const test = "test";',
       },
@@ -120,6 +117,20 @@ export const testCases: TestCase[] = [
         type: "file",
         content: "",
       },
-    ] as ExpectedProjectInode[],
+    ],
+    modifiedFiles: [
+      {
+        path: "proudLimeGoose.http.tsx",
+        newContent: "// Modified Example Content",
+      },
+      {
+        path: "thoughtfulPeachPrimate/clearAquamarineSmelt.cron.tsx",
+        newContent: 'const test = "modified test";',
+      },
+    ],
+    deletedFiles: [
+      "merryCopperAsp.script.tsx",
+      "thoughtfulPeachPrimate/tirelessHarlequinSmelt",
+    ],
   },
 ];
