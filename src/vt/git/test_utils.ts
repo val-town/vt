@@ -75,3 +75,51 @@ export async function verifyProjectStructure(
 
   return true;
 }
+
+interface TestCase {
+  name: string;
+  projectId: string;
+  branchId: string;
+  version: number;
+  expectedInodes: ExpectedProjectInode[];
+}
+
+export const testCases: TestCase[] = [
+  {
+    name: "vtCliTestProj",
+
+    // The project and branch IDs to test cloning
+    // https://www.val.town/x/wolf/vtCliTestProj
+    projectId: "b95fe488-f4de-11ef-97f1-569c3dd06744",
+    branchId: "b9602cf4-f4de-11ef-97f1-569c3dd06744",
+    version: 8,
+
+    // Set the content
+    expectedInodes: [
+      {
+        path: "proudLimeGoose.http.tsx",
+        type: "file",
+        content: "// Example Content",
+      },
+      {
+        path: "merryCopperAsp.script.tsx",
+        type: "file",
+        content: "",
+      },
+      {
+        path: "thoughtfulPeachPrimate",
+        type: "directory",
+      },
+      {
+        path: `thoughtfulPeachPrimate/clearAquamarineSmelt.cron.tsx`,
+        type: "file",
+        content: 'const test = "test";',
+      },
+      {
+        path: "thoughtfulPeachPrimate/tirelessHarlequinSmelt",
+        type: "file",
+        content: "",
+      },
+    ] as ExpectedProjectInode[],
+  },
+];
