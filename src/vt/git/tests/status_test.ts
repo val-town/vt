@@ -2,8 +2,7 @@ import { FileStatus, status, StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import { withTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
-import { assert, assertEquals } from "@std/assert";
-import { verifyProjectStructure } from "~/vt/git/pull.ts";
+import { assert } from "@std/assert";
 import { testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
@@ -25,16 +24,7 @@ for (const testCase of testCases) {
           version: testCase.version,
         });
 
-        // Verify the initial project structure
-        const initialStructureValid = await verifyProjectStructure(
-          tempDir,
-          testCase.expectedInodes,
-        );
-        assertEquals(
-          initialStructureValid,
-          true,
-          "Initial project structure verification failed",
-        );
+        // We trust initial status is correct since clone already tests it
 
         // Modify specified files
         for (const { path: filePath, newContent } of testCase.modifiedFiles) {
