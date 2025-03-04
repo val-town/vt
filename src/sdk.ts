@@ -64,6 +64,14 @@ async function branchIdToName(
 }
 
 /**
+ * Get the latest version of a branch.
+ */
+export async function getLatestVersion(projectId: string, branchId: string) {
+  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
+}
+
+
+/**
  * Retrieves the ID of the default branch for a given project.
  *
  * @param {string} projectId ID of the project

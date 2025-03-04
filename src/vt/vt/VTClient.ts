@@ -1,6 +1,6 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchIdToName } from "~/sdk.ts";
+import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
@@ -143,6 +143,7 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }

@@ -2,10 +2,10 @@ import { clone } from "~/vt/git/clone.ts";
 import { withTempDir } from "~/vt/git/utils.ts";
 import * as path from "@std/path";
 import { assertEquals } from "@std/assert";
-import { ExpectedProjectInode, verifyProjectStructure } from "~/vt/git/pull.ts";
+import { ExpectedProjectInode, pull, verifyProjectStructure } from "~/vt/git/pull.ts";
 
 Deno.test({
-  name: "clone val town project test",
+  name: "pull updated cloned project",
   permissions: {
     read: true,
     write: true,
@@ -25,10 +25,19 @@ Deno.test({
       targetDir: tempDir,
       projectId,
       branchId,
-      version,
+      version: version + 2, // Different version
     });
 
-    // This is what we should get (we know apriori)
+    // Pull a different version
+    await pull({
+      projectId,
+      branchId,
+      targetDir: tempDir,
+      version,
+      ignoreGlobs: [],
+    });
+
+    // Set the content
     const expectedInodes: ExpectedProjectInode[] = [
       {
         path: "proudLimeGoose.http.tsx",
@@ -50,7 +59,7 @@ Deno.test({
           "clearAquamarineSmelt.cron.tsx",
         ),
         type: "file",
-        content: "const test = \"test\";",
+        content: 'const test = "test";',
       },
       {
         path: path.join("thoughtfulPeachPrimate", "tirelessHarlequinSmelt"),
