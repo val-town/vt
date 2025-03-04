@@ -70,7 +70,6 @@ export async function getLatestVersion(projectId: string, branchId: string) {
   return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
 }
 
-
 /**
  * Retrieves the ID of the default branch for a given project.
  *
