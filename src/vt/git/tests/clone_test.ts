@@ -14,28 +14,29 @@ for (const testCase of testCases) {
     },
     async fn() {
       const { tempDir, cleanup } = await withTempDir("vt_clone");
+      try {
+        // Perform the clone operation
+        await clone({
+          targetDir: tempDir,
+          projectId: testCase.projectId,
+          branchId: testCase.branchId,
+          version: testCase.version,
+        });
 
-      // Perform the clone operation
-      await clone({
-        targetDir: tempDir,
-        projectId: testCase.projectId,
-        branchId: testCase.branchId,
-        version: testCase.version,
-      });
+        // Verify project structure
+        const structureValid = await verifyProjectStructure(
+          tempDir,
+          testCase.expectedInodes,
+        );
 
-      // Verify project structure
-      const structureValid = await verifyProjectStructure(
-        tempDir,
-        testCase.expectedInodes,
-      );
-
-      assertEquals(
-        structureValid,
-        true,
-        "Project structure verification failed",
-      );
-
-      await cleanup();
+        assertEquals(
+          structureValid,
+          true,
+          "Project structure verification failed",
+        );
+      } finally {
+        await cleanup();
+      }
     },
   });
 }
