@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import { user } from "~/sdk.ts";
+import sdk, { user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
@@ -8,6 +8,9 @@ import { checkDirectory } from "~/utils.ts";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
+import { Table } from "@cliffy/table";
+import type ValTown from "@valtown/sdk";
+import { colors } from "@cliffy/ansi/colors";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -129,4 +132,53 @@ const statusCmd = new Command()
     }
   });
 
-export { cloneCmd, pullCmd, statusCmd };
+const branchCmd = new Command()
+  .name("branch")
+  .description("List all project branches")
+  .action(async () => {
+    const cwd = Deno.cwd();
+
+    try {
+      const vt = VTClient.from(cwd);
+      const meta = await vt.meta.loadConfig();
+
+      const branches: ValTown.Projects.BranchListResponse[] = [];
+      for await (
+        const file of (await sdk.projects.branches.list(meta.projectId, {}))
+          .data
+      ) branches.push(file);
+
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+
+      const branchesTableList = Table.from([
+        [
+          colors.bold("Name"),
+          colors.bold("Version"),
+          colors.bold("Created At"),
+          colors.bold("Updated At"),
+        ],
+        ...branches.map(
+          (branch) => [
+            meta.currentBranch === branch.id
+              ? colors.green(`* ${branch.name}`)
+              : branch.name,
+            colors.cyan(branch.version.toString()),
+            colors.yellow(formatter.format(new Date(branch.createdAt))),
+            colors.magenta(formatter.format(new Date(branch.updatedAt))),
+          ],
+        ),
+      ]);
+
+      console.log(branchesTableList.toString());
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(colors.red(error.message));
+      }
+    }
+  });
+
+export { branchCmd, cloneCmd, pullCmd, statusCmd };

@@ -15,10 +15,10 @@ import { status, StatusResult } from "~/vt/git/status.ts";
  * @param {string} rootPath - The root path of the VT directory
  */
 export default class VTClient {
-  #meta: VTMeta;
+  readonly meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
-    this.#meta = new VTMeta(rootPath);
+    this.meta = new VTMeta(rootPath);
   }
 
   /**
@@ -29,7 +29,7 @@ export default class VTClient {
   private async getIgnoreGlobs(): Promise<string[]> {
     return [
       ...DEFAULT_IGNORE_PATTERNS,
-      ...(await this.#meta.loadIgnoreGlobs()),
+      ...(await this.meta.loadIgnoreGlobs()),
     ];
   }
 
@@ -72,10 +72,10 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.#meta.configFilePath);
+      await Deno.stat(vt.meta.configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.#meta.saveConfig({
+        await vt.meta.saveConfig({
           projectId,
           currentBranch: branchId,
           version: version,
@@ -107,7 +107,7 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async clone(targetDir: string): Promise<void> {
-    const { projectId, currentBranch, version } = await this.#meta.loadConfig();
+    const { projectId, currentBranch, version } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
@@ -132,7 +132,7 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async pull(targetDir: string): Promise<void> {
-    const { projectId, currentBranch } = await this.#meta.loadConfig();
+    const { projectId, currentBranch } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
@@ -155,7 +155,7 @@ export default class VTClient {
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
   public async status(targetDir: string): Promise<StatusResult> {
-    const { projectId, currentBranch } = await this.#meta.loadConfig();
+    const { projectId, currentBranch } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
