@@ -7,7 +7,7 @@ import { testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
   Deno.test({
-    name: testCase.name,
+    name: "test status " + testCase.name,
     permissions: {
       read: true,
       write: true,
