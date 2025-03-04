@@ -154,6 +154,22 @@ const branchCmd = new Command()
         day: "2-digit",
       });
 
+      // Separate current branch, place it at the top, and then sort the rest
+      // by update time
+      const currentBranch = branches.find((branch) =>
+        branch.id === meta.currentBranch
+      );
+
+      const otherBranches = branches
+        .filter((branch) => branch.id !== meta.currentBranch)
+        .sort((a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+
+      const sortedBranches = currentBranch
+        ? [currentBranch, ...otherBranches]
+        : otherBranches;
+
       const branchesTableList = Table.from([
         [
           colors.bold("Name"),
@@ -161,9 +177,9 @@ const branchCmd = new Command()
           colors.bold("Created At"),
           colors.bold("Updated At"),
         ],
-        ...branches.map(
+        ...sortedBranches.map(
           (branch) => [
-            meta.currentBranch === branch.id
+            branch.id === meta.currentBranch
               ? colors.green(`* ${branch.name}`)
               : branch.name,
             colors.cyan(branch.version.toString()),
