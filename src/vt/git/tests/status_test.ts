@@ -14,7 +14,8 @@ for (const testCase of testCases) {
       net: true,
     },
     async fn() {
-      const { tempDir, cleanup } = await withTempDir("vt_clone");
+      const { tempDir, cleanup } = await withTempDir("vt_status_test");
+
       try {
         // Clone the project
         await clone({

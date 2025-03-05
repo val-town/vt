@@ -14,7 +14,8 @@ for (const testCase of testCases) {
       net: true,
     },
     async fn() {
-      const { tempDir, cleanup } = await withTempDir("vt_clone");
+      const { tempDir, cleanup } = await withTempDir("vt_pull_test");
+
       try {
         // First clone with version + 2
         await clone({

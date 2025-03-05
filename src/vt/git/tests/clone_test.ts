@@ -13,7 +13,8 @@ for (const testCase of testCases) {
       net: true,
     },
     async fn() {
-      const { tempDir, cleanup } = await withTempDir("vt_clone");
+      const { tempDir, cleanup } = await withTempDir("vt_clone_test");
+
       try {
         // Perform the clone operation
         await clone({
