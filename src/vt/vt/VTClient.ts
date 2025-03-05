@@ -101,6 +101,40 @@ export default class VTClient {
   }
 
   /**
+   * Create a new Val Town project and initialize a VT instance for it.
+   *
+   * @param {string} rootPath - The root path where the VT instance will be initialized
+   * @param {string} projectName - The name of the project to create
+   * @param {string} username - The username of the project owner
+   * @param {'public' | 'private'} privacy - The privacy setting for the project
+   * @param {string} [description] - Optional description for the project
+   * @returns {Promise<VTClient>} A new VTClient instance
+   */
+  public static async create(
+    rootPath: string,
+    projectName: string,
+    username: string,
+    privacy: "public" | "private" | "unlisted",
+    description?: string,
+  ): Promise<VTClient> {
+    // Create the project using the SDK
+    await sdk.projects.create({
+      name: projectName,
+      privacy: privacy,
+      description: description || "",
+    });
+
+    // Initialize VT client with the new project
+    return VTClient.init(
+      rootPath,
+      username,
+      projectName,
+      -1, // Use latest version
+      DEFAULT_BRANCH_NAME,
+    );
+  }
+
+  /**
    * Clone val town project into a directory using the current configuration.
    *
    * @param {string} targetDir - The directory to clone the project into.
