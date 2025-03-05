@@ -63,4 +63,3 @@ export async function pull({
     ignoreGlobs,
   });
 }
-

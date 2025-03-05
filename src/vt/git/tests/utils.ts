@@ -43,6 +43,7 @@ async function assertInodeExists(
 
 /**
  * Recursively collects all files and directories under a given path
+ *
  * @param dir The directory to scan
  * @param basePath The base path for relative path calculation
  * @param result Set to store collected paths (relative to basePath)
@@ -57,8 +58,11 @@ async function collectAllPaths(
 
   for await (const entry of Deno.readDir(dir)) {
     const entryPath = join(dir, entry.name);
-    const entryRelPath = entryPath.substring(basePath.length).replace(/^\//, "");
-    
+    const entryRelPath = entryPath.substring(basePath.length).replace(
+      /^\//,
+      "",
+    );
+
     if (entry.isDirectory) {
       result.add(entryRelPath);
       await collectAllPaths(entryPath, basePath, result);
@@ -66,7 +70,7 @@ async function collectAllPaths(
       result.add(entryRelPath);
     }
   }
-  
+
   return result;
 }
 
@@ -85,10 +89,10 @@ export async function verifyProjectStructure(
 ): Promise<boolean> {
   // First get all actual files/directories
   const actualPaths = await collectAllPaths(basePath, basePath);
-  
+
   // Convert expected paths to a set for comparison
   const expectedPaths = new Set(expectedInodes.map((inode) => inode.path));
-  
+
   // Check for unexpected files/directories
   for (const actualPath of actualPaths) {
     if (!expectedPaths.has(actualPath)) {
