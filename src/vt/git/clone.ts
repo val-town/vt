@@ -76,10 +76,10 @@ async function createFile(
   await ensureDir(path.dirname(fullPath));
 
   // Get and write the file content
-  const content = await sdk.projects.files.content(
+  const content = await (await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),
-  ) as string;
+  )).text();
 
   await ensureDir(path.dirname(fullPath));
   await Deno.writeTextFile(fullPath, content);
