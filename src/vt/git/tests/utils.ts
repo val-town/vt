@@ -17,8 +17,9 @@ async function assertInodeExists(
       : stat.isDirectory;
 
     if (!isCorrectType) {
+      const actualType = stat.isFile ? "file" : "directory";
       throw new Error(
-        `Path "${expected.path}" exists but is a ${expected.type} when it should be a ${expected.type}`,
+        `Path "${expected.path}" exists but is a ${actualType} when it should be a ${expected.type}`,
       );
     }
 
