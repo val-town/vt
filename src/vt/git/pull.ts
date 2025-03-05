@@ -1,4 +1,3 @@
-import sdk from "~/sdk.ts";
 import { clone } from "~/vt/git/clone.ts";
 import { status } from "~/vt/git/status.ts";
 import * as path from "@std/path";
@@ -21,11 +20,13 @@ export async function pull({
   targetDir,
   projectId,
   branchId,
+  version,
   ignoreGlobs,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
+  version: number;
   ignoreGlobs: string[];
 }): Promise<void> {
   const statusResult = await status({
@@ -58,11 +59,7 @@ export async function pull({
     targetDir,
     projectId,
     branchId,
-    version: await getLatestVersion(projectId, branchId),
+    version,
     ignoreGlobs,
   });
-}
-
-async function getLatestVersion(projectId: string, branchId: string) {
-  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
 }
