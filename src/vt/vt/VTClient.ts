@@ -21,10 +21,10 @@ export default class VTClient {
   private constructor(public readonly rootPath: string) {
     this.#meta = new VTMeta(rootPath);
   }
-  
+
   /**
    * Returns the VTMeta instance for this client.
-   * 
+   *
    * @returns {VTMeta} The VTMeta instance.
    */
   public getMeta(): VTMeta {
@@ -127,11 +127,25 @@ export default class VTClient {
     privacy: "public" | "private" | "unlisted",
     description?: string,
   ): Promise<VTClient> {
-    await create({
-      targetDir: rootPath,
-      projectName,
+    // First create the project
+    const project = await sdk.projects.create({
+      name: projectName,
       privacy,
       description,
+    });
+
+    // Get the project branch
+    const branch = await sdk.projects.branches.retrieve(
+      project.id,
+      DEFAULT_BRANCH_NAME,
+    );
+
+    // Then clone it to the target directory
+    await clone({
+      targetDir: rootPath,
+      projectId: project.id,
+      branchId: branch.id,
+      version: branch.version,
     });
 
     // Initialize VT client with the new project
@@ -139,7 +153,7 @@ export default class VTClient {
       rootPath,
       username,
       projectName,
-      -1, // Use latest version
+      branch.version,
       DEFAULT_BRANCH_NAME,
     );
   }

@@ -23,7 +23,6 @@ Deno.test({
 
       // Create the project
       const { projectId } = await create({
-        targetDir: tempDir,
         projectName,
         privacy,
         description,
