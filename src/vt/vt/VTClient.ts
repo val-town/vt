@@ -4,8 +4,7 @@ import sdk, { branchIdToName } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
-import { stash, StashListingInfo } from "~/vt/git/stash.ts";
-import { join } from "@std/path";
+import { StashListingInfo } from "~/vt/git/stash.ts";
 import { isDirty } from "~/vt/git/utils.ts";
 
 /**
@@ -181,17 +180,21 @@ export default class VTClient {
   public async stash(mode: "list"): Promise<StashListingInfo[]>;
   public async stash(
     mode: "store" | "apply" | "delete",
-    storeName?: string,
+    name: string,
   ): Promise<StashListingInfo>;
   public async stash(
     mode: "store" | "apply" | "delete" | "list",
-    storeName?: string,
+    name?: string,
   ): Promise<StashListingInfo | StashListingInfo[]> {
-    return this.#meta.stash(
-      mode,
-      mode === "store" ? storeName : undefined,
-      await this.getIgnoreGlobs(),
-    );
+    if (mode === "list") {
+      return this.#meta.stash(mode);
+    } else {
+      return this.#meta.stash(
+        mode,
+        name!,
+        await this.getIgnoreGlobs(),
+      );
+    }
   }
 
   /**

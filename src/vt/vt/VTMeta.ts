@@ -4,7 +4,6 @@ import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
 import * as path from "@std/path";
 import { stash, StashListingInfo } from "~/vt/git/stash.ts";
 import { ensureDir } from "@std/fs";
-import { join } from "@std/path";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -114,16 +113,31 @@ export default class VTMeta {
   }
 
   /**
-   * Manages project snapshots using stash operations.
+   * Lists all project snapshots in the stash directory.
    *
-   * @param mode - The stash operation mode (store/apply/delete/list)
-   * @param stashName - Optional name for the stash (for store mode)
-   * @param ignoreGlobs - Optional glob patterns to ignore during operations
-   * @returns Promise resolving to StashListingInfo or array of StashListingInfo
+   * @returns Promise resolving to array of StashListingInfo
    */
   public async stash(
+    mode: "list",
+  ): Promise<StashListingInfo[]>;
+
+  /**
+   * Manages project snapshots using stash operations.
+   *
+   * @param mode - The stash operation mode (store/apply/delete)
+   * @param name - Name for the stash (required)
+   * @param ignoreGlobs - Optional glob patterns to ignore during operations
+   * @returns Promise resolving to StashListingInfo
+   */
+  public async stash(
+    mode: "store" | "apply" | "delete",
+    name: string,
+    ignoreGlobs?: string[],
+  ): Promise<StashListingInfo>;
+
+  public async stash(
     mode: "store" | "apply" | "delete" | "list",
-    stashName?: string,
+    name?: string,
     ignoreGlobs?: string[],
   ): Promise<StashListingInfo | StashListingInfo[]> {
     await ensureDir(this.stashDirPath);
@@ -136,15 +150,16 @@ export default class VTMeta {
       });
     }
 
-    const timestamp = Date.now();
-    const snapshotPath = join(this.stashDirPath, `${timestamp}.tar.gz`);
+    if (!name) {
+      throw new Error(`Name is required for ${mode} operation`);
+    }
 
     return stash({
       projectDir: this.#rootPath,
-      snapshotPath,
+      stashDir: this.stashDirPath,
+      name,
       mode,
       ignoreGlobs,
-      stashName,
     });
   }
 }
