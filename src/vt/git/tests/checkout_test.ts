@@ -13,6 +13,7 @@ for (const testCase of testCases) {
       const fromBranchData = testCase.branches[fromBranchId];
       const toBranchData = testCase.branches[toBranchId];
 
+      // Test checking out from each branch to each branch in each test case.
       Deno.test({
         name:
           `test checkout from ${fromBranchId} to ${toBranchId} in ${testCase.name}`,
@@ -32,18 +33,7 @@ for (const testCase of testCases) {
               branchId: fromBranchId,
               version: fromBranchData.version,
             });
-
-            // Verify "from" branch structure before checkout
-            let structureValid = await verifyProjectStructure(
-              tempDir,
-              fromBranchData.expectedInodes,
-            );
-
-            assertEquals(
-              structureValid,
-              true,
-              `Base branch ${fromBranchId} structure verification failed before checkout`,
-            );
+            // Clone already has coverage so we know this works
 
             // Perform checkout to "toBranch"
             await checkout({
@@ -55,7 +45,7 @@ for (const testCase of testCases) {
             });
 
             // Verify project structure after checkout
-            structureValid = await verifyProjectStructure(
+            const structureValid = await verifyProjectStructure(
               tempDir,
               toBranchData.expectedInodes,
             );
