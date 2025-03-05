@@ -1,6 +1,6 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
@@ -60,7 +60,7 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branchId = await branchIdToName(projectId, branchName);
+    const branchId = await branchNameToId(projectId, branchName);
 
     // If they choose -1 as the version then change to use the most recent
     // version

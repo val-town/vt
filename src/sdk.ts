@@ -25,7 +25,7 @@ async function defaultBranchId(projectId: string): Promise<string> {
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Error} if the branch is not found or if the API request fails
  */
-async function branchIdToName(
+async function branchNameToId(
   projectId: string,
   branchName: string,
 ): Promise<string> {
@@ -60,5 +60,5 @@ async function getMainBranchId(projectId: string): Promise<string> {
 
 const user = await sdk.me.profile.retrieve();
 
-export { branchIdToName, defaultBranchId, getMainBranchId, user };
+export { branchNameToId, defaultBranchId, getMainBranchId, user };
 export default sdk;
