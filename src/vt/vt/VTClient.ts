@@ -1,6 +1,6 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchIdToName } from "~/sdk.ts";
+import sdk, { branchNameToId } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
@@ -17,10 +17,10 @@ import { isDirty } from "~/vt/git/utils.ts";
  * @param {string} rootPath - The root path of the VT directory
  */
 export default class VTClient {
-  #meta: VTMeta;
+  meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
-    this.#meta = new VTMeta(rootPath);
+    this.meta = new VTMeta(rootPath);
   }
 
   /**
@@ -62,7 +62,7 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branchId = await branchIdToName(projectId, branchName);
+    const branchId = await branchNameToId(projectId, branchName);
 
     // If they choose -1 as the version then change to use the most recent
     // version
