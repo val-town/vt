@@ -1,0 +1,24 @@
+name: VT Testing
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run deno test script
+        env:
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
+        run: deno task test
+
+      - name: Run deno lint check
+        run: deno task check
+
+      - name: Run deno format check
+        run: deno task fmt:check

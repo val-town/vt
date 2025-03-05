@@ -1,6 +1,6 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchNameToId } from "~/sdk.ts";
+import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
@@ -17,7 +17,7 @@ import { isDirty } from "~/vt/git/utils.ts";
  * @param {string} rootPath - The root path of the VT directory
  */
 export default class VTClient {
-  meta: VTMeta;
+  readonly meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
     this.meta = new VTMeta(rootPath);
@@ -145,6 +145,7 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }
