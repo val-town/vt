@@ -5,7 +5,7 @@
     "run": "./vt.ts",
     "test": "deno test -A",
     "check": "deno check .",
-    "fmt:check": "deno fmt --check ./**/*.ts"
+    "fmt:check": "deno fmt --check"
   },
   "imports": {
     "@cliffy/ansi": "jsr:@cliffy/ansi@^1.0.0-rc.7",
