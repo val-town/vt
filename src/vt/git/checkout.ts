@@ -3,6 +3,12 @@ import { clone } from "~/vt/git/clone.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
 
+type BaseCheckoutParams = {
+  targetDir: string;
+  projectId: string;
+  ignoreGlobs: string[];
+};
+
 /**
  * Checks out a specific branch of a project by creating a temporary directory,
  * cloning the branch into it, and then copying the contents to the target
@@ -10,48 +16,54 @@ import { copy } from "@std/fs";
  *
  * This is an atomic operation, and if the underlying clone fails nothing
  * changes.
- *
- * @param {object} args
- * @param {string} args.targetDir The directory where the branch contents will be checked out
- * @param {string} args.projectId The uuid of the project
- * @param {string} args.toBranchId The ID of the branch to checkout
- * @param {string[]} args.ignoreGlobs List of glob patterns for files to ignore during checkout
  */
-export async function checkout({
-  targetDir,
-  projectId,
-  toBranchId,
-  ignoreGlobs,
-}: {
-  targetDir: string;
-  projectId: string;
-  toBranchId: string;
-  ignoreGlobs: string[];
-}) {
-  // Create a secure temporary directory using Deno.makeTempDir
+export function checkout(
+  args: BaseCheckoutParams & { branchId: string },
+): Promise<void>;
+export function checkout(
+  args: BaseCheckoutParams & { forkedFrom: string; name: string },
+): Promise<void>;
+export async function checkout(
+  args:
+    & BaseCheckoutParams
+    & ({ branchId: string } | { forkedFrom: string; name: string }),
+) {
   const { tempDir, cleanup } = await withTempDir("vt_checkout_");
 
   try {
-    // Get the latest version number of the target branch
-    const branchInfo = await sdk.projects.branches.retrieve(
-      projectId,
-      toBranchId,
-    );
+    let checkoutBranchId: string;
+    let branchVersion: number;
 
-    // Clone the new branch into the temporary directory
+    if ("branchId" in args) {
+      const branchInfo = await sdk.projects.branches.retrieve(
+        args.projectId,
+        args.branchId,
+      );
+      checkoutBranchId = args.branchId;
+      branchVersion = branchInfo.version;
+    } else {
+      const newBranch = await sdk.projects.branches.create(
+        args.projectId,
+        { branchId: args.forkedFrom, name: args.name },
+      );
+      checkoutBranchId = newBranch.id;
+      branchVersion = newBranch.version;
+    }
+
+    // Clone the branch into the temporary directory
     await clone({
       targetDir: tempDir,
-      projectId,
-      branchId: toBranchId,
-      version: branchInfo.version,
-      ignoreGlobs,
+      projectId: args.projectId,
+      branchId: checkoutBranchId,
+      version: branchVersion,
+      ignoreGlobs: args.ignoreGlobs,
     });
 
     // Purge their version before copying back over
-    await cleanDirectory(targetDir, ignoreGlobs);
+    await cleanDirectory(args.targetDir, args.ignoreGlobs);
 
     // We cloned with ignoreGlobs so we're safe to copy everything
-    await copy(tempDir, targetDir, {
+    await copy(tempDir, args.targetDir, {
       overwrite: true,
       preserveTimestamps: true,
     });

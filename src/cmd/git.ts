@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import { user } from "~/sdk.ts";
+import sdk, { branchNameToId, user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
@@ -140,23 +140,53 @@ const statusCmd = new Command()
 const checkoutCmd = new Command()
   .name("checkout")
   .description("Check out a different branch")
-  .arguments("<branchName:string>")
-  .action(async (_: unknown, branchName: string) => {
-    const spinner = new Kia("Checking out branch...");
-    const cwd = Deno.cwd();
+  .arguments("[existingBranchName:string]")
+  .option(
+    "-b, --branch <newBranchName:string>",
+    "Create a new branch with the specified name",
+  )
+  .action(
+    async ({ branch }: { branch?: string }, existingBranchName?: string) => {
+      const spinner = new Kia("Checking out branch...");
+      const cwd = Deno.cwd();
 
-    try {
       const vt = VTClient.from(cwd);
-      await checkDirtyState(vt, cwd, "checkout");
+      const config = await vt.meta.loadConfig();
+      try {
+        await checkDirtyState(vt, cwd, "checkout");
 
-      spinner.start();
-      await vt.checkout(cwd, branchName);
-      spinner.succeed(`Switched to branch '${branchName}'`);
-    } catch (error) {
-      if (error instanceof Error) {
-        spinner.fail(error.message);
+        spinner.start();
+
+        if (branch) {
+          // -b flag was used, create new branch from source
+          await vt.checkout(cwd, branch, config.currentBranch);
+          spinner.succeed(
+            `Created and switched to new branch '${branch}'${
+              existingBranchName ? ` from '${existingBranchName}'` : ""
+            }`,
+          );
+        } else if (existingBranchName) {
+          // Regular checkout. Check to see if branch exists.
+          try {
+            await branchNameToId(config.projectId, existingBranchName);
+          } catch {
+            const project = await sdk.projects.retrieve(config.projectId);
+            throw new Error(
+              `Branch "${existingBranchName}" not found in project "${project.name}"`,
+            );
+          }
+
+          await vt.checkout(cwd, existingBranchName);
+          spinner.succeed(`Switched to branch '${existingBranchName}'`);
+        } else {
+          throw new Error("Branch name is required");
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          spinner.fail(error.message);
+        }
       }
-    }
-  });
+    },
+  );
 
 export { checkoutCmd, cloneCmd, pullCmd, statusCmd };

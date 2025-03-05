@@ -31,7 +31,7 @@ export default class VTClient {
   private async getIgnoreGlobs(): Promise<string[]> {
     return [
       ...DEFAULT_IGNORE_PATTERNS,
-      ...(await this.#meta.loadIgnoreGlobs()),
+      ...(await this.meta.loadIgnoreGlobs()),
     ];
   }
 
@@ -74,10 +74,10 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.#meta.configFilePath);
+      await Deno.stat(vt.meta.configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.#meta.saveConfig({
+        await vt.meta.saveConfig({
           projectId,
           currentBranch: branchId,
           version: version,
@@ -109,7 +109,7 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async clone(targetDir: string): Promise<void> {
-    const { projectId, currentBranch, version } = await this.#meta.loadConfig();
+    const { projectId, currentBranch, version } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
@@ -134,7 +134,7 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async pull(targetDir: string): Promise<void> {
-    const { projectId, currentBranch } = await this.#meta.loadConfig();
+    const { projectId, currentBranch } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
@@ -157,7 +157,7 @@ export default class VTClient {
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
   public async status(targetDir: string): Promise<StatusResult> {
-    const { projectId, currentBranch } = await this.#meta.loadConfig();
+    const { projectId, currentBranch } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
@@ -174,33 +174,49 @@ export default class VTClient {
   /**
    * Check out a different branch of the project.
    *
-   * @param {string} targetDir - The directory where the checkout should happen
-   * @param {string} branchName - The name of the branch to check out to
+   * @param {string} targetDir The directory where the checkout should happen
+   * @param {string} branchName The name of the branch to check out to
+   * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
    * @returns {Promise<void>}
    */
-  public async checkout(targetDir: string, branchName: string): Promise<void> {
-    const { projectId, currentBranch } = await this.#meta.loadConfig();
+  public async checkout(
+    targetDir: string,
+    branchName: string,
+    forkedFrom?: string,
+  ): Promise<void> {
+    const { projectId } = await this.meta.loadConfig();
 
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
+    const ignoreGlobs = await this.getIgnoreGlobs();
+
+    let checkoutBranchId: string;
+
+    if (forkedFrom) { // Use the signature where we create a new branch
+      await checkout({
+        targetDir,
+        projectId,
+        forkedFrom,
+        name: branchName,
+        ignoreGlobs,
+      });
+      checkoutBranchId = await branchNameToId(projectId, branchName);
+    } else {
+      checkoutBranchId = await branchNameToId(projectId, branchName);
+      await checkout({
+        targetDir,
+        projectId,
+        branchId: checkoutBranchId,
+        ignoreGlobs,
+      });
     }
 
-    const toBranchId = await branchIdToName(projectId, branchName);
-
-    await checkout({
-      targetDir,
-      projectId,
-      toBranchId,
-      ignoreGlobs: await this.getIgnoreGlobs(),
-    });
-
     // Update the config with the new branch
-    await this.#meta.saveConfig({
+    await this.meta.saveConfig({
       projectId,
-      currentBranch: toBranchId,
+      currentBranch: checkoutBranchId,
       // Get the latest version of the new branch
       version:
-        (await sdk.projects.branches.retrieve(projectId, toBranchId)).version,
+        (await sdk.projects.branches.retrieve(projectId, checkoutBranchId))
+          .version,
     });
   }
 
