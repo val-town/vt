@@ -9,6 +9,17 @@ type BaseCheckoutParams = {
   ignoreGlobs: string[];
 };
 
+type BranchCheckoutParams = BaseCheckoutParams & {
+  branchId: string;
+  version: number;
+};
+
+type ForkCheckoutParams = BaseCheckoutParams & {
+  forkedFrom: string;
+  name: string;
+  version: number;
+};
+
 /**
  * Checks out a specific branch of a project by creating a temporary directory,
  * cloning the branch into it, and then copying the contents to the target
@@ -17,37 +28,27 @@ type BaseCheckoutParams = {
  * This is an atomic operation, and if the underlying clone fails nothing
  * changes.
  */
-export function checkout(
-  args: BaseCheckoutParams & { branchId: string },
-): Promise<void>;
-export function checkout(
-  args: BaseCheckoutParams & { forkedFrom: string; name: string },
-): Promise<void>;
+export function checkout(args: BranchCheckoutParams): Promise<void>;
+export function checkout(args: ForkCheckoutParams): Promise<void>;
 export async function checkout(
-  args:
-    & BaseCheckoutParams
-    & ({ branchId: string } | { forkedFrom: string; name: string }),
+  args: BranchCheckoutParams | ForkCheckoutParams,
 ) {
   const { tempDir, cleanup } = await withTempDir("vt_checkout_");
 
   try {
     let checkoutBranchId: string;
-    let branchVersion: number;
+    let checkoutVersion: number;
 
     if ("branchId" in args) {
-      const branchInfo = await sdk.projects.branches.retrieve(
-        args.projectId,
-        args.branchId,
-      );
       checkoutBranchId = args.branchId;
-      branchVersion = branchInfo.version;
+      checkoutVersion = args.version;
     } else {
       const newBranch = await sdk.projects.branches.create(
         args.projectId,
         { branchId: args.forkedFrom, name: args.name },
       );
       checkoutBranchId = newBranch.id;
-      branchVersion = newBranch.version;
+      checkoutVersion = newBranch.version;
     }
 
     // Clone the branch into the temporary directory
@@ -55,8 +56,8 @@ export async function checkout(
       targetDir: tempDir,
       projectId: args.projectId,
       branchId: checkoutBranchId,
-      version: branchVersion,
       ignoreGlobs: args.ignoreGlobs,
+      version: checkoutVersion,
     });
 
     // Purge their version before copying back over

@@ -118,7 +118,7 @@ async function isFileModified(
       path.dirname(cleanPath),
       withoutValExtension(path.basename(cleanPath)),
     )),
-  );
+  ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
   const localFileContent = (await Deno.readTextFile(
