@@ -4,6 +4,7 @@ import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { create } from "~/vt/git/create.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -117,11 +118,11 @@ export default class VTClient {
     privacy: "public" | "private" | "unlisted",
     description?: string,
   ): Promise<VTClient> {
-    // Create the project using the SDK
-    await sdk.projects.create({
-      name: projectName,
-      privacy: privacy,
-      description: description || "",
+    await create({
+      targetDir: rootPath,
+      projectName,
+      privacy,
+      description,
     });
 
     // Initialize VT client with the new project
