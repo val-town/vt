@@ -1,6 +1,6 @@
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { withoutValExtension } from "~/vt/git/paths.ts";
+import { withoutValExtension, withValExtension } from "~/vt/git/paths.ts";
 import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
@@ -55,15 +55,15 @@ export async function status({
   const projectFiles = await getProjectFiles(projectId, branchId, ignoreGlobs);
 
   // Compare local files against project files
-  for (const [cleanPath, { originalPath, modTime }] of localFiles.entries()) {
-    if (!cleanPath) continue; // Skip empty paths
+  for (const [baseName, { originalPath, modTime }] of localFiles.entries()) {
+    if (!baseName) continue; // Skip empty paths
 
-    const projectModTime = projectFiles.get(cleanPath);
+    const projectModTime = projectFiles.get(originalPath);
 
     if (projectModTime === undefined) {
       // File exists locally but not in project - it's created
       result.created.push({
-        path: cleanPath,
+        path: originalPath,
         status: "created",
       });
     } else {
@@ -74,19 +74,19 @@ export async function status({
         const isModified = await isFileModified(
           targetDir,
           originalPath,
-          cleanPath,
+          baseName,
           projectId,
         );
 
         if (isModified) {
           result.modified.push({
-            path: cleanPath,
+            path: originalPath,
             status: "modified",
           });
         }
       } else {
         result.not_modified.push({
-          path: cleanPath,
+          path: originalPath,
           status: "not_modified",
         });
       }
@@ -146,7 +146,15 @@ async function getProjectFiles(
     .filter((file) => file.type !== "directory")
     .map((
       file: ValTown.Projects.FileListResponse,
-    ) => [file.path, new Date(file.updatedAt).getTime()]) as [string, number][];
+    ) => [
+      path.join(
+        path.dirname(file.path),
+        file.type === "file"
+          ? file.name
+          : withValExtension(file.name, file.type),
+      ),
+      new Date(file.updatedAt).getTime(),
+    ]) as [string, number][];
 
   return new Map(processedFiles);
 }
@@ -174,13 +182,10 @@ async function getLocalFiles(
 
     // Store both the cleaned path and original path. We'll want access to
     // the original (real) path for later when we're accessing mtimes.
-    const cleanedPath = withoutValExtension(relativePath);
-    if (cleanedPath) { // Only add non-empty paths
-      files.set(cleanedPath, {
-        originalPath: relativePath,
-        modTime: stat.mtime.getTime(),
-      });
-    }
+    files.set(path.relative(targetDir, entry.path), {
+      originalPath: relativePath,
+      modTime: stat.mtime.getTime(),
+    });
   };
 
   for await (const entry of fs.walk(targetDir)) {
