@@ -222,8 +222,7 @@ const stashCmd = new Command()
       });
 
       const table = Table.from(snapshotReport.reverse())
-        .header(["Stash", "Stashed At"])
-        .border();
+        .header(["Stash", "Stashed At"]);
 
       console.log("\nStash list:");
       table.render();
