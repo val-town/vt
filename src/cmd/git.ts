@@ -9,6 +9,7 @@ import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
 import { Table } from "@cliffy/table";
+import { colors } from "@cliffy/ansi/colors";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -237,17 +238,24 @@ const stashCmd = new Command()
         return;
       }
 
-      const snapshotReport = snapshots.map((stashed) => {
-        const date = stashed.date.toLocaleString();
-        const stashId = `stash@{${stashed.name}}`;
-        return [stashId, date];
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
       });
 
-      const table = Table.from(snapshotReport)
-        .header(["Stash", "Stashed At"]);
+      const table = Table.from([
+        [
+          colors.bold("Name"),
+          colors.bold("Created On"),
+        ],
+        ...snapshots.map((stashed) => [
+          colors.cyan(`stash@{${stashed.name}}`),
+          colors.yellow(formatter.format(stashed.date)),
+        ]),
+      ]);
 
-      console.log("\nStash list:");
-      table.render();
+      console.log(table.toString());
     } catch (error) {
       if (error instanceof Error) spinner.fail(error.message);
     }
