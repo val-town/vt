@@ -4,6 +4,8 @@ import sdk, { branchIdToName } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { StashListingInfo } from "~/vt/git/stash.ts";
+import { isDirty } from "~/vt/git/utils.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -167,5 +169,40 @@ export default class VTClient {
       branchId: currentBranch,
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
+  }
+
+  /**
+   * Manages the stash. Lets you apply, delete, or list the stashes.
+   *
+   * @param mode - The stash operation mode (store/apply/delete/list)
+   * @returns Promise resolving to StashListingInfo or array of StashListingInfo if listing.
+   */
+  public async stash(mode: "list"): Promise<StashListingInfo[]>;
+  public async stash(
+    mode: "store" | "apply" | "delete",
+    name: string,
+  ): Promise<StashListingInfo>;
+  public async stash(
+    mode: "store" | "apply" | "delete" | "list",
+    name?: string,
+  ): Promise<StashListingInfo | StashListingInfo[]> {
+    if (mode === "list") {
+      return this.#meta.stash(mode);
+    } else {
+      return this.#meta.stash(
+        mode,
+        name!,
+        await this.getIgnoreGlobs(),
+      );
+    }
+  }
+
+  /**
+   * Check if the working directory has uncommitted changes.
+   *
+   * @returns {Promise<boolean>} True if there are uncommitted changes
+   */
+  public async isDirty(): Promise<boolean> {
+    return isDirty(await this.status(this.rootPath));
   }
 }

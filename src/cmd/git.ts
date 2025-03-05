@@ -8,13 +8,20 @@ import { checkDirectory } from "~/utils.ts";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
+import { Table } from "@cliffy/table";
+import { colors } from "@cliffy/ansi/colors";
 
 const cloneCmd = new Command()
   .name("clone")
   .description("Clone a val town project")
   .arguments("<projectUri:string> [cloneDir:string] [branchName:string]")
   .action(
-    async (_, projectUri: string, rootPath?: string, branchName?: string) => {
+    async (
+      _: unknown,
+      projectUri: string,
+      rootPath?: string,
+      branchName?: string,
+    ) => {
       const spinner = new Kia("Cloning project...");
       let targetDir = rootPath || Deno.cwd();
 
@@ -129,4 +136,162 @@ const statusCmd = new Command()
     }
   });
 
-export { cloneCmd, pullCmd, statusCmd };
+const stashCmd = new Command()
+  .name("stash")
+  .description(
+    "Save and restore project state (defaults to save current state)",
+  )
+  .arguments("[name:string]")
+  .action(async (_: unknown, name?: string) => {
+    const spinner = new Kia("Stashing project state...");
+
+    try {
+      const vt = VTClient.from(Deno.cwd());
+      spinner.start();
+
+      if (!(await vt.isDirty())) {
+        spinner.fail("No changes to stash");
+        return;
+      }
+
+      const snapshots = await vt.stash("list");
+      const stashName = name ?? `${snapshots.length}`;
+      const stashed = await vt.stash("store", stashName);
+
+      spinner.succeed(
+        `Saved as stash@{${stashed.name}} (${stashed.date.toLocaleString()})`,
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  })
+  .command("apply", "Apply a saved project state (defaults to most recent)")
+  .arguments("[name:string]")
+  .action(async (_: unknown, name?: string) => {
+    const spinner = new Kia("Applying snapshot...");
+    const vt = VTClient.from(Deno.cwd());
+
+    try {
+      spinner.start();
+      const snapshots = await vt.stash("list");
+
+      if (snapshots.length === 0) throw new Error("No stashes found");
+
+      const snapshot = name
+        ? snapshots.find((s) => s.name === name)
+        : snapshots[0]; // First is most recent due to sort
+
+      if (!snapshot) throw new Error(`Stash not found: ${name}`);
+
+      await vt.stash("apply", snapshot.name);
+      const stashed = await vt.stash("delete", snapshot.name);
+
+      spinner.succeed(
+        `Applied stash@{${stashed.name}} (${snapshot.date.toLocaleString()})`,
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  })
+  .command("push", "Save current project state")
+  .action(async () => {
+    const spinner = new Kia("Stashing the project...");
+
+    try {
+      const vt = VTClient.from(Deno.cwd());
+      spinner.start();
+
+      if (!(await vt.isDirty())) {
+        spinner.fail("No changes to stash");
+        return;
+      }
+
+      const snapshots = await vt.stash("list");
+      const stashName = `stash-${snapshots.length}`;
+      const stashed = await vt.stash("store", stashName);
+
+      spinner.succeed(
+        `Saved as stash@{${stashed.name}} (${stashed.date.toLocaleString()})`,
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  })
+  .command("list", "List all saved project states")
+  .action(async () => {
+    const spinner = new Kia("Loading stashes...");
+    const vt = VTClient.from(Deno.cwd());
+
+    try {
+      spinner.start();
+      const snapshots = await vt.stash("list");
+      spinner.stop();
+
+      if (snapshots.length === 0) {
+        console.log("No stashes found");
+        return;
+      }
+
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+
+      const table = Table.from([
+        [
+          colors.bold("Name"),
+          colors.bold("Created On"),
+        ],
+        ...snapshots.map((stashed) => [
+          colors.cyan(`stash@{${stashed.name}}`),
+          colors.yellow(formatter.format(stashed.date)),
+        ]),
+      ]);
+
+      console.log(table.toString());
+    } catch (error) {
+      if (error instanceof Error) spinner.fail(error.message);
+    }
+  })
+  .command("delete", "Delete a specific stash (defaults to most recent)")
+  .alias("remove")
+  .arguments("[name:string]")
+  .action(async (_: unknown, name?: string) => {
+    const spinner = new Kia("Deleting stash...");
+    const vt = VTClient.from(Deno.cwd());
+
+    try {
+      spinner.start();
+      const snapshots = await vt.stash("list");
+
+      if (snapshots.length === 0) {
+        throw new Error("No stashes found");
+      }
+
+      const snapshot = name
+        ? snapshots.find((s) => s.name === name)
+        : snapshots[0]; // First is most recent due to sort
+
+      if (!snapshot) {
+        throw new Error(`Stash not found: ${name}`);
+      }
+
+      const stashed = await vt.stash("delete", snapshot.name);
+      spinner.succeed(
+        `Deleted stash@{${stashed.name}} (${snapshot.date.toLocaleString()})`,
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  });
+
+export { cloneCmd, pullCmd, stashCmd, statusCmd };
