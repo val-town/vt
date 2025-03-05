@@ -24,7 +24,7 @@ for (const testCase of testCases) {
           version: testCase.version,
         });
 
-        // We trust initial status is correct since clone already tests it
+        // We trust initial status is correct since clone is already tested
 
         // Modify specified files
         for (const { path: filePath, newContent } of testCase.modifiedFiles) {
