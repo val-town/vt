@@ -1,4 +1,5 @@
 import { join } from "@std/path";
+import { walk } from "@std/fs";
 
 export interface ExpectedProjectInode {
   path: string;
@@ -51,27 +52,21 @@ async function assertInodeExists(
 async function collectAllPaths(
   dir: string,
   basePath: string,
-  result: Set<string> = new Set(),
 ): Promise<Set<string>> {
-  const relativePath = dir.substring(basePath.length).replace(/^\//, "");
-  if (relativePath) result.add(relativePath);
+  const paths: string[] = [];
 
-  for await (const entry of Deno.readDir(dir)) {
-    const entryPath = join(dir, entry.name);
-    const entryRelPath = entryPath.substring(basePath.length).replace(
+  const relativePath = dir.substring(basePath.length).replace(/^\//, "");
+  if (relativePath) paths.push(relativePath);
+
+  for await (const entry of walk(dir)) {
+    const entryRelPath = entry.path.substring(basePath.length).replace(
       /^\//,
       "",
     );
-
-    if (entry.isDirectory) {
-      result.add(entryRelPath);
-      await collectAllPaths(entryPath, basePath, result);
-    } else {
-      result.add(entryRelPath);
-    }
+    paths.push(entryRelPath);
   }
 
-  return result;
+  return new Set(paths.filter((path) => path !== ""));
 }
 
 /**
@@ -81,7 +76,6 @@ async function collectAllPaths(
  * @param basePath The root directory to check
  * @param expectedInodes List of expected files/directories and their properties
  * @returns Promise<boolean> true if all paths exist and match expected types/content
- * @throws Detailed error message if any path verification fails
  */
 export async function verifyProjectStructure(
   basePath: string,
