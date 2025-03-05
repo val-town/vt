@@ -2,6 +2,9 @@ import z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
 import * as path from "@std/path";
+import { stash, StashListingInfo } from "~/vt/git/stash.ts";
+import { ensureDir } from "@std/fs";
+import { join } from "@std/path";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -26,6 +29,15 @@ export default class VTMeta {
    */
   public get configFilePath(): string {
     return path.join(this.#rootPath, META_FOLDER_NAME, CONFIG_FILE_NAME);
+  }
+
+  /**
+   * Gets the path to the stash directory under .vt
+   *
+   * @returns {string} The full path to the stash directory
+   */
+  private get stashDirPath(): string {
+    return path.join(this.#rootPath, META_FOLDER_NAME, "stash");
   }
 
   /**
@@ -99,5 +111,40 @@ export default class VTMeta {
     }
 
     return ignoreGlobs;
+  }
+
+  /**
+   * Manages project snapshots using stash operations.
+   *
+   * @param mode - The stash operation mode (store/apply/delete/list)
+   * @param stashName - Optional name for the stash (for store mode)
+   * @param ignoreGlobs - Optional glob patterns to ignore during operations
+   * @returns Promise resolving to StashListingInfo or array of StashListingInfo
+   */
+  public async stash(
+    mode: "store" | "apply" | "delete" | "list",
+    stashName?: string,
+    ignoreGlobs?: string[],
+  ): Promise<StashListingInfo | StashListingInfo[]> {
+    await ensureDir(this.stashDirPath);
+
+    if (mode === "list") {
+      return stash({
+        projectDir: this.#rootPath,
+        stashDir: this.stashDirPath,
+        mode: "list",
+      });
+    }
+
+    const timestamp = Date.now();
+    const snapshotPath = join(this.stashDirPath, `${timestamp}.tar.gz`);
+
+    return stash({
+      projectDir: this.#rootPath,
+      snapshotPath,
+      mode,
+      ignoreGlobs,
+      stashName,
+    });
   }
 }
