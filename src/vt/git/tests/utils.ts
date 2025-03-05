@@ -53,19 +53,6 @@ export async function verifyProjectStructure(
   basePath: string,
   expectedInodes: ExpectedProjectInode[],
 ): Promise<boolean> {
-  // First get all actual files/directories
-  const actualPaths = new Set<string>();
-
-  // Convert expected paths to a set for comparison
-  const expectedPaths = new Set(expectedInodes.map((inode) => inode.path));
-
-  // Check for unexpected files/directories
-  for (const actualPath of actualPaths) {
-    if (!expectedPaths.has(actualPath)) {
-      throw new Error(`Unexpected file or directory found: "${actualPath}"`);
-    }
-  }
-
   // Check all expected files/directories exist with correct properties
   for (const inode of expectedInodes) {
     const fullPath = join(basePath, inode.path);
