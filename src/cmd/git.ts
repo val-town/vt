@@ -205,7 +205,7 @@ const branchCmd = new Command()
     }
   });
 
-  const checkoutCmd = new Command()
+const checkoutCmd = new Command()
   .name("checkout")
   .description("Check out a different branch")
   .arguments("[existingBranchName:string]")
@@ -257,4 +257,4 @@ const branchCmd = new Command()
     },
   );
 
-export { branchCmd, cloneCmd, pullCmd, statusCmd, checkoutCmd };
+export { branchCmd, checkoutCmd, cloneCmd, pullCmd, statusCmd };
