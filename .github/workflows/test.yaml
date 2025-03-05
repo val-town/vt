@@ -16,3 +16,10 @@ jobs:
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
         run: deno run test
+
+      - name: Run deno lint check
+        run: deno run check
+
+      - name: Run deno format check
+        run: deno run fmt:check
+

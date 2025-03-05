@@ -2,8 +2,10 @@
   "version": "0.0.1",
   "exports": "./vt.ts",
   "tasks": {
+    "run": "./vt.ts",
     "test": "deno test -A",
-    "run": "./vt.ts"
+    "check": "deno check .",
+    "fmt:check": "deno fmt --check ./**/*.ts"
   },
   "imports": {
     "@cliffy/ansi": "jsr:@cliffy/ansi@^1.0.0-rc.7",
