@@ -42,7 +42,37 @@ async function assertInodeExists(
 }
 
 /**
+ * Recursively collects all files and directories under a given path
+ * @param dir The directory to scan
+ * @param basePath The base path for relative path calculation
+ * @param result Set to store collected paths (relative to basePath)
+ */
+async function collectAllPaths(
+  dir: string,
+  basePath: string,
+  result: Set<string> = new Set(),
+): Promise<Set<string>> {
+  const relativePath = dir.substring(basePath.length).replace(/^\//, "");
+  if (relativePath) result.add(relativePath);
+
+  for await (const entry of Deno.readDir(dir)) {
+    const entryPath = join(dir, entry.name);
+    const entryRelPath = entryPath.substring(basePath.length).replace(/^\//, "");
+    
+    if (entry.isDirectory) {
+      result.add(entryRelPath);
+      await collectAllPaths(entryPath, basePath, result);
+    } else {
+      result.add(entryRelPath);
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Verifies the expected file/directory structure exists at the given path
+ * Also ensures there are no unexpected files or directories
  *
  * @param basePath The root directory to check
  * @param expectedInodes List of expected files/directories and their properties
@@ -53,6 +83,19 @@ export async function verifyProjectStructure(
   basePath: string,
   expectedInodes: ExpectedProjectInode[],
 ): Promise<boolean> {
+  // First get all actual files/directories
+  const actualPaths = await collectAllPaths(basePath, basePath);
+  
+  // Convert expected paths to a set for comparison
+  const expectedPaths = new Set(expectedInodes.map((inode) => inode.path));
+  
+  // Check for unexpected files/directories
+  for (const actualPath of actualPaths) {
+    if (!expectedPaths.has(actualPath)) {
+      throw new Error(`Unexpected file or directory found: "${actualPath}"`);
+    }
+  }
+
   // Check all expected files/directories exist with correct properties
   for (const inode of expectedInodes) {
     const fullPath = join(basePath, inode.path);
