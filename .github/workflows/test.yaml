@@ -15,11 +15,11 @@ jobs:
       - name: Run deno test script
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
-        run: deno run test
+        run: deno task test
 
       - name: Run deno lint check
-        run: deno run check
+        run: deno task check
 
       - name: Run deno format check
-        run: deno run fmt:check
+        run: deno task fmt:check
 
