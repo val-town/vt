@@ -55,5 +55,5 @@ export async function cleanDirectory(
  * @param {StatusResult} statusResult Result of a status operation.
  */
 export function isDirty(statusResult: StatusResult): boolean {
-  return statusResult.modified.length > 0
+  return statusResult.modified.length > 0;
 }
