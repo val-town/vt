@@ -64,7 +64,7 @@ function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
  * @param {string[]} ignoreGlobs Array of glob patterns to check against
  * @returns {boolean} True if the path should be ignored
  */
-function shouldIgnoreGlob(
+function shouldIgnore(
   filePath: string,
   ignoreGlobs: string[] = [],
 ): boolean {
@@ -73,4 +73,4 @@ function shouldIgnoreGlob(
   );
 }
 
-export { shouldIgnoreGlob, withoutValExtension, withValExtension };
+export { shouldIgnore, withoutValExtension, withValExtension };

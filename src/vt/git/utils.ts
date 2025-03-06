@@ -1,6 +1,6 @@
 import { StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -36,7 +36,7 @@ export async function cleanDirectory(
   ignoreGlobs: string[],
 ): Promise<void> {
   const filesToRemove = Deno.readDirSync(directory)
-    .filter((entry) => !shouldIgnoreGlob(entry.name, ignoreGlobs))
+    .filter((entry) => !shouldIgnore(entry.name, ignoreGlobs))
     .map((entry) => ({
       path: path.join(directory, entry.name),
       isDirectory: entry.isDirectory,

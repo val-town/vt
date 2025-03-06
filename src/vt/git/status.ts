@@ -1,7 +1,7 @@
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { withoutValExtension, withValExtension } from "~/vt/git/paths.ts";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 
@@ -142,7 +142,7 @@ async function getProjectFiles(
   for await (const file of projectFilesResponse.data) files.push(file);
 
   const processedFiles = files
-    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
     .filter((file) => file.type !== "directory")
     .map((
       file: ValTown.Projects.FileListResponse,
@@ -172,7 +172,7 @@ async function getLocalFiles(
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnoreGlob(relativePath, ignoreGlobs)) return;
+    if (shouldIgnore(relativePath, ignoreGlobs)) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);

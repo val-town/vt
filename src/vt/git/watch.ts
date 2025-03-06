@@ -1,5 +1,5 @@
 import type { StatusResult } from "~/vt/git/status.ts";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 
 /**
  * Watch a val town project directory for changes and sync them
@@ -33,7 +33,7 @@ export async function watch({
 
   for await (const event of watcher) {
     // Skip events for ignored files
-    if (shouldIgnoreGlob(event.paths[0], ignoreGlobs)) continue;
+    if (shouldIgnore(event.paths[0], ignoreGlobs)) continue;
 
     // Only process relevant events
     switch (event.kind) {
