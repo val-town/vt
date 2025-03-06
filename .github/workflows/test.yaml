@@ -1,6 +1,6 @@
 name: VT Testing
 
-on: [pull_request]
+on: [push]
 
 jobs:
   test:
