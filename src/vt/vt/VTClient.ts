@@ -4,6 +4,7 @@ import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { watch } from "~/vt/git/watch.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -98,6 +99,34 @@ export default class VTClient {
    */
   public static from(rootPath: string): VTClient {
     return new VTClient(rootPath);
+  }
+
+  /**
+   * Watch the root directory for changes and automatically push to val town
+   * when files are updated locally.
+   */
+  public async watch() {
+    const { projectId, currentBranch } = await this.meta.loadConfig();
+
+    if (!projectId || !currentBranch) {
+      throw new Error("Configuration not loaded");
+    }
+
+    await watch({
+      targetDir: this.rootPath,
+      projectId,
+      branchId: currentBranch,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+      onCreate: (path) => {
+        console.log("Creating files not yet implemented", path);
+      },
+      onModify: (path) => {
+        console.log("Updating files not yet implemented", path);
+      },
+      onRemove: (path) => {
+        console.log("Removing files not yet implemented", path);
+      },
+    });
   }
 
   /**
