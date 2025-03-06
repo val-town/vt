@@ -1,6 +1,8 @@
 import * as path from "@std/path";
 import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
 
+type ValType = "script" | "http" | "email" | "interval";
+
 /**
  * Adds val file extension to a path or filename
  *
@@ -21,7 +23,7 @@ function withValExtension(
   const dirname = path.dirname(filepath);
   const basename = path.basename(filepath);
   const baseFilename = withoutValExtension(basename, abbreviated);
-  
+
   return path.join(dirname, baseFilename + extension);
 }
 
@@ -37,7 +39,7 @@ function withoutValExtension(
 ): string {
   const dirname = path.dirname(filepath);
   const basename = path.basename(filepath);
-  
+
   const extensions = Object.values(VAL_TYPE_EXTENSIONS).map(
     (ext) => abbreviated ? `.${ext.abbreviated}.tsx` : `.${ext.standard}.tsx`,
   );
@@ -48,6 +50,45 @@ function withoutValExtension(
     }
   }
   return filepath;
+}
+
+/**
+ * Retrieves the val file type based on its extension using regex and a map.
+ *
+ * @param filepath Path or filename to analyze
+ * @param abbreviated Whether to check for abbreviated val file extensions (default: false)
+ * @returns The val file type
+ * @throws Error if no matching type is found
+ */
+export function getValType(
+  filepath: string,
+  abbreviated: boolean = false,
+): ValType {
+  const basename = path.basename(filepath);
+
+  // Create a map of extensions to val types using functional programming
+  const extensionToTypeMap = Object.entries(VAL_TYPE_EXTENSIONS).reduce(
+    (map, [valType, ext]) => {
+      const extensionKey = abbreviated ? ext.abbreviated : ext.standard;
+      map.set(extensionKey, valType as ValType);
+      return map;
+    },
+    new Map<string, keyof typeof VAL_TYPE_EXTENSIONS>(),
+  );
+
+  // Regex pattern to extract the extension right before .tsx
+  const regexPattern = /\.([^\.]+)\.tsx$/;
+  const match = basename.match(regexPattern);
+
+  if (match) {
+    const extensionKey = match[1];
+    const valType = extensionToTypeMap.get(extensionKey);
+    if (valType) {
+      return valType as ValType;
+    }
+  }
+
+  throw new Error(`Unrecognized file type for '${filepath}'`);
 }
 
 /**
