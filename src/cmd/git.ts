@@ -10,7 +10,6 @@ import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import { checkDirtyState } from "~/cmd/utils.ts";
 import type ValTown from "@valtown/sdk";
 
 const cloneCmd = new Command()
@@ -79,9 +78,13 @@ const pullCmd = new Command()
 
     try {
       const vt = VTClient.from(cwd);
-      await checkDirtyState(vt, cwd, "pull");
-
       spinner.start();
+      
+      if (await vt.isDirty(cwd)) {
+        spinner.fail("Cannot pull with uncommitted changes. Please commit or stash your changes first.");
+        return;
+      }
+      
       await vt.pull(cwd);
       spinner.succeed(`Project pulled successfully to ${cwd}`);
     } catch (error) {
@@ -221,9 +224,12 @@ const checkoutCmd = new Command()
       const vt = VTClient.from(cwd);
       const config = await vt.meta.loadConfig();
       try {
-        await checkDirtyState(vt, cwd, "checkout");
-
         spinner.start();
+        
+        if (await vt.isDirty(cwd)) {
+          spinner.fail("Cannot checkout with uncommitted changes. Please commit or stash your changes first.");
+          return;
+        }
 
         if (branch) {
           // -b flag was used, create new branch from source
