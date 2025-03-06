@@ -10,7 +10,7 @@ import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import type ValTown from "@valtown/sdk";
+import ValTown from "@valtown/sdk";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -247,12 +247,24 @@ const checkoutCmd = new Command()
 
         if (branch) {
           // -b flag was used, create new branch from source
-          await vt.checkout(cwd, branch, config.currentBranch);
-          spinner.succeed(
-            `Created and switched to new branch '${branch}'${
-              existingBranchName ? ` from '${existingBranchName}'` : ""
-            }`,
-          );
+          try {
+            await vt.checkout(cwd, branch, config.currentBranch);
+            const existingBranchName = await sdk.projects.branches.retrieve(
+              config.projectId,
+              config.currentBranch,
+            ).then((branch) => branch.name);
+            spinner.succeed(
+              `Created and switched to new branch '${branch}'${
+                existingBranchName ? ` from '${existingBranchName}'` : ""
+              }`,
+            );
+          } catch (error) {
+            if (error instanceof ValTown.APIError && error.status === 409) {
+              spinner.fail(`Branch '${branch}' already exists.`);
+            } else {
+              throw error; // Re-throw error if it's not a 409
+            }
+          }
         } else if (existingBranchName) {
           // Regular checkout. Check to see if branch exists.
           try {
