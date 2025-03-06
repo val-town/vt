@@ -256,11 +256,11 @@ const checkoutCmd = new Command()
             ).then((branch) => branch.name);
 
             spinner.succeed(
-              `Created and switched to new branch '${branch}' from '${existingBranchName}'`,
+              `Created and switched to new branch "${branch}" from "${existingBranchName}"`,
             );
           } catch (error) {
             if (error instanceof ValTown.APIError && error.status === 409) {
-              spinner.fail(`Branch '${branch}' already exists.`);
+              spinner.fail(`Branch "${branch}" already exists.`);
             } else {
               throw error; // Re-throw error if it's not a 409
             }
@@ -277,7 +277,7 @@ const checkoutCmd = new Command()
           }
 
           await vt.checkout(cwd, existingBranchName);
-          spinner.succeed(`Switched to branch '${existingBranchName}'`);
+          spinner.succeed(`Switched to branch "${existingBranchName}"`);
         } else {
           throw new Error("Branch name is required");
         }
