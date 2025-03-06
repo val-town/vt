@@ -220,8 +220,15 @@ const checkoutCmd = new Command()
     "-b, --branch <newBranchName:string>",
     "Create a new branch with the specified name",
   )
+  .option(
+    "-f, --force",
+    "Force checkout by ignoring local changes",
+  )
   .action(
-    async ({ branch }: { branch?: string }, existingBranchName?: string) => {
+    async (
+      { branch, force }: { branch?: string; force?: boolean },
+      existingBranchName?: string,
+    ) => {
       const spinner = new Kia("Checking out branch...");
       const cwd = Deno.cwd();
 
@@ -230,9 +237,10 @@ const checkoutCmd = new Command()
       try {
         spinner.start();
 
-        if (await vt.isDirty(cwd)) {
+        if (!force && await vt.isDirty(cwd)) {
           spinner.fail(
-            "Cannot checkout with uncommitted changes. Please commit or stash your changes first.",
+            "Cannot checkout with uncommitted changes. " +
+              "Use `checkout -f` to ignore local changes.",
           );
           return;
         }
