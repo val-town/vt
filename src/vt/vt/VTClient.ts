@@ -187,7 +187,9 @@ export default class VTClient {
   ): Promise<void> {
     const { projectId } = await this.meta.loadConfig();
     const ignoreGlobs = await this.getIgnoreGlobs();
-    let checkoutBranchId: string;
+
+    const checkoutBranchId = await branchNameToId(projectId, branchName);
+    const latestVersion = await getLatestVersion(projectId, checkoutBranchId);
 
     if (forkedFrom) { // Use the signature where we create a new branch
       const sourceVersion = await getLatestVersion(projectId, forkedFrom);
@@ -199,16 +201,14 @@ export default class VTClient {
         ignoreGlobs,
         version: sourceVersion,
       });
-      checkoutBranchId = await branchNameToId(projectId, branchName);
     } else {
-      checkoutBranchId = await branchNameToId(projectId, branchName);
       // Default to the newest version when checking out
       await checkout({
         targetDir,
         projectId,
         branchId: checkoutBranchId,
         ignoreGlobs,
-        version: await getLatestVersion(projectId, checkoutBranchId),
+        version: latestVersion,
       });
     }
 
@@ -216,7 +216,7 @@ export default class VTClient {
     await this.meta.saveConfig({
       projectId,
       currentBranch: checkoutBranchId,
-      version: await getLatestVersion(projectId, checkoutBranchId),
+      version: latestVersion,
     });
   }
 
