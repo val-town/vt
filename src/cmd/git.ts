@@ -72,7 +72,7 @@ const cloneCmd = new Command()
 const pullCmd = new Command()
   .name("pull")
   .description("Pull the latest changes for a val town project")
-  .option("-f, --force", "Force the pull even if there are uncommitted changes")
+  .option("-f, --force", "Force the pull even if there are unpushed changes")
   .action(async ({ force }: { force?: boolean }) => {
     const spinner = new Kia("Pulling latest changes...");
     const cwd = Deno.cwd();
@@ -83,7 +83,7 @@ const pullCmd = new Command()
 
       if (!force && await vt.isDirty(cwd)) {
         spinner.fail(
-          "Cannot pull with uncommitted changes. " +
+          "Cannot pull with unpushed changes. " +
             "Use `pull -f` to discard local changes.",
         );
         return;
@@ -239,7 +239,7 @@ const checkoutCmd = new Command()
 
         if (!force && await vt.isDirty(cwd)) {
           spinner.fail(
-            "Cannot checkout with uncommitted changes. " +
+            "Cannot checkout with unpushed changes. " +
               "Use `checkout -f` to ignore local changes.",
           );
           return;

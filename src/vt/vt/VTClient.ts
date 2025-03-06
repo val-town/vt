@@ -168,6 +168,7 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }
@@ -186,10 +187,16 @@ export default class VTClient {
     forkedFrom?: string,
   ): Promise<void> {
     const { projectId } = await this.meta.loadConfig();
-    const ignoreGlobs = await this.getIgnoreGlobs();
 
     const checkoutBranchId = await branchNameToId(projectId, branchName);
     const latestVersion = await getLatestVersion(projectId, checkoutBranchId);
+
+    const created =
+      (await this.status(targetDir).then((status) => status.created)).map(
+        (file) => file.path,
+      ); // We want to ignore newly created files. Adding them to the
+    // ignoreGlobs list is a nice way to do that.
+    const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
 
     if (forkedFrom) { // Use the signature where we create a new branch
       const sourceVersion = await getLatestVersion(projectId, forkedFrom);
