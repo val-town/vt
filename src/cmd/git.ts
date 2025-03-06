@@ -249,14 +249,14 @@ const checkoutCmd = new Command()
           // -b flag was used, create new branch from source
           try {
             await vt.checkout(cwd, branch, config.currentBranch);
+
             const existingBranchName = await sdk.projects.branches.retrieve(
               config.projectId,
               config.currentBranch,
             ).then((branch) => branch.name);
+
             spinner.succeed(
-              `Created and switched to new branch '${branch}'${
-                existingBranchName ? ` from '${existingBranchName}'` : ""
-              }`,
+              `Created and switched to new branch '${branch}' from '${existingBranchName}'`,
             );
           } catch (error) {
             if (error instanceof ValTown.APIError && error.status === 409) {
