@@ -114,10 +114,7 @@ async function isFileModified(
 ): Promise<boolean> {
   const projectFileContent = await sdk.projects.files.content(
     projectId,
-    encodeURIComponent(path.join(
-      path.dirname(cleanPath),
-      withoutValExtension(path.basename(cleanPath)),
-    )),
+    encodeURIComponent(withoutValExtension(cleanPath)),
   );
 
   // For some reason the local paths seem to have an extra newline
@@ -147,12 +144,9 @@ async function getProjectFiles(
     .map((
       file: ValTown.Projects.FileListResponse,
     ) => [
-      path.join(
-        path.dirname(file.path),
-        file.type === "file"
-          ? file.name
-          : withValExtension(file.name, file.type),
-      ),
+      file.type === "file"
+        ? path.join(path.dirname(file.path), file.name)
+        : withValExtension(path.join(path.dirname(file.path), file.name), file.type),
       new Date(file.updatedAt).getTime(),
     ]) as [string, number][];
 

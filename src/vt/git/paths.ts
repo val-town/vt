@@ -2,15 +2,15 @@ import * as path from "@std/path";
 import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
 
 /**
- * Adds val file extension to a filename
+ * Adds val file extension to a path or filename
  *
- * @param filename Base filename
+ * @param filepath Path or filename
  * @param type Val file type (script, http, ...)
  * @param abbreviated Whether to use val file extension (default: false)
- * @returns Filename with val file extension
+ * @returns Path or filename with val file extension
  */
 function withValExtension(
-  filename: string,
+  filepath: string,
   type: keyof typeof VAL_TYPE_EXTENSIONS,
   abbreviated: boolean = false,
 ): string {
@@ -18,31 +18,36 @@ function withValExtension(
     ? `.${VAL_TYPE_EXTENSIONS[type].abbreviated}.tsx`
     : `.${VAL_TYPE_EXTENSIONS[type].standard}.tsx`;
 
-  const baseFilename = withoutValExtension(filename);
-
-  return baseFilename + extension;
+  const dirname = path.dirname(filepath);
+  const basename = path.basename(filepath);
+  const baseFilename = withoutValExtension(basename, abbreviated);
+  
+  return path.join(dirname, baseFilename + extension);
 }
 
 /**
- * Removes val file extension from a filename if present
- * @param filename Filename with possible val file extension
+ * Removes val file extension from a path or filename if present
+ * @param filepath Path or filename with possible val file extension
  * @param abbreviated Whether to check for val file extension (default: false)
- * @returns Filename without val file extension
+ * @returns Path or filename without val file extension
  */
 function withoutValExtension(
-  filename: string,
+  filepath: string,
   abbreviated: boolean = false,
 ): string {
+  const dirname = path.dirname(filepath);
+  const basename = path.basename(filepath);
+  
   const extensions = Object.values(VAL_TYPE_EXTENSIONS).map(
     (ext) => abbreviated ? `.${ext.abbreviated}.tsx` : `.${ext.standard}.tsx`,
   );
 
   for (const extension of extensions) {
-    if (filename.endsWith(extension)) {
-      return filename.slice(0, -extension.length);
+    if (basename.endsWith(extension)) {
+      return path.join(dirname, basename.slice(0, -extension.length));
     }
   }
-  return filename;
+  return filepath;
 }
 
 /**
