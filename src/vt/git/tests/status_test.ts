@@ -3,7 +3,7 @@ import * as path from "@std/path";
 import { withTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import { assert } from "@std/assert";
-import { testCases } from "~/vt/git/tests/cases.ts";
+import { TestCaseBranchData, testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
   for (const branchId in testCase.branches) {
@@ -24,11 +24,9 @@ for (const testCase of testCases) {
           await clone({
             targetDir: tempDir,
             projectId: testCase.projectId,
-            branchId: branchId, // Use correct branch ID
-            version: branchData.version, // Use branch-specific version
+            branchId: branchId,
+            version: branchData.version,
           });
-
-          // We trust initial status is correct since clone is already tested
 
           // Modify specified files
           for (
@@ -45,34 +43,60 @@ for (const testCase of testCases) {
           }
 
           // Check the status
-          const result: StatusResult = await status({
+          let result: StatusResult = await status({
             targetDir: tempDir,
             projectId: testCase.projectId,
-            branchId: branchId, // Use correct branch ID
+            version: branchData.version,
+            branchId: branchId,
             ignoreGlobs: [],
           });
 
-          // Validate modified files
-          const modifiedPaths = result.modified.map((f: FileStatus) => f.path);
-          for (const { path: modifiedPath } of branchData.modifiedFiles) {
-            assert(
-              modifiedPaths.includes(modifiedPath),
-              `Expected ${modifiedPath} to be reported as modified but it was not.`,
-            );
+          // Validate initial status
+          validateStatus(result, branchData);
+
+          // Update the file timestamps
+          const newAtime = new Date();
+          const newMtime = new Date();
+          for (const { path: filePath } of branchData.modifiedFiles) {
+            const fullPath = path.join(tempDir, filePath);
+            await Deno.utime(fullPath, newAtime, newMtime);
           }
 
-          // Validate deleted files
-          const deletedPaths = result.deleted.map((f: FileStatus) => f.path);
-          for (const deletedPath of branchData.deletedFiles) {
-            assert(
-              deletedPaths.includes(deletedPath),
-              `Expected ${deletedPath} to be reported as deleted but it was not.`,
-            );
-          }
+          // Re-check the status after updating timestamps
+          result = await status({
+            targetDir: tempDir,
+            projectId: testCase.projectId,
+            version: branchData.version,
+            branchId: branchId,
+            ignoreGlobs: [],
+          });
+
+          // Validate status remains unchanged
+          validateStatus(result, branchData);
         } finally {
           await cleanup();
         }
       },
     });
+  }
+}
+
+function validateStatus(result: StatusResult, branchData: TestCaseBranchData) {
+  // Validate modified files
+  const modifiedPaths = result.modified.map((f: FileStatus) => f.path);
+  for (const { path: modifiedPath } of branchData.modifiedFiles) {
+    assert(
+      modifiedPaths.includes(modifiedPath),
+      `Expected ${modifiedPath} to be reported as modified but it was not.`,
+    );
+  }
+
+  // Validate deleted files
+  const deletedPaths = result.deleted.map((f: FileStatus) => f.path);
+  for (const deletedPath of branchData.deletedFiles) {
+    assert(
+      deletedPaths.includes(deletedPath),
+      `Expected ${deletedPath} to be reported as deleted but it was not.`,
+    );
   }
 }

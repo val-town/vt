@@ -1,6 +1,13 @@
 import { ExpectedProjectInode } from "~/vt/git/tests/utils.ts";
 
-interface TestCase {
+export interface TestCaseBranchData {
+  version: number;
+  expectedInodes: ExpectedProjectInode[];
+  modifiedFiles: { path: string; newContent: string }[];
+  deletedFiles: string[];
+}
+
+export interface TestCase {
   name: string;
   projectId: string;
   branches: {

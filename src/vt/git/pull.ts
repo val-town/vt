@@ -31,6 +31,7 @@ export async function pull({
     projectId,
     branchId,
     ignoreGlobs,
+    version,
   });
 
   // Remove all existing tracked files
