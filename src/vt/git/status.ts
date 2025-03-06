@@ -115,7 +115,7 @@ async function isFileModified(
   const projectFileContent = await sdk.projects.files.content(
     projectId,
     encodeURIComponent(withoutValExtension(cleanPath)),
-  );
+  ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
   const localFileContent = (await Deno.readTextFile(
@@ -146,7 +146,10 @@ async function getProjectFiles(
     ) => [
       file.type === "file"
         ? path.join(path.dirname(file.path), file.name)
-        : withValExtension(path.join(path.dirname(file.path), file.name), file.type),
+        : withValExtension(
+          path.join(path.dirname(file.path), file.name),
+          file.type,
+        ),
       new Date(file.updatedAt).getTime(),
     ]) as [string, number][];
 

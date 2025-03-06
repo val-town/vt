@@ -82,7 +82,7 @@ async function createFile(
     projectId,
     encodeURIComponent(file.path),
     { branch_id: branchId, version },
-  ) as string;
+  ).then((resp) => resp.text());
 
   await ensureDir(path.dirname(fullPath));
   await Deno.writeTextFile(fullPath, content);
