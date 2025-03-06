@@ -72,19 +72,23 @@ const cloneCmd = new Command()
 const pullCmd = new Command()
   .name("pull")
   .description("Pull the latest changes for a val town project")
-  .action(async () => {
+  .option("-f, --force", "Force the pull even if there are uncommitted changes")
+  .action(async ({ force }: { force?: boolean }) => {
     const spinner = new Kia("Pulling latest changes...");
     const cwd = Deno.cwd();
 
     try {
       const vt = VTClient.from(cwd);
       spinner.start();
-      
-      if (await vt.isDirty(cwd)) {
-        spinner.fail("Cannot pull with uncommitted changes. Please commit or stash your changes first.");
+
+      if (!force && await vt.isDirty(cwd)) {
+        spinner.fail(
+          "Cannot pull with uncommitted changes. " +
+            "Use `pull -f` to discard local changes.",
+        );
         return;
       }
-      
+
       await vt.pull(cwd);
       spinner.succeed(`Project pulled successfully to ${cwd}`);
     } catch (error) {
@@ -225,9 +229,11 @@ const checkoutCmd = new Command()
       const config = await vt.meta.loadConfig();
       try {
         spinner.start();
-        
+
         if (await vt.isDirty(cwd)) {
-          spinner.fail("Cannot checkout with uncommitted changes. Please commit or stash your changes first.");
+          spinner.fail(
+            "Cannot checkout with uncommitted changes. Please commit or stash your changes first.",
+          );
           return;
         }
 
