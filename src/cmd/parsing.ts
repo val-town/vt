@@ -1,30 +1,39 @@
 /**
- * Parses the project URI to extract the owner name and project name.
+ * Parses a project URI, either username/projectName, projectName (with
+ * defaulted username), or `https://www.val.town/x/username/exampleProject`.
  *
- * Assumes a project URI is of the format username/projectName
- *
- * @param {string} projectUri - The project URI provided by the user.
- * @param {string} currentUsername - The current user's username.
- * @returns An object containing the ownerName and projectName.
- * @throws An error if the URI format is invalid.
+ * @param {string} input - The input provided by the user, either a URL or a project URI.
+ * @param {string} currentUsername - The current user's username, if the project URI doesn't specify an owner.
+ * @returns The ownerName and projectName extracted from the input.
+ * @throws An error if the input format is invalid.
  */
 export function parseProjectUri(
-  projectUri: string,
+  input: string,
   currentUsername: string,
 ): { ownerName: string; projectName: string } {
-  const parts = projectUri.split("/");
+  const urlRegex = /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
+  const urlMatch = input.match(urlRegex);
 
-  let ownerName: string;
-  let projectName: string;
-
-  if (parts.length === 1) {
-    ownerName = currentUsername;
-    projectName = parts[0];
-  } else if (parts.length === 2) {
-    [ownerName, projectName] = parts;
+  if (urlMatch) {
+    const [, ownerName, projectName] = urlMatch;
+    return { ownerName, projectName };
   } else {
-    throw new Error("Invalid project URI");
-  }
+    const parts = input.split("/");
 
-  return { ownerName, projectName };
+    let ownerName: string;
+    let projectName: string;
+
+    if (parts.length === 1) {
+      ownerName = currentUsername;
+      projectName = parts[0];
+    } else if (parts.length === 2) {
+      [ownerName, projectName] = parts;
+    } else {
+      throw new Error(
+        "Invalid project URI. Must be a URL or a URI (username/projectName)",
+      );
+    }
+
+    return { ownerName, projectName };
+  }
 }
