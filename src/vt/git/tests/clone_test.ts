@@ -5,39 +5,43 @@ import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
-  Deno.test({
-    name: "test cloning " + testCase.name,
-    permissions: {
-      read: true,
-      write: true,
-      net: true,
-    },
-    async fn() {
-      const { tempDir, cleanup } = await withTempDir("vt_clone_test");
+  for (const branchId in testCase.branches) {
+    const branchData = testCase.branches[branchId];
 
-      try {
-        // Perform the clone operation
-        await clone({
-          targetDir: tempDir,
-          projectId: testCase.projectId,
-          branchId: testCase.branchId,
-          version: testCase.version,
-        });
+    Deno.test({
+      name: `test cloning ${testCase.name} - Branch: ${branchId}`,
+      permissions: {
+        read: true,
+        write: true,
+        net: true,
+      },
+      async fn() {
+        const { tempDir, cleanup } = await withTempDir("vt_clone_test");
 
-        // Verify project structure
-        const structureValid = await verifyProjectStructure(
-          tempDir,
-          testCase.expectedInodes,
-        );
+        try {
+          // Perform the clone operation
+          await clone({
+            targetDir: tempDir,
+            projectId: testCase.projectId,
+            branchId: branchId, // Use correct branchId
+            version: branchData.version, // Use correct version
+          });
 
-        assertEquals(
-          structureValid,
-          true,
-          "Project structure verification failed",
-        );
-      } finally {
-        await cleanup();
-      }
-    },
-  });
+          // Verify project structure
+          const structureValid = await verifyProjectStructure(
+            tempDir,
+            branchData.expectedInodes, // Use branch-specific expected inodes
+          );
+
+          assertEquals(
+            structureValid,
+            true,
+            "Project structure verification failed",
+          );
+        } finally {
+          await cleanup();
+        }
+      },
+    });
+  }
 }

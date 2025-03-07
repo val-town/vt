@@ -1,12 +1,9 @@
 import { clone } from "~/vt/git/clone.ts";
 import { status } from "~/vt/git/status.ts";
 import * as path from "@std/path";
-import { isDirty } from "~/vt/git/utils.ts";
 
 /**
  * Pulls latest changes from a val town project into a vt folder.
- * Checks to make sure that a dirty directory (changes locally that would be
- * overwritten) does not get pulled to.
  *
  * @param args Options for pull operation.
  * @param {string} args.targetDir The vt project root directory.
@@ -34,13 +31,8 @@ export async function pull({
     projectId,
     branchId,
     ignoreGlobs,
+    version,
   });
-
-  if (isDirty(statusResult)) {
-    throw new Error(
-      "Working directory dirty. Please back up or discard local changes before pulling.",
-    );
-  }
 
   // Remove all existing tracked files
   const removalPromises = statusResult.not_modified

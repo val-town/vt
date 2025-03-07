@@ -1,9 +1,11 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { checkout } from "~/vt/git/checkout.ts";
+import { isDirty } from "~/vt/git/utils.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -60,7 +62,7 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branchId = await branchIdToName(projectId, branchName);
+    const branchId = await branchNameToId(projectId, branchName);
 
     // If they choose -1 as the version then change to use the most recent
     // version
@@ -166,7 +168,72 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
+  }
+
+  /**
+   * Check out a different branch of the project.
+   *
+   * @param {string} targetDir The directory where the checkout should happen
+   * @param {string} branchName The name of the branch to check out to
+   * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
+   * @returns {Promise<void>}
+   */
+  public async checkout(
+    targetDir: string,
+    branchName: string,
+    forkedFrom?: string,
+  ): Promise<void> {
+    const { projectId } = await this.meta.loadConfig();
+
+    const checkoutBranchId = await branchNameToId(projectId, branchName);
+    const latestVersion = await getLatestVersion(projectId, checkoutBranchId);
+
+    const created =
+      (await this.status(targetDir).then((status) => status.created)).map(
+        (file) => file.path,
+      ); // We want to ignore newly created files. Adding them to the
+    // ignoreGlobs list is a nice way to do that.
+    const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
+
+    if (forkedFrom) { // Use the signature where we create a new branch
+      const sourceVersion = await getLatestVersion(projectId, forkedFrom);
+      await checkout({
+        targetDir,
+        projectId,
+        forkedFrom,
+        name: branchName,
+        ignoreGlobs,
+        version: sourceVersion,
+      });
+    } else {
+      // Default to the newest version when checking out
+      await checkout({
+        targetDir,
+        projectId,
+        branchId: checkoutBranchId,
+        ignoreGlobs,
+        version: latestVersion,
+      });
+    }
+
+    // Update the config with the new branch
+    await this.meta.saveConfig({
+      projectId,
+      currentBranch: checkoutBranchId,
+      version: latestVersion,
+    });
+  }
+
+  /**
+   * Check if the working directory has uncommitted changes.
+   *
+   * @param {string} targetDir - The directory to check for changes
+   * @returns {Promise<boolean>} True if there are uncommitted changes
+   */
+  public async isDirty(targetDir: string): Promise<boolean> {
+    return isDirty(await this.status(targetDir));
   }
 }

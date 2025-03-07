@@ -6,48 +6,52 @@ import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
-  Deno.test({
-    name: "test pulling " + testCase.name,
-    permissions: {
-      read: true,
-      write: true,
-      net: true,
-    },
-    async fn() {
-      const { tempDir, cleanup } = await withTempDir("vt_pull_test");
+  for (const branchId in testCase.branches) {
+    const branchData = testCase.branches[branchId];
 
-      try {
-        // First clone with version + 2
-        await clone({
-          targetDir: tempDir,
-          projectId: testCase.projectId,
-          branchId: testCase.branchId,
-          version: testCase.version + 2,
-        });
+    Deno.test({
+      name: `test pulling ${testCase.name} - Branch: ${branchId}`,
+      permissions: {
+        read: true,
+        write: true,
+        net: true,
+      },
+      async fn() {
+        const { tempDir, cleanup } = await withTempDir("vt_pull_test");
 
-        // Pull the correct version
-        await pull({
-          projectId: testCase.projectId,
-          branchId: testCase.branchId,
-          targetDir: tempDir,
-          version: testCase.version,
-          ignoreGlobs: [],
-        });
+        try {
+          // First clone with version + 2
+          await clone({
+            targetDir: tempDir,
+            projectId: testCase.projectId,
+            branchId: branchId, // Use correct branchId
+            version: branchData.version + 2, // Use branch-specific version
+          });
 
-        // Verify project structure
-        const structureValid = await verifyProjectStructure(
-          tempDir,
-          testCase.expectedInodes,
-        );
+          // Pull the correct version
+          await pull({
+            projectId: testCase.projectId,
+            branchId: branchId, // Use correct branchId
+            targetDir: tempDir,
+            version: branchData.version, // Use branch-specific version
+            ignoreGlobs: [],
+          });
 
-        assertEquals(
-          structureValid,
-          true,
-          "Project structure verification failed",
-        );
-      } finally {
-        await cleanup();
-      }
-    },
-  });
+          // Verify project structure
+          const structureValid = await verifyProjectStructure(
+            tempDir,
+            branchData.expectedInodes, // Use branch-specific expected inodes
+          );
+
+          assertEquals(
+            structureValid,
+            true,
+            "Project structure verification failed",
+          );
+        } finally {
+          await cleanup();
+        }
+      },
+    });
+  }
 }

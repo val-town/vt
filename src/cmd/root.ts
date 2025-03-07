@@ -12,5 +12,6 @@ cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
+cmd.command("checkout", cmds.checkoutCmd);
 
 export { cmd };
