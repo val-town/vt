@@ -16,6 +16,14 @@ const cloneCmd = new Command()
   .name("clone")
   .description("Clone a val town project")
   .arguments("<projectUri:string> [cloneDir:string] [branchName:string]")
+  .example(
+    "Clone with username/projectName",
+    `vt clone username/projectName`,
+  )
+  .example(
+    "Clone with link",
+    `vt clone https://www.val.town/x/username/projectName`,
+  )
   .action(
     async (_, projectUri: string, rootPath?: string, branchName?: string) => {
       const spinner = new Kia("Cloning project...");
