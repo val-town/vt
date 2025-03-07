@@ -1,10 +1,16 @@
 import { clone } from "~/vt/git/clone.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
+import {
+  CONFIG_FILE_NAME,
+  DEFAULT_BRANCH_NAME,
+  DEFAULT_IGNORE_PATTERNS,
+  META_FOLDER_NAME,
+} from "~/consts.ts";
 import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
 import { watch } from "~/vt/git/watch.ts";
+import { join } from "@std/path";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -38,11 +44,11 @@ export default class VTClient {
    * Initialize the VT instance for a project. You always have to be checked
    * out to *something* so init also takes an initial branch.
    *
-   * @param {string} rootPath - The root path where the VT instance will be initialized
-   * @param {string} username - The username of the project owner
-   * @param {string} projectName - The name of the project
-   * @param {number} [version=-1] - The version of the project to initialize. -1 for latest version
-   * @param {string} [branchName=DEFAULT_BRANCH_NAME] - The branch name to initialize
+   * @param {string} rootPath The root path where the VT instance will be initialized
+   * @param {string} username The username of the project owner
+   * @param {string} projectName The name of the project
+   * @param {number} version The version of the project to initialize. -1 for latest version
+   * @param {string} branchName The branch name to initialize
    * @returns {Promise<VTClient>} A new VTClient instance
    */
   public static async init(
@@ -94,7 +100,7 @@ export default class VTClient {
    * directory. Loads the configuration from the `.vt` folder in the given
    * directory.
    *
-   * @param {string} rootPath - The root path of the existing project.
+   * @param {string} rootPath The root path of the existing project.
    * @returns {Promise<VTClient>} An instance of VTClient initialized from existing config.
    */
   public static from(rootPath: string): VTClient {
@@ -106,27 +112,26 @@ export default class VTClient {
    * when files are updated locally.
    */
   public async watch() {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
+    // Start the watcher. Then, use a custom callback so that if the .vt
+    // configuration file changes, the watcher stops and starts again. That
+    // way, if the current branch changes, the watcher will start watching
+    // with the new branch.
+    while (true) {
+      const { projectId, currentBranch } = await this.meta.loadConfig();
 
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
+      await watch({
+        targetDir: this.rootPath,
+        projectId,
+        branchId: currentBranch,
+        ignoreGlobs: await this.getIgnoreGlobs(),
+        watchCallback: (event) => {
+          if (event.paths[0] === join(META_FOLDER_NAME, CONFIG_FILE_NAME)) {
+            return false; // Stop watching, restart
+          }
+          return true;
+        },
+      });
     }
-
-    await watch({
-      targetDir: this.rootPath,
-      projectId,
-      branchId: currentBranch,
-      ignoreGlobs: await this.getIgnoreGlobs(),
-      onCreate: (path) => {
-        console.log("Creating files not yet implemented", path);
-      },
-      onModify: (path) => {
-        console.log("Updating files not yet implemented", path);
-      },
-      onRemove: (path) => {
-        console.log("Removing files not yet implemented", path);
-      },
-    });
   }
 
   /**
@@ -137,10 +142,6 @@ export default class VTClient {
    */
   public async clone(targetDir: string): Promise<void> {
     const { projectId, currentBranch, version } = await this.meta.loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
 
     // Do the clone using the configuration
     await clone({
@@ -163,10 +164,6 @@ export default class VTClient {
   public async pull(targetDir: string): Promise<void> {
     const { projectId, currentBranch } = await this.meta.loadConfig();
 
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
-    }
-
     // Use the provided pull function
     await pull({
       targetDir,
@@ -186,10 +183,6 @@ export default class VTClient {
    */
   public async status(targetDir: string): Promise<StatusResult> {
     const { projectId, currentBranch } = await this.meta.loadConfig();
-
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
-    }
 
     return status({
       targetDir,

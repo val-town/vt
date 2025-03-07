@@ -1,9 +1,7 @@
 import { Command } from "@cliffy/command";
-import { relative } from "@std/path";
 import Kia from "kia";
 import VTClient from "~/vt/vt/VTClient.ts";
-
-const programPath = new URL("../../vt.ts", import.meta.url).pathname;
+import { scriptCmd } from "../../vt.ts";
 
 export const watchCmd = new Command()
   .name("watch")
@@ -13,7 +11,7 @@ export const watchCmd = new Command()
   })
   .action(async ({ daemon }) => {
     const cwd = Deno.cwd();
-    console.log(programPath);
+    console.log(Deno.args);
 
     if (daemon) {
       const command = new Deno.Command(Deno.execPath(), {
@@ -23,8 +21,7 @@ export const watchCmd = new Command()
           "--allow-write",
           "--allow-env",
           "--allow-net",
-          programPath,
-          "watch",
+          ...scriptCmd(),
         ],
         stdin: "null",
         stdout: "inherit",
@@ -34,7 +31,7 @@ export const watchCmd = new Command()
       const child = command.spawn();
       console.log("Watch process started in background");
       console.log("Process ID:", child.pid);
-      child.unref()
+      child.unref();
 
       return;
     }
