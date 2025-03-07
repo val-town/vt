@@ -2,23 +2,23 @@
  * Parses a project URI, either username/projectName, projectName (with
  * defaulted username), or `https://www.val.town/x/username/exampleProject`.
  *
- * @param {string} input - The input provided by the user, either a URL or a project URI.
- * @param {string} currentUsername - The current user's username, if the project URI doesn't specify an owner.
+ * @param {string} projectUri The project URI, either a URL or a project URI.
+ * @param {string} currentUsername The fallback username, if the project URI doesn't specify.
  * @returns The ownerName and projectName extracted from the input.
  * @throws An error if the input format is invalid.
  */
 export function parseProjectUri(
-  input: string,
+  projectUri: string,
   currentUsername: string,
 ): { ownerName: string; projectName: string } {
   const urlRegex = /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
-  const urlMatch = input.match(urlRegex);
+  const urlMatch = projectUri.match(urlRegex);
 
   if (urlMatch) {
     const [, ownerName, projectName] = urlMatch;
     return { ownerName, projectName };
   } else {
-    const parts = input.split("/");
+    const parts = projectUri.split("/");
 
     let ownerName: string;
     let projectName: string;
