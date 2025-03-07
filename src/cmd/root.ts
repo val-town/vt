@@ -11,6 +11,7 @@ const cmd = new Command()
 
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
+cmd.command("push", cmds.pushCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
 

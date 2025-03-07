@@ -11,6 +11,7 @@ import * as join from "@std/path/join";
 import { Table } from "@cliffy/table";
 import type ValTown from "@valtown/sdk";
 import { colors } from "@cliffy/ansi/colors";
+import { isDirty } from "~/vt/git/utils.ts";
 
 const cloneCmd = new Command()
   .name("clone")
@@ -197,4 +198,23 @@ const branchCmd = new Command()
     }
   });
 
-export { branchCmd, cloneCmd, pullCmd, statusCmd };
+const pushCmd = new Command()
+  .name("push")
+  .description("Push local changes to a val town project")
+  .action(async () => {
+    const spinner = new Kia("Pushing local changes...");
+    const cwd = Deno.cwd();
+
+    try {
+      spinner.start();
+      const vt = VTClient.from(cwd);
+      await vt.push(cwd);
+      spinner.succeed(`Project pushed successfully from ${cwd}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  });
+
+export { branchCmd, cloneCmd, pullCmd, pushCmd, statusCmd };

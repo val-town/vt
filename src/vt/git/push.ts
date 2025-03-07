@@ -2,6 +2,7 @@ import { status } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import sdk from "~/sdk.ts";
 import { getValType, withoutValExtension } from "~/vt/git/paths.ts";
+import ValTown from "@valtown/sdk";
 
 /**
  * Pushes latest changes from a vt folder into a Val Town project.
@@ -45,10 +46,74 @@ export async function push({
 
   // Create all new files
   for (const file of statusResult.created) {
-    await sdk.projects.files.create(projectId, withoutValExtension(file.path), {
-      content: await Deno.readTextFile(path.join(targetDir, file.path)),
-      branch_id: branchId,
-      type: getValType(file.path),
-    });
+    // Ensure parent directories exist before creating the file
+    await ensureValtownDir(
+      projectId,
+      branchId,
+      withoutValExtension(file.path),
+    );
+
+    try {
+      await sdk.projects.files.create(
+        projectId,
+        encodeURIComponent(withoutValExtension(file.path)),
+        {
+          content: await Deno.readTextFile(path.join(targetDir, file.path)),
+          branch_id: branchId,
+          type: getValType(file.path),
+        },
+      );
+    } catch (error) {
+      assertAllowedUploadError(error);
+    }
+  }
+}
+
+async function ensureValtownDir(
+  projectId: string,
+  branchId: string,
+  filePath: string,
+): Promise<void> {
+  const dirPath = path.dirname(filePath);
+
+  // If path is "." (current directory) or empty, no directories need to be created
+  if (dirPath === "." || dirPath === "") {
+    return;
+  }
+
+  // Split the path into segments
+  const segments = dirPath.split("/");
+  let currentPath = "";
+
+  // Create each directory in the path if it doesn't exist
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i] === "") continue;
+
+    currentPath += (currentPath ? "/" : "") + segments[i];
+
+    // Create directory - content can be null, empty string, or omitted for directories
+    try {
+      await sdk.projects.files.create(
+        projectId,
+        encodeURIComponent(currentPath),
+        {
+          type: "directory",
+          branch_id: branchId,
+          content: null,
+        },
+      );
+    } catch (error) {
+      assertAllowedUploadError(error);
+    }
+  }
+}
+
+function assertAllowedUploadError(error: any) {
+  if (error instanceof ValTown.APIError) {
+    if (error.status != 409) {
+      throw error;
+    }
+  } else {
+    throw error;
   }
 }

@@ -1,7 +1,7 @@
 import * as path from "@std/path";
 import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
 
-type ValType = "script" | "http" | "email" | "interval";
+type ProjectItemType = "script" | "http" | "email" | "interval" | "file";
 
 /**
  * Adds val file extension to a path or filename
@@ -63,14 +63,14 @@ function withoutValExtension(
 export function getValType(
   filepath: string,
   abbreviated: boolean = false,
-): ValType {
+): ProjectItemType {
   const basename = path.basename(filepath);
 
   // Create a map of extensions to val types using functional programming
   const extensionToTypeMap = Object.entries(VAL_TYPE_EXTENSIONS).reduce(
     (map, [valType, ext]) => {
       const extensionKey = abbreviated ? ext.abbreviated : ext.standard;
-      map.set(extensionKey, valType as ValType);
+      map.set(extensionKey, valType as ProjectItemType);
       return map;
     },
     new Map<string, keyof typeof VAL_TYPE_EXTENSIONS>(),
@@ -84,11 +84,11 @@ export function getValType(
     const extensionKey = match[1];
     const valType = extensionToTypeMap.get(extensionKey);
     if (valType) {
-      return valType as ValType;
+      return valType as ProjectItemType;
     }
   }
 
-  throw new Error(`Unrecognized file type for '${filepath}'`);
+  return "file";
 }
 
 /**

@@ -3,6 +3,7 @@ import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
+import { push } from "~/vt/git/push.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
 
 /**
@@ -166,6 +167,28 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+    });
+  }
+
+  /**
+   * Push changes from the local directory to the Val Town project.
+   * 
+   * @param {string} targetDir - The directory containing local changes to push.
+   * @returns {Promise<void>}
+   */
+  public async push(targetDir: string): Promise<void> {
+    const { projectId, currentBranch, version } = await this.meta.loadConfig();
+
+    if (!projectId || !currentBranch || version === null) {
+      throw new Error("Configuration not loaded");
+    }
+
+    await push({
+      targetDir,
+      projectId,
+      branchId: currentBranch,
+      version,
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }

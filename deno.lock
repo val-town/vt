@@ -23,6 +23,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/text@~1.0.7": "1.0.10",
     "jsr:@valtown/sdk@0.33": "0.33.0",
+    "npm:create-vite@latest": "6.3.1",
     "npm:emphasize@7": "7.0.0",
     "npm:highlight.js@^11.11.1": "11.11.1",
     "npm:zod@^3.24.2": "3.24.2"
@@ -121,6 +122,9 @@
     },
     "chalk@5.4.1": {
       "integrity": "sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w=="
+    },
+    "create-vite@6.3.1": {
+      "integrity": "sha512-kI3S6OgiBYnRlmhr4gNY76Fj62fMh+KukEd2PSAvMPdnY95rHhJCjCoUlt4BuHVNjfmRMbsFBBtO5dryFoSyUw=="
     },
     "dequal@2.0.3": {
       "integrity": "sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA=="
