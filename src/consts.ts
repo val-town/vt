@@ -9,7 +9,7 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
   ".vt",
 ];
 
-export const CONFIG_FILE_NAME = "config.json";
+export const CONFIG_FILE_NAME = "vt.json";
 export const META_FOLDER_NAME = ".vt";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 
