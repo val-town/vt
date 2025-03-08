@@ -2,6 +2,7 @@ import { cleanDirectory, withTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
+import ValTown from "@valtown/sdk";
 
 type BaseCheckoutParams = {
   targetDir: string;
@@ -32,7 +33,7 @@ type ForkCheckoutParams = BaseCheckoutParams & {
  * @param {string[]} args.ignoreGlobs List of glob patterns for files to ignore during checkout.
  * @returns {Promise<void>} A promise that resolves when the branch checkout is complete.
  */
-export function checkout(args: BranchCheckoutParams): Promise<void>;
+export function checkout(args: BranchCheckoutParams): Promise<undefined>;
 
 /**
  * Creates a fork of a project's branch and checks it out. This is an atomic
@@ -47,7 +48,9 @@ export function checkout(args: BranchCheckoutParams): Promise<void>;
  * @param {string[]} args.ignoreGlobs List of glob patterns for files to ignore during checkout.
  * @returns {Promise<void>} A promise that resolves when the fork checkout is complete.
  */
-export function checkout(args: ForkCheckoutParams): Promise<void>;
+export function checkout(
+  args: ForkCheckoutParams,
+): Promise<ValTown.Projects.BranchCreateResponse>;
 export async function checkout(
   args: BranchCheckoutParams | ForkCheckoutParams,
 ) {
@@ -56,12 +59,14 @@ export async function checkout(
   try {
     let checkoutBranchId: string;
     let checkoutVersion: number;
+    let newBranch: ValTown.Projects.BranchCreateResponse | undefined =
+      undefined;
 
     if ("branchId" in args) {
       checkoutBranchId = args.branchId;
       checkoutVersion = args.version;
     } else {
-      const newBranch = await sdk.projects.branches.create(
+      newBranch = await sdk.projects.branches.create(
         args.projectId,
         { branchId: args.forkedFrom, name: args.name },
       );
@@ -86,6 +91,8 @@ export async function checkout(
       overwrite: true,
       preserveTimestamps: true,
     });
+
+    return newBranch;
   } finally {
     await cleanup();
   }

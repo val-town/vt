@@ -186,10 +186,19 @@ export default class VTClient {
     branchName: string,
     forkedFrom?: string,
   ): Promise<void> {
-    const { projectId } = await this.meta.loadConfig();
+    const config = await this.meta.loadConfig();
 
-    const checkoutBranchId = await branchNameToId(projectId, branchName);
-    const latestVersion = await getLatestVersion(projectId, checkoutBranchId);
+    // Get meta about the branch they are checking out. They only specify the
+    // name for the branch that they are checking out. So, we'll have to query
+    // the id of such branch, and the current version (by default we'll switch
+    // them to the newest version of a branch when they check out a new branch.
+    // This is a bit different than git, but it follows our notion of "no local
+    // state, val town is the source of truth")
+    const checkoutBranchId = await branchNameToId(config.projectId, branchName);
+    const latestVersion = await getLatestVersion(
+      config.projectId,
+      checkoutBranchId,
+    );
 
     const created =
       (await this.status(targetDir).then((status) => status.created)).map(
@@ -199,20 +208,24 @@ export default class VTClient {
     const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
 
     if (forkedFrom) { // Use the signature where we create a new branch
-      const sourceVersion = await getLatestVersion(projectId, forkedFrom);
-      await checkout({
+      const sourceVersion = await getLatestVersion(
+        config.projectId,
+        forkedFrom,
+      );
+      const newBranch = await checkout({
         targetDir,
-        projectId,
+        projectId: config.projectId,
         forkedFrom,
         name: branchName,
         ignoreGlobs,
         version: sourceVersion,
       });
-    } else {
-      // Default to the newest version when checking out
+      config.currentBranch = newBranch.id;
+      config.version = newBranch.version;
+    } else { // Use the signature where we check out an existing branch
       await checkout({
         targetDir,
-        projectId,
+        projectId: config.projectId,
         branchId: checkoutBranchId,
         ignoreGlobs,
         version: latestVersion,
@@ -220,11 +233,7 @@ export default class VTClient {
     }
 
     // Update the config with the new branch
-    await this.meta.saveConfig({
-      projectId,
-      currentBranch: checkoutBranchId,
-      version: latestVersion,
-    });
+    await this.meta.saveConfig(config);
   }
 
   /**
