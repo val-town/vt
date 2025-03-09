@@ -1,6 +1,10 @@
 import z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
-import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
+import {
+  CONFIG_FILE_NAME,
+  META_FOLDER_NAME,
+  META_IGNORE_FILE_NAME,
+} from "~/consts.ts";
 import * as path from "@std/path";
 
 /**
@@ -26,6 +30,17 @@ export default class VTMeta {
    */
   public get configFilePath(): string {
     return path.join(this.#rootPath, META_FOLDER_NAME, CONFIG_FILE_NAME);
+  }
+
+  /**
+   * Gets the full path(s) to all ignore files.
+   *
+   * @returns {string[]} The full file paths as strings.
+   */
+  public get ignoreFilePaths(): string[] {
+    // TODO: when we add the ability for users to add additional ignore files,
+    // add the logic for merging their preferences here.
+    return [...META_IGNORE_FILE_NAME];
   }
 
   /**
@@ -74,7 +89,7 @@ export default class VTMeta {
    * @returns {Promise} A promise that resolves with a list of glob strings.
    */
   public async loadIgnoreGlobs(): Promise<string[]> {
-    const ignoreGlobs: string[] = [];
+    const ignoreGlobs: string[] = this.ignoreFilePaths;
 
     for (const file of ignoreGlobs) {
       try {
