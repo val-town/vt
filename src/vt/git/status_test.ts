@@ -3,7 +3,7 @@ import * as path from "@std/path";
 import { withTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import { assert } from "@std/assert";
-import { testCases } from "~/vt/git/tests/cases.ts";
+import { testCases } from "~/tests/cases.ts";
 
 for (const testCase of testCases) {
   Deno.test({

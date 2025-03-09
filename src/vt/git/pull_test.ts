@@ -2,8 +2,8 @@ import { clone } from "~/vt/git/clone.ts";
 import { withTempDir } from "~/vt/git/utils.ts";
 import { assertEquals } from "@std/assert";
 import { pull } from "~/vt/git/pull.ts";
-import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
-import { testCases } from "~/vt/git/tests/cases.ts";
+import { verifyProjectStructure } from "~/tests/utils.ts";
+import { testCases } from "~/tests/cases.ts";
 
 for (const testCase of testCases) {
   Deno.test({

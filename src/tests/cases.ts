@@ -1,4 +1,4 @@
-import { ExpectedProjectInode } from "~/vt/git/tests/utils.ts";
+import { ExpectedProjectInode } from "~/tests/utils.ts";
 
 interface TestCase {
   name: string;
