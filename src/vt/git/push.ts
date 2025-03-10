@@ -24,7 +24,6 @@ export async function push({
   targetDir: string;
   projectId: string;
   branchId: string;
-  version: number;
   ignoreGlobs: string[];
 }): Promise<void> {
   const statusResult = await status({
@@ -36,7 +35,12 @@ export async function push({
 
   // Upload everything that was modified
   for (const file of statusResult.modified) {
-    //TODO: Delete, then create file (waiting on val town api support)
+    await sdk.projects.files.update(projectId, withoutValExtension(file.path), {
+      branch_id: branchId,
+      content: await Deno.readTextFile(path.join(targetDir, file.path)),
+      type: getValType(file.path),
+      name: path.basename(withoutValExtension(file.path)),
+    });
   }
 
   // Delete everything that was deleted

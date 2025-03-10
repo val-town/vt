@@ -1,6 +1,6 @@
 import { clone } from "~/vt/git/clone.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { push } from "~/vt/git/push.ts";
@@ -61,13 +61,13 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branchId = await branchIdToName(projectId, branchName);
+    const branch = await branchNameToId(projectId, branchName);
 
     // If they choose -1 as the version then change to use the most recent
     // version
     if (version == -1) {
       version =
-        (await sdk.projects.branches.retrieve(projectId, branchId)).version;
+        (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
     }
 
     const vt = new VTClient(rootPath);
@@ -78,7 +78,7 @@ export default class VTClient {
       if (error instanceof Deno.errors.NotFound) {
         await vt.meta.saveConfig({
           projectId,
-          currentBranch: branchId,
+          currentBranch: branch.id,
           version: version,
         });
       } else {
@@ -173,7 +173,7 @@ export default class VTClient {
 
   /**
    * Push changes from the local directory to the Val Town project.
-   * 
+   *
    * @param {string} targetDir - The directory containing local changes to push.
    * @returns {Promise<void>}
    */
@@ -188,7 +188,6 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
-      version,
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }

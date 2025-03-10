@@ -112,15 +112,15 @@ async function isFileModified(
   cleanPath: string,
   projectId: string,
 ): Promise<boolean> {
-  const projectFileContent = await sdk.projects.files.content(
+  const projectFileContent = await sdk.projects.files.getContent(
     projectId,
     encodeURIComponent(withoutValExtension(cleanPath)),
   ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
-  const localFileContent = (await Deno.readTextFile(
+  const localFileContent = await Deno.readTextFile(
     path.join(targetDir, originalPath),
-  )).slice(0, -1);
+  );
 
   return projectFileContent !== localFileContent;
 }
