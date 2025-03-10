@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Compile VT for all platforms
+        run: |
+          #!/bin/bash
+          platforms=(
+            "x86_64-apple-darwin"
+            "aarch64-apple-darwin"
+            "x86_64-unknown-linux-gnu"
+            "aarch64-unknown-linux-gnu"
+            "x86_64-pc-windows-msvc"
+          )
+
+          # Create build directory
+          mkdir -p build
+
+          # Compile for each platform
+          for platform in "${platforms[@]}"; do
+            echo "Compiling for $platform..."
+            deno compile --allow-read --allow-write --allow-env --allow-net \
+              --output ./build/my_app-$platform \
+              --target $platform \
+              ./vt.ts
+          done
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: vt
+          path: ./build/
