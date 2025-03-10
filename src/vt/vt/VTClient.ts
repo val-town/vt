@@ -1,9 +1,11 @@
 import { clone } from "~/vt/git/clone.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
 import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
+import { join } from "@std/path";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -27,10 +29,7 @@ export default class VTClient {
    * @returns {Promise<RegExp[]>} The list of globs to ignore.
    */
   private async getIgnoreGlobs(): Promise<string[]> {
-    return [
-      ...DEFAULT_IGNORE_PATTERNS,
-      ...(await this.meta.loadIgnoreGlobs()),
-    ];
+    return await this.meta.loadIgnoreGlobs();
   }
 
   /**
@@ -104,13 +103,32 @@ export default class VTClient {
    * Clone val town project into a directory using the current configuration.
    *
    * @param {string} targetDir - The directory to clone the project into.
+   * @param {object} options - Optional settings for the clone process.
+   * @param {boolean} options.addDenoJson - Whether to add deno.json to the cloned directory.
    * @returns {Promise<void>}
    */
-  public async clone(targetDir: string): Promise<void> {
+  public async clone(
+    targetDir: string,
+    options?: { addDenoJson?: boolean; addVtIgnore?: boolean },
+  ): Promise<void> {
     const { projectId, currentBranch, version } = await this.meta.loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
+    }
+
+    // Add the vt ignore file
+    await Deno.writeTextFile(
+      join(targetDir, META_IGNORE_FILE_NAME),
+      vtIgnore.text,
+    );
+
+    // Check if addDenoJson is true and copy deno.json if so
+    if (options?.addDenoJson) {
+      await Deno.writeTextFile(
+        join(targetDir, "deno.json"),
+        JSON.stringify(denoJson, undefined, 2),
+      );
     }
 
     // Do the clone using the configuration
@@ -161,6 +179,8 @@ export default class VTClient {
     if (!projectId || !currentBranch) {
       throw new Error("Configuration not loaded");
     }
+
+console.log(await this.getIgnoreGlobs())
 
     return status({
       targetDir,

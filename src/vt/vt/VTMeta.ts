@@ -29,6 +29,15 @@ export default class VTMeta {
   }
 
   /**
+   * Gets the full path to all ignore files.
+   *
+   * @returns {string} The full file path as a string.
+   */
+  public get ignoreFilesPaths(): string[] {
+    return [path.join(this.#rootPath, ".vtignore")];
+  }
+
+  /**
    * Reads and parses the configuration file.
    *
    * @returns {Promise} A promise that resolves with the parsed configuration data.
@@ -69,32 +78,32 @@ export default class VTMeta {
   }
 
   /**
-   * Loads the ignore list list of globs from ignore files.
+   * Loads the ignore list of globs from ignore files.
    *
    * @returns {Promise} A promise that resolves with a list of glob strings.
    */
   public async loadIgnoreGlobs(): Promise<string[]> {
     const ignoreGlobs: string[] = [];
 
-    for (const file of ignoreGlobs) {
+    for (const filePath of this.ignoreFilesPaths) {
       try {
         // Read the ignore file
-        const content = await Deno.readTextFile(file);
+        const content = await Deno.readTextFile(filePath);
 
         const lines = content
           .split("\n") // split by newline
           .map((line) => line.trim()) // get rid of whitespace
-          .filter((line) => line && !line.startsWith("#")); // commented lines
+          .filter((line) => line && !line.startsWith("#")); // remove empty and commented lines
 
         // Add all the processed lines from this file to the ignore globs list
         lines.forEach((line) => ignoreGlobs.push(line));
       } catch (error) {
         if (error instanceof Deno.errors.NotFound) {
-          console.log(`The file ${file} was not found`);
+          console.log(`The file ${filePath} was not found`);
         } else {
           throw error;
         }
-        console.log(`Error loading ${file}, skipping`);
+        console.log(`Error loading ${filePath}, skipping`);
       }
     }
 
