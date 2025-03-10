@@ -38,11 +38,11 @@ export default class VTClient {
    * Initialize the VT instance for a project. You always have to be checked
    * out to *something* so init also takes an initial branch.
    *
-   * @param {string} rootPath - The root path where the VT instance will be initialized
-   * @param {string} username - The username of the project owner
-   * @param {string} projectName - The name of the project
-   * @param {number} [version=-1] - The version of the project to initialize. -1 for latest version
-   * @param {string} [branchName=DEFAULT_BRANCH_NAME] - The branch name to initialize
+   * @param {string} rootPath The root path where the VT instance will be initialized
+   * @param {string} username The username of the project owner
+   * @param {string} projectName The name of the project
+   * @param {number} version The version of the project to initialize. -1 for latest version
+   * @param {string} branchName The branch name to initialize
    * @returns {Promise<VTClient>} A new VTClient instance
    */
   public static async init(
@@ -94,11 +94,43 @@ export default class VTClient {
    * directory. Loads the configuration from the `.vt` folder in the given
    * directory.
    *
-   * @param {string} rootPath - The root path of the existing project.
+   * @param {string} rootPath The root path of the existing project.
    * @returns {Promise<VTClient>} An instance of VTClient initialized from existing config.
    */
   public static from(rootPath: string): VTClient {
     return new VTClient(rootPath);
+  }
+
+  /**
+   * Watch the root directory for changes and automatically push to Val Town
+   * when files are updated locally. Updates the lock file and removes it on exit.
+   *
+   * @param {number} [interval=2000] The interval in milliseconds to wait between pushes. Default is 2000 ms (2 seconds).
+   * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
+   */
+  public async watch(interval: number = 2000): Promise<never> {
+    // Set the lock file at the start
+    await this.meta.setLockFile();
+
+    // Setup a cleanup function to remove the lock file on exit
+    const cleanup = async () => {
+      await this.meta.rmLockFile();
+      Deno.exit();
+    };
+
+    // Listen for termination signals to perform cleanup
+    for (const signal of ["SIGINT", "SIGTERM"]) {
+      Deno.addSignalListener(signal as Deno.Signal, cleanup);
+    }
+
+    const pushPeriodically = async () => {
+      while (true) {
+        await this.push(this.rootPath);
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      }
+    };
+
+    return pushPeriodically();
   }
 
   /**
@@ -109,10 +141,6 @@ export default class VTClient {
    */
   public async clone(targetDir: string): Promise<void> {
     const { projectId, currentBranch, version } = await this.meta.loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
 
     // Do the clone using the configuration
     await clone({
@@ -135,10 +163,6 @@ export default class VTClient {
   public async pull(targetDir: string): Promise<void> {
     const { projectId, currentBranch } = await this.meta.loadConfig();
 
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
-    }
-
     // Use the provided pull function
     await pull({
       targetDir,
@@ -158,10 +182,6 @@ export default class VTClient {
    */
   public async status(targetDir: string): Promise<StatusResult> {
     const { projectId, currentBranch } = await this.meta.loadConfig();
-
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
-    }
 
     return status({
       targetDir,

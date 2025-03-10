@@ -2,7 +2,7 @@ import sdk from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { withValExtension } from "~/vt/git/paths.ts";
 import { removeEmptyDirs } from "~/utils.ts";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
 import type ValTown from "@valtown/sdk";
@@ -47,7 +47,7 @@ export async function clone(
   // ignored files). Then we run it on all the files.
   const clonePromises = files
     .filter((file) => file.type !== "directory") // we'll create directories when creating files
-    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
     .map(
       // Function to run on files (if they aren't ignored)
       (file: Valtown.Projects.FileListResponse) => {

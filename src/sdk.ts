@@ -1,6 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { API_KEY_KEY } from "~/consts.ts";
 
 const sdk = new ValTown({
   bearerToken: Deno.env.get(API_KEY_KEY)!,
@@ -17,7 +17,7 @@ const sdk = new ValTown({
 async function branchNameToId(
   projectId: string,
   branchName: string,
-) {
+): Promise<ValTown.Projects.Branches.BranchListResponse> {
   for await (const branch of sdk.projects.branches.list(projectId, {})) {
     if (branch.name == branchName) return branch;
   }
