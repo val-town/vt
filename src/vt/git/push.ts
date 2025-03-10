@@ -35,12 +35,16 @@ export async function push({
 
   // Upload everything that was modified
   for (const file of statusResult.modified) {
-    await sdk.projects.files.update(projectId, withoutValExtension(file.path), {
-      branch_id: branchId,
-      content: await Deno.readTextFile(path.join(targetDir, file.path)),
-      type: getValType(file.path),
-      name: path.basename(withoutValExtension(file.path)),
-    });
+    await sdk.projects.files.update(
+      projectId,
+      encodeURIComponent(withoutValExtension(file.path)),
+      {
+        branch_id: branchId,
+        content: await Deno.readTextFile(path.join(targetDir, file.path)),
+        type: getValType(file.path),
+        name: path.basename(withoutValExtension(file.path)),
+      },
+    );
   }
 
   // Delete everything that was deleted
@@ -112,7 +116,7 @@ async function ensureValtownDir(
   }
 }
 
-function assertAllowedUploadError(error: any) {
+function assertAllowedUploadError(error: unknown) {
   if (error instanceof ValTown.APIError) {
     if (error.status != 409) {
       throw error;
