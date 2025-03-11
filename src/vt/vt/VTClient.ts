@@ -5,6 +5,7 @@ import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { push } from "~/vt/git/push.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { debounce } from "jsr:@std/async/debounce";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -108,7 +109,7 @@ export default class VTClient {
    * @param {number} [interval=2000] The interval in milliseconds to wait between pushes. Default is 2000 ms (2 seconds).
    * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
    */
-  public async watch(interval: number = 2000): Promise<never> {
+  public async watch(interval: number = 10_000) {
     // Set the lock file at the start
     await this.meta.setLockFile();
 
@@ -123,6 +124,7 @@ export default class VTClient {
       Deno.addSignalListener(signal as Deno.Signal, cleanup);
     }
 
+    // A function that periodically runs a push
     const pushPeriodically = async () => {
       while (true) {
         await this.push(this.rootPath);
@@ -130,7 +132,17 @@ export default class VTClient {
       }
     };
 
-    return pushPeriodically();
+    // A function that runs a push on file system changes
+    const pushOnFileEvents = async () => {
+      const debouncedPush = debounce(async (_event: Deno.FsEvent) => {
+        await this.push(this.rootPath);
+      }, 300);
+
+      const watcher = Deno.watchFs(this.rootPath);
+      for await (const event of watcher) debouncedPush(event);
+    };
+
+    return Promise.all([pushPeriodically(), pushOnFileEvents()]);
   }
 
   /**
