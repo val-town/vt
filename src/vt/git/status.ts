@@ -55,7 +55,12 @@ export async function status({
 
   // Get all files
   const localFiles = await getLocalFiles(targetDir, ignoreGlobs);
-  const projectFiles = await getProjectFiles(projectId, branchId, ignoreGlobs);
+  const projectFiles = await getProjectFiles(
+    projectId,
+    branchId,
+    version,
+    ignoreGlobs,
+  );
 
   // Compare local files against project files
   for (const [baseName, { originalPath, modTime }] of localFiles.entries()) {
@@ -136,10 +141,12 @@ async function isFileModified(
 async function getProjectFiles(
   projectId: string,
   branchId: string,
+  version: number,
   ignoreGlobs: string[],
 ): Promise<Map<string, number>> {
   const projectFilesResponse = await sdk.projects.files.list(projectId, {
     branch_id: branchId,
+    version,
     recursive: true,
   });
 

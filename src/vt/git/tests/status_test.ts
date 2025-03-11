@@ -82,7 +82,7 @@ for (const testCase of testCases) {
 }
 
 function validateStatus(result: StatusResult, branchData: TestCaseBranchData) {
-  // Validate modified files
+  // Validate modified files were modified
   const modifiedPaths = result.modified.map((f: FileStatus) => f.path);
   for (const { path: modifiedPath } of branchData.modifiedFiles) {
     assert(
@@ -91,7 +91,7 @@ function validateStatus(result: StatusResult, branchData: TestCaseBranchData) {
     );
   }
 
-  // Validate deleted files
+  // Validate deleted files were deleted
   const deletedPaths = result.deleted.map((f: FileStatus) => f.path);
   for (const deletedPath of branchData.deletedFiles) {
     assert(
