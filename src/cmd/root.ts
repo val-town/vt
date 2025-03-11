@@ -5,9 +5,8 @@ import * as cmds from "~/cmd/git.ts";
 const cmd = new Command()
   .name("vt")
   .version(manifest.version)
-  .action(
-    () => cmd.showHelp,
-  );
+  .help({ colors: Deno.stdout.isTerminal() })
+  .action(() => cmd.showHelp());
 
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
