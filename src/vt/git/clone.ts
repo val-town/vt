@@ -6,6 +6,7 @@ import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
 import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
 import type ValTown from "@valtown/sdk";
+import { doAtomically } from "~/vt/git/utils.ts";
 
 /**
  * Clones a project by downloading its files and directories to the specified
@@ -18,7 +19,7 @@ import type ValTown from "@valtown/sdk";
  * @param {number} args.version (optional) The version of the project to clone.
  * @param {string[]} args.ignoreGlobs (optional) List of glob patterns for files to ignore
  */
-export async function clone(
+export function clone(
   {
     targetDir,
     projectId,
@@ -33,31 +34,34 @@ export async function clone(
     ignoreGlobs?: string[];
   },
 ): Promise<void> {
-  const projectFilesResponse = await sdk.projects.files
-    .list(projectId, { recursive: true, branch_id: branchId, version });
+  return doAtomically(
+    async (tmpDir) => {
+      const projectFilesResponse = await sdk.projects.files
+        .list(projectId, { recursive: true, branch_id: branchId, version });
 
-  const files: ValTown.Projects.FileListResponse[] = [];
-  for await (const file of projectFilesResponse.data) files.push(file);
+      const files: ValTown.Projects.FileListResponse[] = [];
+      for await (const file of projectFilesResponse.data) files.push(file);
 
-  // Create project directory if it doesn't exist, otherwise noop
-  await ensureDir(targetDir);
+      // Process all files and directories. We call forAllIgnored with the function
+      // we want to run on each file (which will only apply our function to non
+      // ignored files). Then we run it on all the files.
+      const clonePromises = files
+        .filter((file) => file.type !== "directory") // we'll create directories when creating files
+        .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+        .map(
+          // Function to run on files (if they aren't ignored)
+          (file: Valtown.Projects.FileListResponse) => {
+            const fullPath = path.join(tmpDir, file.path);
+            return createFile(fullPath, projectId, branchId, version, file);
+          },
+        );
+      await Promise.all(clonePromises);
 
-  // Process all files and directories. We call forAllIgnored with the function
-  // we want to run on each file (which will only apply our function to non
-  // ignored files). Then we run it on all the files.
-  const clonePromises = files
-    .filter((file) => file.type !== "directory") // we'll create directories when creating files
-    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
-    .map(
-      // Function to run on files (if they aren't ignored)
-      (file: Valtown.Projects.FileListResponse) => {
-        const fullPath = path.join(targetDir, file.path);
-        return createFile(fullPath, projectId, branchId, version, file);
-      },
-    );
-  await Promise.all(clonePromises);
-
-  removeEmptyDirs(targetDir);
+      removeEmptyDirs(tmpDir);
+    },
+    targetDir,
+    "vt_clone_",
+  );
 }
 
 async function createFile(
@@ -78,11 +82,11 @@ async function createFile(
   await ensureDir(path.dirname(fullPath));
 
   // Get and write the file content
-  const content = await sdk.projects.files.content(
+  const content = await (await sdk.projects.files.content(
     projectId,
     encodeURIComponent(file.path),
     { branch_id: branchId, version },
-  ) as string;
+  )).text();
 
   await ensureDir(path.dirname(fullPath));
   await Deno.writeTextFile(fullPath, content);
