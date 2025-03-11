@@ -1,6 +1,6 @@
 name: VT Testing
 
-on: 
+on:
   - pull_request
   - push
 
