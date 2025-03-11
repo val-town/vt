@@ -28,6 +28,7 @@ export interface StatusResult {
  * @param {string} args.targetDir The directory to scan for changes.
  * @param {string} args.projectId The Val Town project ID.
  * @param {string} args.branchId Optional branch ID to check against.
+ * @param {string} args.version The version to check the status against.
  * @param {string} args.ignoreGlobs Glob patterns for files to ignore.
  *
  * @returns Promise that resolves to a StatusResult object containing categorized files.
@@ -36,11 +37,13 @@ export async function status({
   targetDir,
   projectId,
   branchId,
+  version,
   ignoreGlobs,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
+  version: number;
   ignoreGlobs: string[];
 }): Promise<StatusResult> {
   const result: StatusResult = {
@@ -52,7 +55,12 @@ export async function status({
 
   // Get all files
   const localFiles = await getLocalFiles(targetDir, ignoreGlobs);
-  const projectFiles = await getProjectFiles(projectId, branchId, ignoreGlobs);
+  const projectFiles = await getProjectFiles(
+    projectId,
+    branchId,
+    version,
+    ignoreGlobs,
+  );
 
   // Compare local files against project files
   for (const [baseName, { originalPath, modTime }] of localFiles.entries()) {
@@ -76,6 +84,8 @@ export async function status({
           originalPath,
           baseName,
           projectId,
+          branchId,
+          version,
         );
 
         if (isModified) {
@@ -111,14 +121,14 @@ async function isFileModified(
   originalPath: string,
   cleanPath: string,
   projectId: string,
+  branchId: string,
+  version: number,
 ): Promise<boolean> {
-  const projectFileContent = await (await sdk.projects.files.content(
+  const projectFileContent = await sdk.projects.files.content(
     projectId,
-    encodeURIComponent(path.join(
-      path.dirname(cleanPath),
-      withoutValExtension(path.basename(cleanPath)),
-    )),
-  )).text();
+    encodeURIComponent(withoutValExtension(cleanPath)),
+    { branch_id: branchId, version },
+  ).then((resp) => resp.text())
 
   // For some reason the local paths seem to have an extra newline
   const localFileContent = (await Deno.readTextFile(
@@ -131,10 +141,12 @@ async function isFileModified(
 async function getProjectFiles(
   projectId: string,
   branchId: string,
+  version: number,
   ignoreGlobs: string[],
 ): Promise<Map<string, number>> {
   const projectFilesResponse = await sdk.projects.files.list(projectId, {
     branch_id: branchId,
+    version,
     recursive: true,
   });
 

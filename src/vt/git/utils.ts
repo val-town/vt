@@ -1,6 +1,7 @@
 import { StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { copy, ensureDir } from "@std/fs";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -23,6 +24,33 @@ export async function withTempDir(
       }
     },
   };
+}
+
+/**
+ * Create a directory atomically by first doing logic to create it in a temp
+ * directory, and then moving it to a destination afterwards.
+ *
+ * @param {string} targetDir The directory to eventually send the output to.
+ */
+export async function doAtomically<T>(
+  op: (tmpDir: string) => Promise<T>,
+  targetDir: string,
+  tmpLabel?: string,
+): Promise<T> {
+  const { tempDir, cleanup } = await withTempDir(tmpLabel);
+
+  let result: T;
+  try {
+    result = await op(tempDir);
+    await ensureDir(targetDir);
+    await copy(tempDir, targetDir, {
+      overwrite: true,
+      preserveTimestamps: true,
+    });
+  } finally {
+    cleanup();
+  }
+  return result;
 }
 
 /**
@@ -55,7 +83,5 @@ export async function cleanDirectory(
  * @param {StatusResult} statusResult Result of a status operation.
  */
 export function isDirty(statusResult: StatusResult): boolean {
-  return statusResult.modified.length > 0 ||
-    statusResult.created.length > 0 ||
-    statusResult.deleted.length > 0;
+  return statusResult.modified.length > 0;
 }
