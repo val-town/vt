@@ -128,7 +128,7 @@ async function isFileModified(
     projectId,
     encodeURIComponent(withoutValExtension(cleanPath)),
     { branch_id: branchId, version },
-  ).then((resp) => resp.text())
+  ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
   const localFileContent = (await Deno.readTextFile(
