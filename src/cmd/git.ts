@@ -183,6 +183,7 @@ const branchCmd = new Command()
         branch.id === meta.currentBranch
       );
 
+      console.log(branches);
       const otherBranches = branches
         .filter((branch) => branch.id !== meta.currentBranch)
         .sort((a, b) =>
@@ -276,7 +277,7 @@ const checkoutCmd = new Command()
             }
           }
         } else if (existingBranchName) {
-          // Regular checkout. Check to see if branch exists.
+          // Regular checkout. Check to see if branch exists
           try {
             await branchNameToId(config.projectId, existingBranchName);
           } catch (e) {
@@ -289,6 +290,7 @@ const checkoutCmd = new Command()
           }
 
           await vt.checkout(cwd, existingBranchName);
+
           spinner.succeed(`Switched to branch "${existingBranchName}"`);
         } else {
           throw new Error("Branch name is required");
@@ -298,6 +300,14 @@ const checkoutCmd = new Command()
           spinner.fail(error.message);
         }
       }
+
+      // Update the config with the new branch as the current branch
+      const newBranchId = await branchNameToId(
+        config.projectId,
+        existingBranchName || branch!,
+      );
+      config.currentBranch = newBranchId;
+      await vt.meta.saveConfig(config);
     },
   );
 
