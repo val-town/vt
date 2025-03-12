@@ -138,8 +138,15 @@ export default class VTMeta {
    */
   public async setLockFile() {
     // Make sure the program isn't already running
-    if (await this.getLockFile() !== null) {
-      throw new Error("Lockfile already exists, program is already running");
+    const runningPid = await this.getLockFile();
+    try {
+      if (runningPid !== null) Deno.kill(parseInt(runningPid));
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        // We couldn't kill the process, but that just means that the lock file
+        // probably was not up to date and had an already-dead process in it.
+        // We can ignore this error.
+      } else throw e;
     }
 
     await Deno.writeTextFile(this.lockFilePath(), Deno.pid.toString());

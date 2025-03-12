@@ -85,17 +85,13 @@ export async function push({
 
     try {
       if (type === "directory") {
-        await sdk.projects.files.create(
-          projectId,
-          encodeURIComponent(file.path),
-          { branch_id: branchId, type },
-        );
+        // We already ensured the directory path exists
       } else {
         await sdk.projects.files.create(
           projectId,
           encodeURIComponent(file.path),
           {
-            content: await Deno.readTextFile(path.join(targetDir, file.path)),
+            content: (await Deno.readTextFile(path.join(targetDir, file.path))),
             branch_id: branchId,
             type,
           },

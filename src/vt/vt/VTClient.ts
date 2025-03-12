@@ -121,30 +121,33 @@ export default class VTClient {
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
       Deno.addSignalListener(signal as Deno.Signal, () => {
+        console.log("Stopping watch process...");
         this.meta.rmLockFile();
         Deno.exit(0);
       });
     }
 
-    // A function that periodically runs a push
-    const pullPeriodically = async () => {
-      while (true) {
-        await this.pull(this.rootPath);
-        await new Promise((resolve) => setTimeout(resolve, interval));
-      }
-    };
-
     // A function that runs a push on file system changes
     const pushOnFileEvents = async () => {
       const debouncedPush = debounce(async (_event: Deno.FsEvent) => {
-        await this.push(this.rootPath);
+        try {
+          await this.push(this.rootPath);
+        } catch (e) {
+          if (e instanceof Deno.errors.NotFound) {
+            // The file that was being pushed no longer exists at the time of uploading
+            // it. This is fine for watches though, it could've just been an
+            // editor temp file or whatever. It no longer exists so
+            // regardless it isn't our problem.
+          } else throw e;
+        }
       }, 300);
 
       const watcher = Deno.watchFs(this.rootPath);
       for await (const event of watcher) debouncedPush(event);
     };
 
-    return Promise.all([pullPeriodically(), pushOnFileEvents()]);
+    // Since we're only pushing now, we just need to return the pushOnFileEvents promise
+    return pushOnFileEvents();
   }
 
   /**
