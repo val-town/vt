@@ -23,11 +23,15 @@ export function runCmd(args: string[]): [string, string[]] {
 
   if (isCompiled) {
     // Running as a compiled executable
+    // You don't need to explicitly provide the deno executable the permission
+    // flags since ideally it is baked in at compile time.
     return [executablePath, args];
   } else {
     // Running with `deno run`, include deno executable and necessary flags
     const scriptPath = new URL(scriptModule).pathname;
 
+    // When running with deno you need to explicitly provide all the required
+    // flags
     return [
       executablePath,
       [
