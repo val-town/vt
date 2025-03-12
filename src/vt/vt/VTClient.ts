@@ -8,6 +8,7 @@ import { status, StatusResult } from "~/vt/git/status.ts";
 import { debounce } from "jsr:@std/async/debounce";
 import { checkout } from "~/vt/git/checkout.ts";
 import { isDirty } from "~/vt/git/utils.ts";
+import ValTown from "@valtown/sdk";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -133,12 +134,28 @@ export default class VTClient {
         try {
           await this.push(this.rootPath);
         } catch (e) {
+          // Handle case where the file was deleted before we could push it
           if (e instanceof Deno.errors.NotFound) {
-            // The file that was being pushed no longer exists at the time of uploading
-            // it. This is fine for watches though, it could've just been an
-            // editor temp file or whatever. It no longer exists so
-            // regardless it isn't our problem.
-          } else throw e;
+            // The file no longer exists at the time of uploading. It could've
+            // just been a temporary file, but since it no longer exists it
+            // isn't our problem.
+            return;
+          }
+
+          // Handle case where the API returns a 404 Not Found error
+          if (e instanceof ValTown.APIError && e.status === 404) {
+            // The val we're trying to update doesn't exist on the server. This
+            // is usually a result of starting a deletion and then trying to
+            // delete a second time because of duplicate file system events.
+            //
+            // TODO: We should keep a global queue of outgoing requests and
+            // intellegently notice that we have duplicate idempotent (in this
+            // case deletions are) requests in the queue.
+            return;
+          }
+
+          // Re-throw any other errors
+          throw e;
         }
       }, 300);
 

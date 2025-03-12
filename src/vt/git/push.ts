@@ -63,8 +63,11 @@ export async function push({
   }
 
   // Delete everything that was deleted
-  for (const _file of statusResult.deleted) {
-    // TODO: Delete file  (waiting on val town api support)
+  for (const file of statusResult.deleted) {
+    await sdk.projects.files.delete(projectId, file.path, {
+      branch_id: branchId,
+      version,
+    });
   }
 
   // Create all new files
