@@ -6,6 +6,8 @@ import { pull } from "~/vt/git/pull.ts";
 import { push } from "~/vt/git/push.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
 import { debounce } from "jsr:@std/async/debounce";
+import { checkout } from "~/vt/git/checkout.ts";
+import { isDirty } from "~/vt/git/utils.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -104,30 +106,30 @@ export default class VTClient {
 
   /**
    * Watch the root directory for changes and automatically push to Val Town
-   * when files are updated locally. Updates the lock file and removes it on exit.
+   * when files are updated locally, and periodically pull to get new changes
+   * also made remotely.
    *
-   * @param {number} [interval=2000] The interval in milliseconds to wait between pushes. Default is 2000 ms (2 seconds).
+   * If another instance of the program is already running then this errors.
+   *
+   * @param {number} [interval=2000] The interval in milliseconds to wait between pulls. Default is 2000 ms (2 seconds).
    * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
    */
-  public async watch(interval: number = 10_000) {
+  public async watch(interval: number = 2_000) {
     // Set the lock file at the start
     await this.meta.setLockFile();
 
-    // Setup a cleanup function to remove the lock file on exit
-    const cleanup = async () => {
-      await this.meta.rmLockFile();
-      Deno.exit();
-    };
-
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
-      Deno.addSignalListener(signal as Deno.Signal, cleanup);
+      Deno.addSignalListener(signal as Deno.Signal, () => {
+        this.meta.rmLockFile();
+        Deno.exit(0);
+      });
     }
 
     // A function that periodically runs a push
-    const pushPeriodically = async () => {
+    const pullPeriodically = async () => {
       while (true) {
-        await this.push(this.rootPath);
+        await this.pull(this.rootPath);
         await new Promise((resolve) => setTimeout(resolve, interval));
       }
     };
@@ -142,7 +144,7 @@ export default class VTClient {
       for await (const event of watcher) debouncedPush(event);
     };
 
-    return Promise.all([pushPeriodically(), pushOnFileEvents()]);
+    return Promise.all([pullPeriodically(), pushOnFileEvents()]);
   }
 
   /**
@@ -199,6 +201,7 @@ export default class VTClient {
       targetDir,
       projectId,
       branchId: currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
   }
@@ -222,5 +225,78 @@ export default class VTClient {
       branchId: currentBranch,
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
+  }
+
+  /**
+   * Check out a different branch of the project.
+   *
+   * @param {string} targetDir The directory where the checkout should happen
+   * @param {string} branchName The name of the branch to check out to
+   * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
+   * @returns {Promise<void>}
+   */
+  public async checkout(
+    targetDir: string,
+    branchName: string,
+    forkedFrom?: string,
+  ): Promise<void> {
+    const config = await this.meta.loadConfig();
+
+    // Get meta about the branch they are checking out. They only specify the
+    // name for the branch that they are checking out. So, we'll have to query
+    // the id of such branch, and the current version (by default we'll switch
+    // them to the newest version of a branch when they check out a new branch.
+    // This is a bit different than git, but it follows our notion of "no local
+    // state, val town is the source of truth")
+    const checkoutBranch = await branchNameToId(config.projectId, branchName);
+    const latestVersion = await getLatestVersion(
+      config.projectId,
+      checkoutBranch.id,
+    );
+
+    const created =
+      (await this.status(targetDir).then((status) => status.created)).map(
+        (file) => file.path,
+      ); // We want to ignore newly created files. Adding them to the
+    // ignoreGlobs list is a nice way to do that.
+    const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
+
+    if (forkedFrom) { // Use the signature where we create a new branch
+      const sourceVersion = await getLatestVersion(
+        config.projectId,
+        forkedFrom,
+      );
+      const newBranch = await checkout({
+        targetDir,
+        projectId: config.projectId,
+        forkedFrom,
+        name: branchName,
+        ignoreGlobs,
+        version: sourceVersion,
+      });
+      config.currentBranch = newBranch.id;
+      config.version = newBranch.version;
+    } else { // Use the signature where we check out an existing branch
+      await checkout({
+        targetDir,
+        projectId: config.projectId,
+        branchId: checkoutBranch.id,
+        ignoreGlobs,
+        version: latestVersion,
+      });
+    }
+
+    // Update the config with the new branch
+    await this.meta.saveConfig(config);
+  }
+
+  /**
+   * Check if the working directory has uncommitted changes.
+   *
+   * @param {string} targetDir - The directory to check for changes
+   * @returns {Promise<boolean>} True if there are uncommitted changes
+   */
+  public async isDirty(targetDir: string): Promise<boolean> {
+    return isDirty(await this.status(targetDir));
   }
 }

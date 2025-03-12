@@ -6,9 +6,8 @@ import { watchCmd } from "~/cmd/watch.ts";
 const cmd = new Command()
   .name("vt")
   .version(manifest.version)
-  .action(
-    () => cmd.showHelp,
-  );
+  .help({ colors: Deno.stdout.isTerminal() })
+  .action(() => cmd.showHelp());
 
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
@@ -16,5 +15,6 @@ cmd.command("push", cmds.pushCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
 cmd.command("watch", watchCmd);
+cmd.command("checkout", cmds.checkoutCmd);
 
 export { cmd };

@@ -1,6 +1,6 @@
 import { status } from "~/vt/git/status.ts";
 import * as path from "@std/path";
-import sdk from "~/sdk.ts";
+import sdk, { getLatestVersion } from "~/sdk.ts";
 import { getValType, withoutValExtension } from "~/vt/git/paths.ts";
 import ValTown from "@valtown/sdk";
 
@@ -11,6 +11,7 @@ import ValTown from "@valtown/sdk";
  * @param {string} args.targetDir The vt project root directory.
  * @param {string} args.projectId The id of the project to upload to.
  * @param {string} args.branchId The branch ID to upload file content to.
+ * @param {string} args.branchId The version to compute the status against. Defaults to latest version.
  * @param {string[]} args.ignoreGlobs A list of glob patterns for files to exclude.
  *
  * @returns Promise that resolves when the push operation is complete.
@@ -19,14 +20,17 @@ export async function push({
   targetDir,
   projectId,
   branchId,
+  version,
   ignoreGlobs,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
+  version?: number;
   ignoreGlobs: string[];
 }): Promise<void> {
   const statusResult = await status({
+    version: version || await getLatestVersion(projectId, branchId),
     targetDir,
     projectId,
     branchId,

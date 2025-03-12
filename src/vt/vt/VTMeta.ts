@@ -137,6 +137,11 @@ export default class VTMeta {
    * directory.
    */
   public async setLockFile() {
+    // Make sure the program isn't already running
+    if (await this.getLockFile() !== null) {
+      throw new Error("Lockfile already exists, program is already running");
+    }
+
     await Deno.writeTextFile(this.lockFilePath(), Deno.pid.toString());
   }
 
