@@ -22,7 +22,9 @@ async function branchNameToId(
     if (branch.name == branchName) return branch.id;
   }
 
-  throw new Error(`Branch "${branchName}" not found in project ${projectId}`);
+  throw new Deno.errors.NotFound(
+    `Branch "${branchName}" not found in project ${projectId}`,
+  );
 }
 
 /**
