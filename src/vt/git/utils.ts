@@ -29,6 +29,26 @@ export async function withTempDir(
 }
 
 /**
+ * Executes an operation in a temporary directory and ensures cleanup.
+ * 
+ * @param op Function that takes a temporary directory path and returns a Promise
+ * @param tmpLabel Optional prefix for the temporary directory name
+ * @returns Promise that resolves to the result of the operation
+ */
+export async function doWithTempDir<T>(
+  op: (tmpDir: string) => Promise<T>,
+  tmpLabel?: string,
+): Promise<T> {
+  const { tempDir, cleanup } = await withTempDir(tmpLabel);
+  
+  try {
+    return await op(tempDir);
+  } finally {
+    await cleanup();
+  }
+}
+
+/**
  * Create a directory atomically by first doing logic to create it in a temp
  * directory, and then moving it to a destination afterwards.
  *
