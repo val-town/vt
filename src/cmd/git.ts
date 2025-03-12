@@ -163,7 +163,7 @@ const branchCmd = new Command()
 
     try {
       const vt = VTClient.from(cwd);
-      const meta = await vt.meta.loadConfig();
+      const meta = await vt.getMeta().loadConfig();
 
       const branches: ValTown.Projects.BranchListResponse[] = [];
       for await (

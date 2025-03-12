@@ -24,6 +24,15 @@ export default class VTClient {
   }
 
   /**
+   * Returns the VTMeta instance for this client.
+   *
+   * @returns {VTMeta} The VTMeta instance.
+   */
+  public getMeta(): VTMeta {
+    return this.meta;
+  }
+
+  /**
    * Gets the list of globs for files that should be ignored by VT.
    *
    * @returns {Promise<RegExp[]>} The list of globs to ignore.
@@ -74,10 +83,10 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.meta.configFilePath);
+      await Deno.stat(vt.getMeta().configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.meta.saveConfig({
+        await vt.getMeta().saveConfig({
           projectId,
           currentBranch: branchId,
           version: version,
@@ -100,6 +109,54 @@ export default class VTClient {
    */
   public static from(rootPath: string): VTClient {
     return new VTClient(rootPath);
+  }
+
+  /**
+   * Create a new Val Town project and initialize a VT instance for it.
+   *
+   * @param {string} rootPath - The root path where the VT instance will be initialized
+   * @param {string} projectName - The name of the project to create
+   * @param {string} username - The username of the project owner
+   * @param {'public' | 'private'} privacy - The privacy setting for the project
+   * @param {string} [description] - Optional description for the project
+   * @returns {Promise<VTClient>} A new VTClient instance
+   */
+  public static async create(
+    rootPath: string,
+    projectName: string,
+    username: string,
+    privacy: "public" | "private" | "unlisted",
+    description?: string,
+  ): Promise<VTClient> {
+    // First create the project
+    const project = await sdk.projects.create({
+      name: projectName,
+      privacy,
+      description,
+    });
+
+    // Get the project branch
+    const branch = await sdk.projects.branches.retrieve(
+      project.id,
+      await branchNameToId(project.id, DEFAULT_BRANCH_NAME),
+    );
+
+    // Then clone it to the target directory
+    await clone({
+      targetDir: rootPath,
+      projectId: project.id,
+      branchId: branch.id,
+      version: branch.version,
+    });
+
+    // Initialize VT client with the new project
+    return VTClient.init(
+      rootPath,
+      username,
+      projectName,
+      branch.version,
+      DEFAULT_BRANCH_NAME,
+    );
   }
 
   /**
