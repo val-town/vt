@@ -21,7 +21,7 @@
     "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/text@~1.0.7": "1.0.11",
-    "jsr:@valtown/sdk@0.34": "0.34.0",
+    "jsr:@valtown/sdk@0.36": "0.36.0",
     "npm:@types/node@*": "22.12.0",
     "npm:emphasize@7": "7.0.0",
     "npm:highlight.js@^11.11.1": "11.11.1",
@@ -108,8 +108,8 @@
     "@std/text@1.0.11": {
       "integrity": "f191fa22590cac8b1cdba6cc4ab97940e720f7cc67b3084e54405b428bf5843d"
     },
-    "@valtown/sdk@0.34.0": {
-      "integrity": "0b79451b03c310b9fa2b846f77eae2b87c4ab863932bd852efb087fe4419db08"
+    "@valtown/sdk@0.36.0": {
+      "integrity": "00df2c1de39b8c2fd6340779bf93c30b021fc295b99d90529a4be2011fb9d18d"
     }
   },
   "npm": {
@@ -205,7 +205,7 @@
       "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fs@^1.0.13",
       "jsr:@std/path@^1.0.8",
-      "jsr:@valtown/sdk@0.34",
+      "jsr:@valtown/sdk@0.36",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
       "npm:zod@^3.24.2"
