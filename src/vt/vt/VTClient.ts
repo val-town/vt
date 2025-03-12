@@ -175,16 +175,23 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async pull(targetDir: string): Promise<void> {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
+    const config = await this.meta.loadConfig();
+
+    config.version = await getLatestVersion(
+      config.projectId,
+      config.currentBranch,
+    );
 
     // Use the provided pull function
     await pull({
       targetDir,
-      projectId,
-      branchId: currentBranch,
-      version: await getLatestVersion(projectId, currentBranch),
+      projectId: config.projectId,
+      branchId: config.currentBranch,
+      version: config.version,
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
+
+    await this.meta.saveConfig(config)
   }
 
   /**
