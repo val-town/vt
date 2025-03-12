@@ -1,94 +1,68 @@
 import * as path from "@std/path";
-import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
-
-type ProjectItemType = "script" | "http" | "email" | "interval" | "file";
+import { DEFAULT_VAL_TYPE, ProjectItem } from "~/consts.ts";
+import { filePathToFile } from "~/sdk.ts";
 
 /**
- * Adds val file extension to a path or filename
+ * Determine the type of a project file.
  *
- * @param filepath Path or filename
- * @param type Val file type (script, http, ...)
- * @param abbreviated Whether to use val file extension (default: false)
- * @returns Path or filename with val file extension
- */
-function withValExtension(
-  filepath: string,
-  type: keyof typeof VAL_TYPE_EXTENSIONS,
-  abbreviated: boolean = false,
-): string {
-  const extension = abbreviated
-    ? `.${VAL_TYPE_EXTENSIONS[type].abbreviated}.tsx`
-    : `.${VAL_TYPE_EXTENSIONS[type].standard}.tsx`;
-
-  const dirname = path.dirname(filepath);
-  const basename = path.basename(filepath);
-  const baseFilename = withoutValExtension(basename, abbreviated);
-
-  return path.join(dirname, baseFilename + extension);
-}
-
-/**
- * Removes val file extension from a path or filename if present
- * @param filepath Path or filename with possible val file extension
- * @param abbreviated Whether to check for val file extension (default: false)
- * @returns Path or filename without val file extension
- */
-function withoutValExtension(
-  filepath: string,
-  abbreviated: boolean = false,
-): string {
-  const dirname = path.dirname(filepath);
-  const basename = path.basename(filepath);
-
-  const extensions = Object.values(VAL_TYPE_EXTENSIONS).map(
-    (ext) => abbreviated ? `.${ext.abbreviated}.tsx` : `.${ext.standard}.tsx`,
-  );
-
-  for (const extension of extensions) {
-    if (basename.endsWith(extension)) {
-      return path.join(dirname, basename.slice(0, -extension.length));
-    }
-  }
-  return filepath;
-}
-
-/**
- * Retrieves the val file type based on its extension using regex and a map.
+ * This function attempts to determine the type of a file within a project
+ * based on its existing state on the server or its filename. The process...
+ * 1. Check if the file already exists in the project at the specified path.
+ * 2. If the file does not exist, determine its type based on its file extension:
+ *    - Files ending in .ts, .tsx, .js, or .jsx are considered "val" files.
+ *    - Check the filename for keywords like "cron", "http", or "email" to
+ *      determine specific types:
+ *      - If multiple keywords are found, default to "script".
+ *      - Otherwise, return "interval" for "cron", "http" for "http", etc
+ *      - Default to "script" if no keywords are found.
+ * 3. If the file does not match the val extension criteria (.ts + optional
+ *    identifier), return "file".
  *
  * @param filepath Path or filename to analyze
- * @param abbreviated Whether to check for abbreviated val file extensions (default: false)
  * @returns The val file type
- * @throws Error if no matching type is found
  */
-export function getValType(
-  filepath: string,
-  abbreviated: boolean = false,
-): ProjectItemType {
-  const basename = path.basename(filepath);
+async function getProjectItemType(
+  projectId: string,
+  branchId: string,
+  version: number,
+  filePath: string,
+): Promise<ProjectItem> {
+  try {
+    // If a file already exists in the project at the given path, then the type
+    // is whatever it already is on the website.
+    return await filePathToFile(projectId, branchId, version, filePath)
+      .then((resp) => resp.type);
+  } catch (e) {
+    // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
+    if (e instanceof Deno.errors.NotFound) {
+      if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
+        const isCron = filePath.includes("cron");
+        const isHttp = filePath.includes("http");
+        const isEmail = filePath.includes("email");
 
-  // Create a map of extensions to val types using functional programming
-  const extensionToTypeMap = Object.entries(VAL_TYPE_EXTENSIONS).reduce(
-    (map, [valType, ext]) => {
-      const extensionKey = abbreviated ? ext.abbreviated : ext.standard;
-      map.set(extensionKey, valType as ProjectItemType);
-      return map;
-    },
-    new Map<string, keyof typeof VAL_TYPE_EXTENSIONS>(),
-  );
+        // If it's ambiguous then it is a script val by default
+        if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
+          return DEFAULT_VAL_TYPE;
+        }
 
-  // Regex pattern to extract the extension right before .tsx
-  const regexPattern = /\.([^\.]+)\.tsx$/;
-  const match = basename.match(regexPattern);
+        // But otherwise look at the file name and try to figure out what type
+        // of val it is based on whether the file name contains a pattern like
+        // "cron," etc
+        if (isCron) return "interval";
+        if (isHttp) return "http";
+        if (isEmail) return "email";
 
-  if (match) {
-    const extensionKey = match[1];
-    const valType = extensionToTypeMap.get(extensionKey);
-    if (valType) {
-      return valType as ProjectItemType;
+        // If we can't figure it out, default to script
+        return DEFAULT_VAL_TYPE;
+      }
+
+      // Otherwise, it's just a plain old file val
+      return "file";
+    } else {
+      // Re-throw any other errors
+      throw e;
     }
   }
-
-  return "file";
 }
 
 /**
@@ -119,4 +93,4 @@ function shouldIgnore(
   );
 }
 
-export { shouldIgnore, withoutValExtension, withValExtension };
+export { getProjectItemType, shouldIgnore };

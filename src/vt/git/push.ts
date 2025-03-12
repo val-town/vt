@@ -1,8 +1,9 @@
 import { status } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
-import { getValType, withoutValExtension } from "~/vt/git/paths.ts";
+import { getProjectItemType } from "~/vt/git/paths.ts";
 import ValTown from "@valtown/sdk";
+import { ProjectItem } from "~/consts.ts";
 
 /**
  * Pushes latest changes from a vt folder into a Val Town project.
@@ -29,8 +30,10 @@ export async function push({
   version?: number;
   ignoreGlobs: string[];
 }): Promise<void> {
+  version = version || await getLatestVersion(projectId, branchId);
+
   const statusResult = await status({
-    version: version || await getLatestVersion(projectId, branchId),
+    version,
     targetDir,
     projectId,
     branchId,
@@ -39,42 +42,65 @@ export async function push({
 
   // Upload everything that was modified
   for (const file of statusResult.modified) {
+    let type: ProjectItem | undefined = await getProjectItemType(
+      projectId,
+      branchId,
+      version,
+      file.path,
+    );
+    if (type === "directory") type = undefined;
+
     await sdk.projects.files.update(
       projectId,
-      encodeURIComponent(withoutValExtension(file.path)),
+      encodeURIComponent(file.path),
       {
         branch_id: branchId,
         content: await Deno.readTextFile(path.join(targetDir, file.path)),
-        type: getValType(file.path),
-        name: path.basename(withoutValExtension(file.path)),
+        name: path.basename(file.path),
+        type,
       },
     );
   }
 
   // Delete everything that was deleted
-  for (const file of statusResult.deleted) {
+  for (const _file of statusResult.deleted) {
     // TODO: Delete file  (waiting on val town api support)
   }
 
   // Create all new files
   for (const file of statusResult.created) {
+    const type = await getProjectItemType(
+      projectId,
+      branchId,
+      version,
+      file.path,
+    );
+
     // Ensure parent directories exist before creating the file
     await ensureValtownDir(
       projectId,
       branchId,
-      withoutValExtension(file.path),
+      file.path,
     );
 
     try {
-      await sdk.projects.files.create(
-        projectId,
-        encodeURIComponent(withoutValExtension(file.path)),
-        {
-          content: await Deno.readTextFile(path.join(targetDir, file.path)),
-          branch_id: branchId,
-          type: getValType(file.path),
-        },
-      );
+      if (type === "directory") {
+        await sdk.projects.files.create(
+          projectId,
+          encodeURIComponent(file.path),
+          { branch_id: branchId, type },
+        );
+      } else {
+        await sdk.projects.files.create(
+          projectId,
+          encodeURIComponent(file.path),
+          {
+            content: await Deno.readTextFile(path.join(targetDir, file.path)),
+            branch_id: branchId,
+            type,
+          },
+        );
+      }
     } catch (error) {
       assertAllowedUploadError(error);
     }

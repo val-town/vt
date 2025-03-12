@@ -1,6 +1,5 @@
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { withoutValExtension, withValExtension } from "~/vt/git/paths.ts";
 import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
@@ -126,7 +125,7 @@ async function isFileModified(
 ): Promise<boolean> {
   const projectFileContent = await sdk.projects.files.getContent(
     projectId,
-    encodeURIComponent(withoutValExtension(cleanPath)),
+    encodeURIComponent(cleanPath),
     { branch_id: branchId, version },
   ).then((resp) => resp.text());
 
@@ -156,15 +155,8 @@ async function getProjectFiles(
   const processedFiles = files
     .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
     .filter((file) => file.type !== "directory")
-    .map((
-      file: ValTown.Projects.FileListResponse,
-    ) => [
-      file.type === "file"
-        ? path.join(path.dirname(file.path), file.name)
-        : withValExtension(
-          path.join(path.dirname(file.path), file.name),
-          file.type,
-        ),
+    .map((file: ValTown.Projects.FileListResponse) => [
+      path.join(path.dirname(file.path), file.name),
       new Date(file.updatedAt).getTime(),
     ]) as [string, number][];
 

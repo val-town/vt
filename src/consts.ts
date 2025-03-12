@@ -24,14 +24,12 @@ export const STATUS_COLORS: Record<
   not_modified: { prefix: " ", color: colors.gray },
 };
 
-export const VAL_TYPE_EXTENSIONS: Record<
-  string,
-  { abbreviated: string; standard: string }
-> = {
-  "script": { abbreviated: "S", standard: "script" },
-  "http": { abbreviated: "H", standard: "http" },
-  "email": { abbreviated: "E", standard: "email" },
-  "interval": { abbreviated: "C", standard: "cron" },
-};
-
 export const DEFAULT_VAL_TYPE = "script";
+
+export type ProjectItem =
+  | "script"
+  | "http"
+  | "email"
+  | "interval"
+  | "file"
+  | "directory";

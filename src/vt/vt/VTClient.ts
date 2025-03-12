@@ -191,7 +191,7 @@ export default class VTClient {
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
 
-    await this.meta.saveConfig(config)
+    await this.meta.saveConfig(config);
   }
 
   /**
