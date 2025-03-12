@@ -83,7 +83,7 @@ Deno.test({
     const mainBranch = await branchNameToId(project.id, DEFAULT_BRANCH_NAME);
 
     const newBranchName = `test-branch-${crypto.randomUUID()}`;
-    
+
     await doWithTempDir(async (tempDir) => {
       // Clone the "from" branch
       await clone({
@@ -108,7 +108,7 @@ Deno.test({
       } catch {
         throw new Error("Branch was not created successfully");
       }
-      
+
       // TODO `await sdk.projects.delete(project.id);` (this API endpoint
       // doesn't exist yet thoguh)
     }, "vt_checkout_test");
