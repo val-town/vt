@@ -18,7 +18,7 @@ import { filePathToFile } from "~/sdk.ts";
  * 3. If the file does not match the val extension criteria (.ts + optional
  *    identifier), return "file".
  *
- * @param filepath Path or filename to analyze
+ * @param filepath - Path or filename to analyze
  * @returns The val file type
  */
 async function getProjectItemType(
@@ -68,7 +68,7 @@ async function getProjectItemType(
 /**
  * Creates RegExp patterns from glob patterns for ignoring files.
  *
- * @param {string[]} ignoreGlobs Array of glob patterns to convert
+ * @param {string[]} ignoreGlobs - Array of glob patterns to convert
  * @returns {RegExp[]} Array of RegExp patterns
  */
 function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
@@ -80,8 +80,8 @@ function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
 /**
  * Checks if a path should be ignored based on ignore patterns.
  *
- * @param {string} filePath Path to check
- * @param {string[]} ignoreGlobs Array of glob patterns to check against
+ * @param {string} - filePath Path to check
+ * @param {string[]} - ignoreGlobs Array of glob patterns to check against
  * @returns {boolean} True if the path should be ignored
  */
 function shouldIgnore(

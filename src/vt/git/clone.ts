@@ -12,11 +12,11 @@ import { doAtomically } from "~/vt/git/utils.ts";
  * target directory.
  *
  * @param {object} args
- * @param {string} args.targetDir The directory where the project will be cloned
- * @param {string} args.projectId The uuid of the project to be cloned
- * @param {string} args.branchId (optional) The branch ID to clone.
- * @param {number} args.version (optional) The version of the project to clone.
- * @param {string[]} args.ignoreGlobs (optional) List of glob patterns for files to ignore
+ * @param {string} args.targetDir - The directory where the project will be cloned
+ * @param {string} args.projectId - The uuid of the project to be cloned
+ * @param {string} [args.branchId] - The branch ID to clone.
+ * @param {number} [args.version] - The version of the project to clone.
+ * @param {string[]} [args.ignoreGlobs] - List of glob patterns for files to ignore
  */
 export function clone(
   {
