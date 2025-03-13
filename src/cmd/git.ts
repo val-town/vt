@@ -183,7 +183,6 @@ const branchCmd = new Command()
         branch.id === meta.currentBranch
       );
 
-      console.log(branches);
       const otherBranches = branches
         .filter((branch) => branch.id !== meta.currentBranch)
         .sort((a, b) =>
