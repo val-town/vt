@@ -1,7 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
 import { API_KEY_KEY } from "~/consts.ts";
-import { CommentListResponsesPageCursorURL } from "https://jsr.io/@valtown/sdk/0.36.0/resources/me/comments.ts";
 
 const sdk = new ValTown({
   bearerToken: Deno.env.get(API_KEY_KEY)!,
