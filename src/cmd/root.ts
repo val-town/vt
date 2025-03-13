@@ -23,12 +23,20 @@ const createCmd = new Command()
   .option("--private", "Create as private project")
   .option("--unlisted", "Create as unlisted project")
   .option("-d, --description <desc:string>", "Project description")
+  .option("--image-url <desc:string>", "URL for project image")
   .action(async (
-    { public: isPublic, private: isPrivate, unlisted, description }: {
+    {
+      public: isPublic,
+      private: isPrivate,
+      unlisted: isUnlisted,
+      description,
+      imageUrl,
+    }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
       description?: string;
+      imageUrl?: string;
     },
     projectName: string,
     targetDir?: string,
@@ -39,7 +47,7 @@ const createCmd = new Command()
     try {
       // Check for mutually exclusive privacy flags
       const privacyFlags =
-        [isPublic, isPrivate, unlisted].filter(Boolean).length;
+        [isPublic, isPrivate, isUnlisted].filter(Boolean).length;
       if (privacyFlags > 1) {
         throw new Error(
           "Can only specify one privacy flag: --public, --private, or --unlisted",
@@ -47,7 +55,7 @@ const createCmd = new Command()
       }
 
       // Determine privacy setting (defaults to public)
-      const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
+      const privacy = isPrivate ? "private" : isUnlisted ? "unlisted" : "public";
 
       // If no target directory specified, use project name
       if (targetDir === undefined) rootPath = join(rootPath, projectName);
@@ -64,6 +72,7 @@ const createCmd = new Command()
           user.username!, // Init the client with authenticated user
           privacy,
           description,
+          imageUrl,
         );
 
         // Clone the initial project structure

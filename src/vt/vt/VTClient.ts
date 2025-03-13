@@ -119,6 +119,7 @@ export default class VTClient {
    * @param {string} username - The username of the project owner
    * @param {'public' | 'private'} privacy - The privacy setting for the project
    * @param {string} [description] - Optional description for the project
+   * @param {string} [imageUrl] - Optional url to the project image
    * @returns {Promise<VTClient>} A new VTClient instance
    */
   public static async create(
@@ -127,12 +128,14 @@ export default class VTClient {
     username: string,
     privacy: "public" | "private" | "unlisted",
     description?: string,
+    imageUrl?: string,
   ): Promise<VTClient> {
     // First create the project
     const project = await sdk.projects.create({
       name: projectName,
       privacy,
       description,
+      imageUrl,
     });
 
     // Get the project branch
