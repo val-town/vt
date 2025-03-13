@@ -220,6 +220,25 @@ const branchCmd = new Command()
     }
   });
 
+const pushCmd = new Command()
+  .name("push")
+  .description("Push local changes to a val town project")
+  .action(async () => {
+    const spinner = new Kia("Pushing local changes...");
+    const cwd = Deno.cwd();
+
+    try {
+      spinner.start();
+      const vt = VTClient.from(cwd);
+      await vt.push(cwd);
+      spinner.succeed(`Project pushed successfully from ${cwd}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  });
+
 const checkoutCmd = new Command()
   .name("checkout")
   .description("Check out a different branch")
@@ -297,4 +316,4 @@ const checkoutCmd = new Command()
     },
   );
 
-export { branchCmd, checkoutCmd, cloneCmd, pullCmd, statusCmd };
+export { branchCmd, checkoutCmd, cloneCmd, pullCmd, pushCmd, statusCmd };

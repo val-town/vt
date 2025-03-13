@@ -12,6 +12,7 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
 export const CONFIG_FILE_NAME = "vt.json";
 export const META_FOLDER_NAME = ".vt";
 export const META_IGNORE_FILE_NAME = ".vtignore";
+export const META_LOCK_FILE_NAME = "lock";
 
 export const STATUS_COLORS: Record<
   string,
@@ -23,12 +24,12 @@ export const STATUS_COLORS: Record<
   not_modified: { prefix: " ", color: colors.gray },
 };
 
-export const VAL_TYPE_EXTENSIONS: Record<
-  string,
-  { abbreviated: string; standard: string }
-> = {
-  "script": { abbreviated: "S", standard: "script" },
-  "http": { abbreviated: "H", standard: "http" },
-  "email": { abbreviated: "E", standard: "email" },
-  "interval": { abbreviated: "C", standard: "cron" },
-};
+export const DEFAULT_VAL_TYPE = "script";
+
+export type ProjectItem =
+  | "script"
+  | "http"
+  | "email"
+  | "interval"
+  | "file"
+  | "directory";

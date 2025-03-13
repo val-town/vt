@@ -1,5 +1,5 @@
 import { clone } from "~/vt/git/clone.ts";
-import { withTempDir } from "~/vt/git/utils.ts";
+import { doWithTempDir } from "~/vt/git/utils.ts";
 import { assertEquals } from "@std/assert";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { checkout } from "~/vt/git/checkout.ts";
@@ -26,9 +26,7 @@ for (const testCase of testCases) {
           net: true,
         },
         async fn() {
-          const { tempDir, cleanup } = await withTempDir("vt_checkout_test");
-
-          try {
+          await doWithTempDir(async (tempDir) => {
             // Clone the "from" branch
             await clone({
               targetDir: tempDir,
@@ -58,9 +56,7 @@ for (const testCase of testCases) {
               true,
               `Checkout to branch ${toBranchId} failed structure verification`,
             );
-          } finally {
-            await cleanup();
-          }
+          }, "vt_checkout_test");
         },
       });
     }
@@ -84,21 +80,16 @@ Deno.test({
     });
 
     // Get the main branch ID to fork from
-    const mainBranchId = await branchNameToId(project.id, DEFAULT_BRANCH_NAME);
-    const mainBranch = await sdk.projects.branches.retrieve(
-      project.id,
-      mainBranchId,
-    );
+    const mainBranch = await branchNameToId(project.id, DEFAULT_BRANCH_NAME);
 
     const newBranchName = `test-branch-${crypto.randomUUID()}`;
-    const { tempDir, cleanup } = await withTempDir("vt_checkout_test");
 
-    try {
+    await doWithTempDir(async (tempDir) => {
       // Clone the "from" branch
       await clone({
         targetDir: tempDir,
         projectId: project.id,
-        branchId: mainBranchId,
+        branchId: mainBranch.id,
         version: mainBranch.version,
       });
 
@@ -117,10 +108,9 @@ Deno.test({
       } catch {
         throw new Error("Branch was not created successfully");
       }
-    } finally {
-      await cleanup();
+
       // TODO `await sdk.projects.delete(project.id);` (this API endpoint
       // doesn't exist yet thoguh)
-    }
+    }, "vt_checkout_test");
   },
 });
