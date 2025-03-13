@@ -1,12 +1,16 @@
+// This file must be https importable, don't use any imports that are in the
+// deno.json import map.
+
 // Update this if we need to pull a new deno.json
 const installVersion = "0.0.1-alpha.1";
 
+import { ensureDir } from "jsr:@std/fs@^1.0.13";
 const appName = "vt";
-const cacheDir = setupCacheDir(appName);
+const cacheDir = await setupCacheDir(appName);
 const vtDenoJsonPath = `${cacheDir}/${installVersion}_deno.json`;
 
 // Find the cache directory based on the OS
-function setupCacheDir(appName: string): string {
+async function setupCacheDir(appName: string): Promise<string> {
   const homeDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
   let cacheDir = "";
   if (Deno.build.os === "windows") {
@@ -21,14 +25,7 @@ function setupCacheDir(appName: string): string {
       : `${homeDir}/.cache/${appName}`;
   }
 
-  // Create the directory in the cache dir if it doesn't exist
-  try {
-    Deno.mkdirSync(cacheDir, { recursive: true });
-  } catch (error) {
-    if (!(error instanceof Deno.errors.AlreadyExists)) {
-      throw error;
-    }
-  }
+  await ensureDir(cacheDir);
 
   return cacheDir;
 }
@@ -61,8 +58,10 @@ const process = new Deno.Command(Deno.execPath(), {
     "run",
     "--allow-read",
     "--allow-write",
-    "--allow-env",
+    "--allow-env=VAL_TOWN_API_KEY",
+    "--allow-env=VAL_TOWN_BASE_URL",
     "--allow-net",
+    "--allow-run",
     "--config",
     vtDenoJsonPath,
     import.meta.resolve("./vt.ts"),
