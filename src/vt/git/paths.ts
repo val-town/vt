@@ -4,9 +4,9 @@ import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
 /**
  * Adds val file extension to a filename
  *
- * @param filename Base filename
- * @param type Val file type (script, http, ...)
- * @param abbreviated Whether to use val file extension (default: false)
+ * @param filename - Base filename
+ * @param type - Val file type (script, http, ...)
+ * @param [abbreviated] - Whether to use val file extension (default: false)
  * @returns Filename with val file extension
  */
 function withValExtension(
