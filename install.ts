@@ -1,6 +1,5 @@
-
 // Update this if we need to pull a new deno.json
-const installVersion = "0.0.1-alpha.0"
+const installVersion = "0.0.1-alpha.0";
 
 const appName = "vt";
 const cacheDir = setupCacheDir(appName);
@@ -8,8 +7,8 @@ const vtDenoJsonPath = `${cacheDir}/${installVersion}_deno.json`;
 
 // Find the cache directory based on the OS
 function setupCacheDir(appName: string): string {
-    const homeDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
-    let cacheDir = "";
+  const homeDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
+  let cacheDir = "";
   if (Deno.build.os === "windows") {
     cacheDir = `${homeDir}\\AppData\\Local\\${appName}`;
   } else if (Deno.build.os === "darwin") {
@@ -17,7 +16,9 @@ function setupCacheDir(appName: string): string {
   } else {
     // Linux and others
     const xdgCacheHome = Deno.env.get("XDG_CACHE_HOME");
-    cacheDir = xdgCacheHome ? `${xdgCacheHome}/${appName}` : `${homeDir}/.cache/${appName}`;
+    cacheDir = xdgCacheHome
+      ? `${xdgCacheHome}/${appName}`
+      : `${homeDir}/.cache/${appName}`;
   }
 
   // Create the directory in the cache dir if it doesn't exist
@@ -32,7 +33,6 @@ function setupCacheDir(appName: string): string {
   return cacheDir;
 }
 
-
 // Write deno.json to the cache directory if it doesn't exist
 try {
   await Deno.stat(vtDenoJsonPath);
@@ -40,7 +40,7 @@ try {
 } catch (error) {
   if (error instanceof Deno.errors.NotFound) {
     const denoJson = await fetch(
-      import.meta.resolve("./deno.json")
+      import.meta.resolve("./deno.json"),
     );
 
     const denoJsonText = await denoJson.text();
@@ -49,7 +49,6 @@ try {
     throw error;
   }
 }
-
 
 // Run the vt.ts script with all arguments passed to this script
 const process = new Deno.Command(Deno.execPath(), {
@@ -70,10 +69,3 @@ const process = new Deno.Command(Deno.execPath(), {
 
 const { code } = await process.output();
 Deno.exit(code);
-
-
-
-
-
-
-
