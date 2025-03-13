@@ -1,5 +1,5 @@
 import z from "zod";
-import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
+import { VTSchema } from "~/vt/vt/schemas.ts";
 import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
 import * as path from "@std/path";
 
@@ -34,11 +34,11 @@ export default class VTMeta {
    * @returns {Promise} A promise that resolves with the parsed configuration data.
    * @throws {Error} Will throw an error if the file cannot be read or parsed.
    */
-  public async loadConfig(): Promise<z.infer<typeof VTMetaConfigJsonSchema>> {
+  public async loadConfig(): Promise<z.infer<typeof VTSchema>> {
     const data = await Deno.readTextFile(this.configFilePath);
     const parsedData = JSON.parse(data);
 
-    const result = VTMetaConfigJsonSchema.safeParse(parsedData);
+    const result = VTSchema.safeParse(parsedData);
     if (!result.success) {
       console.error("Invalid schema format");
       throw new Error("Invalid schema format");
@@ -55,7 +55,7 @@ export default class VTMeta {
    * @throws {Error} File cannot be written.
    */
   public async saveConfig(
-    config: z.infer<typeof VTMetaConfigJsonSchema>,
+    config: z.infer<typeof VTSchema>,
   ): Promise<void> {
     try {
       await Deno.mkdir(path.join(this.#rootPath, META_FOLDER_NAME), {
