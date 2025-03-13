@@ -320,11 +320,11 @@ const checkoutCmd = new Command()
       }
 
       // Update the config with the new branch as the current branch
-      const newBranchId = await branchNameToId(
+      const newBranch = await branchNameToId(
         config.projectId,
         existingBranchName || branch!,
       );
-      config.currentBranch = newBranchId;
+      config.currentBranch = newBranch.id;
       await vt.meta.saveConfig(config);
     },
   );
