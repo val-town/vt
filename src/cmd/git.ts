@@ -93,7 +93,7 @@ const pullCmd = new Command()
       }
 
       await vt.pull(cwd);
-      spinner.succeed(`Project pulled successfully to ${cwd}`);
+      spinner.succeed(`Project pulled successfully`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);
@@ -259,7 +259,9 @@ const checkoutCmd = new Command()
       try {
         spinner.start();
 
-        if (!force && await vt.isDirty(cwd)) {
+        // !branch && await vt.isDirty(cwd) means that we only do the isDirty
+        // check if the branch is not new
+        if (!force && (!branch && await vt.isDirty(cwd))) {
           spinner.fail(
             "Cannot checkout with unpushed changes. " +
               "Use `checkout -f` to ignore local changes.",
@@ -280,25 +282,28 @@ const checkoutCmd = new Command()
             spinner.succeed(
               `Created and switched to new branch "${branch}" from "${existingBranchName}"`,
             );
-          } catch (error) {
-            if (error instanceof ValTown.APIError && error.status === 409) {
+          } catch (e) {
+            if (e instanceof ValTown.APIError && e.status === 409) {
               spinner.fail(`Branch "${branch}" already exists.`);
             } else {
-              throw error; // Re-throw error if it's not a 409
+              throw e; // Re-throw error if it's not a 409
             }
           }
         } else if (existingBranchName) {
-          // Regular checkout. Check to see if branch exists.
+          // Regular checkout. Check to see if branch exists
           try {
             await branchNameToId(config.projectId, existingBranchName);
-          } catch {
-            const project = await sdk.projects.retrieve(config.projectId);
-            throw new Error(
-              `Branch "${existingBranchName}" not found in project "${project.name}"`,
-            );
+          } catch (e) {
+            if (e instanceof Deno.errors.NotFound) {
+              const project = await sdk.projects.retrieve(config.projectId);
+              throw new Deno.errors.NotFound(
+                `Branch "${existingBranchName}" not found in project "${project.name}"`,
+              );
+            } else throw e;
           }
 
           await vt.checkout(cwd, existingBranchName);
+
           spinner.succeed(`Switched to branch "${existingBranchName}"`);
         } else {
           throw new Error("Branch name is required");
@@ -308,6 +313,14 @@ const checkoutCmd = new Command()
           spinner.fail(error.message);
         }
       }
+
+      // Update the config with the new branch as the current branch
+      const newBranch = await branchNameToId(
+        config.projectId,
+        existingBranchName || branch!,
+      );
+      config.currentBranch = newBranch.id;
+      await vt.meta.saveConfig(config);
     },
   );
 
