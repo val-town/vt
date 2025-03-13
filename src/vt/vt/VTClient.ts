@@ -200,11 +200,7 @@ export default class VTClient {
     });
 
     // Get the project branch
-    const branch = await sdk.projects.branches.retrieve(
-      project.id,
-      await (branchNameToId(project.id, DEFAULT_BRANCH_NAME))
-        .then((branch) => branch.id),
-    );
+    const branch = await branchNameToId(project.id, DEFAULT_BRANCH_NAME);
 
     // Then clone it to the target directory
     await clone({
