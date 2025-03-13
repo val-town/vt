@@ -1,5 +1,5 @@
 // Update this if we need to pull a new deno.json
-const installVersion = "0.0.1-alpha.0";
+const installVersion = "0.0.1-alpha.1";
 
 const appName = "vt";
 const cacheDir = setupCacheDir(appName);
