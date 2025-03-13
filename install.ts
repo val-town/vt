@@ -3,32 +3,12 @@
 
 // Update this if we need to pull a new deno.json
 const installVersion = "0.0.1-alpha.1";
-
+import xdg from "https://deno.land/x/xdg_portable@v10.6.0/src/mod.deno.ts";
 import { ensureDir } from "jsr:@std/fs@^1.0.13";
 const appName = "vt";
-const cacheDir = await setupCacheDir(appName);
+const cacheDir = `${xdg.cache()}/${appName}`;
+await ensureDir(cacheDir);
 const vtDenoJsonPath = `${cacheDir}/${installVersion}_deno.json`;
-
-// Find the cache directory based on the OS
-async function setupCacheDir(appName: string): Promise<string> {
-  const homeDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
-  let cacheDir = "";
-  if (Deno.build.os === "windows") {
-    cacheDir = `${homeDir}\\AppData\\Local\\${appName}`;
-  } else if (Deno.build.os === "darwin") {
-    cacheDir = `${homeDir}/Library/Caches/${appName}`;
-  } else {
-    // Linux and others
-    const xdgCacheHome = Deno.env.get("XDG_CACHE_HOME");
-    cacheDir = xdgCacheHome
-      ? `${xdgCacheHome}/${appName}`
-      : `${homeDir}/.cache/${appName}`;
-  }
-
-  await ensureDir(cacheDir);
-
-  return cacheDir;
-}
 
 // Write deno.json to the cache directory if it doesn't exist
 try {
@@ -58,8 +38,7 @@ const process = new Deno.Command(Deno.execPath(), {
     "run",
     "--allow-read",
     "--allow-write",
-    "--allow-env=VAL_TOWN_API_KEY",
-    "--allow-env=VAL_TOWN_BASE_URL",
+    "--allow-env=VAL_TOWN_API_KEY,VAL_TOWN_BASE_URL",
     "--allow-net",
     "--allow-run",
     "--config",
