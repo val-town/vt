@@ -55,7 +55,11 @@ const createCmd = new Command()
       }
 
       // Determine privacy setting (defaults to public)
-      const privacy = isPrivate ? "private" : isUnlisted ? "unlisted" : "public";
+      const privacy = isPrivate
+        ? "private"
+        : isUnlisted
+        ? "unlisted"
+        : "public";
 
       // If no target directory specified, use project name
       if (targetDir === undefined) rootPath = join(rootPath, projectName);
