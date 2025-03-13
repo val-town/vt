@@ -118,7 +118,7 @@ export default class VTClient {
    * Watch the root directory for changes and automatically push to Val Town
    * when files are updated locally.
    *
-   * If another instance of the program is already running then this errors. A lock file with 
+   * If another instance of the program is already running then this errors. A lock file with
    * the running program's PID is maintained automatically.
    *
    * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
