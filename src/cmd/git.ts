@@ -4,7 +4,8 @@ import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
-import xdgOpen, { checkDirectory } from "~/utils.ts";
+import { checkDirectory } from "~/utils.ts";
+import open from "open";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
@@ -250,8 +251,8 @@ export const openCmd = new Command()
       const vt = VTClient.from(cwd);
       const meta = await vt.getMeta().loadConfig();
       const branch = await getProjectBranch(meta.projectId, meta.currentBranch);
-      await xdgOpen(branch.links.html);
-      spinner.succeed(`Project url opened in browser`);
+      await open(branch.links.html);
+      spinner.succeed(`Project url opened in browser: ${branch.links.html}`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);

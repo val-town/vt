@@ -61,7 +61,7 @@ async function filePathToFile(
  * Get the latest version of a branch.
  */
 export async function getLatestVersion(projectId: string, branchId: string) {
-  return (await getProjectBranch(projectId, branchId)).version;
+  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
 }
 
 /**

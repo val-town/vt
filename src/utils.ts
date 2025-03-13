@@ -73,27 +73,3 @@ export async function checkDirectory(
     );
   }
 }
-
-export default async function xdgOpen(resource: string) {
-  let command: string;
-  const args: string[] = [];
-  const os = Deno.build.os;
-  if (os === "windows") {
-    command = "explorer";
-  } else if (os === "darwin") {
-    command = "open";
-  } else {
-    // assume it is the same as linux
-    command = "xdg-open";
-  }
-  args.push(resource);
-  const cmd = new Deno.Command(command, {
-    args,
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-  const { code } = await cmd.output();
-  if (code !== 0) {
-    throw new Error(`Failed to open ${resource}`);
-  }
-}
