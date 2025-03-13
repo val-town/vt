@@ -1,4 +1,4 @@
-import { colors } from "@cliffy/ansi/colors";
+import { colors } from "jsr:@cliffy/ansi@^1.0.0-rc.7/colors";
 import { STATUS_COLORS } from "../consts.ts";
 
 export const error = colors.bold.red;

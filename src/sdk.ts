@@ -1,5 +1,5 @@
-import ValTown from "@valtown/sdk";
-import "@std/dotenv/load";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
+import "jsr:@std/dotenv@^0.225.3/load";
 import { API_KEY_KEY } from "./consts.ts";
 
 const sdk = new ValTown({

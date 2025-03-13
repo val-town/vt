@@ -1,8 +1,8 @@
 import { cleanDirectory, doAtomically } from "./utils.ts";
 import { clone } from "./clone.ts";
 import sdk from "../../sdk.ts";
-import { copy } from "@std/fs";
-import ValTown from "@valtown/sdk";
+import { copy } from "jsr:@std/fs@^1.0.13";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
 
 type BaseCheckoutParams = {
   targetDir: string;

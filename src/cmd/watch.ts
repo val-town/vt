@@ -1,5 +1,5 @@
-import { Command } from "@cliffy/command";
-import Kia from "kia";
+import { Command } from "jsr:@cliffy/command@^1.0.0-rc.7";
+import Kia from "https://deno.land/x/kia@0.4.1/mod.ts";
 import VTClient from "../vt/vt/VTClient.ts";
 
 export const watchStopCmd = new Command()

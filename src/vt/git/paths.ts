@@ -1,4 +1,4 @@
-import * as path from "@std/path";
+import * as path from "jsr:@std/path@^1.0.8";
 import { DEFAULT_VAL_TYPE, ProjectItem } from "../../consts.ts";
 import { filePathToFile } from "../../sdk.ts";
 

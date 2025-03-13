@@ -1,4 +1,5 @@
-import { colors } from "@cliffy/ansi/colors";
+import { colors } from "jsr:@cliffy/ansi@^1.0.0-rc.7/colors";
+
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";

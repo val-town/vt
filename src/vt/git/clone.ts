@@ -1,10 +1,10 @@
 import sdk from "../../sdk.ts";
-import type Valtown from "@valtown/sdk";
+import type Valtown from "jsr:@valtown/sdk@^0.36.0";
 import { removeEmptyDirs } from "../../utils.ts";
 import { shouldIgnore } from "./paths.ts";
-import * as path from "@std/path";
-import { ensureDir } from "@std/fs";
-import type ValTown from "@valtown/sdk";
+import * as path from "jsr:@std/path@^1.0.8";
+import { ensureDir } from "jsr:@std/fs@^1.0.13";
+import type ValTown from "jsr:@valtown/sdk@^0.36.0";
 import { doAtomically } from "./utils.ts";
 
 /**

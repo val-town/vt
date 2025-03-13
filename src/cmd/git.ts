@@ -1,16 +1,16 @@
-import { Command } from "@cliffy/command";
+import { Command } from "jsr:@cliffy/command@^1.0.0-rc.7";
 import sdk, { branchNameToId, user } from "../sdk.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "../consts.ts";
 import { parseProjectUri } from "../cmd/parsing.ts";
 import VTClient from "../vt/vt/VTClient.ts";
-import Kia from "kia";
+import Kia from "https://deno.land/x/kia@0.4.1/mod.ts";
 import { checkDirectory } from "../utils.ts";
-import { basename } from "@std/path";
+import { basename } from "jsr:@std/path@^1.0.8";
 import * as styles from "./styling.ts";
-import * as join from "@std/path/join";
-import { colors } from "@cliffy/ansi/colors";
-import { Table } from "@cliffy/table";
-import ValTown from "@valtown/sdk";
+import * as join from "jsr:@std/path@^1.0.8/join";
+import { colors } from "jsr:@cliffy/ansi@^1.0.0-rc.7/colors";
+import { Table } from "jsr:@cliffy/table@1.0.0-rc.7";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
 
 const cloneCmd = new Command()
   .name("clone")

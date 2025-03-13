@@ -1,6 +1,6 @@
-import { join } from "@std/path";
-import { walk } from "@std/fs";
-import sdk, { branchNameToId } from "~/sdk.ts";
+import { join } from "jsr:@std/path@^1.0.8";
+import { walk } from "jsr:@std/fs@^1.0.13";
+import sdk, { branchNameToId } from "../../../sdk.ts";
 
 export interface ExpectedProjectInode {
   path: string;

@@ -1,6 +1,6 @@
 import { clone } from "./clone.ts";
 import { status } from "./status.ts";
-import * as path from "@std/path";
+import * as path from "jsr:@std/path@^1.0.8";
 import { doAtomically } from "./utils.ts";
 
 /**

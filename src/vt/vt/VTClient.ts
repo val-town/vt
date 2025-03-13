@@ -5,10 +5,10 @@ import VTMeta from "./VTMeta.ts";
 import { pull } from "../git/pull.ts";
 import { push } from "../git/push.ts";
 import { status, StatusResult } from "../git/status.ts";
-import { debounce } from "jsr:@std/async/debounce";
+import { debounce } from "jsr:@std/async@^1.0.11/debounce";
 import { checkout } from "../git/checkout.ts";
 import { isDirty } from "../git/utils.ts";
-import ValTown from "@valtown/sdk";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes

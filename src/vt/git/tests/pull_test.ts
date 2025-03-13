@@ -1,9 +1,9 @@
-import { clone } from "~/vt/git/clone.ts";
-import { doWithTempDir } from "~/vt/git/utils.ts";
-import { assertEquals } from "@std/assert";
-import { pull } from "~/vt/git/pull.ts";
-import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
-import { testCases } from "~/vt/git/tests/cases.ts";
+import { clone } from "../clone.ts";
+import { doWithTempDir } from "../utils.ts";
+import { assertEquals } from "jsr:@std/assert@^1.0.0";
+import { pull } from "../pull.ts";
+import { verifyProjectStructure } from "../tests/utils.ts";
+import { testCases } from "../tests/cases.ts";
 
 for (const testCase of testCases) {
   for (const branchId in testCase.branches) {

@@ -1,10 +1,10 @@
-import { doWithTempDir } from "~/vt/git/utils.ts";
-import { doWithNewProject } from "~/vt/git/tests/utils.ts";
-import sdk from "~/sdk.ts";
-import { push } from "~/vt/git/push.ts";
-import { assertEquals, assertRejects } from "@std/assert";
-import { join } from "@std/path";
-import ValTown from "@valtown/sdk";
+import { doWithTempDir } from "../utils.ts";
+import { doWithNewProject } from "./utils.ts";
+import sdk from "../../../sdk.ts";
+import { push } from "../push.ts";
+import { assertEquals, assertRejects } from "jsr:@std/assert@^1.0.0";
+import { join } from "jsr:@std/path@^1.0.8";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
 
 Deno.test({
   name: "test pushing",

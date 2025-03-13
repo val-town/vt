@@ -1,11 +1,11 @@
-import z from "zod";
+import { z } from "npm:zod@^3.24.2";
 import { VTMetaConfigJsonSchema } from "./schemas.ts";
 import {
   CONFIG_FILE_NAME,
   META_FOLDER_NAME,
   META_LOCK_FILE_NAME,
 } from "../../consts.ts";
-import * as path from "@std/path";
+import * as path from "jsr:@std/path@^1.0.8";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions

@@ -1,9 +1,9 @@
 import { StatusResult } from "./status.ts";
-import * as path from "@std/path";
+import * as path from "jsr:@std/path@^1.0.8";
 import { shouldIgnore } from "./paths.ts";
-import ValTown from "@valtown/sdk";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
 import sdk from "../../sdk.ts";
-import { copy, ensureDir } from "@std/fs";
+import { copy, ensureDir } from "jsr:@std/fs@^1.0.13";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.

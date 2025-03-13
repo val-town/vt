@@ -1,4 +1,5 @@
-import { basename, globToRegExp } from "@std/path";
+import { basename, globToRegExp } from "jsr:@std/path@^1.0.8";
+
 
 export async function isDirectoryEmpty(
   path: string | URL,

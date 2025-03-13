@@ -1,8 +1,8 @@
 import { status } from "./status.ts";
-import * as path from "@std/path";
+import * as path from "jsr:@std/path@^1.0.8";
 import sdk, { getLatestVersion } from "../../sdk.ts";
 import { getProjectItemType } from "./paths.ts";
-import ValTown from "@valtown/sdk";
+import ValTown from "jsr:@valtown/sdk@^0.36.0";
 import { ProjectItem } from "../../consts.ts";
 
 /**

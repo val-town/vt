@@ -1,14 +1,14 @@
-import { Command } from "@cliffy/command";
+import { Command } from "jsr:@cliffy/command@^1.0.0-rc.7";
 import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "./git.ts";
 import { watchCmd } from "./watch.ts";
 import VTClient from "../vt/vt/VTClient.ts";
-import { basename, join } from "@std/path";
+import { basename, join } from "jsr:@std/path@^1.0.8";
 import { user } from "../sdk.ts";
 import { checkDirectory } from "../utils.ts";
 import { DEFAULT_IGNORE_PATTERNS } from "../consts.ts";
-import Kia from "kia";
-import { APIError } from "@valtown/sdk";
+import Kia from "https://deno.land/x/kia@0.4.1/mod.ts";
+import { APIError } from "jsr:@valtown/sdk@^0.36.0";
 
 const cmd = new Command()
   .name("vt")

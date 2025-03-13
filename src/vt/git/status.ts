@@ -1,8 +1,8 @@
 import sdk from "../../sdk.ts";
-import type ValTown from "@valtown/sdk";
+import type ValTown from "jsr:@valtown/sdk@^0.36.0";
 import { shouldIgnore } from "./paths.ts";
-import * as fs from "@std/fs";
-import * as path from "@std/path";
+import * as fs from "jsr:@std/fs@^1.0.13";
+import * as path from "jsr:@std/path@^1.0.8";
 
 const STAT_PROMISES_BATCH_SIZE = 50;
 
