@@ -45,7 +45,10 @@ try {
 
     let denoJsonText = await denoJson.text();
     // Replace the relative path with the path to the http module we're importing from.
-    denoJsonText = denoJsonText.replace("./src/", import.meta.resolve("./src/"));
+    denoJsonText = denoJsonText.replace(
+      "./src/",
+      import.meta.resolve("./src/"),
+    );
     await Deno.writeTextFile(vtDenoJsonPath, denoJsonText);
   } else {
     throw error;

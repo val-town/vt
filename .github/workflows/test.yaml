@@ -1,7 +1,6 @@
 name: VT Testing
 
 on:
-  - pull_request
   - push
 
 jobs:
