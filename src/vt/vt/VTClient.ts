@@ -27,6 +27,15 @@ export default class VTClient {
   }
 
   /**
+   * Returns the VTMeta instance for this client.
+   *
+   * @returns {VTMeta} The VTMeta instance.
+   */
+  public getMeta(): VTMeta {
+    return this.meta;
+  }
+
+  /**
    * Gets the list of globs for files that should be ignored by VT.
    *
    * @returns {Promise<RegExp[]>} The list of globs to ignore.
@@ -77,10 +86,10 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.meta.configFilePath);
+      await Deno.stat(vt.getMeta().configFilePath);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.meta.saveConfig({
+        await vt.getMeta().saveConfig({
           projectId,
           currentBranch: branch.id,
           version: version,
@@ -107,15 +116,14 @@ export default class VTClient {
 
   /**
    * Watch the root directory for changes and automatically push to Val Town
-   * when files are updated locally, and periodically pull to get new changes
-   * also made remotely.
+   * when files are updated locally.
    *
-   * If another instance of the program is already running then this errors.
+   * If another instance of the program is already running then this errors. A lock file with 
+   * the running program's PID is maintained automatically.
    *
-   * @param {number} [interval=2000] The interval in milliseconds to wait between pulls. Default is 2000 ms (2 seconds).
    * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
    */
-  public async watch(interval: number = 2_000) {
+  public async watch() {
     // Set the lock file at the start
     await this.meta.setLockFile();
 
@@ -149,7 +157,7 @@ export default class VTClient {
             // delete a second time because of duplicate file system events.
             //
             // TODO: We should keep a global queue of outgoing requests and
-            // intellegently notice that we have duplicate idempotent (in this
+            // intelligently notice that we have duplicate idempotent (in this
             // case deletions are) requests in the queue.
             return;
           }
