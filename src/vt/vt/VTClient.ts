@@ -322,18 +322,6 @@ export default class VTClient {
   ): Promise<void> {
     const config = await this.meta.loadConfig();
 
-    // Get meta about the branch they are checking out. They only specify the
-    // name for the branch that they are checking out. So, we'll have to query
-    // the id of such branch, and the current version (by default we'll switch
-    // them to the newest version of a branch when they check out a new branch.
-    // This is a bit different than git, but it follows our notion of "no local
-    // state, val town is the source of truth")
-    const checkoutBranch = await branchNameToId(config.projectId, branchName);
-    const latestVersion = await getLatestVersion(
-      config.projectId,
-      checkoutBranch.id,
-    );
-
     const created =
       (await this.status(targetDir).then((status) => status.created)).map(
         (file) => file.path,
@@ -357,6 +345,20 @@ export default class VTClient {
       config.currentBranch = newBranch.id;
       config.version = newBranch.version;
     } else { // Use the signature where we check out an existing branch
+      // Get meta about the branch they are checking out. They only specify the
+      // name for the branch that they are checking out. So, we'll have to query
+      // the id of such branch, and the current version (by default we'll switch
+      // them to the newest version of a branch when they check out a new branch.
+      // This is a bit different than git, but it follows our notion of "no local
+      // state, val town is the source of truth")
+      const checkoutBranch = await branchNameToId(
+        config.projectId,
+        branchName,
+      );
+      const latestVersion = await getLatestVersion(
+        config.projectId,
+        checkoutBranch.id,
+      );
       await checkout({
         targetDir,
         projectId: config.projectId,
@@ -364,6 +366,8 @@ export default class VTClient {
         ignoreGlobs,
         version: latestVersion,
       });
+      config.currentBranch = checkoutBranch.id;
+      config.version = latestVersion;
     }
 
     // Update the config with the new branch
