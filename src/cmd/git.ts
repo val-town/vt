@@ -1,15 +1,16 @@
 import { Command } from "@cliffy/command";
-import sdk, { branchNameToId, user } from "~/sdk.ts";
+import sdk, { branchNameToId, getProjectBranch, user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
-import { checkDirectory } from "~/utils.ts";
+import xdgOpen, { checkDirectory } from "~/utils.ts";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
+
 import ValTown from "@valtown/sdk";
 
 const cloneCmd = new Command()
@@ -232,6 +233,25 @@ const pushCmd = new Command()
       const vt = VTClient.from(cwd);
       await vt.push(cwd);
       spinner.succeed(`Project pushed successfully from ${cwd}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  });
+
+export const openCmd = new Command()
+  .name("open")
+  .description("Open the project in the browser")
+  .action(async () => {
+    const cwd = Deno.cwd();
+    const spinner = new Kia("Opening project url...");
+    try {
+      const vt = VTClient.from(cwd);
+      const meta = await vt.getMeta().loadConfig();
+      const branch = await getProjectBranch(meta.projectId, meta.currentBranch);
+      await xdgOpen(branch.links.html);
+      spinner.succeed(`Project url opened in browser`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);

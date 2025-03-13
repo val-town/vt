@@ -1,6 +1,7 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
 import { API_KEY_KEY } from "~/consts.ts";
+import { CommentListResponsesPageCursorURL } from "https://jsr.io/@valtown/sdk/0.36.0/resources/me/comments.ts";
 
 const sdk = new ValTown({
   bearerToken: Deno.env.get(API_KEY_KEY)!,
@@ -61,7 +62,14 @@ async function filePathToFile(
  * Get the latest version of a branch.
  */
 export async function getLatestVersion(projectId: string, branchId: string) {
-  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
+  return (await getProjectBranch(projectId, branchId)).version;
+}
+
+/**
+ * Get a project branch.
+ */
+export function getProjectBranch(projectId: string, branchId: string) {
+  return sdk.projects.branches.retrieve(projectId, branchId);
 }
 
 const user = await sdk.me.profile.retrieve();

@@ -93,6 +93,7 @@ const createCmd = new Command()
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
 cmd.command("push", cmds.pushCmd);
+cmd.command("open", cmds.openCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
 cmd.command("watch", watchCmd);
