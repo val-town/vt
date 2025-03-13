@@ -9,8 +9,8 @@ const sdk = new ValTown({
 /**
  * Converts a branch name to its corresponding branch ID for a given project.
  *
- * @param {string} projectId The ID of the project containing the branch
- * @param {string} branchName The name of the branch to look up
+ * @param {string} projectId - The ID of the project containing the branch
+ * @param {string} branchName - The name of the branch to look up
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Error} if the branch is not found or if the API request fails
  */

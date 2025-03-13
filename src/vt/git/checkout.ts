@@ -26,11 +26,11 @@ type ForkCheckoutParams = BaseCheckoutParams & {
  * does nothing if it fails.
  *
  * @param {object} args
- * @param {string} args.targetDir The directory where the branch will be checked out.
- * @param {string} args.projectId The ID of the project.
- * @param {string} args.branchId The ID of the branch to checkout.
- * @param {number} args.version The version of the branch to checkout.
- * @param {string[]} args.ignoreGlobs List of glob patterns for files to ignore during checkout.
+ * @param {string} args.targetDir - The directory where the branch will be checked out.
+ * @param {string} args.projectId - The ID of the project.
+ * @param {string} args.branchId - The ID of the branch to checkout.
+ * @param {number} args.version - The version of the branch to checkout.
+ * @param {string[]} args.ignoreGlobs - List of glob patterns for files to ignore during checkout.
  * @returns {Promise<void>} A promise that resolves when the branch checkout is complete.
  */
 export function checkout(args: BranchCheckoutParams): Promise<undefined>;
@@ -40,12 +40,12 @@ export function checkout(args: BranchCheckoutParams): Promise<undefined>;
  * operation that does nothing if it fails.
  *
  * @param {object} args
- * @param {string} args.targetDir The directory where the fork will be checked out.
- * @param {string} args.projectId The ID of the project to fork.
- * @param {string} args.forkedFrom The branch ID from which to create the fork.
- * @param {string} args.name The name for the new forked branch.
- * @param {number} args.version The version of the fork to checkout.
- * @param {string[]} args.ignoreGlobs List of glob patterns for files to ignore during checkout.
+ * @param {string} args.targetDir - The directory where the fork will be checked out.
+ * @param {string} args.projectId - The ID of the project to fork.
+ * @param {string} args.forkedFrom - The branch ID from which to create the fork.
+ * @param {string} args.name - The name for the new forked branch.
+ * @param {number} args.version - The version of the fork to checkout.
+ * @param {string[]} args.ignoreGlobs - List of glob patterns for files to ignore during checkout.
  * @returns {Promise<void>} A promise that resolves when the fork checkout is complete.
  */
 export function checkout(
