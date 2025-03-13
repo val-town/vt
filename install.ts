@@ -50,6 +50,8 @@ try {
   }
 }
 
+console.log(vtDenoJsonPath)
+
 
 // Run the vt.ts script with all arguments passed to this script
 const process = new Deno.Command(Deno.execPath(), {
