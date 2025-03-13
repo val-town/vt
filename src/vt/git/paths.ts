@@ -1,54 +1,74 @@
 import * as path from "@std/path";
-import { VAL_TYPE_EXTENSIONS } from "~/consts.ts";
+import { DEFAULT_VAL_TYPE, ProjectItem } from "~/consts.ts";
+import { filePathToFile } from "~/sdk.ts";
 
 /**
- * Adds val file extension to a filename
+ * Determine the type of a project file.
  *
- * @param filename - Base filename
- * @param type - Val file type (script, http, ...)
- * @param [abbreviated] - Whether to use val file extension (default: false)
- * @returns Filename with val file extension
+ * This function attempts to determine the type of a file within a project
+ * based on its existing state on the server or its filename. The process...
+ * 1. Check if the file already exists in the project at the specified path.
+ * 2. If the file does not exist, determine its type based on its file extension:
+ *    - Files ending in .ts, .tsx, .js, or .jsx are considered "val" files.
+ *    - Check the filename for keywords like "cron", "http", or "email" to
+ *      determine specific types:
+ *      - If multiple keywords are found, default to "script".
+ *      - Otherwise, return "interval" for "cron", "http" for "http", etc
+ *      - Default to "script" if no keywords are found.
+ * 3. If the file does not match the val extension criteria (.ts + optional
+ *    identifier), return "file".
+ *
+ * @param filepath - Path or filename to analyze
+ * @returns The val file type
  */
-function withValExtension(
-  filename: string,
-  type: keyof typeof VAL_TYPE_EXTENSIONS,
-  abbreviated: boolean = false,
-): string {
-  const extension = abbreviated
-    ? `.${VAL_TYPE_EXTENSIONS[type].abbreviated}.tsx`
-    : `.${VAL_TYPE_EXTENSIONS[type].standard}.tsx`;
+async function getProjectItemType(
+  projectId: string,
+  branchId: string,
+  version: number,
+  filePath: string,
+): Promise<ProjectItem> {
+  try {
+    // If a file already exists in the project at the given path, then the type
+    // is whatever it already is on the website.
+    return await filePathToFile(projectId, branchId, version, filePath)
+      .then((resp) => resp.type);
+  } catch (e) {
+    // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
+    if (e instanceof Deno.errors.NotFound) {
+      if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
+        const isCron = filePath.includes("cron");
+        const isHttp = filePath.includes("http");
+        const isEmail = filePath.includes("email");
 
-  const baseFilename = withoutValExtension(filename);
+        // If it's ambiguous then it is a script val by default
+        if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
+          return DEFAULT_VAL_TYPE;
+        }
 
-  return baseFilename + extension;
-}
+        // But otherwise look at the file name and try to figure out what type
+        // of val it is based on whether the file name contains a pattern like
+        // "cron," etc
+        if (isCron) return "interval";
+        if (isHttp) return "http";
+        if (isEmail) return "email";
 
-/**
- * Removes val file extension from a filename if present
- * @param filename Filename with possible val file extension
- * @param abbreviated Whether to check for val file extension (default: false)
- * @returns Filename without val file extension
- */
-function withoutValExtension(
-  filename: string,
-  abbreviated: boolean = false,
-): string {
-  const extensions = Object.values(VAL_TYPE_EXTENSIONS).map(
-    (ext) => abbreviated ? `.${ext.abbreviated}.tsx` : `.${ext.standard}.tsx`,
-  );
+        // If we can't figure it out, default to script
+        return DEFAULT_VAL_TYPE;
+      }
 
-  for (const extension of extensions) {
-    if (filename.endsWith(extension)) {
-      return filename.slice(0, -extension.length);
+      // Otherwise, it's just a plain old file val
+      return "file";
+    } else {
+      // Re-throw any other errors
+      throw e;
     }
   }
-  return filename;
 }
 
 /**
  * Creates RegExp patterns from glob patterns for ignoring files.
  *
- * @param {string[]} ignoreGlobs Array of glob patterns to convert
+ * @param {string[]} ignoreGlobs - Array of glob patterns to convert
  * @returns {RegExp[]} Array of RegExp patterns
  */
 function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
@@ -60,11 +80,11 @@ function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
 /**
  * Checks if a path should be ignored based on ignore patterns.
  *
- * @param {string} filePath Path to check
- * @param {string[]} ignoreGlobs Array of glob patterns to check against
+ * @param {string} - filePath Path to check
+ * @param {string[]} - ignoreGlobs Array of glob patterns to check against
  * @returns {boolean} True if the path should be ignored
  */
-function shouldIgnoreGlob(
+function shouldIgnore(
   filePath: string,
   ignoreGlobs: string[] = [],
 ): boolean {
@@ -73,4 +93,4 @@ function shouldIgnoreGlob(
   );
 }
 
-export { shouldIgnoreGlob, withoutValExtension, withValExtension };
+export { getProjectItemType, shouldIgnore };

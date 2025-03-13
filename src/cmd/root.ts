@@ -1,6 +1,7 @@
 import { Command } from "@cliffy/command";
 import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "~/cmd/git.ts";
+import { watchCmd } from "~/cmd/watch.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { basename, join } from "@std/path";
 import { user } from "~/sdk.ts";
@@ -91,8 +92,10 @@ const createCmd = new Command()
 
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
+cmd.command("push", cmds.pushCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
+cmd.command("watch", watchCmd);
 cmd.command("checkout", cmds.checkoutCmd);
 cmd.command("create", createCmd);
 

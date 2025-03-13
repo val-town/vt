@@ -1,7 +1,6 @@
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { withoutValExtension, withValExtension } from "~/vt/git/paths.ts";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 
@@ -124,16 +123,16 @@ async function isFileModified(
   branchId: string,
   version: number,
 ): Promise<boolean> {
-  const projectFileContent = await sdk.projects.files.content(
+  const projectFileContent = await sdk.projects.files.getContent(
     projectId,
-    encodeURIComponent(withoutValExtension(cleanPath)),
+    encodeURIComponent(cleanPath),
     { branch_id: branchId, version },
   ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
-  const localFileContent = (await Deno.readTextFile(
+  const localFileContent = await Deno.readTextFile(
     path.join(targetDir, originalPath),
-  )).slice(0, -1);
+  );
 
   return projectFileContent !== localFileContent;
 }
@@ -154,17 +153,10 @@ async function getProjectFiles(
   for await (const file of projectFilesResponse.data) files.push(file);
 
   const processedFiles = files
-    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
     .filter((file) => file.type !== "directory")
-    .map((
-      file: ValTown.Projects.FileListResponse,
-    ) => [
-      path.join(
-        path.dirname(file.path),
-        file.type === "file"
-          ? file.name
-          : withValExtension(file.name, file.type),
-      ),
+    .map((file: ValTown.Projects.FileListResponse) => [
+      path.join(path.dirname(file.path), file.name),
       new Date(file.updatedAt).getTime(),
     ]) as [string, number][];
 
@@ -184,7 +176,7 @@ async function getLocalFiles(
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnoreGlob(relativePath, ignoreGlobs)) return;
+    if (shouldIgnore(relativePath, ignoreGlobs)) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);
