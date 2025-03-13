@@ -11,6 +11,7 @@
     "@cliffy/ansi": "jsr:@cliffy/ansi@^1.0.0-rc.7",
     "@cliffy/table": "jsr:@cliffy/table@1.0.0-rc.7",
     "@deno-library/logger": "jsr:@deno-library/logger@^1.1.9",
+    "@std/async": "jsr:@std/async@^1.0.11",
     "@std/fs": "jsr:@std/fs@^1.0.13",
     "@std/path": "jsr:@std/path@^1.0.8",
     "zod": "npm:zod@^3.24.2",
@@ -19,7 +20,7 @@
     "@std/assert": "jsr:@std/assert@1",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
     "@std/encoding": "jsr:@std/encoding@^1.0.7",
-    "@valtown/sdk": "jsr:@valtown/sdk@^0.31.0",
+    "@valtown/sdk": "jsr:@valtown/sdk@^0.36.0",
     "emphasize": "npm:emphasize@^7.0.0",
     "highlight.js": "npm:highlight.js@^11.11.1",
     "kia": "https://deno.land/x/kia@0.4.1/mod.ts"

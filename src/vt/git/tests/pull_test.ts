@@ -1,53 +1,53 @@
 import { clone } from "~/vt/git/clone.ts";
-import { withTempDir } from "~/vt/git/utils.ts";
+import { doWithTempDir } from "~/vt/git/utils.ts";
 import { assertEquals } from "@std/assert";
 import { pull } from "~/vt/git/pull.ts";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
-  Deno.test({
-    name: "test pulling " + testCase.name,
-    permissions: {
-      read: true,
-      write: true,
-      net: true,
-    },
-    async fn() {
-      const { tempDir, cleanup } = await withTempDir("vt_pull_test");
+  for (const branchId in testCase.branches) {
+    const branchData = testCase.branches[branchId];
 
-      try {
-        // First clone with version + 2
-        await clone({
-          targetDir: tempDir,
-          projectId: testCase.projectId,
-          branchId: testCase.branchId,
-          version: testCase.version + 2,
-        });
+    Deno.test({
+      name: `test pulling ${testCase.name} - Branch: ${branchId}`,
+      permissions: {
+        read: true,
+        write: true,
+        net: true,
+      },
+      async fn() {
+        await doWithTempDir(async (tempDir) => {
+          // First clone with version + 2
+          await clone({
+            targetDir: tempDir,
+            projectId: testCase.projectId,
+            branchId: branchId, // Use correct branchId
+            version: branchData.version + 2, // Use branch-specific version
+          });
 
-        // Pull the correct version
-        await pull({
-          projectId: testCase.projectId,
-          branchId: testCase.branchId,
-          targetDir: tempDir,
-          version: testCase.version,
-          ignoreGlobs: [],
-        });
+          // Pull the correct version
+          await pull({
+            projectId: testCase.projectId,
+            branchId: branchId, // Use correct branchId
+            targetDir: tempDir,
+            version: branchData.version, // Use branch-specific version
+            ignoreGlobs: [],
+          });
 
-        // Verify project structure
-        const structureValid = await verifyProjectStructure(
-          tempDir,
-          testCase.expectedInodes,
-        );
+          // Verify project structure
+          const structureValid = await verifyProjectStructure(
+            tempDir,
+            branchData.expectedInodes, // Use branch-specific expected inodes
+          );
 
-        assertEquals(
-          structureValid,
-          true,
-          "Project structure verification failed",
-        );
-      } finally {
-        await cleanup();
-      }
-    },
-  });
+          assertEquals(
+            structureValid,
+            true,
+            "Project structure verification failed",
+          );
+        }, "vt_pull_test");
+      },
+    });
+  }
 }

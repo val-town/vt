@@ -1,7 +1,6 @@
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { withoutValExtension, withValExtension } from "~/vt/git/paths.ts";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 
@@ -28,6 +27,7 @@ export interface StatusResult {
  * @param {string} args.targetDir The directory to scan for changes.
  * @param {string} args.projectId The Val Town project ID.
  * @param {string} args.branchId Optional branch ID to check against.
+ * @param {string} args.version The version to check the status against.
  * @param {string} args.ignoreGlobs Glob patterns for files to ignore.
  *
  * @returns Promise that resolves to a StatusResult object containing categorized files.
@@ -36,11 +36,13 @@ export async function status({
   targetDir,
   projectId,
   branchId,
+  version,
   ignoreGlobs,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
+  version: number;
   ignoreGlobs: string[];
 }): Promise<StatusResult> {
   const result: StatusResult = {
@@ -52,7 +54,12 @@ export async function status({
 
   // Get all files
   const localFiles = await getLocalFiles(targetDir, ignoreGlobs);
-  const projectFiles = await getProjectFiles(projectId, branchId, ignoreGlobs);
+  const projectFiles = await getProjectFiles(
+    projectId,
+    branchId,
+    version,
+    ignoreGlobs,
+  );
 
   // Compare local files against project files
   for (const [baseName, { originalPath, modTime }] of localFiles.entries()) {
@@ -76,6 +83,8 @@ export async function status({
           originalPath,
           baseName,
           projectId,
+          branchId,
+          version,
         );
 
         if (isModified) {
@@ -111,19 +120,19 @@ async function isFileModified(
   originalPath: string,
   cleanPath: string,
   projectId: string,
+  branchId: string,
+  version: number,
 ): Promise<boolean> {
-  const projectFileContent = await sdk.projects.files.content(
+  const projectFileContent = await sdk.projects.files.getContent(
     projectId,
-    encodeURIComponent(path.join(
-      path.dirname(cleanPath),
-      withoutValExtension(path.basename(cleanPath)),
-    )),
-  );
+    encodeURIComponent(cleanPath),
+    { branch_id: branchId, version },
+  ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
-  const localFileContent = (await Deno.readTextFile(
+  const localFileContent = await Deno.readTextFile(
     path.join(targetDir, originalPath),
-  )).slice(0, -1);
+  );
 
   return projectFileContent !== localFileContent;
 }
@@ -131,10 +140,12 @@ async function isFileModified(
 async function getProjectFiles(
   projectId: string,
   branchId: string,
+  version: number,
   ignoreGlobs: string[],
 ): Promise<Map<string, number>> {
   const projectFilesResponse = await sdk.projects.files.list(projectId, {
     branch_id: branchId,
+    version,
     recursive: true,
   });
 
@@ -142,17 +153,10 @@ async function getProjectFiles(
   for await (const file of projectFilesResponse.data) files.push(file);
 
   const processedFiles = files
-    .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+    .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
     .filter((file) => file.type !== "directory")
-    .map((
-      file: ValTown.Projects.FileListResponse,
-    ) => [
-      path.join(
-        path.dirname(file.path),
-        file.type === "file"
-          ? file.name
-          : withValExtension(file.name, file.type),
-      ),
+    .map((file: ValTown.Projects.FileListResponse) => [
+      path.join(path.dirname(file.path), file.name),
       new Date(file.updatedAt).getTime(),
     ]) as [string, number][];
 
@@ -172,7 +176,7 @@ async function getLocalFiles(
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnoreGlob(relativePath, ignoreGlobs)) return;
+    if (shouldIgnore(relativePath, ignoreGlobs)) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);
