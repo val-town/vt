@@ -98,7 +98,7 @@ const pullCmd = new Command()
       }
 
       await vt.pull(cwd);
-      spinner.succeed(`Project pulled successfully to ${cwd}`);
+      spinner.succeed(`Project pulled successfully`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);
