@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import manifest from "../../deno.json" with { type: "json" };
-import * as cmds from "~/cmd/git.ts";
+import * as cmds from "~/cmd/git/index.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { basename, join } from "@std/path";
 import { user } from "~/sdk.ts";
