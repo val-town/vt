@@ -1,4 +1,3 @@
-
 /**
  * Gets active directory path, either from the provided directory or the
  * current working directory.
