@@ -1,8 +1,12 @@
 
+// Update this if we need to pull a new deno.json
+const installVersion = "0.0.1-alpha.0"
 
+const appName = "vt";
+const cacheDir = setupCacheDir(appName);
+const vtDenoJsonPath = `${cacheDir}/${installVersion}_deno.json`;
 
 // Find the cache directory based on the OS
-
 function setupCacheDir(appName: string): string {
     const homeDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
     let cacheDir = "";
@@ -28,14 +32,8 @@ function setupCacheDir(appName: string): string {
   return cacheDir;
 }
 
-const appName = "vt";
-const cacheDir = setupCacheDir(appName);
 
 // Write deno.json to the cache directory if it doesn't exist
-const vtDenoJsonPath = `${cacheDir}/deno.json`;
-
-console.log(Deno.execPath(), vtDenoJsonPath, Deno.args, Deno.mainModule)
-console.log(Deno.statSync(Deno.execPath()), Deno.statSync(vtDenoJsonPath))
 try {
   await Deno.stat(vtDenoJsonPath);
   // File exists, no need to download
@@ -51,8 +49,6 @@ try {
     throw error;
   }
 }
-
-console.log(vtDenoJsonPath)
 
 
 // Run the vt.ts script with all arguments passed to this script
