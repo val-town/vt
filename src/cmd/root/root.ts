@@ -9,11 +9,12 @@ const cmd = new Command()
   .help({ colors: Deno.stdout.isTerminal() })
   .action(() => cmd.showHelp());
 
-cmd.command("clone", cmds.cloneCmd);
-cmd.command("pull", cmds.pullCmd);
-cmd.command("status", cmds.statusCmd);
-cmd.command("branch", cmds.branchCmd);
-cmd.command("checkout", cmds.checkoutCmd);
+cmd.command("clone", gitCmds.cloneCmd);
+cmd.command("pull", gitCmds.pullCmd);
+cmd.command("status", gitCmds.statusCmd);
+cmd.command("branch", gitCmds.branchCmd);
+cmd.command("checkout", gitCmds.checkoutCmd);
 cmd.command("create", createCmd);
+cmd.command("log", logCmd);
 
 export { cmd };
