@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import sdk, { branchNameToId, user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
@@ -16,17 +16,12 @@ const cloneCmd = new Command()
   .name("clone")
   .description("Clone a val town project")
   .arguments("<projectUri:string> [cloneDir:string] [branchName:string]")
-  .example(
-    "Clone with username/projectName",
-    `vt clone username/projectName`,
-  )
-  .example(
-    "Clone with link",
-    `vt clone https://www.val.town/x/username/projectName`,
-  )
+  .option("--add-deno-json", "Add deno.json to the cloned directory", {
+    default: true,
+  })
   .action(
     async (
-      _: unknown,
+      { addDenoJson }: { addDenoJson: boolean },
       projectUri: string,
       rootPath?: string,
       branchName?: string,
@@ -59,11 +54,11 @@ const cloneCmd = new Command()
         // Make sure that the directory is safe to clone into (exists, or gets
         // created and then exists, and wasn't nonempty)
         await checkDirectory(targetDir, {
-          ignoreGlobs: DEFAULT_IGNORE_PATTERNS,
+          ignoreGlobs: [".vt/**", ".vt"],
         });
 
         spinner.start();
-        await vt.clone(targetDir);
+        await vt.clone(targetDir, { addDenoJson });
         spinner.succeed(
           `Project ${ownerName}/${projectName} cloned to ${
             "./" + basename(targetDir)
