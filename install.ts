@@ -34,7 +34,8 @@ const cacheDir = setupCacheDir(appName);
 // Write deno.json to the cache directory if it doesn't exist
 const vtDenoJsonPath = `${cacheDir}/deno.json`;
 
-console.log(import.meta.resolve("./deno.json"))
+console.log(Deno.execPath(), vtDenoJsonPath, Deno.args, Deno.mainModule)
+console.log(Deno.statSync(Deno.execPath()), Deno.statSync(vtDenoJsonPath))
 try {
   await Deno.stat(vtDenoJsonPath);
   // File exists, no need to download
