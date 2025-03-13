@@ -1,6 +1,10 @@
 import z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
-import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
+import {
+  CONFIG_FILE_NAME,
+  META_FOLDER_NAME,
+  META_LOCK_FILE_NAME,
+} from "~/consts.ts";
 import * as path from "@std/path";
 
 /**
@@ -26,6 +30,18 @@ export default class VTMeta {
    */
   public get configFilePath(): string {
     return path.join(this.#rootPath, META_FOLDER_NAME, CONFIG_FILE_NAME);
+  }
+
+  /**
+   * Gets the full path to the (maybe present) lock file.
+   *
+   * The lock file contains the PID of a running (watching) vt process, if
+   * there is one. Otherwise no file will exist at this path.
+   *
+   * @return {string} The VT lock file path.
+   */
+  public lockFilePath(): string {
+    return path.join(this.#rootPath, META_FOLDER_NAME, META_LOCK_FILE_NAME);
   }
 
   /**
@@ -99,5 +115,47 @@ export default class VTMeta {
     }
 
     return ignoreGlobs;
+  }
+
+  /**
+   * Create a lock file with a PID of the VT process watching the cloned active
+   * directory.
+   *
+   * @return {Promise<string|null>} A promise resolving to the PID of the running watcher, or null if no watchers are running
+   */
+  public async getLockFile(): Promise<string | null> {
+    try {
+      return await Deno.readTextFile(this.lockFilePath());
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) return null;
+      else throw error;
+    }
+  }
+
+  /**
+   * Set a lock file with the PID of the VT process watching the cloned active
+   * directory.
+   */
+  public async setLockFile() {
+    // Make sure the program isn't already running
+    const runningPid = await this.getLockFile();
+    try {
+      if (runningPid !== null) Deno.kill(parseInt(runningPid));
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        // We couldn't kill the process, but that just means that the lock file
+        // probably was not up to date and had an already-dead process in it.
+        // We can ignore this error.
+      } else throw e;
+    }
+
+    await Deno.writeTextFile(this.lockFilePath(), Deno.pid.toString());
+  }
+
+  /**
+   * Delete the vt lock file.
+   */
+  public async rmLockFile() {
+    await Deno.remove(this.lockFilePath());
   }
 }

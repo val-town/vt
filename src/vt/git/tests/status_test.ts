@@ -1,6 +1,6 @@
 import { FileStatus, status, StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
-import { withTempDir } from "~/vt/git/utils.ts";
+import { doWithTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import { assert } from "@std/assert";
 import { TestCaseBranchData, testCases } from "~/vt/git/tests/cases.ts";
@@ -17,9 +17,7 @@ for (const testCase of testCases) {
         net: true,
       },
       async fn() {
-        const { tempDir, cleanup } = await withTempDir("vt_status_test");
-
-        try {
+        await doWithTempDir(async (tempDir) => {
           // Clone the project
           await clone({
             targetDir: tempDir,
@@ -73,9 +71,7 @@ for (const testCase of testCases) {
 
           // Validate status remains unchanged
           validateStatus(result, branchData);
-        } finally {
-          await cleanup();
-        }
+        }, "vt_status_test");
       },
     });
   }

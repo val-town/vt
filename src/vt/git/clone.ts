@@ -1,8 +1,7 @@
 import sdk from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
-import { withValExtension } from "~/vt/git/paths.ts";
 import { removeEmptyDirs } from "~/utils.ts";
-import { shouldIgnoreGlob } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
 import type ValTown from "@valtown/sdk";
@@ -47,7 +46,7 @@ export function clone(
       // ignored files). Then we run it on all the files.
       const clonePromises = files
         .filter((file) => file.type !== "directory") // we'll create directories when creating files
-        .filter((file) => !shouldIgnoreGlob(file.path, ignoreGlobs))
+        .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
         .map(
           // Function to run on files (if they aren't ignored)
           (file: Valtown.Projects.FileListResponse) => {
@@ -71,22 +70,17 @@ async function createFile(
   version: number,
   file: Valtown.Projects.FileListResponse,
 ): Promise<void> {
-  const fullPath = path.join(
-    path.dirname(rootPath),
-    file.type === "file" // "file" indicates it is NOT a val
-      ? file.name
-      : withValExtension(file.name, file.type),
-  );
+  const fullPath = path.join(path.dirname(rootPath), file.name);
 
   // Add all needed parents for creating the file
   await ensureDir(path.dirname(fullPath));
 
   // Get and write the file content
-  const content = await (await sdk.projects.files.content(
+  const content = await sdk.projects.files.getContent(
     projectId,
     encodeURIComponent(file.path),
     { branch_id: branchId, version },
-  )).text();
+  ).then((resp) => resp.text());
 
   await ensureDir(path.dirname(fullPath));
   await Deno.writeTextFile(fullPath, content);

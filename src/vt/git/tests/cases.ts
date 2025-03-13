@@ -29,12 +29,12 @@ export const testCases: TestCase[] = [
         version: 8,
         expectedInodes: [
           {
-            path: "proudLimeGoose.http.tsx",
+            path: "proudLimeGoose",
             type: "file",
             content: "// Example Content",
           },
           {
-            path: "merryCopperAsp.script.tsx",
+            path: "merryCopperAsp",
             type: "file",
             content: "",
           },
@@ -43,7 +43,7 @@ export const testCases: TestCase[] = [
             type: "directory",
           },
           {
-            path: "thoughtfulPeachPrimate/clearAquamarineSmelt.cron.tsx",
+            path: "thoughtfulPeachPrimate/clearAquamarineSmelt",
             type: "file",
             content: 'const test = "test";',
           },
@@ -55,16 +55,16 @@ export const testCases: TestCase[] = [
         ],
         modifiedFiles: [
           {
-            path: "proudLimeGoose.http.tsx",
+            path: "proudLimeGoose",
             newContent: "// Modified Example Content",
           },
           {
-            path: "thoughtfulPeachPrimate/clearAquamarineSmelt.cron.tsx",
+            path: "thoughtfulPeachPrimate/clearAquamarineSmelt",
             newContent: 'const test = "modified test";',
           },
         ],
         deletedFiles: [
-          "merryCopperAsp.script.tsx",
+          "merryCopperAsp",
           "thoughtfulPeachPrimate/tirelessHarlequinSmelt",
         ],
       },
@@ -72,12 +72,12 @@ export const testCases: TestCase[] = [
         version: 4,
         expectedInodes: [
           {
-            path: "Test.script.tsx",
+            path: "Test",
             type: "file",
             content: "test;",
           },
           {
-            path: "TestBranch.http.tsx",
+            path: "TestBranch",
             type: "file",
             content: "// Example Content",
           },
