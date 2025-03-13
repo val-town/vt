@@ -1,21 +1,13 @@
 import { Command } from "@cliffy/command";
-import manifest from "../../deno.json" with { type: "json" };
-import * as cmds from "~/cmd/git/index.ts";
-import VTClient from "~/vt/vt/VTClient.ts";
 import { basename, join } from "@std/path";
-import { user } from "~/sdk.ts";
+import Kia from "kia";
 import { checkDirectory } from "~/utils.ts";
 import { DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import Kia from "kia";
+import VTClient from "~/vt/vt/VTClient.ts";
+import { user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 
-const cmd = new Command()
-  .name("vt")
-  .version(manifest.version)
-  .help({ colors: Deno.stdout.isTerminal() })
-  .action(() => cmd.showHelp());
-
-const createCmd = new Command()
+export const createCmd = new Command()
   .name("create")
   .description("Create a new Val Town project")
   .arguments("<projectName:string> [targetDir:string]")
@@ -88,12 +80,3 @@ const createCmd = new Command()
       }
     }
   });
-
-cmd.command("clone", cmds.cloneCmd);
-cmd.command("pull", cmds.pullCmd);
-cmd.command("status", cmds.statusCmd);
-cmd.command("branch", cmds.branchCmd);
-cmd.command("checkout", cmds.checkoutCmd);
-cmd.command("create", createCmd);
-
-export { cmd };
