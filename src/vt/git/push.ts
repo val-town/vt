@@ -1,9 +1,9 @@
-import { status } from "~/vt/git/status.ts";
+import { status } from "./status.ts";
 import * as path from "@std/path";
-import sdk, { getLatestVersion } from "~/sdk.ts";
-import { getProjectItemType } from "~/vt/git/paths.ts";
+import sdk, { getLatestVersion } from "../../sdk.ts";
+import { getProjectItemType } from "./paths.ts";
 import ValTown from "@valtown/sdk";
-import { ProjectItem } from "~/consts.ts";
+import { ProjectItem } from "../../consts.ts";
 
 /**
  * Pushes latest changes from a vt folder into a Val Town project.

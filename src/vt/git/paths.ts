@@ -1,6 +1,6 @@
 import * as path from "@std/path";
-import { DEFAULT_VAL_TYPE, ProjectItem } from "~/consts.ts";
-import { filePathToFile } from "~/sdk.ts";
+import { DEFAULT_VAL_TYPE, ProjectItem } from "../../consts.ts";
+import { filePathToFile } from "../../sdk.ts";
 
 /**
  * Determine the type of a project file.

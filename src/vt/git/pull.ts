@@ -1,7 +1,7 @@
-import { clone } from "~/vt/git/clone.ts";
-import { status } from "~/vt/git/status.ts";
+import { clone } from "./clone.ts";
+import { status } from "./status.ts";
 import * as path from "@std/path";
-import { doAtomically } from "~/vt/git/utils.ts";
+import { doAtomically } from "./utils.ts";
 
 /**
  * Pulls latest changes from a val town project into a vt folder.

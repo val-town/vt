@@ -1,13 +1,13 @@
-import { clone } from "~/vt/git/clone.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
-import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/git/pull.ts";
-import { push } from "~/vt/git/push.ts";
-import { status, StatusResult } from "~/vt/git/status.ts";
+import { clone } from "../git/clone.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "../../consts.ts";
+import sdk, { branchNameToId, getLatestVersion } from "../../sdk.ts";
+import VTMeta from "./VTMeta.ts";
+import { pull } from "../git/pull.ts";
+import { push } from "../git/push.ts";
+import { status, StatusResult } from "../git/status.ts";
 import { debounce } from "jsr:@std/async/debounce";
-import { checkout } from "~/vt/git/checkout.ts";
-import { isDirty } from "~/vt/git/utils.ts";
+import { checkout } from "../git/checkout.ts";
+import { isDirty } from "../git/utils.ts";
 import ValTown from "@valtown/sdk";
 
 /**

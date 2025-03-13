@@ -1,6 +1,6 @@
-import sdk from "~/sdk.ts";
+import sdk from "../../sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "./paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 

@@ -1,12 +1,12 @@
 import { Command } from "@cliffy/command";
-import sdk, { branchNameToId, user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import { parseProjectUri } from "~/cmd/parsing.ts";
-import VTClient from "~/vt/vt/VTClient.ts";
+import sdk, { branchNameToId, user } from "../sdk.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "../consts.ts";
+import { parseProjectUri } from "../cmd/parsing.ts";
+import VTClient from "../vt/vt/VTClient.ts";
 import Kia from "kia";
-import { checkDirectory } from "~/utils.ts";
+import { checkDirectory } from "../utils.ts";
 import { basename } from "@std/path";
-import * as styles from "~/cmd/styling.ts";
+import * as styles from "./styling.ts";
 import * as join from "@std/path/join";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";

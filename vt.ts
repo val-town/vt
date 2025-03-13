@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run -A
-import { cmd as vt } from "~/cmd/root.ts";
+import { cmd as vt } from "./src/cmd/root.ts";
 
 export default vt;
 

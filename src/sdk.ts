@@ -1,6 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { API_KEY_KEY } from "~/consts.ts";
+import { API_KEY_KEY } from "./consts.ts";
 
 const sdk = new ValTown({
   bearerToken: Deno.env.get(API_KEY_KEY)!,

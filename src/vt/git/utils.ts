@@ -1,8 +1,8 @@
-import { StatusResult } from "~/vt/git/status.ts";
+import { StatusResult } from "./status.ts";
 import * as path from "@std/path";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "./paths.ts";
 import ValTown from "@valtown/sdk";
-import sdk from "~/sdk.ts";
+import sdk from "../../sdk.ts";
 import { copy, ensureDir } from "@std/fs";
 
 /**

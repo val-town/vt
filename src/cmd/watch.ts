@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import Kia from "kia";
-import VTClient from "~/vt/vt/VTClient.ts";
+import VTClient from "../vt/vt/VTClient.ts";
 
 export const watchStopCmd = new Command()
   .name("watch stop")

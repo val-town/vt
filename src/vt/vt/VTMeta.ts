@@ -1,10 +1,10 @@
 import z from "zod";
-import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
+import { VTMetaConfigJsonSchema } from "./schemas.ts";
 import {
   CONFIG_FILE_NAME,
   META_FOLDER_NAME,
   META_LOCK_FILE_NAME,
-} from "~/consts.ts";
+} from "../../consts.ts";
 import * as path from "@std/path";
 
 /**
