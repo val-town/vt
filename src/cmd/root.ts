@@ -61,7 +61,6 @@ const createCmd = new Command()
     "Create a new project with a description",
     `vt create my-project --description "My project"`,
   )
-
   .action(async (
     { public: isPublic, private: isPrivate, unlisted, description }: {
       public?: boolean;
@@ -136,6 +135,5 @@ cmd.command("branch", cmds.branchCmd);
 cmd.command("watch", watchCmd);
 cmd.command("checkout", cmds.checkoutCmd);
 cmd.command("create", createCmd);
-
 
 export { cmd };
