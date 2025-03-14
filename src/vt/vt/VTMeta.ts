@@ -6,6 +6,7 @@ import {
   META_LOCK_FILE_NAME,
 } from "~/consts.ts";
 import * as path from "@std/path";
+import { ensureDir } from "@std/fs";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -82,15 +83,9 @@ export default class VTMeta {
   public async saveConfig(
     config: z.infer<typeof VTMetaConfigJsonSchema>,
   ): Promise<void> {
-    try {
-      await Deno.mkdir(path.join(this.#rootPath, META_FOLDER_NAME), {
-        recursive: true,
-      });
-      const data = JSON.stringify(config, null, 2);
-      await Deno.writeTextFile(this.configFilePath, data);
-    } catch (error) {
-      console.error("Error updating schema:", error);
-    }
+    await ensureDir(path.join(this.#rootPath, META_FOLDER_NAME));
+    const data = JSON.stringify(config, null, 2);
+    await Deno.writeTextFile(this.configFilePath, data);
   }
 
   /**
