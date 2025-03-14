@@ -75,7 +75,7 @@ Deno.test({
     // Create a new test project
     const project = await sdk.projects.create({
       privacy: "public",
-      name: crypto.randomUUID().replace(/-/g, ""),
+      name: crypto.randomUUID().replaceAll("-", ""),
       description: "test project",
     });
 
