@@ -226,7 +226,7 @@ const pushCmd = new Command()
       spinner.start();
       const vt = VTClient.from(cwd);
       await vt.push(cwd);
-      spinner.succeed(`Project pushed successfully from ${cwd}`);
+      spinner.succeed(`Project pushed successfully`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);
@@ -255,7 +255,7 @@ const checkoutCmd = new Command()
       const cwd = Deno.cwd();
 
       const vt = VTClient.from(cwd);
-      const config = await vt.meta.loadConfig();
+      const config = await vt.getMeta().loadConfig();
       try {
         spinner.start();
 
@@ -313,14 +313,6 @@ const checkoutCmd = new Command()
           spinner.fail(error.message);
         }
       }
-
-      // Update the config with the new branch as the current branch
-      const newBranch = await branchNameToId(
-        config.projectId,
-        existingBranchName || branch!,
-      );
-      config.currentBranch = newBranch.id;
-      await vt.meta.saveConfig(config);
     },
   );
 

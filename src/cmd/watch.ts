@@ -12,7 +12,7 @@ export const watchStopCmd = new Command()
     kia.start();
 
     try {
-      const pidStr = await vt.meta.getLockFile();
+      const pidStr = await vt.getMeta().getLockFile();
       if (pidStr) {
         const pid = parseInt(pidStr, 10);
         if (!isNaN(pid)) {
