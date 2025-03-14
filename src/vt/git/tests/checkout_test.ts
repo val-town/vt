@@ -73,10 +73,9 @@ Deno.test({
   },
   async fn() {
     // Create a new test project
-    console.log(crypto.randomUUID().replaceAll("-", ""))
     const project = await sdk.projects.create({
       privacy: "public",
-      name: crypto.randomUUID().replaceAll("-", ""),
+      name: crypto.randomUUID().replaceAll("-", "").slice(0, 10),
       description: "test project",
     });
 
