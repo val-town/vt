@@ -19,6 +19,22 @@ const cloneCmd = new Command()
   .option("--add-deno-json", "Add deno.json to the cloned directory", {
     default: true,
   })
+  .example(
+    "Clone with username/projectName",
+    `vt clone username/projectName`,
+  )
+  .example(
+    "Clone into the current directory",
+    `vt clone username/projectName .`,
+  )
+  .example(
+    "Clone with link",
+    `vt clone https://www.val.town/x/username/projectName`,
+  )
+  .example(
+    "Clone into a new directory",
+    `vt clone username/projectName new-directory`,
+  )
   .action(
     async (
       { addDenoJson }: { addDenoJson: boolean },

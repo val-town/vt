@@ -14,6 +14,31 @@ const cmd = new Command()
   .name("vt")
   .version(manifest.version)
   .help({ colors: Deno.stdout.isTerminal() })
+  .example(
+    "Start fresh",
+    `
+vt create my-project
+cd ./my-project
+vt open
+vt watch # syncs changes to val town`,
+  )
+  .example(
+    "Work on an existing project",
+    `
+vt clone username/projectName
+cd ./projectName
+vim index.tsx
+vt push`,
+  )
+  .example(
+    "Check out a new branch",
+    `
+cd ./projectName
+vt checkout -b my-branch
+vim index.tsx
+vt push
+vt checkout main`,
+  )
   .action(() => cmd.showHelp());
 
 const createCmd = new Command()
@@ -24,6 +49,18 @@ const createCmd = new Command()
   .option("--private", "Create as private project")
   .option("--unlisted", "Create as unlisted project")
   .option("-d, --description <desc:string>", "Project description")
+  .example(
+    "Create a new public project",
+    `vt create my-project`,
+  )
+  .example(
+    "Create a new private project",
+    `vt create my-project --private`,
+  )
+  .example(
+    "Create a new project with a description",
+    `vt create my-project --description "My project"`,
+  )
   .action(async (
     { public: isPublic, private: isPrivate, unlisted, description }: {
       public?: boolean;
