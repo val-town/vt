@@ -1,14 +1,16 @@
 // This file must be https importable, don't use any imports that are in the
 // deno.json import map.
+import xdg from "https://deno.land/x/xdg_portable@v10.6.0/src/mod.deno.ts";
+import { ensureDir } from "jsr:@std/fs@^1.0.13";
+import { join } from "jsr:@std/path@^1.0.8";
 
 // Update this if we need to pull a new deno.json
 const installVersion = "0.0.1-alpha.1";
-import xdg from "https://deno.land/x/xdg_portable@v10.6.0/src/mod.deno.ts";
-import { ensureDir } from "jsr:@std/fs@^1.0.13";
+
 const appName = "vt";
-const cacheDir = `${xdg.cache()}/${appName}`;
+const cacheDir = join(xdg.cache(), appName);
 await ensureDir(cacheDir);
-const vtDenoJsonPath = `${cacheDir}/${installVersion}_deno.json`;
+const vtDenoJsonPath = join(cacheDir, `${installVersion}_deno.json`);
 
 // Write deno.json to the cache directory if it doesn't exist
 try {
