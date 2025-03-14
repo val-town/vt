@@ -5,7 +5,6 @@ import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
 import { checkDirectory } from "~/utils.ts";
-import open from "open";
 import { basename } from "@std/path";
 import * as styles from "~/cmd/styling.ts";
 import * as join from "@std/path/join";
@@ -229,25 +228,6 @@ const pushCmd = new Command()
       const vt = VTClient.from(cwd);
       await vt.push(cwd);
       spinner.succeed(`Project pushed successfully from ${cwd}`);
-    } catch (error) {
-      if (error instanceof Error) {
-        spinner.fail(error.message);
-      }
-    }
-  });
-
-export const openCmd = new Command()
-  .name("open")
-  .description("Open the project in the browser")
-  .action(async () => {
-    const cwd = Deno.cwd();
-    const spinner = new Kia("Opening project url...");
-    try {
-      const vt = VTClient.from(cwd);
-      const meta = await vt.getMeta().loadConfig();
-      const branch = await getProjectBranch(meta.projectId, meta.currentBranch);
-      await open(branch.links.html);
-      spinner.succeed(`Project url opened in browser: ${branch.links.html}`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);

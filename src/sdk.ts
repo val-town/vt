@@ -64,13 +64,6 @@ export async function getLatestVersion(projectId: string, branchId: string) {
   return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
 }
 
-/**
- * Get a project branch.
- */
-export function getProjectBranch(projectId: string, branchId: string) {
-  return sdk.projects.branches.retrieve(projectId, branchId);
-}
-
 const user = await sdk.me.profile.retrieve();
 
 export { branchNameToId, filePathToFile, user };

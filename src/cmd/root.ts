@@ -3,8 +3,9 @@ import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "~/cmd/git.ts";
 import { watchCmd } from "~/cmd/watch.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
+import open from "open";
 import { basename, join } from "@std/path";
-import { user } from "~/sdk.ts";
+import sdk, { user } from "~/sdk.ts";
 import { checkDirectory } from "~/utils.ts";
 import { DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import Kia from "kia";
@@ -90,10 +91,32 @@ const createCmd = new Command()
     }
   });
 
+export const openCmd = new Command()
+  .name("open")
+  .description("Open the project in the browser")
+  .action(async () => {
+    const cwd = Deno.cwd();
+    const spinner = new Kia("Opening project url...");
+    try {
+      const vt = VTClient.from(cwd);
+      const meta = await vt.getMeta().loadConfig();
+      const branch = await sdk.projects.branches.retrieve(
+        meta.projectId,
+        meta.currentBranch,
+      );
+      await open(branch.links.html);
+      spinner.succeed(`Project url opened in browser: ${branch.links.html}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        spinner.fail(error.message);
+      }
+    }
+  });
+
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
 cmd.command("push", cmds.pushCmd);
-cmd.command("open", cmds.openCmd);
+cmd.command("open", openCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
 cmd.command("watch", watchCmd);
