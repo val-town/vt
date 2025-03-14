@@ -33,7 +33,9 @@ type ForkCheckoutParams = BaseCheckoutParams & {
  * @param {string[]} args.ignoreGlobs - List of glob patterns for files to ignore during checkout.
  * @returns {Promise<{ id: string, version: number }>} A promise that resolves with branch information when the branch checkout is complete.
  */
-export function checkout(args: BranchCheckoutParams): Promise<{ id: string, version: number }>;
+export function checkout(
+  args: BranchCheckoutParams,
+): Promise<{ id: string; version: number }>;
 
 /**
  * Creates a fork of a project's branch and checks it out. This is an atomic
@@ -92,7 +94,7 @@ export function checkout(
       });
 
       // Return an object with branch and version information for both forked and non-forked branches
-      return "branchId" in args 
+      return "branchId" in args
         ? { id: checkoutBranchId, version: checkoutVersion }
         : newBranch;
     },
