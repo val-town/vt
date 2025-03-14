@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import sdk, { branchNameToId, getProjectBranch, user } from "~/sdk.ts";
+import sdk, { branchNameToId, user } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
