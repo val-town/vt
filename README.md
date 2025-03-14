@@ -39,11 +39,13 @@ Or if you would prefer a more descriptive command with minimal permissions:
 deno install --allow-read --allow-write --allow-run --allow-env --global --name=vt https://raw.githubusercontent.com/val-town/vt/refs/heads/main/install.ts
 ```
 
-Set the `VAL_TOWN_API_KEY` environment variable to authenticate. Head over to
+Set the `VAL_TOWN_API_KEY` environment variable to authenticate. Either as an
+environment variable, or in a .env in your project. Head over to
 [val.town/settings/api](https://www.val.town/settings/api) to make a new one.
-Make sure it has "Read and write" permissions on "Projects". Like so:
+Make sure it has "Read and write" permissions on "Projects".
 
 ```bash
+# Or add to a .env in your project
 export VAL_TOWN_API_KEY=vtwn_notRealnotRealnotRealnotReal
 ```
 
@@ -93,4 +95,21 @@ with an endpoint.
 touch index.http.tsx
 vt push
 √ Project pushed successfully from ./hello-world
+```
+
+Now, if we return to our browser we can see that an http val has been created.
+It's erroring, let's fix that. Write a simple handler to the file:
+
+```ts
+export default async function (req) {
+  return new Response(`Hello ${req.method} ${req.url}`);
+}
+```
+
+Once that's written, run `vt push` again. Now I get a successful response from
+my http val:
+
+```bash
+$ curl https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run
+Hello GET https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run/
 ```
