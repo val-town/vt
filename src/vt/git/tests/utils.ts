@@ -121,7 +121,7 @@ export async function doWithNewProject<T>(
 ): Promise<T> {
   // Create a blank project with a random name
   const project = await sdk.projects.create({
-    name: crypto.randomUUID().slice(10),
+    name: crypto.randomUUID().replace(/-/g, "").slice(10),
     description: "This is a test project",
     privacy: "public",
   });
