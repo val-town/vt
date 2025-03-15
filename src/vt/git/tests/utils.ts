@@ -1,6 +1,6 @@
 import { join } from "@std/path";
 import { walk } from "@std/fs";
-import sdk, { branchNameToId } from "~/sdk.ts";
+import sdk, { branchNameToId, randomProjectName } from "~/sdk.ts";
 
 export interface ExpectedProjectInode {
   path: string;
@@ -121,7 +121,7 @@ export async function doWithNewProject<T>(
 ): Promise<T> {
   // Create a blank project with a random name
   const project = await sdk.projects.create({
-    name: crypto.randomUUID().replace(/-/g, "").slice(10),
+    name: randomProjectName(),
     description: "This is a test project",
     privacy: "public",
   });

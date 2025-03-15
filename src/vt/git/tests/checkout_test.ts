@@ -4,7 +4,7 @@ import { assertEquals } from "@std/assert";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { checkout } from "~/vt/git/checkout.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
-import sdk, { branchNameToId } from "~/sdk.ts";
+import sdk, { branchNameToId, randomProjectName } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 // Run test for checking out branches that already exist
@@ -75,7 +75,7 @@ Deno.test({
     // Create a new test project
     const project = await sdk.projects.create({
       privacy: "public",
-      name: crypto.randomUUID().replaceAll("-", "").slice(0, 10),
+      name: randomProjectName(),
       description: "test project",
     });
 
