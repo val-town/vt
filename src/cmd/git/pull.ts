@@ -14,7 +14,7 @@ export const pullCmd = new Command()
       const vt = VTClient.from(cwd);
       spinner.start();
 
-      if (!force && await vt.isDirty(cwd)) {
+      if (!force && await vt.isDirty()) {
         spinner.fail(
           "Cannot pull with unpushed changes. " +
             "Use `pull -f` to discard local changes.",

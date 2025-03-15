@@ -18,7 +18,6 @@ export const branchCmd = new Command()
       const branches: ValTown.Projects.BranchListResponse[] = [];
       for await (
         const file of (await sdk.projects.branches.list(meta.projectId, {}))
-          .data
       ) branches.push(file);
 
       const formatter = new Intl.DateTimeFormat("en-US", {
@@ -69,3 +68,4 @@ export const branchCmd = new Command()
       }
     }
   });
+

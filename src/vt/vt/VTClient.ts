@@ -1,11 +1,16 @@
 import { clone } from "~/vt/git/clone.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
-import sdk, { branchNameToId, getLatestVersion } from "~/sdk.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
+import { push } from "~/vt/git/push.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
+import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
+import { join } from "@std/path";
+import { debounce } from "jsr:@std/async/debounce";
 import { checkout } from "~/vt/git/checkout.ts";
 import { isDirty } from "~/vt/git/utils.ts";
+import ValTown from "@valtown/sdk";
+import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
+import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -17,10 +22,10 @@ import { isDirty } from "~/vt/git/utils.ts";
  * @param {string} rootPath - The root path of the VT directory
  */
 export default class VTClient {
-  readonly meta: VTMeta;
+  readonly #meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
-    this.meta = new VTMeta(rootPath);
+    this.#meta = new VTMeta(rootPath);
   }
 
   /**
@@ -29,7 +34,7 @@ export default class VTClient {
    * @returns {VTMeta} The VTMeta instance.
    */
   public getMeta(): VTMeta {
-    return this.meta;
+    return this.#meta;
   }
 
   /**
@@ -38,21 +43,18 @@ export default class VTClient {
    * @returns {Promise<RegExp[]>} The list of globs to ignore.
    */
   private async getIgnoreGlobs(): Promise<string[]> {
-    return [
-      ...DEFAULT_IGNORE_PATTERNS,
-      ...(await this.meta.loadIgnoreGlobs()),
-    ];
+    return await this.#meta.loadIgnoreGlobs();
   }
 
   /**
    * Initialize the VT instance for a project. You always have to be checked
    * out to *something* so init also takes an initial branch.
    *
-   * @param {string} rootPath - The root path where the VT instance will be initialized
-   * @param {string} username - The username of the project owner
-   * @param {string} projectName - The name of the project
-   * @param {number} [version=-1] - The version of the project to initialize. -1 for latest version
-   * @param {string} [branchName=DEFAULT_BRANCH_NAME] - The branch name to initialize
+   * @param {string} rootPath The root path where the VT instance will be initialized
+   * @param {string} username The username of the project owner
+   * @param {string} projectName The name of the project
+   * @param {number} version The version of the project to initialize. -1 for latest version
+   * @param {string} branchName The branch name to initialize
    * @returns {Promise<VTClient>} A new VTClient instance
    */
   public static async init(
@@ -71,13 +73,13 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branchId = await branchNameToId(projectId, branchName);
+    const branch = await branchIdToName(projectId, branchName);
 
     // If they choose -1 as the version then change to use the most recent
     // version
     if (version == -1) {
       version =
-        (await sdk.projects.branches.retrieve(projectId, branchId)).version;
+        (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
     }
 
     const vt = new VTClient(rootPath);
@@ -88,7 +90,7 @@ export default class VTClient {
       if (error instanceof Deno.errors.NotFound) {
         await vt.getMeta().saveConfig({
           projectId,
-          currentBranch: branchId,
+          currentBranch: branch.id,
           version: version,
         });
       } else {
@@ -104,11 +106,72 @@ export default class VTClient {
    * directory. Loads the configuration from the `.vt` folder in the given
    * directory.
    *
-   * @param {string} rootPath - The root path of the existing project.
+   * @param {string} rootPath The root path of the existing project.
    * @returns {Promise<VTClient>} An instance of VTClient initialized from existing config.
    */
   public static from(rootPath: string): VTClient {
     return new VTClient(rootPath);
+  }
+
+  /**
+   * Watch the root directory for changes and automatically push to Val Town
+   * when files are updated locally.
+   *
+   * If another instance of the program is already running then this errors. A lock file with
+   * the running program's PID is maintained automatically.
+   *
+   * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
+   */
+  public async watch() {
+    // Set the lock file at the start
+    await this.getMeta().setLockFile();
+
+    // Listen for termination signals to perform cleanup
+    for (const signal of ["SIGINT", "SIGTERM"]) {
+      Deno.addSignalListener(signal as Deno.Signal, () => {
+        console.log("Stopping watch process...");
+        this.getMeta().rmLockFile();
+        Deno.exit(0);
+      });
+    }
+
+    // A function that runs a push on file system changes
+    const pushOnFileEvents = async () => {
+      const debouncedPush = debounce(async (_event: Deno.FsEvent) => {
+        try {
+          await this.push();
+        } catch (e) {
+          // Handle case where the file was deleted before we could push it
+          if (e instanceof Deno.errors.NotFound) {
+            // The file no longer exists at the time of uploading. It could've
+            // just been a temporary file, but since it no longer exists it
+            // isn't our problem.
+            return;
+          }
+
+          // Handle case where the API returns a 404 Not Found error
+          if (e instanceof ValTown.APIError && e.status === 404) {
+            // The val we're trying to update doesn't exist on the server. This
+            // is usually a result of starting a deletion and then trying to
+            // delete a second time because of duplicate file system events.
+            //
+            // TODO: We should keep a global queue of outgoing requests and
+            // intelligently notice that we have duplicate idempotent (in this
+            // case deletions are) requests in the queue.
+            return;
+          }
+
+          // Re-throw any other errors
+          throw e;
+        }
+      }, 300);
+
+      const watcher = Deno.watchFs(this.rootPath);
+      for await (const event of watcher) debouncedPush(event);
+    };
+
+    // Since we're only pushing now, we just need to return the pushOnFileEvents promise
+    return pushOnFileEvents();
   }
 
   /**
@@ -136,10 +199,7 @@ export default class VTClient {
     });
 
     // Get the project branch
-    const branch = await sdk.projects.branches.retrieve(
-      project.id,
-      await branchNameToId(project.id, DEFAULT_BRANCH_NAME),
-    );
+    const branch = await branchIdToName(project.id, DEFAULT_BRANCH_NAME);
 
     // Then clone it to the target directory
     await clone({
@@ -163,13 +223,33 @@ export default class VTClient {
    * Clone val town project into a directory using the current configuration.
    *
    * @param {string} targetDir - The directory to clone the project into.
+   * @param {object} options - Optional settings for the clone process.
+   * @param {boolean} options.addDenoJson - Whether to add deno.json to the cloned directory.
    * @returns {Promise<void>}
    */
-  public async clone(targetDir: string): Promise<void> {
-    const { projectId, currentBranch, version } = await this.meta.loadConfig();
+  public async clone(
+    targetDir: string,
+    options?: { addDenoJson?: boolean; addVtIgnore?: boolean },
+  ): Promise<void> {
+    const { projectId, currentBranch, version } = await this.getMeta()
+      .loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
+    }
+
+    // Add the vt ignore file
+    await Deno.writeTextFile(
+      join(targetDir, META_IGNORE_FILE_NAME),
+      vtIgnore.text,
+    );
+
+    // Check if addDenoJson is true and copy deno.json if so
+    if (options?.addDenoJson) {
+      await Deno.writeTextFile(
+        join(targetDir, "deno.json"),
+        JSON.stringify(denoJson, undefined, 2),
+      );
     }
 
     // Do the clone using the configuration
@@ -191,38 +271,36 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async pull(targetDir: string): Promise<void> {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
+    const config = await this.getMeta().loadConfig();
 
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
-    }
+    config.version = await getLatestVersion(
+      config.projectId,
+      config.currentBranch,
+    );
 
     // Use the provided pull function
     await pull({
       targetDir,
-      projectId,
-      branchId: currentBranch,
-      version: await getLatestVersion(projectId, currentBranch),
+      projectId: config.projectId,
+      branchId: config.currentBranch,
+      version: config.version,
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
+
+    await this.getMeta().saveConfig(config);
   }
 
   /**
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
-   * @param {string} targetDir - The directory to check status for.
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
-  public async status(targetDir: string): Promise<StatusResult> {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
-
-    if (!projectId || !currentBranch) {
-      throw new Error("Configuration not loaded");
-    }
+  public async status(): Promise<StatusResult> {
+    const { projectId, currentBranch } = await this.getMeta().loadConfig();
 
     return status({
-      targetDir,
+      targetDir: this.rootPath,
       projectId,
       branchId: currentBranch,
       version: await getLatestVersion(projectId, currentBranch),
@@ -231,37 +309,50 @@ export default class VTClient {
   }
 
   /**
+   * Push changes from the local directory to the Val Town project.
+   *
+   * @returns {Promise<void>}
+   */
+  public async push(): Promise<void> {
+    const { projectId, currentBranch, version } = await this.getMeta()
+      .loadConfig();
+
+    if (!projectId || !currentBranch || version === null) {
+      throw new Error("Configuration not loaded");
+    }
+
+    await push({
+      targetDir: this.rootPath,
+      projectId,
+      branchId: currentBranch,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+    });
+
+    await this.getMeta().saveConfig({
+      projectId,
+      currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
+    });
+  }
+
+  /**
    * Check out a different branch of the project.
    *
-   * @param {string} targetDir The directory where the checkout should happen
    * @param {string} branchName The name of the branch to check out to
    * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
    * @returns {Promise<void>}
    */
   public async checkout(
-    targetDir: string,
     branchName: string,
     forkedFrom?: string,
   ): Promise<void> {
-    const config = await this.meta.loadConfig();
+    const config = await this.getMeta().loadConfig();
 
-    // Get meta about the branch they are checking out. They only specify the
-    // name for the branch that they are checking out. So, we'll have to query
-    // the id of such branch, and the current version (by default we'll switch
-    // them to the newest version of a branch when they check out a new branch.
-    // This is a bit different than git, but it follows our notion of "no local
-    // state, val town is the source of truth")
-    const checkoutBranchId = await branchNameToId(config.projectId, branchName);
-    const latestVersion = await getLatestVersion(
-      config.projectId,
-      checkoutBranchId,
+    const created = (await this.status().then((status) => status.created)).map(
+      (file) => file.path,
     );
-
-    const created =
-      (await this.status(targetDir).then((status) => status.created)).map(
-        (file) => file.path,
-      ); // We want to ignore newly created files. Adding them to the
-    // ignoreGlobs list is a nice way to do that.
+    // We want to ignore newly created files. Adding them to the ignoreGlobs
+    // list is a nice way to do that.
     const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
 
     if (forkedFrom) { // Use the signature where we create a new branch
@@ -270,7 +361,7 @@ export default class VTClient {
         forkedFrom,
       );
       const newBranch = await checkout({
-        targetDir,
+        targetDir: this.rootPath,
         projectId: config.projectId,
         forkedFrom,
         name: branchName,
@@ -279,27 +370,43 @@ export default class VTClient {
       });
       config.currentBranch = newBranch.id;
       config.version = newBranch.version;
-    } else { // Use the signature where we check out an existing branch
+    } else {
+      // Use the signature where we check out an existing branch Get meta about
+      // the branch they are checking out. They only specify the name for the
+      // branch that they are checking out. So, we'll have to query the id of
+      // such branch, and the current version (by default we'll switch them to
+      // the newest version of a branch when they check out a new branch. This
+      // is a bit different than git, but it follows our notion of "no local
+      // state, val town is the source of truth")
+      const checkoutBranch = await branchIdToName(
+        config.projectId,
+        branchName,
+      );
+      const latestVersion = await getLatestVersion(
+        config.projectId,
+        checkoutBranch.id,
+      );
       await checkout({
-        targetDir,
+        targetDir: this.rootPath,
         projectId: config.projectId,
-        branchId: checkoutBranchId,
+        branchId: checkoutBranch.id,
         ignoreGlobs,
         version: latestVersion,
       });
+      config.currentBranch = checkoutBranch.id;
+      config.version = latestVersion;
     }
 
     // Update the config with the new branch
-    await this.meta.saveConfig(config);
+    await this.getMeta().saveConfig(config);
   }
 
   /**
    * Check if the working directory has uncommitted changes.
    *
-   * @param {string} targetDir - The directory to check for changes
    * @returns {Promise<boolean>} True if there are uncommitted changes
    */
-  public async isDirty(targetDir: string): Promise<boolean> {
-    return isDirty(await this.status(targetDir));
+  public async isDirty(): Promise<boolean> {
+    return isDirty(await this.status());
   }
 }

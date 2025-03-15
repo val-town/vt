@@ -1,7 +1,8 @@
 import { Command } from "@cliffy/command";
 import manifest from "../../../deno.json" with { type: "json" };
-import * as cmds from "~/cmd/git/index.ts";
+import * as gitCmds from "~/cmd/git/mod.ts";
 import { createCmd } from "~/cmd/root/create.ts";
+import { logCmd } from "~/cmd/root/log.ts";
 
 const cmd = new Command()
   .name("vt")

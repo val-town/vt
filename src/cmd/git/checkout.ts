@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
-import sdk, { branchNameToId } from "~/sdk.ts";
+import sdk, { branchIdToName } from "~/sdk.ts";
 import Kia from "kia";
 import ValTown from "@valtown/sdk";
 
@@ -25,11 +25,11 @@ export const checkoutCmd = new Command()
       const cwd = Deno.cwd();
 
       const vt = VTClient.from(cwd);
-      const config = await vt.meta.loadConfig();
+      const config = await vt.getMeta().loadConfig();
       try {
         spinner.start();
 
-        if (!force && await vt.isDirty(cwd)) {
+        if (!force && await vt.isDirty()) {
           spinner.fail(
             "Cannot checkout with unpushed changes. " +
               "Use `checkout -f` to ignore local changes.",
@@ -40,7 +40,7 @@ export const checkoutCmd = new Command()
         if (branch) {
           // -b flag was used, create new branch from source
           try {
-            await vt.checkout(cwd, branch, config.currentBranch);
+            await vt.checkout(branch, config.currentBranch);
 
             const existingBranchName = await sdk.projects.branches.retrieve(
               config.projectId,
@@ -60,7 +60,7 @@ export const checkoutCmd = new Command()
         } else if (existingBranchName) {
           // Regular checkout. Check to see if branch exists.
           try {
-            await branchNameToId(config.projectId, existingBranchName);
+            await branchIdToName(config.projectId, existingBranchName);
           } catch {
             const project = await sdk.projects.retrieve(config.projectId);
             throw new Error(
