@@ -1,4 +1,4 @@
-import { basename, globToRegExp } from "@std/path";
+import { globToRegExp } from "@std/path";
 
 export async function isDirectoryEmpty(
   path: string | URL,
@@ -34,14 +34,14 @@ export async function removeEmptyDirs(dir: string) {
 }
 
 /**
- * Validates and ensures a directory exists and is empty.
- * Creates the directory if it doesn't exist.
+ * Validates and ensures a directory exists and is empty. Creates the directory
+ * if it doesn't exist.
  *
  * @param rootPath - The full path to the directory to check/create
  * @param options - Configuration options
  * @param options.ignoreGlobs - Glob patterns to ignore when checking if directory is empty
- * @throws Error if the path exists but is not a directory
- * @throws Error if the directory exists but is not empty
+ * @throws {Deno.errors.NotADirectory} if the path exists but is not a directory
+ * @throws {Deno.errors.AlreadyExists} if the directory exists but is not empty
  */
 export async function checkDirectory(
   rootPath: string,
@@ -53,9 +53,7 @@ export async function checkDirectory(
     const stat = await Deno.lstat(rootPath);
 
     if (!stat.isDirectory) {
-      throw new Error(
-        `Invalid destination, ${rootPath} exists but is not a directory`,
-      );
+      throw new Deno.errors.NotADirectory();
     }
   } catch (error) {
     // If directory doesn't exist, create it
@@ -68,8 +66,6 @@ export async function checkDirectory(
 
   // Check if existing directory is empty (considering ignored patterns)
   if (!(await isDirectoryEmpty(rootPath, ignoreGlobs))) {
-    throw new Error(
-      `Cannot proceed, ./${basename(rootPath)} already exists and is not empty`,
-    );
+    throw new Deno.errors.AlreadyExists();
   }
 }

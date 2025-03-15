@@ -8,6 +8,7 @@ import ValTown from "@valtown/sdk";
 export const branchCmd = new Command()
   .name("branch")
   .description("List all project branches")
+  .example("List all branches", "vt branch")
   .action(async () => {
     const cwd = Deno.cwd();
 
@@ -68,4 +69,3 @@ export const branchCmd = new Command()
       }
     }
   });
-

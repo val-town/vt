@@ -62,7 +62,8 @@ export const createCmd = new Command()
         await vt.clone(rootPath);
 
         spinner.succeed(
-          `Created ${privacy} project ${projectName} in ./${basename(rootPath)
+          `Created ${privacy} project ${projectName} in ./${
+            basename(rootPath)
           }`,
         );
       } catch (error) {
@@ -79,4 +80,3 @@ export const createCmd = new Command()
       }
     }
   });
-

@@ -3,7 +3,8 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
 import * as styles from "~/cmd/styling.ts";
 import { colors } from "@cliffy/ansi/colors";
-import { branchIdToName } from "~/sdk.ts";
+import { branchIdToBranch } from "~/sdk.ts";
+import { STATUS_COLORS } from "~/consts.ts";
 
 function getVersionRangeStr(
   firstVersion: string | number,
@@ -15,11 +16,16 @@ function getVersionRangeStr(
     versions.push(latestVersion.toString());
   }
 
-  const formattedVersions = versions.map((v) =>
-    v === currentVersion.toString() ? colors.green(v) : v
-  );
+  const formattedVersions = versions
+    .map((v) => v === currentVersion.toString() ? colors.green(v) : v);
 
   return formattedVersions.join("..");
+}
+
+// Formats a file path with a colored status prefix for display.
+export function formatStatus(path: string, status: string): string {
+  const config = STATUS_COLORS[status] || { prefix: " ", color: colors.gray };
+  return `${config.color(config.prefix)} ${path}`;
 }
 
 export const statusCmd = new Command()
@@ -35,13 +41,26 @@ export const statusCmd = new Command()
       const { currentBranch, version: currentVersion, projectId } = await vt
         .getMeta()
         .loadConfig();
-      const currentBranchVersion = await branchIdToName(
-        projectId,
+      const currentBranchVersion = await branchIdToBranch(
         currentBranch,
+        projectId,
       );
 
       const status = await vt.status();
       spinner.stop(); // Stop spinner before showing status
+
+      // Display branch and version information
+      console.log(`On branch ${colors.cyan(currentBranchVersion.toString())}`);
+
+      // Get the first version (could be retrieved from history or use 1 as default)
+      const firstVersion = 1; // Replace with actual first version if available
+      const latestVersion = currentVersion; // Replace with actual latest version if different
+
+      console.log(
+        "Version: " +
+          getVersionRangeStr(firstVersion, currentVersion, latestVersion) +
+          "\n",
+      );
 
       const statusMap = {
         modified: status.modified.map((file) => ({ path: file.path })),
@@ -52,7 +71,7 @@ export const statusCmd = new Command()
       // Print all changed files
       Object.entries(statusMap).forEach(([type, files]) => {
         files.forEach((file) => {
-          console.log(styles.formatStatus(file.path, type));
+          console.log(formatStatus(file.path, type));
         });
       });
 
@@ -78,4 +97,3 @@ export const statusCmd = new Command()
       }
     }
   });
-

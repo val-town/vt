@@ -12,9 +12,9 @@ const sdk = new ValTown({
  * @param {string} projectId - The ID of the project containing the branch
  * @param {string} branchName - The name of the branch to look up
  * @returns {Promise} Promise resolving to the branch ID
- * @throws {Error} if the branch is not found or if the API request fails
+ * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
  */
-async function branchIdToName(
+async function branchIdToBranch(
   projectId: string,
   branchName: string,
 ): Promise<ValTown.Projects.Branches.BranchListResponse> {
@@ -22,9 +22,7 @@ async function branchIdToName(
     if (branch.name == branchName) return branch;
   }
 
-  throw new Deno.errors.NotFound(
-    `Branch "${branchName}" not found in project ${projectId}`,
-  );
+  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in project`);
 }
 
 /**
@@ -52,9 +50,7 @@ async function filePathToFile(
     if (file.name == filePath) return file;
   }
 
-  throw new Deno.errors.NotFound(
-    `Branch "${filePath}" not found in project ${projectId}`,
-  );
+  throw new Deno.errors.NotFound(`File "${filePath}" not found in project`);
 }
 
 /**
@@ -66,5 +62,5 @@ export async function getLatestVersion(projectId: string, branchId: string) {
 
 const user = await sdk.me.profile.retrieve();
 
-export { branchIdToName, filePathToFile, user };
+export { branchIdToBranch, filePathToFile, user };
 export default sdk;

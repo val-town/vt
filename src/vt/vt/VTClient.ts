@@ -6,10 +6,10 @@ import { status, StatusResult } from "~/vt/git/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
 import { debounce } from "jsr:@std/async/debounce";
-import { checkout } from "~/vt/git/checkout.ts";
+import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";
 import { isDirty } from "~/vt/git/utils.ts";
 import ValTown from "@valtown/sdk";
-import sdk, { branchIdToName, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
 
 /**
@@ -73,7 +73,7 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branch = await branchIdToName(projectId, branchName);
+    const branch = await branchIdToBranch(projectId, branchName);
 
     // If they choose -1 as the version then change to use the most recent
     // version
@@ -199,7 +199,7 @@ export default class VTClient {
     });
 
     // Get the project branch
-    const branch = await branchIdToName(project.id, DEFAULT_BRANCH_NAME);
+    const branch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
 
     // Then clone it to the target directory
     await clone({
@@ -336,31 +336,39 @@ export default class VTClient {
   }
 
   /**
-   * Check out a different branch of the project.
-   *
-   * @param {string} branchName The name of the branch to check out to
-   * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
-   * @returns {Promise<void>}
-   */
+  * Check out a different branch of the project.
+  *
+  * @param {string} branchName The name of the branch to check out to
+  * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
+  * @returns {Promise<{fromBranch: ValTown.Projects.BranchCreateResponse, toBranch:
+ ValTown.Projects.BranchCreateResponse, createdNew: boolean}>}
+  */
   public async checkout(
     branchName: string,
     forkedFrom?: string,
-  ): Promise<void> {
+  ): Promise<CheckoutResult> {
     const config = await this.getMeta().loadConfig();
+    const currentBranchId = config.currentBranch;
 
-    const created = (await this.status().then((status) => status.created)).map(
-      (file) => file.path,
-    );
+    // Get files that were newly created but not yet committed
+    const created = (await this.status()
+      .then((status) => status.created))
+      .map((file) => file.path);
+
     // We want to ignore newly created files. Adding them to the ignoreGlobs
     // list is a nice way to do that.
     const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
 
-    if (forkedFrom) { // Use the signature where we create a new branch
+    let result: CheckoutResult;
+
+    if (forkedFrom) {
+      // Create a new branch from the specified source
       const sourceVersion = await getLatestVersion(
         config.projectId,
         forkedFrom,
       );
-      const newBranch = await checkout({
+
+      result = await checkout({
         targetDir: this.rootPath,
         projectId: config.projectId,
         forkedFrom,
@@ -368,37 +376,38 @@ export default class VTClient {
         ignoreGlobs,
         version: sourceVersion,
       });
-      config.currentBranch = newBranch.id;
-      config.version = newBranch.version;
+
+      config.currentBranch = result.toBranch.id;
+      config.version = result.toBranch.version;
     } else {
-      // Use the signature where we check out an existing branch Get meta about
-      // the branch they are checking out. They only specify the name for the
-      // branch that they are checking out. So, we'll have to query the id of
-      // such branch, and the current version (by default we'll switch them to
-      // the newest version of a branch when they check out a new branch. This
-      // is a bit different than git, but it follows our notion of "no local
-      // state, val town is the source of truth")
-      const checkoutBranch = await branchIdToName(
+      // Check out existing branch
+      const checkoutBranch = await branchIdToBranch(
         config.projectId,
         branchName,
       );
+
       const latestVersion = await getLatestVersion(
         config.projectId,
         checkoutBranch.id,
       );
-      await checkout({
+
+      result = await checkout({
         targetDir: this.rootPath,
         projectId: config.projectId,
         branchId: checkoutBranch.id,
+        fromBranchId: currentBranchId,
         ignoreGlobs,
         version: latestVersion,
       });
-      config.currentBranch = checkoutBranch.id;
+
+      config.currentBranch = result.toBranch.id;
       config.version = latestVersion;
     }
 
     // Update the config with the new branch
     await this.getMeta().saveConfig(config);
+
+    return result;
   }
 
   /**

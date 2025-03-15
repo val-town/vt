@@ -4,7 +4,7 @@ import { assertEquals } from "@std/assert";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { checkout } from "~/vt/git/checkout.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
-import sdk, { branchIdToName } from "~/sdk.ts";
+import sdk, { branchIdToBranch } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 // Run test for checking out branches that already exist
@@ -80,7 +80,7 @@ Deno.test({
     });
 
     // Get the main branch ID to fork from
-    const mainBranch = await branchIdToName(project.id, DEFAULT_BRANCH_NAME);
+    const mainBranch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
 
     const newBranchName = `test-branch-${crypto.randomUUID()}`;
 
@@ -104,10 +104,13 @@ Deno.test({
       });
 
       try {
-        await branchIdToName(project.id, newBranchName);
+        await branchIdToBranch(project.id, newBranchName);
       } catch {
         throw new Error("Branch was not created successfully");
       }
+
+      // TODO `await sdk.projects.delete(project.id);` (this API endpoint
+      // doesn't exist yet thoguh)
     }, "vt_checkout_test");
   },
 });
