@@ -64,9 +64,9 @@ CLI.
 First, let's create a new project:
 
 ```bash
-$ vt create hello-world
-√ Created public project apricot in ./hello-world
-$ cd hello-world
+$ vt create helloWorld
+√ Created public project apricot in ./helloWorld
+$ cd helloWorld
 ```
 
 This directory is empty except for a metadata folder `.vt` that tracks your
@@ -80,7 +80,7 @@ Upload this file to your project with `vt push`
 
 ```bash
 $ vt push
-√ Project pushed successfully from ./hello-world
+√ Project pushed successfully from ./helloWorld
 ```
 
 Now run `vt open` to see your file in the Val Town UI.

@@ -27,7 +27,7 @@ Deno.test({
           ignoreGlobs: [],
         });
 
-        // Pull and assert that the creation worked
+        // Pull and assert that the creation workedpush test
         const originalFileContent = await sdk.projects.files
           .getContent(project.id, vtFilePath)
           .then((resp) => resp.text());
