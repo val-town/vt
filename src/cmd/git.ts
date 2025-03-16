@@ -20,6 +20,22 @@ const cloneCmd = new Command()
   .option("--add-deno-json", "Add deno.json to the cloned directory", {
     default: true,
   })
+  .example(
+    "Clone with username/projectName",
+    `vt clone username/projectName`,
+  )
+  .example(
+    "Clone into the current directory",
+    `vt clone username/projectName .`,
+  )
+  .example(
+    "Clone with link",
+    `vt clone https://www.val.town/x/username/projectName`,
+  )
+  .example(
+    "Clone into a new directory",
+    `vt clone username/projectName new-directory`,
+  )
   .action(
     async (
       { addDenoJson }: { addDenoJson: boolean },
@@ -227,7 +243,7 @@ const pushCmd = new Command()
       spinner.start();
       const vt = VTClient.from(cwd);
       await vt.push(cwd);
-      spinner.succeed(`Project pushed successfully from ${cwd}`);
+      spinner.succeed(`Project pushed successfully`);
     } catch (error) {
       if (error instanceof Error) {
         spinner.fail(error.message);
@@ -256,7 +272,7 @@ const checkoutCmd = new Command()
       const cwd = Deno.cwd();
 
       const vt = VTClient.from(cwd);
-      const config = await vt.meta.loadConfig();
+      const config = await vt.getMeta().loadConfig();
       try {
         spinner.start();
 
@@ -314,14 +330,6 @@ const checkoutCmd = new Command()
           spinner.fail(error.message);
         }
       }
-
-      // Update the config with the new branch as the current branch
-      const newBranch = await branchNameToId(
-        config.projectId,
-        existingBranchName || branch!,
-      );
-      config.currentBranch = newBranch.id;
-      await vt.meta.saveConfig(config);
     },
   );
 

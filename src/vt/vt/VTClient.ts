@@ -22,10 +22,10 @@ import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
  * @param {string} rootPath - The root path of the VT directory
  */
 export default class VTClient {
-  readonly meta: VTMeta;
+  readonly #meta: VTMeta;
 
   private constructor(public readonly rootPath: string) {
-    this.meta = new VTMeta(rootPath);
+    this.#meta = new VTMeta(rootPath);
   }
 
   /**
@@ -34,7 +34,7 @@ export default class VTClient {
    * @returns {VTMeta} The VTMeta instance.
    */
   public getMeta(): VTMeta {
-    return this.meta;
+    return this.#meta;
   }
 
   /**
@@ -43,7 +43,7 @@ export default class VTClient {
    * @returns {Promise<RegExp[]>} The list of globs to ignore.
    */
   private async getIgnoreGlobs(): Promise<string[]> {
-    return await this.meta.loadIgnoreGlobs();
+    return await this.#meta.loadIgnoreGlobs();
   }
 
   /**
@@ -124,13 +124,13 @@ export default class VTClient {
    */
   public async watch() {
     // Set the lock file at the start
-    await this.meta.setLockFile();
+    await this.getMeta().setLockFile();
 
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
       Deno.addSignalListener(signal as Deno.Signal, () => {
         console.log("Stopping watch process...");
-        this.meta.rmLockFile();
+        this.getMeta().rmLockFile();
         Deno.exit(0);
       });
     }
@@ -231,7 +231,8 @@ export default class VTClient {
     targetDir: string,
     options?: { addDenoJson?: boolean; addVtIgnore?: boolean },
   ): Promise<void> {
-    const { projectId, currentBranch, version } = await this.meta.loadConfig();
+    const { projectId, currentBranch, version } = await this.getMeta()
+      .loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
@@ -270,7 +271,7 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async pull(targetDir: string): Promise<void> {
-    const config = await this.meta.loadConfig();
+    const config = await this.getMeta().loadConfig();
 
     config.version = await getLatestVersion(
       config.projectId,
@@ -286,7 +287,7 @@ export default class VTClient {
       ignoreGlobs: await this.getIgnoreGlobs(),
     });
 
-    await this.meta.saveConfig(config);
+    await this.getMeta().saveConfig(config);
   }
 
   /**
@@ -297,7 +298,7 @@ export default class VTClient {
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
   public async status(targetDir: string): Promise<StatusResult> {
-    const { projectId, currentBranch } = await this.meta.loadConfig();
+    const { projectId, currentBranch } = await this.getMeta().loadConfig();
 
     return status({
       targetDir,
@@ -315,7 +316,8 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async push(targetDir: string): Promise<void> {
-    const { projectId, currentBranch, version } = await this.meta.loadConfig();
+    const { projectId, currentBranch, version } = await this.getMeta()
+      .loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
@@ -326,6 +328,12 @@ export default class VTClient {
       projectId,
       branchId: currentBranch,
       ignoreGlobs: await this.getIgnoreGlobs(),
+    });
+
+    await this.getMeta().saveConfig({
+      projectId,
+      currentBranch,
+      version: await getLatestVersion(projectId, currentBranch),
     });
   }
 
@@ -342,13 +350,14 @@ export default class VTClient {
     branchName: string,
     forkedFrom?: string,
   ): Promise<void> {
-    const config = await this.meta.loadConfig();
+    const config = await this.getMeta().loadConfig();
 
     const created =
       (await this.status(targetDir).then((status) => status.created)).map(
         (file) => file.path,
-      ); // We want to ignore newly created files. Adding them to the
-    // ignoreGlobs list is a nice way to do that.
+      );
+    // We want to ignore newly created files. Adding them to the ignoreGlobs
+    // list is a nice way to do that.
     const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
 
     if (forkedFrom) { // Use the signature where we create a new branch
@@ -366,12 +375,13 @@ export default class VTClient {
       });
       config.currentBranch = newBranch.id;
       config.version = newBranch.version;
-    } else { // Use the signature where we check out an existing branch
-      // Get meta about the branch they are checking out. They only specify the
-      // name for the branch that they are checking out. So, we'll have to query
-      // the id of such branch, and the current version (by default we'll switch
-      // them to the newest version of a branch when they check out a new branch.
-      // This is a bit different than git, but it follows our notion of "no local
+    } else {
+      // Use the signature where we check out an existing branch Get meta about
+      // the branch they are checking out. They only specify the name for the
+      // branch that they are checking out. So, we'll have to query the id of
+      // such branch, and the current version (by default we'll switch them to
+      // the newest version of a branch when they check out a new branch. This
+      // is a bit different than git, but it follows our notion of "no local
       // state, val town is the source of truth")
       const checkoutBranch = await branchNameToId(
         config.projectId,
@@ -393,7 +403,7 @@ export default class VTClient {
     }
 
     // Update the config with the new branch
-    await this.meta.saveConfig(config);
+    await this.getMeta().saveConfig(config);
   }
 
   /**
