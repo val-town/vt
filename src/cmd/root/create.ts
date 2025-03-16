@@ -87,7 +87,8 @@ vt checkout main`,
         await vt.clone(rootPath);
 
         spinner.succeed(
-          `Created ${privacy} project ${projectName} in ./${basename(rootPath)
+          `Created ${privacy} project ${projectName} in ./${
+            basename(rootPath)
           }`,
         );
       } catch (error) {

@@ -1,7 +1,6 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
 import Kia from "kia";
-import sdk, { branchIdToBranch } from "~/sdk.ts";
 import { CheckoutResult } from "~/vt/git/checkout.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
