@@ -40,6 +40,7 @@ const process = new Deno.Command(Deno.execPath(), {
     "run",
     "--allow-read",
     "--allow-write",
+    "--allow-sys=osRelease",
     "--allow-env=VAL_TOWN_API_KEY,VAL_TOWN_BASE_URL",
     "--allow-net",
     "--allow-run",
