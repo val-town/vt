@@ -6,6 +6,8 @@ import { CheckoutResult } from "~/vt/git/checkout.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
 
+const toListBranches = "Use \`vt branch\` to list branches.";
+
 export const checkoutCmd = new Command()
   .name("checkout")
   .description("Check out a different branch")
@@ -67,40 +69,33 @@ export const checkoutCmd = new Command()
           );
         } catch (e) {
           if (e instanceof ValTown.APIError && e.status === 409) {
-            spinner.fail(`Branch "${branch}" already exists`);
+            spinner.fail(
+              `Branch "${branch}" already exists. Choose a new branch name. ` +
+                toListBranches,
+            );
           } else {
             throw e; // Re-throw error if it's not a 409
           }
         }
       } else if (existingBranchName) {
         try {
-          // Verify that the branch exists, and if it exists that it is not
-          // the branch we are already on.
-          const branch = await branchIdToBranch(
-            config.projectId,
-            existingBranchName,
+          checkoutResult = await vt.checkout(existingBranchName);
+          spinner.succeed(
+            `Switched to branch "${existingBranchName}" from "${checkoutResult.fromBranch.name}"`,
           );
-          if (branch.name == existingBranchName) {
-            spinner.fail(`Already on branch "${existingBranchName}"`);
-            return;
-          }
         } catch (e) {
           if (e instanceof Deno.errors.NotFound) {
-            const project = await sdk.projects.retrieve(config.projectId);
-            throw new Deno.errors.NotFound(
-              `Branch "${existingBranchName}" not found in project "${project.name}"`,
+            spinner.fail(
+              `Branch "${existingBranchName}" does not exist in project. ` +
+                toListBranches,
             );
-          } else throw e;
+            return;
+          }
         }
-
-        checkoutResult = await vt.checkout(existingBranchName);
-
-        spinner.succeed(
-          `Switched to branch "${existingBranchName}" from "${checkoutResult.fromBranch.name}"`,
-        );
       } else {
         spinner.fail(
-          "Branch name is required. Use -b to create a new branch or specify an existing branch name",
+          "Branch name is required. Use -b to create a new branch " +
+            toListBranches,
         );
         return;
       }

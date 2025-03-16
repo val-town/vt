@@ -38,22 +38,26 @@ export function clone(
       const projectFilesResponse = await sdk.projects.files
         .list(projectId, { recursive: true, branch_id: branchId, version });
 
-      const files: ValTown.Projects.FileListResponse[] = [];
-      for await (const file of projectFilesResponse.data) files.push(file);
+      const clonePromises: Promise<void>[] = [];
+      for await (const file of projectFilesResponse.data) {
+        // Skip directories
+        if (file.type === "directory") continue;
 
-      // Process all files and directories. We call forAllIgnored with the function
-      // we want to run on each file (which will only apply our function to non
-      // ignored files). Then we run it on all the files.
-      const clonePromises = files
-        .filter((file) => file.type !== "directory") // we'll create directories when creating files
-        .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
-        .map(
-          // Function to run on files (if they aren't ignored)
-          (file: Valtown.Projects.FileListResponse) => {
-            const fullPath = path.join(tmpDir, file.path);
-            return createFile(fullPath, projectId, branchId, version, file);
-          },
-        );
+        // Skip ignored files
+        if (shouldIgnore(file.path, ignoreGlobs)) continue;
+
+        // Start a create file task in the background
+        const fullPath = path.join(tmpDir, file.path);
+        clonePromises.push(createFile(
+          fullPath,
+          projectId,
+          branchId,
+          version,
+          file,
+        ));
+      }
+
+      // Wait for all file operations to complete
       await Promise.all(clonePromises);
 
       removeEmptyDirs(tmpDir);
