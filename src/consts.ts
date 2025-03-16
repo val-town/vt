@@ -21,6 +21,8 @@ export const META_FOLDER_NAME = ".vt";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const META_LOCK_FILE_NAME = "lock";
 
+export const MAX_WALK_UP_LEVELS = 100;
+
 export const FIRST_VERSION_NUMBER = 1;
 
 export const STATUS_COLORS: Record<

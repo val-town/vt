@@ -5,6 +5,8 @@ import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
 import { displayStatusChanges } from "~/cmd/git/utils.ts";
+import { findVTRoot } from "~/vt/vt/utils.ts";
+import { noVtDir } from "~/cmd/git/msgs.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -54,29 +56,45 @@ export const statusCmd = new Command()
     const spinner = new Kia("Checking status...");
 
     spinner.start();
-    const vt = VTClient.from(Deno.cwd());
 
-    const {
-      currentBranch: currentBranchId,
-      version: currentVersion,
-      projectId,
-    } = await vt.getMeta().loadConfig();
+    let vtRoot;
+    try {
+      vtRoot = await findVTRoot(Deno.cwd());
+    } catch (e) {
+      spinner.stop();
+      if (e instanceof Deno.errors.NotFound) {
+        console.log(colors.red(noVtDir));
+        return;
+      }
+      throw e;
+    }
 
-    const currentBranch = await sdk.projects.branches.retrieve(
-      projectId,
-      currentBranchId,
-    );
+    try {
+      const vt = VTClient.from(vtRoot);
+      const {
+        currentBranch: currentBranchId,
+        version: currentVersion,
+        projectId,
+      } = await vt.getMeta().loadConfig();
 
-    const status = await vt.status();
-    spinner.stop(); // Stop spinner before showing status
+      const currentBranch = await sdk.projects.branches.retrieve(
+        projectId,
+        currentBranchId,
+      );
 
-    const versionStr = getVersionRangeStr(
-      FIRST_VERSION_NUMBER,
-      currentVersion,
-      currentBranch.version,
-    );
-    console.log(`On branch ${colors.cyan(currentBranch.name)}@${versionStr}`);
-    console.log();
+      const status = await vt.status();
+      spinner.stop(); // Stop spinner before showing status
 
-    displayStatusChanges(status, { summaryPrefix: "Changes to be pushed:" });
+      const versionStr = getVersionRangeStr(
+        FIRST_VERSION_NUMBER,
+        currentVersion,
+        currentBranch.version,
+      );
+      console.log(`On branch ${colors.cyan(currentBranch.name)}@${versionStr}`);
+      console.log();
+
+      displayStatusChanges(status, { summaryPrefix: "Changes to be pushed:" });
+    } finally {
+      spinner.stop();
+    }
   });

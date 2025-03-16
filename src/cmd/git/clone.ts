@@ -82,6 +82,8 @@ export const cloneCmd = new Command()
             `"./${relativeTargetDir}" already exists and is not empty.`,
           );
         } else throw error;
+      } finally {
+        spinner.stop();
       }
     },
   );
