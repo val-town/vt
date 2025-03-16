@@ -3,12 +3,15 @@ import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
 
 /**
  * Finds the nearest directory containing a .vt folder by climbing up the directory tree
- * @param startPath The path to start searching from
- * @returns The path to the directory containing a .vt folder, or the original path if none found
+ *
+ * @param {string} startPath The path to start searching from
+ * @param {number} maxLevels The maximum number of levels to walk up (default is MAX_WALK_UP_LEVELS)
+ * @throw {Deno.errors.NotFound} If no .vt directory is found within the specified levels
+ * @returns The path to the directory containing a .vt folder
  */
 export async function findVtRoot(
   startPath: string,
-  maxLevels = MAX_WALK_UP_LEVELS,
+  maxLevels: number = MAX_WALK_UP_LEVELS,
 ): Promise<string> {
   let currentPath = startPath;
   let levelsUp = 0;
