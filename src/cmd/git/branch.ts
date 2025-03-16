@@ -4,8 +4,8 @@ import sdk from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
 import ValTown from "@valtown/sdk";
-import { vtRootOrFalse } from "~/cmd/git/utils.ts";
 import Kia from "kia";
+import { vtRootOrFalse } from "~/cmd/utils.ts";
 
 export const branchCmd = new Command()
   .name("branch")

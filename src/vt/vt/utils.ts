@@ -6,7 +6,7 @@ import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
  * @param startPath The path to start searching from
  * @returns The path to the directory containing a .vt folder, or the original path if none found
  */
-export async function findVTRoot(
+export async function findVtRoot(
   startPath: string,
   maxLevels = MAX_WALK_UP_LEVELS,
 ): Promise<string> {

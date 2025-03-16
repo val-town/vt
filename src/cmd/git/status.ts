@@ -4,7 +4,8 @@ import Kia from "kia";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
-import { displayStatusChanges, vtRootOrFalse } from "~/cmd/git/utils.ts";
+import { displayStatusChanges } from "~/cmd/git/utils.ts";
+import { vtRootOrFalse } from "~/cmd/utils.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.

@@ -3,7 +3,8 @@ import ValTown from "@valtown/sdk";
 import Kia from "kia";
 import { CheckoutResult } from "~/vt/git/checkout.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { dirtyErrorMsg, vtRootOrFalse } from "~/cmd/git/utils.ts";
+import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
+import { vtRootOrFalse } from "~/cmd/utils.ts";
 
 const toListBranches = "Use \`vt branch\` to list branches.";
 

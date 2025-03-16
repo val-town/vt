@@ -1,11 +1,8 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
-import {
-  dirtyErrorMsg,
-  displayStatusChanges,
-  vtRootOrFalse,
-} from "~/cmd/git/utils.ts";
+import { dirtyErrorMsg, displayStatusChanges } from "~/cmd/git/utils.ts";
+import { vtRootOrFalse } from "~/cmd/utils.ts";
 
 export const pullCmd = new Command()
   .name("pull")

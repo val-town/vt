@@ -1,7 +1,8 @@
 import { Command } from "@cliffy/command";
 import Kia from "kia";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { displayStatusChanges, vtRootOrFalse } from "~/cmd/git/utils.ts";
+import { displayStatusChanges } from "~/cmd/git/utils.ts";
+import { vtRootOrFalse } from "~/cmd/utils.ts";
 
 export const pushCmd = new Command()
   .name("push")
