@@ -1,5 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
-import { STATUS_COLORS } from "~/consts.ts";
+import { ProjectItems, STATUS_COLORS } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { StatusResult } from "~/vt/git/status.ts";
 import Kia from "kia";
@@ -63,7 +63,7 @@ export function formatStatus(
   const config = STATUS_COLORS[status] || { prefix: " ", color: colors.gray };
 
   // Extract file type with consistent padding
-  const paddedFileType = type.padEnd(5);
+  const paddedFileType = type.padEnd(ProjectItems.length);
 
   // Create formatted type indicator with colors
   const typeStart = colors.gray("(");

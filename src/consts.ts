@@ -37,10 +37,13 @@ export const STATUS_COLORS: Record<
 
 export const DEFAULT_VAL_TYPE = "script";
 
-export type ProjectItem =
-  | "script"
-  | "http"
-  | "email"
-  | "interval"
-  | "file"
-  | "directory";
+export const ProjectItems = [
+  "script",
+  "http",
+  "email",
+  "interval",
+  "file",
+  "directory",
+] as const;
+
+export type ProjectItem = typeof ProjectItems[number];
