@@ -62,9 +62,8 @@ export const checkoutCmd = new Command()
         if (branch) {
           // -b flag was used, create new branch from source
           try {
-            checkoutResult = await vt.checkout(branch, {
-              forkedFrom: config.currentBranch,
-            });
+            checkoutResult = await vt
+              .checkout(branch, { forkedFrom: config.currentBranch });
 
             spinner.succeed(
               `Created and switched to new branch "${branch}" from "${checkoutResult.fromBranch.name}"`,
@@ -82,6 +81,7 @@ export const checkoutCmd = new Command()
         } else if (existingBranchName) {
           try {
             checkoutResult = await vt.checkout(existingBranchName);
+
             spinner.succeed(
               `Switched to branch "${existingBranchName}" from "${checkoutResult.fromBranch.name}"`,
             );

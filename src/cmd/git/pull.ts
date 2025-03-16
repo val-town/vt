@@ -21,11 +21,14 @@ export const pullCmd = new Command()
 
     try {
       const vt = VTClient.from(vtRoot);
+
+      // Get the status manually so we don't need to re-fetch it for the pull
       const statusResult = await vt.status();
       if (!force && await vt.isDirty({ statusResult })) {
         spinner.fail(dirtyErrorMsg("pull"));
         return;
       }
+
       spinner.stop();
 
       await vt.pull({ statusResult });

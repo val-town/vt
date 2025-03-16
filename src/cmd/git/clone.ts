@@ -47,9 +47,7 @@ export const cloneCmd = new Command()
 
       // By default, if the target directory is the current working directory,
       // then use the project name as the target directory
-      if (rootPath === undefined) {
-        targetDir = join.join(targetDir, projectName);
-      }
+      if (rootPath === undefined) targetDir = join.join(targetDir, projectName);
 
       const vt = await VTClient.init(
         targetDir,

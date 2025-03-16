@@ -80,8 +80,8 @@ function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
 /**
  * Checks if a path should be ignored based on ignore patterns.
  *
- * @param {string} - filePath Path to check
- * @param {string[]} - ignoreGlobs Array of glob patterns to check against
+ * @param {string} filePath - Path to check
+ * @param {string[]} ignoreGlobs - Array of glob patterns to check against
  * @returns {boolean} True if the path should be ignored
  */
 function shouldIgnore(

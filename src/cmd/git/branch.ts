@@ -34,9 +34,8 @@ export const branchCmd = new Command()
 
       // Separate current branch, place it at the top, and then sort the rest
       // by update time
-      const currentBranch = branches.find((branch) =>
-        branch.id === meta.currentBranch
-      );
+      const currentBranch = branches
+        .find((branch) => branch.id === meta.currentBranch);
 
       const otherBranches = branches
         .filter((branch) => branch.id !== meta.currentBranch)

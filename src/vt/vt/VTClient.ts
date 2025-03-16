@@ -150,8 +150,8 @@ export default class VTClient {
         const now = Date.now();
         if (now - lastPushed < debounceDelay) continue;
 
-        lastPushed = now;
-        yield await this.push();
+        lastPushed = now; // update debouce counter
+        yield await this.push(); // yields the status retreived
       } catch (e) {
         if (event.kind === "access") return; // Nothing to do
 
