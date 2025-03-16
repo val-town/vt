@@ -109,8 +109,7 @@ Deno.test({
         throw new Error("Branch was not created successfully");
       }
 
-      // TODO `await sdk.projects.delete(project.id);` (this API endpoint
-      // doesn't exist yet thoguh)
+      await sdk.projects.delete(project.id);
     }, "vt_checkout_test");
   },
 });
