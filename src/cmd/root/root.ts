@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import manifest from "../../../deno.json" with { type: "json" };
 import * as gitCmds from "~/cmd/git/mod.ts";
 import { createCmd } from "~/cmd/root/create.ts";
-import { watchCmd } from "~/cmd/watch.ts";
+import { watchCmd } from "~/cmd/root/watch.ts";
 
 const cmd = new Command()
   .name("vt")
