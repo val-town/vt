@@ -52,6 +52,6 @@ export async function doWithSpinner(
     if (config?.autostart !== false) spinner.start();
     return await callback(spinner);
   } finally {
-    if (spinner) spinner.stop();
+    if (spinner && spinner.isSpinning()) spinner.stop();
   }
 }

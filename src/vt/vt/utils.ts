@@ -1,5 +1,6 @@
-import { dirname, join } from "@std/path";
+import { join } from "@std/path";
 import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
+import { findRoot } from "~/utils.ts";
 
 /**
  * Finds the nearest directory containing a .vt folder by climbing up the directory tree
@@ -9,35 +10,18 @@ import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
  * @throw {Deno.errors.NotFound} If no .vt directory is found within the specified levels
  * @returns The path to the directory containing a .vt folder
  */
-export async function findVtRoot(
+export function findVtRoot(
   startPath: string,
   maxLevels: number = MAX_WALK_UP_LEVELS,
 ): Promise<string> {
-  let currentPath = startPath;
-  let levelsUp = 0;
-
-  while (levelsUp < maxLevels) {
-    try {
-      // Check if .vt directory exists in the current path
-      const vtDirPath = join(currentPath, ".vt");
+  return findRoot(
+    startPath,
+    // the isRoot() callback
+    async (path: string): Promise<boolean> => {
+      const vtDirPath = join(path, ".vt"); // it's a root if there's a .vt dir
       const stat = await Deno.stat(vtDirPath);
-
-      if (stat.isDirectory) return currentPath;
-    } catch (error) {
-      if (!(error instanceof Deno.errors.NotFound)) throw error;
-    }
-
-    // Move up to parent directory
-    const parentPath = dirname(currentPath);
-
-    // If we've reached the root and can't go up further
-    if (parentPath === currentPath) break;
-
-    currentPath = parentPath;
-    levelsUp++;
-  }
-
-  throw new Deno.errors.NotFound(
-    `No .vt directory found in current path or any parent.`,
+      return stat.isDirectory;
+    },
+    maxLevels,
   );
 }

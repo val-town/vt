@@ -132,11 +132,7 @@ export function displayStatusChanges(
 export async function doVtAction(
   spinnerText: string,
   callback: (context: { spinner: Kia; vt: VTClient }) => Promise<void> | void,
-  options?: { spinnerAutostart?: boolean },
 ): Promise<void> {
-  const spinner = new Kia(spinnerText);
-  if (options?.spinnerAutostart !== false) spinner.start();
-
   await doWithSpinner(spinnerText, async (spinner) => {
     try {
       // Find VT root directory
