@@ -1,11 +1,11 @@
 import { Command } from "@cliffy/command";
 import { user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
+import { ALWAYS_IGNORE_PATTERNS, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
 import { checkDirectory } from "~/utils.ts";
-import { basename, relative } from "@std/path";
+import { relative } from "@std/path";
 import * as join from "@std/path/join";
 
 export const cloneCmd = new Command()
@@ -64,7 +64,7 @@ export const cloneCmd = new Command()
         // Make sure that the directory is safe to clone into (exists, or gets
         // created and then exists, and wasn't nonempty)
         await checkDirectory(targetDir, {
-          ignoreGlobs: DEFAULT_IGNORE_PATTERNS,
+          ignoreGlobs: ALWAYS_IGNORE_PATTERNS,
         });
 
         spinner.start();

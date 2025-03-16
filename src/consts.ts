@@ -3,10 +3,17 @@ import { colors } from "@cliffy/ansi/colors";
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
-export const DEFAULT_IGNORE_PATTERNS: string[] = [
+export const ALWAYS_IGNORE_PATTERNS: string[] = [
   ".vtignore",
   ".vt/**",
   ".vt",
+  ".env",
+];
+
+export const DEFAULT_IGNORE_PATTERNS: string[] = [
+  "*~",
+  "*.swp",
+  ".env",
 ];
 
 export const CONFIG_FILE_NAME = "vt.json";

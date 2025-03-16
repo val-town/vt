@@ -1,6 +1,7 @@
 import z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 import {
+  ALWAYS_IGNORE_PATTERNS,
   CONFIG_FILE_NAME,
   META_FOLDER_NAME,
   META_LOCK_FILE_NAME,
@@ -118,7 +119,7 @@ export default class VTMeta {
       }
     }
 
-    return ignoreGlobs;
+    return [...ignoreGlobs, ...ALWAYS_IGNORE_PATTERNS];
   }
 
   /**
