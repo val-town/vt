@@ -128,12 +128,13 @@ const createCmd = new Command()
     }
   });
 
-export const openCmd = new Command()
-  .name("open")
-  .description("Open the project in the browser")
-  .action(async () => {
+export const browseCmd = new Command()
+  .name("browse")
+  .description("Open a project in a web browser")
+  .option("--no-browser", "Print destination url instead of opening browser")
+  .action(async ({ browser }: { browser?: boolean }) => {
     const cwd = Deno.cwd();
-    const spinner = new Kia("Opening project url...");
+    const spinner = browser ? new Kia("Opening project url...") : null;
     try {
       const vt = VTClient.from(cwd);
       const meta = await vt.getMeta().loadConfig();
@@ -141,11 +142,15 @@ export const openCmd = new Command()
         meta.projectId,
         meta.currentBranch,
       );
-      await open(branch.links.html);
-      spinner.succeed(`Project url opened in browser: ${branch.links.html}`);
+      if (browser) {
+        await open(branch.links.html);
+        spinner?.succeed(`Project url opened in browser: ${branch.links.html}`);
+      } else {
+        console.log(`${branch.links.html}`);
+      }
     } catch (error) {
       if (error instanceof Error) {
-        spinner.fail(error.message);
+        spinner?.fail(error.message);
       }
     }
   });
@@ -153,7 +158,7 @@ export const openCmd = new Command()
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
 cmd.command("push", cmds.pushCmd);
-cmd.command("open", openCmd);
+cmd.command("browse", browseCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
 cmd.command("watch", watchCmd);
