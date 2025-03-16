@@ -161,3 +161,14 @@ export async function ensureValtownDir(
     }
   }
 }
+
+/**
+ * Determines the total number of changes, not including not modified files,
+ * from a StatusResult.
+ */
+export function getTotalChanges(status: StatusResult): number {
+  return Object
+    .entries(status)
+    .filter(([type]) => type !== "not_modified")
+    .reduce((sum, [, files]) => sum + files.length, 0);
+}

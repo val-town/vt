@@ -1,5 +1,5 @@
 import { clone } from "~/vt/git/clone.ts";
-import { status } from "~/vt/git/status.ts";
+import { status, StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import { doAtomically } from "~/vt/git/utils.ts";
 
@@ -19,17 +19,20 @@ export function pull({
   projectId,
   branchId,
   version,
+  statusResult,
   ignoreGlobs,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version: number;
+  statusResult?: StatusResult;
   ignoreGlobs: string[];
-}): Promise<void> {
+}): Promise<StatusResult> {
   return doAtomically(
     async (tmpDir) => {
-      const statusResult = await status({
+      // Use provided status, or retreive the status
+      statusResult = statusResult || await status({
         targetDir: tmpDir,
         projectId,
         branchId,
@@ -57,6 +60,8 @@ export function pull({
         version,
         ignoreGlobs,
       });
+
+      return statusResult;
     },
     targetDir,
     "vt_pull_",

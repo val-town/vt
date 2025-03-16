@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
-import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
+import { dirtyErrorMsg, displayStatusChanges } from "~/cmd/git/utils.ts";
 
 export const pullCmd = new Command()
   .name("pull")
@@ -12,20 +12,18 @@ export const pullCmd = new Command()
     const spinner = new Kia("Pulling latest changes...");
     const cwd = Deno.cwd();
 
-    try {
-      const vt = VTClient.from(cwd);
-      spinner.start();
-
-      if (!force && await vt.isDirty()) {
-        spinner.fail(dirtyErrorMsg("pull"));
-        return;
-      }
-
-      await vt.pull(cwd);
-      spinner.succeed(`Project pulled successfully`);
-    } catch (error) {
-      if (error instanceof Error) {
-        spinner.fail(error.message);
-      }
+    spinner.start();
+    const vt = VTClient.from(cwd);
+    const statusResult = await vt.status();
+    if (!force && await vt.isDirty({ statusResult })) {
+      spinner.fail(dirtyErrorMsg("pull"));
+      return;
     }
+    spinner.stop();
+
+    await vt.pull({ statusResult });
+    displayStatusChanges(statusResult, {
+      emptyMessage: "Nothing new to pull, everything is up to date.",
+      summaryPrefix: "Changes pulled:",
+    });
   });

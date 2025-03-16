@@ -1,6 +1,7 @@
 import { Command } from "@cliffy/command";
 import Kia from "kia";
 import VTClient from "~/vt/vt/VTClient.ts";
+import { displayStatusChanges } from "~/cmd/git/utils.ts";
 
 export const pushCmd = new Command()
   .name("push")
@@ -13,11 +14,14 @@ export const pushCmd = new Command()
     try {
       spinner.start();
       const vt = VTClient.from(cwd);
-      await vt.push();
-      spinner.succeed(`Project pushed successfully from ${cwd}`);
+      const statusResult = await vt.push();
+      spinner.stop();
+
+      displayStatusChanges(statusResult, {
+        emptyMessage: "Nothing to push, everything is up to date.",
+        summaryPrefix: "Changes pushed:",
+      });
     } catch (error) {
-      if (error instanceof Error) {
-        spinner.fail(error.message);
-      }
+      if (error instanceof Error) spinner.fail(error.message);
     }
   });

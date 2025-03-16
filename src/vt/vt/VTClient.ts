@@ -5,7 +5,6 @@ import { push } from "~/vt/git/push.ts";
 import { status, StatusResult } from "~/vt/git/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { debounce } from "jsr:@std/async/debounce";
 import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";
 import { isDirty } from "~/vt/git/utils.ts";
 import ValTown from "@valtown/sdk";
@@ -117,14 +116,21 @@ export default class VTClient {
    * Watch the root directory for changes and automatically push to Val Town
    * when files are updated locally.
    *
-   * If another instance of the program is already running then this errors. A lock file with
-   * the running program's PID is maintained automatically.
+   * If another instance of the program is already running then this errors. A
+   * lock file with the running program's PID is maintained automatically so
+   * that this cannot run with multiple instances.
    *
-   * @returns {Promise<never>} A promise that never resolves, representing the ongoing watch process.
+   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
+   * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
    */
-  public async watch() {
+  public async *watch(
+    debounceDelay: number = 300,
+  ): AsyncGenerator<StatusResult> {
     // Set the lock file at the start
     await this.getMeta().setLockFile();
+
+    // Track the last time we pushed
+    let lastPushed = 0;
 
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -135,43 +141,44 @@ export default class VTClient {
       });
     }
 
-    // A function that runs a push on file system changes
-    const pushOnFileEvents = async () => {
-      const debouncedPush = debounce(async (_event: Deno.FsEvent) => {
-        try {
-          await this.push();
-        } catch (e) {
-          // Handle case where the file was deleted before we could push it
-          if (e instanceof Deno.errors.NotFound) {
-            // The file no longer exists at the time of uploading. It could've
-            // just been a temporary file, but since it no longer exists it
-            // isn't our problem.
-            return;
-          }
+    const watcher = Deno.watchFs(this.rootPath);
 
-          // Handle case where the API returns a 404 Not Found error
-          if (e instanceof ValTown.APIError && e.status === 404) {
-            // The val we're trying to update doesn't exist on the server. This
-            // is usually a result of starting a deletion and then trying to
-            // delete a second time because of duplicate file system events.
-            //
-            // TODO: We should keep a global queue of outgoing requests and
-            // intelligently notice that we have duplicate idempotent (in this
-            // case deletions are) requests in the queue.
-            return;
-          }
+    // Process events and yield results
+    for await (const event of watcher) {
+      try {
+        // Debounce - only push if enough time has elapsed since last push
+        const now = Date.now();
+        if (now - lastPushed < debounceDelay) continue;
 
-          // Re-throw any other errors
-          throw e;
+        lastPushed = now;
+        yield await this.push();
+      } catch (e) {
+        if (event.kind === "access") return; // Nothing to do
+
+        // Handle case where the file was deleted before we could push it
+        if (e instanceof Deno.errors.NotFound) {
+          // The file no longer exists at the time of uploading. It could've
+          // just been a temporary file, but since it no longer exists it
+          // isn't our problem.
+          continue;
         }
-      }, 300);
 
-      const watcher = Deno.watchFs(this.rootPath);
-      for await (const event of watcher) debouncedPush(event);
-    };
+        // Handle case where the API returns a 404 Not Found error
+        if (e instanceof ValTown.APIError && e.status === 404) {
+          // The val we're trying to update doesn't exist on the server. This
+          // is usually a result of starting a deletion and then trying to
+          // delete a second time because of duplicate file system events.
+          //
+          // TODO: We should keep a global queue of outgoing requests and
+          // intelligently notice that we have duplicate idempotent (in this
+          // case deletions are) requests in the queue.
+          continue;
+        }
 
-    // Since we're only pushing now, we just need to return the pushOnFileEvents promise
-    return pushOnFileEvents();
+        // Re-throw any other errors
+        throw e;
+      }
+    }
   }
 
   /**
@@ -263,40 +270,20 @@ export default class VTClient {
   }
 
   /**
-   * Pull val town project into a vt directory. Updates all the files in the
-   * directory. If the contents are dirty (files have been updated but not
-   * pushed) then this fails.
-   *
-   * @param {string} targetDir - The directory to pull the project into.
-   * @returns {Promise<void>}
-   */
-  public async pull(targetDir: string): Promise<void> {
-    const config = await this.getMeta().loadConfig();
-
-    config.version = await getLatestVersion(
-      config.projectId,
-      config.currentBranch,
-    );
-
-    // Use the provided pull function
-    await pull({
-      targetDir,
-      projectId: config.projectId,
-      branchId: config.currentBranch,
-      version: config.version,
-      ignoreGlobs: await this.getIgnoreGlobs(),
-    });
-
-    await this.getMeta().saveConfig(config);
-  }
-
-  /**
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
+   * @param {Object} options - Optional parameters
+   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
-  public async status(): Promise<StatusResult> {
+  public async status(
+    options?: { statusResult?: StatusResult },
+  ): Promise<StatusResult> {
+    if (options?.statusResult) {
+      return options.statusResult;
+    }
+
     const { projectId, currentBranch } = await this.getMeta().loadConfig();
 
     return status({
@@ -309,23 +296,61 @@ export default class VTClient {
   }
 
   /**
+   * Pull val town project into a vt directory. Updates all the files in the
+   * directory. If the contents are dirty (files have been updated but not
+   * pushed) then this fails.
+   *
+   * @param {Object} options - Optional parameters
+   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
+   * @returns {Promise<StatusResult>} The status result after pulling
+   */
+  public async pull(
+    options?: { statusResult?: StatusResult },
+  ): Promise<StatusResult> {
+    const config = await this.getMeta().loadConfig();
+
+    config.version = await getLatestVersion(
+      config.projectId,
+      config.currentBranch,
+    );
+
+    const statusResult = options?.statusResult || await pull({
+      targetDir: this.rootPath,
+      projectId: config.projectId,
+      branchId: config.currentBranch,
+      version: config.version,
+      ignoreGlobs: await this.getIgnoreGlobs(),
+    });
+
+    await this.getMeta().saveConfig(config);
+
+    return statusResult;
+  }
+
+  /**
    * Push changes from the local directory to the Val Town project.
    *
-   * @returns {Promise<void>}
+   * @param {Object} options - Optional parameters
+   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
+   * @returns {Promise<StatusResult>} The status result after pushing
    */
-  public async push(): Promise<void> {
-    const { projectId, currentBranch, version } = await this.getMeta()
+  public async push(
+    options?: { statusResult?: StatusResult },
+  ): Promise<StatusResult> {
+    const { projectId, currentBranch, version } = await this
+      .getMeta()
       .loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
     }
 
-    await push({
+    const statusResult = await push({
       targetDir: this.rootPath,
       projectId,
       branchId: currentBranch,
       ignoreGlobs: await this.getIgnoreGlobs(),
+      statusResult: options?.statusResult,
     });
 
     await this.getMeta().saveConfig({
@@ -333,27 +358,29 @@ export default class VTClient {
       currentBranch,
       version: await getLatestVersion(projectId, currentBranch),
     });
+
+    return statusResult;
   }
 
   /**
-  * Check out a different branch of the project.
-  *
-  * @param {string} branchName The name of the branch to check out to
-  * @param {string} forkedFrom If provided, create a new branch with branchName, forking from this branch
-  * @returns {Promise<{fromBranch: ValTown.Projects.BranchCreateResponse, toBranch:
- ValTown.Projects.BranchCreateResponse, createdNew: boolean}>}
-  */
+   * Check out a different branch of the project.
+   *
+   * @param {string} branchName The name of the branch to check out to
+   * @param {Object} options - Optional parameters
+   * @param {string} options.forkedFrom If provided, create a new branch with branchName, forking from this branch
+   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
+   * @returns {Promise<CheckoutResult>}
+   */
   public async checkout(
     branchName: string,
-    forkedFrom?: string,
+    options?: { forkedFrom?: string; statusResult?: StatusResult },
   ): Promise<CheckoutResult> {
     const config = await this.getMeta().loadConfig();
     const currentBranchId = config.currentBranch;
 
     // Get files that were newly created but not yet committed
-    const created = (await this.status()
-      .then((status) => status.created))
-      .map((file) => file.path);
+    const statusResult = options?.statusResult || await this.status();
+    const created = statusResult.created.map((file) => file.path);
 
     // We want to ignore newly created files. Adding them to the ignoreGlobs
     // list is a nice way to do that.
@@ -361,17 +388,17 @@ export default class VTClient {
 
     let result: CheckoutResult;
 
-    if (forkedFrom) {
+    if (options?.forkedFrom) {
       // Create a new branch from the specified source
       const sourceVersion = await getLatestVersion(
         config.projectId,
-        forkedFrom,
+        options.forkedFrom,
       );
 
       result = await checkout({
         targetDir: this.rootPath,
         projectId: config.projectId,
-        forkedFrom,
+        forkedFrom: options.forkedFrom,
         name: branchName,
         ignoreGlobs,
         version: sourceVersion,
@@ -413,9 +440,14 @@ export default class VTClient {
   /**
    * Check if the working directory has uncommitted changes.
    *
+   * @param {Object} options - Optional parameters
+   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
    * @returns {Promise<boolean>} True if there are uncommitted changes
    */
-  public async isDirty(): Promise<boolean> {
-    return isDirty(await this.status());
+  public async isDirty(
+    options?: { statusResult?: StatusResult },
+  ): Promise<boolean> {
+    const statusResult = options?.statusResult || await this.status();
+    return isDirty(statusResult);
   }
 }

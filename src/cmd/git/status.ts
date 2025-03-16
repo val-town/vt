@@ -1,23 +1,42 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
-import * as styles from "~/cmd/styling.ts";
 import { colors } from "@cliffy/ansi/colors";
-import { branchIdToBranch } from "~/sdk.ts";
-import { STATUS_COLORS } from "~/consts.ts";
+import sdk from "~/sdk.ts";
+import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
+import { displayStatusChanges } from "~/cmd/git/utils.ts";
 
+/**
+ * Formats a version range string based on the first, current, and latest versions.
+ *
+ * The function returns:
+ * - Only the current version (in green) if it equals the latest version
+ * - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green
+ *   if the current version is less than the latest version
+ *
+ * @param firstVersion - The initial version number in the range
+ * @param currentVersion - The currently used version number (will be highlighted in green)
+ * @param latestVersion - The latest available version number
+ * @returns A formatted version range string
+ */
 function getVersionRangeStr(
-  firstVersion: string | number,
-  currentVersion: string | number,
-  latestVersion?: string | number,
+  firstVersion: number,
+  currentVersion: number,
+  latestVersion: number,
 ): string {
+  // If current version is the latest, only return the current version in green
+  if (currentVersion === latestVersion) {
+    return colors.cyan(currentVersion.toString());
+  }
+
+  // Otherwise, return the full range
   const versions = [firstVersion.toString(), currentVersion.toString()];
   if (latestVersion && currentVersion !== latestVersion) {
     versions.push(latestVersion.toString());
   }
 
   const formattedVersions = versions
-    .map((v) => v === currentVersion.toString() ? colors.green(v) : v);
+    .map((v) => v === currentVersion.toString() ? colors.cyan(v) : v);
 
   return formattedVersions.join("..");
 }
@@ -34,66 +53,30 @@ export const statusCmd = new Command()
   .action(async () => {
     const spinner = new Kia("Checking status...");
 
-    try {
-      spinner.start();
-      const vt = VTClient.from(Deno.cwd());
+    spinner.start();
+    const vt = VTClient.from(Deno.cwd());
 
-      const { currentBranch, version: currentVersion, projectId } = await vt
-        .getMeta()
-        .loadConfig();
-      const currentBranchVersion = await branchIdToBranch(
-        currentBranch,
-        projectId,
-      );
+    const {
+      currentBranch: currentBranchId,
+      version: currentVersion,
+      projectId,
+    } = await vt.getMeta().loadConfig();
 
-      const status = await vt.status();
-      spinner.stop(); // Stop spinner before showing status
+    const currentBranch = await sdk.projects.branches.retrieve(
+      projectId,
+      currentBranchId,
+    );
 
-      // Display branch and version information
-      console.log(`On branch ${colors.cyan(currentBranchVersion.toString())}`);
+    const status = await vt.status();
+    spinner.stop(); // Stop spinner before showing status
 
-      // Get the first version (could be retrieved from history or use 1 as default)
-      const firstVersion = 1; // Replace with actual first version if available
-      const latestVersion = currentVersion; // Replace with actual latest version if different
+    const versionStr = getVersionRangeStr(
+      FIRST_VERSION_NUMBER,
+      currentVersion,
+      currentBranch.version,
+    );
+    console.log(`On branch ${colors.cyan(currentBranch.name)}@${versionStr}`);
+    console.log();
 
-      console.log(
-        "Version: " +
-          getVersionRangeStr(firstVersion, currentVersion, latestVersion) +
-          "\n",
-      );
-
-      const statusMap = {
-        modified: status.modified.map((file) => ({ path: file.path })),
-        created: status.created.map((file) => ({ path: file.path })),
-        deleted: status.deleted.map((file) => ({ path: file.path })),
-      };
-
-      // Print all changed files
-      Object.entries(statusMap).forEach(([type, files]) => {
-        files.forEach((file) => {
-          console.log(formatStatus(file.path, type));
-        });
-      });
-
-      // Print summary
-      const totalChanges = Object.values(statusMap).reduce(
-        (sum, files) => sum + files.length,
-        0,
-      );
-
-      if (totalChanges === 0) {
-        console.log(styles.success("Working tree clean"));
-      } else {
-        console.log("\nChanges:");
-        Object.entries(statusMap).forEach(([type, files]) => {
-          if (files.length > 0) {
-            console.log(`  ${files.length} ${type}`);
-          }
-        });
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        spinner.fail(error.message);
-      }
-    }
+    displayStatusChanges(status, { summaryPrefix: "Changes to be pushed:" });
   });

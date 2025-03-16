@@ -4,8 +4,6 @@ import { shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 
-const STAT_PROMISES_BATCH_SIZE = 50;
-
 export interface FileStatus {
   path: string;
   status: "modified" | "not_modified" | "deleted" | "created";
@@ -62,40 +60,38 @@ export async function status({
   );
 
   // Compare local files against project files
-  for (const [baseName, { originalPath, modTime }] of localFiles.entries()) {
+  for (const [baseName, mtime] of localFiles.entries()) {
     if (!baseName) continue; // Skip empty paths
 
-    const projectModTime = projectFiles.get(originalPath);
+    const projectModTime = projectFiles.get(baseName);
 
     if (projectModTime === undefined) {
       // File exists locally but not in project - it's created
       result.created.push({
-        path: originalPath,
+        path: baseName,
         status: "created",
       });
     } else {
-      // File exists in both places, so check if modified
-      if (modTime > projectModTime) {
-        // To make sure it is actually modified we have to actually check the
-        // content delta :(. The mtime is a heuristic.
-        const isModified = await isFileModified(
-          targetDir,
-          originalPath,
-          baseName,
-          projectId,
-          branchId,
-          version,
-        );
+      // File exists in both places, check if modified
+      const isModified = await isFileModified(
+        targetDir,
+        baseName,
+        baseName,
+        projectId,
+        branchId,
+        version,
+        mtime,
+        projectModTime,
+      );
 
-        if (isModified) {
-          result.modified.push({
-            path: originalPath,
-            status: "modified",
-          });
-        }
+      if (isModified) {
+        result.modified.push({
+          path: baseName,
+          status: "modified",
+        });
       } else {
         result.not_modified.push({
-          path: originalPath,
+          path: baseName,
           status: "not_modified",
         });
       }
@@ -122,7 +118,15 @@ async function isFileModified(
   projectId: string,
   branchId: string,
   version: number,
+  localMtime: number,
+  projectMtime: number,
 ): Promise<boolean> {
+  // First use the mtime as a heuristic to avoid unnecessary content checks
+  if (localMtime <= projectMtime) {
+    return false;
+  }
+
+  // If mtime indicates a possible change, check content
   const projectFileContent = await sdk.projects.files.getContent(
     projectId,
     encodeURIComponent(cleanPath),
@@ -166,8 +170,8 @@ async function getProjectFiles(
 async function getLocalFiles(
   targetDir: string,
   ignoreGlobs: string[],
-): Promise<Map<string, { originalPath: string; modTime: number }>> {
-  const files = new Map<string, { originalPath: string; modTime: number }>();
+): Promise<Map<string, number>> {
+  const files = new Map<string, number>();
   const statPromises: Promise<void>[] = [];
 
   const processEntry = async (entry: fs.WalkEntry) => {
@@ -184,22 +188,12 @@ async function getLocalFiles(
       throw new Error("File modification time is null");
     }
 
-    // Store both the cleaned path and original path. We'll want access to
-    // the original (real) path for later when we're accessing mtimes.
-    files.set(path.relative(targetDir, entry.path), {
-      originalPath: relativePath,
-      modTime: stat.mtime.getTime(),
-    });
+    // Store the path and its modification time
+    files.set(path.relative(targetDir, entry.path), stat.mtime.getTime());
   };
 
   for await (const entry of fs.walk(targetDir)) {
     statPromises.push(processEntry(entry));
-
-    // Process stats in batches of 50
-    if (statPromises.length >= STAT_PROMISES_BATCH_SIZE) {
-      await Promise.all(statPromises);
-      statPromises.length = 0;
-    }
   }
 
   await Promise.all(statPromises);

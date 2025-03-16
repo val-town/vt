@@ -1,4 +1,4 @@
-import { status } from "~/vt/git/status.ts";
+import { status, type StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { getProjectItemType } from "~/vt/git/paths.ts";
@@ -14,6 +14,7 @@ import { ProjectItem } from "~/consts.ts";
  * @param {string} args.branchId The branch ID to upload file content to.
  * @param {string} args.branchId The version to compute the status against. Defaults to latest version.
  * @param {string[]} args.ignoreGlobs A list of glob patterns for files to exclude.
+ * @param {StatusResult} args.status The current status. If not provided, it will be computed.
  *
  * @returns Promise that resolves when the push operation is complete.
  */
@@ -22,21 +23,24 @@ export async function push({
   projectId,
   branchId,
   version,
+  statusResult,
   ignoreGlobs,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version?: number;
+  statusResult?: StatusResult;
   ignoreGlobs: string[];
-}): Promise<void> {
+}): Promise<StatusResult> {
   version = version || await getLatestVersion(projectId, branchId);
 
-  const statusResult = await status({
-    version,
+  // Use provided status, or retreive the status
+  statusResult = statusResult || await status({
     targetDir,
     projectId,
     branchId,
+    version,
     ignoreGlobs,
   });
 
@@ -104,6 +108,8 @@ export async function push({
       assertAllowedUploadError(error);
     }
   }
+
+  return statusResult;
 }
 
 async function ensureValtownDir(
