@@ -8,7 +8,7 @@ import { join } from "jsr:@std/path@^1.0.8";
 const installVersion = "0.0.1-alpha.1";
 
 const appName = "vt";
-const cacheDir = join(xdg.cache(), appName);
+const cacheDir = Deno.env.get("VT_CACHE_DIR") || join(xdg.cache(), appName);
 await ensureDir(cacheDir);
 const vtDenoJsonPath = join(cacheDir, `${installVersion}_deno.json`);
 
