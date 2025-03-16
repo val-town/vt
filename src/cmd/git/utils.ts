@@ -58,12 +58,13 @@ export function formatStatus(
   path: string,
   status: string,
   type: string,
+  maxTypeLength: number,
 ): string {
   // Get color configuration for the status or use default
   const config = STATUS_COLORS[status] || { prefix: " ", color: colors.gray };
 
   // Extract file type with consistent padding
-  const paddedFileType = type.padEnd(ProjectItems.length);
+  const paddedFileType = type.padEnd(maxTypeLength);
 
   // Create formatted type indicator with colors
   const typeStart = colors.gray("(");
@@ -116,11 +117,19 @@ export function displayStatusChanges(
   // Display header if provided
   if (headerText) console.log(headerText);
 
+  // Calculate the longest type length from all files
+  const maxTypeLength = Object.entries(status)
+    .filter(([type]) => type !== "not_modified")
+    .flatMap(([_, files]) => files)
+    .reduce((max, file) => Math.max(max, file.type.length));
+
   // Print all changed files state
   for (const [type, files] of Object.entries(status)) {
     if (type !== "not_modified") {
       for (const file of files) {
-        console.log(formatStatus(file.path, file.status, file.type));
+        console.log(
+          formatStatus(file.path, file.status, file.type, maxTypeLength),
+        );
       }
     }
   }
