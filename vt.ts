@@ -2,6 +2,7 @@
 import { Confirm } from "@cliffy/prompt";
 import { Secret } from "@cliffy/prompt/secret";
 import { colors } from "@cliffy/ansi/colors";
+import open from "open";
 
 if (Deno.env.get("VAL_TOWN_API_KEY") === undefined) {
   console.log(
@@ -20,8 +21,7 @@ if (Deno.env.get("VAL_TOWN_API_KEY") === undefined) {
   });
 
   if (goToWebsite) {
-    const open = await import("npm:open");
-    await open.default("https://www.val.town/settings/api");
+    await open("https://www.val.town/settings/api");
     console.log("Browser opened to https://www.val.town/settings/api");
   } else {
     console.log();
