@@ -1,5 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
-import { ProjectItems, STATUS_COLORS } from "~/consts.ts";
+import { STATUS_COLORS } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { StatusResult } from "~/vt/git/status.ts";
 import Kia from "kia";
