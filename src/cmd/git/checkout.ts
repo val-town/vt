@@ -1,10 +1,7 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
-import Kia from "kia";
 import { CheckoutResult } from "~/vt/git/checkout.ts";
-import VTClient from "~/vt/vt/VTClient.ts";
-import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
-import { vtRootOrFalse } from "~/cmd/utils.ts";
+import { dirtyErrorMsg, doVtAction } from "~/cmd/git/utils.ts";
 
 const toListBranches = "Use \`vt branch\` to list branches.";
 
@@ -37,19 +34,12 @@ export const checkoutCmd = new Command()
     `vt checkout -b bugfix -f`,
   )
   .action(
-    async (
+    (
       { branch, force }: { branch?: string; force?: boolean },
       existingBranchName?: string,
     ) => {
-      const spinner = new Kia("Checking out branch...");
-
-      const vtRoot = await vtRootOrFalse(spinner);
-      if (!vtRoot) return;
-
-      try {
-        const vt = VTClient.from(vtRoot);
+      doVtAction("Checking out branch...", async ({ spinner, vt }) => {
         const config = await vt.getMeta().loadConfig();
-        spinner.start();
 
         const statusResult = await vt.status();
         // !branch && await vt.isDirty(cwd) means that we only do the isDirty
@@ -109,8 +99,6 @@ export const checkoutCmd = new Command()
           );
           return;
         }
-      } finally {
-        spinner.stop();
-      }
+      });
     },
   );

@@ -1,24 +1,16 @@
 import { Command } from "@cliffy/command";
-import VTClient from "~/vt/vt/VTClient.ts";
 import sdk from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
 import ValTown from "@valtown/sdk";
-import Kia from "kia";
-import { vtRootOrFalse } from "~/cmd/utils.ts";
+import { doVtAction } from "~/cmd/git/utils.ts";
 
 export const branchCmd = new Command()
   .name("branch")
   .description("List all project branches")
   .example("List all branches", "vt branch")
-  .action(async () => {
-    const spinner = new Kia("Loading branches...");
-
-    try {
-      const vtRoot = await vtRootOrFalse(spinner);
-      if (!vtRoot) return;
-
-      const vt = VTClient.from(vtRoot);
+  .action(() => {
+    doVtAction("Loading branches...", async ({ vt }) => {
       const meta = await vt.getMeta().loadConfig();
 
       const branches: ValTown.Projects.BranchListResponse[] = [];
@@ -67,7 +59,5 @@ export const branchCmd = new Command()
       ]);
 
       console.log(branchesTableList.toString());
-    } finally {
-      spinner.stop();
-    }
+    });
   });

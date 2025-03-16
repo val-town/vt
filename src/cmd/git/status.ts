@@ -1,25 +1,12 @@
 import { Command } from "@cliffy/command";
-import VTClient from "~/vt/vt/VTClient.ts";
-import Kia from "kia";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
-import { vtRootOrFalse } from "~/cmd/utils.ts";
+import { displayStatusChanges, doVtAction } from "~/cmd/git/utils.ts";
 
-/**
- * Formats a version range string based on the first, current, and latest versions.
- *
- * The function returns:
- * - Only the current version (in green) if it equals the latest version
- * - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green
- *   if the current version is less than the latest version
- *
- * @param firstVersion - The initial version number in the range
- * @param currentVersion - The currently used version number (will be highlighted in green)
- * @param latestVersion - The latest available version number
- * @returns A formatted version range string
- */
+// - Only the current version (in green) if it equals the latest version
+// - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green
+//   if the current version is less than the latest version
 function getVersionRangeStr(
   firstVersion: number,
   currentVersion: number,
@@ -51,16 +38,8 @@ export function formatStatus(path: string, status: string): string {
 export const statusCmd = new Command()
   .name("status")
   .description("Show the working tree status")
-  .action(async () => {
-    const spinner = new Kia("Checking status...");
-
-    spinner.start();
-
-    const vtRoot = await vtRootOrFalse(spinner);
-    if (!vtRoot) return;
-
-    try {
-      const vt = VTClient.from(vtRoot);
+  .action(() => {
+    doVtAction("Checking status...", async ({ spinner, vt }) => {
       const {
         currentBranch: currentBranchId,
         version: currentVersion,
@@ -84,7 +63,5 @@ export const statusCmd = new Command()
       console.log();
 
       displayStatusChanges(status, { summaryPrefix: "Changes to be pushed:" });
-    } finally {
-      spinner.stop();
-    }
+    });
   });

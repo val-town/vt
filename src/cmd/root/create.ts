@@ -1,11 +1,11 @@
 import { Command } from "@cliffy/command";
 import { basename, join } from "@std/path";
-import Kia from "kia";
 import { checkDirectory } from "~/utils.ts";
 import { DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
+import { doWithSpinner } from "~/cmd/utils.ts";
 
 export const createCmd = new Command()
   .name("create")
@@ -40,7 +40,7 @@ vim index.tsx
 vt push
 vt checkout main`,
   )
-  .action(async (
+  .action((
     { public: isPublic, private: isPrivate, unlisted, description }: {
       public?: boolean;
       private?: boolean;
@@ -50,10 +50,9 @@ vt checkout main`,
     projectName: string,
     targetDir?: string,
   ) => {
-    const spinner = new Kia("Creating project...");
-    let rootPath = targetDir || Deno.cwd();
+    doWithSpinner("Creating project...", async (spinner) => {
+      let rootPath = targetDir || Deno.cwd();
 
-    try {
       // Check for mutually exclusive privacy flags
       const privacyFlags =
         [isPublic, isPrivate, unlisted].filter(Boolean).length;
@@ -99,9 +98,5 @@ vt checkout main`,
           throw error;
         }
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        spinner.fail(error.message);
-      }
-    }
+    });
   });
