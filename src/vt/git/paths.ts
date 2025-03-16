@@ -1,6 +1,6 @@
-import * as path from "@std/path";
 import { DEFAULT_VAL_TYPE, ProjectItem } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
+import { compile as compileGitignore } from "gitignore-parser";
 
 /**
  * Determine the type of a project file.
@@ -66,23 +66,7 @@ async function getProjectItemType(
 }
 
 /**
- * Checks if a path should be ignored based on ignore patterns, using
- * .gitignore rules.
- *
- * This function implements gitignore-style pattern matching with the following behavior:
- *
- * 1. Patterns are processed in order from top to bottom
- * 2. Negated patterns (starting with !) can re-include a previously excluded file
- * 3. The last matching pattern determines the outcome
- * 4. Patterns ending with "/" only match directories
- * 5. Patterns starting with "/" are anchored to the base directory
- * 6. Patterns without leading "/" can match anywhere in subdirectories
- *
- * Example patterns:
- * - "*.log" - Ignores all .log files in any directory
- * - "/build/" - Ignores only the build directory in the root
- * - "node_modules/" - Ignores all node_modules directories
- * - "!important.log" - Re-includes important.log even if it matches a previous pattern
+ * Checks if a path should be ignored based on gitignore rules.
  *
  * @param {string} filePath - Path to check
  * @param {string[]} ignoreGlobs - Array of glob patterns to check against
@@ -92,45 +76,12 @@ function shouldIgnore(
   filePath: string,
   ignoreGlobs: string[] = [],
 ): boolean {
-  // Split ignoreGlobs into normal and negated patterns while preserving order
-  const patterns: Array<{ pattern: string; negated: boolean }> = ignoreGlobs
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#"))
-    .map((glob) => ({
-      pattern: glob.startsWith("!") ? glob.slice(1) : glob,
-      negated: glob.startsWith("!"),
-    }));
+  if (ignoreGlobs.length === 0) return false;
 
-  // gitignore logic: last matching pattern determines the outcome
-  let ignored = false;
-
-  for (const { pattern, negated } of patterns) {
-    // Create RegExp for this specific pattern
-    let regexPattern: RegExp;
-
-    // Handle directory-specific patterns
-    const dirOnly = pattern.endsWith("/");
-    const cleanPattern = dirOnly ? pattern.slice(0, -1) : pattern;
-
-    // Handle absolute vs relative patterns
-    if (cleanPattern.startsWith("/")) {
-      // Absolute pattern - anchored to the base directory
-      regexPattern = path.globToRegExp(cleanPattern, {
-        extended: true,
-        globstar: true,
-      });
-    } else {
-      // Relative pattern - can match anywhere in subdirectories
-      regexPattern = path.globToRegExp(`**/${cleanPattern}`, {
-        extended: true,
-        globstar: true,
-      });
-    }
-
-    if (regexPattern.test(filePath)) ignored = !negated;
-  }
-
-  return ignored;
+  // All the libraries for this kinda suck, but this mostly works. Note that
+  // there might still be bugs in the gitignore logic.
+  const gitignore = compileGitignore(ignoreGlobs.join("\n"));
+  return gitignore.denies(filePath);
 }
 
 export { getProjectItemType, shouldIgnore };

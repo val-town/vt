@@ -119,6 +119,8 @@ export default class VTMeta {
       }
     }
 
+    // Apply the always ignore patterns last since git ignores have more
+    // priority the lower down they are.
     return [...ignoreGlobs, ...ALWAYS_IGNORE_PATTERNS];
   }
 
