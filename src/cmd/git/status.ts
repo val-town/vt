@@ -4,9 +4,7 @@ import Kia from "kia";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
-import { findVTRoot } from "~/vt/vt/utils.ts";
-import { noVtDir } from "~/cmd/git/msgs.ts";
+import { displayStatusChanges, vtRootOrFalse } from "~/cmd/git/utils.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -57,17 +55,8 @@ export const statusCmd = new Command()
 
     spinner.start();
 
-    let vtRoot;
-    try {
-      vtRoot = await findVTRoot(Deno.cwd());
-    } catch (e) {
-      spinner.stop();
-      if (e instanceof Deno.errors.NotFound) {
-        console.log(colors.red(noVtDir));
-        return;
-      }
-      throw e;
-    }
+    const vtRoot = await vtRootOrFalse(spinner);
+    if (!vtRoot) return;
 
     try {
       const vt = VTClient.from(vtRoot);

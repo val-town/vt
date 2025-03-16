@@ -1,10 +1,7 @@
 import { Command } from "@cliffy/command";
 import Kia from "kia";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
-import { findVTRoot } from "~/vt/vt/utils.ts";
-import { colors } from "@cliffy/ansi/colors";
-import { noVtDir } from "~/cmd/git/msgs.ts";
+import { displayStatusChanges, vtRootOrFalse } from "~/cmd/git/utils.ts";
 
 export const pushCmd = new Command()
   .name("push")
@@ -14,17 +11,8 @@ export const pushCmd = new Command()
     const spinner = new Kia("Pushing local changes...");
     spinner.start();
 
-    let vtRoot;
-    try {
-      vtRoot = await findVTRoot(Deno.cwd());
-    } catch (e) {
-      spinner.stop();
-      if (e instanceof Deno.errors.NotFound) {
-        console.log(colors.red(noVtDir));
-        return;
-      }
-      throw e;
-    }
+    const vtRoot = await vtRootOrFalse(spinner);
+    if (!vtRoot) return;
 
     try {
       const vt = VTClient.from(vtRoot);

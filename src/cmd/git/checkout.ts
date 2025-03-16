@@ -3,13 +3,9 @@ import ValTown from "@valtown/sdk";
 import Kia from "kia";
 import { CheckoutResult } from "~/vt/git/checkout.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
-import { findVTRoot } from "~/vt/vt/utils.ts";
-import { colors } from "@cliffy/ansi/colors";
+import { dirtyErrorMsg, vtRootOrFalse } from "~/cmd/git/utils.ts";
 
 const toListBranches = "Use \`vt branch\` to list branches.";
-const noVtDir =
-  "Not in a Val Town project directory. Run 'vt init' to create one.";
 
 export const checkoutCmd = new Command()
   .name("checkout")
@@ -46,8 +42,11 @@ export const checkoutCmd = new Command()
     ) => {
       const spinner = new Kia("Checking out branch...");
 
+      const vtRoot = await vtRootOrFalse(spinner);
+      if (!vtRoot) return;
+
       try {
-        const vt = VTClient.from(await findVTRoot(Deno.cwd()));
+        const vt = VTClient.from(vtRoot);
         const config = await vt.getMeta().loadConfig();
         spinner.start();
 
@@ -102,10 +101,6 @@ export const checkoutCmd = new Command()
               toListBranches,
           );
           return;
-        }
-      } catch (e) {
-        if (e instanceof Deno.errors.NotFound) {
-          console.log(colors.red(noVtDir));
         }
       } finally {
         spinner.stop();

@@ -1,10 +1,11 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import Kia from "kia";
-import { dirtyErrorMsg, displayStatusChanges } from "~/cmd/git/utils.ts";
-import { findVTRoot } from "~/vt/vt/utils.ts";
-import { colors } from "@cliffy/ansi/colors";
-import { noVtDir } from "~/cmd/git/msgs.ts";
+import {
+  dirtyErrorMsg,
+  displayStatusChanges,
+  vtRootOrFalse,
+} from "~/cmd/git/utils.ts";
 
 export const pullCmd = new Command()
   .name("pull")
@@ -15,17 +16,8 @@ export const pullCmd = new Command()
     const spinner = new Kia("Pulling latest changes...");
     spinner.start();
 
-    let vtRoot;
-    try {
-      vtRoot = await findVTRoot(Deno.cwd());
-    } catch (e) {
-      spinner.stop();
-      if (e instanceof Deno.errors.NotFound) {
-        console.log(colors.red(noVtDir));
-        return;
-      }
-      throw e;
-    }
+    const vtRoot = await vtRootOrFalse(spinner);
+    if (!vtRoot) return;
 
     try {
       const vt = VTClient.from(vtRoot);

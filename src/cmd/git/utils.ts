@@ -2,6 +2,8 @@ import { colors } from "@cliffy/ansi/colors";
 import { STATUS_COLORS } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { StatusResult } from "~/vt/git/status.ts";
+import { findVTRoot as findVtRoot } from "~/vt/vt/utils.ts";
+import Kia from "kia";
 
 /**
  * Generates an error message for commands that cannot be executed with unpushed changes
@@ -114,5 +116,26 @@ export function displayStatusChanges(
         }
       }
     }
+  }
+}
+
+/**
+ * Attempts to find the VT root directory, or return false and updates spinner.
+ *
+ * @returns {Promise<string|false>} The VT root path if found, false otherwise
+ */
+export async function vtRootOrFalse(
+  spinner?: Kia,
+): Promise<string | false> {
+  try {
+    return await findVtRoot(Deno.cwd());
+  } catch (e) {
+    if (e instanceof Deno.errors.NotFound) {
+      if (spinner) {
+        spinner.fail("No .vt directory found in current path or any parent.");
+      }
+      return false;
+    }
+    throw e;
   }
 }
