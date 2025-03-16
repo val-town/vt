@@ -60,6 +60,13 @@ export async function getLatestVersion(projectId: string, branchId: string) {
   return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
 }
 
+/**
+ * Generate a random (valid) project name.
+ */
+export function randomProjectName(label = "") {
+  return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
+}
+
 const user = await sdk.me.profile.retrieve();
 
 export { branchIdToBranch, filePathToFile, user };

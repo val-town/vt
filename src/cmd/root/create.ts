@@ -15,6 +15,31 @@ export const createCmd = new Command()
   .option("--private", "Create as private project")
   .option("--unlisted", "Create as unlisted project")
   .option("-d, --description <desc:string>", "Project description")
+  .example(
+    "Start fresh",
+    `
+vt create my-project
+cd ./my-project
+vt open
+vt watch # syncs changes to val town`,
+  )
+  .example(
+    "Work on an existing project",
+    `
+vt clone username/projectName
+cd ./projectName
+vim index.tsx
+vt push`,
+  )
+  .example(
+    "Check out a new branch",
+    `
+cd ./projectName
+vt checkout -b my-branch
+vim index.tsx
+vt push
+vt checkout main`,
+  )
   .action(async (
     { public: isPublic, private: isPrivate, unlisted, description }: {
       public?: boolean;
@@ -62,8 +87,7 @@ export const createCmd = new Command()
         await vt.clone(rootPath);
 
         spinner.succeed(
-          `Created ${privacy} project ${projectName} in ./${
-            basename(rootPath)
+          `Created ${privacy} project ${projectName} in ./${basename(rootPath)
           }`,
         );
       } catch (error) {
