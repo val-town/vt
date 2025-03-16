@@ -1,12 +1,17 @@
 import sdk from "~/sdk.ts";
-import type ValTown from "@valtown/sdk";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
+import { ProjectItem } from "~/consts.ts";
 
-export interface FileStatus {
-  path: string;
+interface FileInfo {
+  mtime: number;
+  type: ProjectItem;
+}
+
+export interface FileStatus extends FileInfo {
   status: "modified" | "not_modified" | "deleted" | "created";
+  path: string;
 }
 
 export interface StatusResult {
@@ -51,7 +56,13 @@ export async function status({
   };
 
   // Get all files
-  const localFiles = await getLocalFiles(targetDir, ignoreGlobs);
+  const localFiles = await getLocalFiles(
+    projectId,
+    branchId,
+    version,
+    targetDir,
+    ignoreGlobs,
+  );
   const projectFiles = await getProjectFiles(
     projectId,
     branchId,
@@ -60,38 +71,44 @@ export async function status({
   );
 
   // Compare local files against project files
-  for (const [baseName, mtime] of localFiles.entries()) {
-    if (!baseName) continue; // Skip empty paths
+  for (const [filePath, localFileInfo] of localFiles.entries()) {
+    if (!filePath) continue; // Skip empty paths
 
-    const projectModTime = projectFiles.get(baseName);
+    const projectFileInfo = projectFiles.get(filePath);
 
-    if (projectModTime === undefined) {
+    if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
       result.created.push({
-        path: baseName,
+        type: localFileInfo.type,
+        path: filePath,
+        mtime: localFileInfo.mtime,
         status: "created",
       });
     } else {
       // File exists in both places, check if modified
       const isModified = await isFileModified(
         targetDir,
-        baseName,
-        baseName,
+        filePath,
+        filePath,
         projectId,
         branchId,
         version,
-        mtime,
-        projectModTime,
+        localFileInfo.mtime,
+        projectFileInfo.mtime,
       );
 
       if (isModified) {
         result.modified.push({
-          path: baseName,
+          type: localFileInfo.type,
+          path: filePath,
+          mtime: localFileInfo.mtime,
           status: "modified",
         });
       } else {
         result.not_modified.push({
-          path: baseName,
+          type: localFileInfo.type,
+          path: filePath,
+          mtime: localFileInfo.mtime,
           status: "not_modified",
         });
       }
@@ -99,10 +116,12 @@ export async function status({
   }
 
   // Check for files that exist in project but not locally
-  for (const [projectPath, _] of projectFiles.entries()) {
+  for (const [projectPath, projectFileInfo] of projectFiles.entries()) {
     if (!localFiles.has(projectPath)) {
       result.deleted.push({
+        type: projectFileInfo.type,
         path: projectPath,
+        mtime: projectFileInfo.mtime,
         status: "deleted",
       });
     }
@@ -146,32 +165,37 @@ async function getProjectFiles(
   branchId: string,
   version: number,
   ignoreGlobs: string[],
-): Promise<Map<string, number>> {
-  const projectFilesResponse = await sdk.projects.files.list(projectId, {
-    branch_id: branchId,
-    version,
-    recursive: true,
-  });
+): Promise<Map<string, FileInfo>> {
+  const processedFiles = new Map<string, FileInfo>();
 
-  const files: ValTown.Projects.FileListResponse[] = [];
-  for await (const file of projectFilesResponse.data) files.push(file);
+  for await (
+    const file of sdk.projects.files.list(projectId, {
+      branch_id: branchId,
+      version,
+      recursive: true,
+    })
+  ) {
+    if (file.type === "directory") continue;
+    if (shouldIgnore(file.path, ignoreGlobs)) continue;
 
-  const processedFiles = files
-    .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
-    .filter((file) => file.type !== "directory")
-    .map((file: ValTown.Projects.FileListResponse) => [
-      path.join(path.dirname(file.path), file.name),
-      new Date(file.updatedAt).getTime(),
-    ]) as [string, number][];
+    const filePath = path.join(path.dirname(file.path), file.name);
+    processedFiles.set(filePath, {
+      mtime: new Date(file.updatedAt).getTime(),
+      type: file.type,
+    });
+  }
 
-  return new Map(processedFiles);
+  return processedFiles;
 }
 
 async function getLocalFiles(
+  projectId: string,
+  branchId: string,
+  version: number,
   targetDir: string,
   ignoreGlobs: string[],
-): Promise<Map<string, number>> {
-  const files = new Map<string, number>();
+): Promise<Map<string, FileInfo>> {
+  const files = new Map<string, FileInfo>();
   const statPromises: Promise<void>[] = [];
 
   const processEntry = async (entry: fs.WalkEntry) => {
@@ -189,7 +213,10 @@ async function getLocalFiles(
     }
 
     // Store the path and its modification time
-    files.set(path.relative(targetDir, entry.path), stat.mtime.getTime());
+    files.set(path.relative(targetDir, entry.path), {
+      type: await getProjectItemType(projectId, branchId, version, entry.path),
+      mtime: stat.mtime.getTime(),
+    });
   };
 
   for await (const entry of fs.walk(targetDir)) {

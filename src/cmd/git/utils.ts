@@ -54,9 +54,28 @@ export function getVersionRangeStr(
 }
 
 // Formats a file path with a colored status prefix for display.
-export function formatStatus(path: string, status: string): string {
+export function formatStatus(
+  path: string,
+  status: string,
+  type: string,
+): string {
+  // Get color configuration for the status or use default
   const config = STATUS_COLORS[status] || { prefix: " ", color: colors.gray };
-  return `${config.color(config.prefix)} ${path}`;
+
+  // Extract file type with consistent padding
+  const paddedFileType = type.padEnd(5);
+
+  // Create formatted type indicator with colors
+  const typeStart = colors.gray("(");
+  const typeContent = colors.dim(paddedFileType);
+  const typeEnd = colors.gray(")");
+  const typeIndicator = typeStart + typeContent + typeEnd;
+
+  // Get the base status text
+  const baseStatusText = config.color(config.prefix) + " ";
+
+  // Combine the status prefix, type indicator, and path
+  return baseStatusText + typeIndicator + " " + path;
 }
 
 /**
@@ -101,7 +120,7 @@ export function displayStatusChanges(
   for (const [type, files] of Object.entries(status)) {
     if (type !== "not_modified") {
       for (const file of files) {
-        console.log(formatStatus(file.path, type));
+        console.log(formatStatus(file.path, file.status, file.type));
       }
     }
   }
@@ -111,10 +130,12 @@ export function displayStatusChanges(
     if (totalChanges === 0) {
       console.log(colors.green(emptyMessage));
     } else {
-      console.log(`\n${summaryPrefix}`);
+      console.log("\n" + summaryPrefix);
       for (const [type, files] of Object.entries(status)) {
         if (type !== "not_modified" && files.length > 0) {
-          console.log(`  ${files.length} ${type}`);
+          const typeConfig = STATUS_COLORS[type] || { color: colors.gray };
+          const coloredType = typeConfig.color(type);
+          console.log("  " + files.length + " " + coloredType);
         }
       }
     }
