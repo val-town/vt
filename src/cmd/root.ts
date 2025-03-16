@@ -158,9 +158,9 @@ export const browseCmd = new Command()
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("pull", cmds.pullCmd);
 cmd.command("push", cmds.pushCmd);
-cmd.command("browse", browseCmd);
 cmd.command("status", cmds.statusCmd);
 cmd.command("branch", cmds.branchCmd);
+cmd.command("browse", browseCmd);
 cmd.command("watch", watchCmd);
 cmd.command("checkout", cmds.checkoutCmd);
 cmd.command("create", createCmd);
