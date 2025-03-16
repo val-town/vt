@@ -5,7 +5,7 @@ import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
 import { displayStatusChanges } from "~/cmd/git/utils.ts";
-import ValTown from "@valtown/sdk";
+import { getTotalChanges } from "~/vt/git/utils.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -122,14 +122,12 @@ export const watchCmd = new Command()
       try {
         for await (const status of vt.watch(options.debounceDelay)) {
           try {
-            console.log();
-            const totalChanges = displayStatusChanges(status, {
-              headerText: "New changes detected",
-              summaryPrefix: "Pushed:",
-              showEmpty: false,
-            }); // returns total number of changes overall
-
-            if (totalChanges > 0) {
+            if (getTotalChanges(status) > 0) {
+              console.log();
+              displayStatusChanges(status, {
+                headerText: "New changes detected",
+                summaryPrefix: "Pushed:",
+              });
               console.log();
               console.log(watchingForChangesLine());
             }

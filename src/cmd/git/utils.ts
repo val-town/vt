@@ -81,7 +81,7 @@ export function displayStatusChanges(
     showEmpty = true,
     headerText,
     summaryPrefix = "Changes:",
-    emptyMessage = "No changes",
+    emptyMessage = "No changes. Working tree clean.",
     includeSummary = true,
   } = options;
 
