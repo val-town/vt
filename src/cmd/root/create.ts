@@ -20,7 +20,7 @@ export const createCmd = new Command()
     `
 vt create my-project
 cd ./my-project
-vt open
+vt browse
 vt watch # syncs changes to val town`,
   )
   .example(

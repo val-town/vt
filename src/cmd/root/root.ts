@@ -3,6 +3,7 @@ import manifest from "../../../deno.json" with { type: "json" };
 import * as gitCmds from "~/cmd/git/mod.ts";
 import { createCmd } from "~/cmd/root/create.ts";
 import { watchCmd } from "~/cmd/root/watch.ts";
+import { browseCmd } from "~/cmd/root/browse.ts";
 
 const cmd = new Command()
   .name("vt")
@@ -17,6 +18,7 @@ cmd.command("status", gitCmds.statusCmd);
 cmd.command("branch", gitCmds.branchCmd);
 cmd.command("checkout", gitCmds.checkoutCmd);
 cmd.command("watch", watchCmd);
+cmd.command("browse", browseCmd);
 cmd.command("create", createCmd);
 
 export { cmd };

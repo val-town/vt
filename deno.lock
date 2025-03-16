@@ -32,7 +32,6 @@
     "npm:@types/parse-gitignore@*": "1.0.2",
     "npm:emphasize@7": "7.0.0",
     "npm:highlight.js@^11.11.1": "11.11.1",
-    "npm:open@*": "10.1.0",
     "npm:open@^10.1.0": "10.1.0",
     "npm:zod@^3.24.2": "3.24.2"
   },
