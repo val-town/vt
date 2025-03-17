@@ -16,7 +16,7 @@ export const pushCmd = new Command()
 
       spinner.stop();
       displayStatusChanges(statusResult, {
-        emptyMessage: "Nothing to push, everything is up to date.",
+        emptyMessage: "Nothing new to push, everything is up to date.",
         summaryPrefix: "Changes pushed:",
       });
     });
