@@ -15,23 +15,21 @@ import { doAtomically } from "~/vt/git/utils.ts";
  * @param {string} args.projectId - The uuid of the project to be cloned
  * @param {string} [args.branchId] - The branch ID to clone.
  * @param {number} [args.version] - The version of the project to clone.
- * @param {string[]} [args.ignoreGlobs] - List of glob patterns for files to ignore
+ * @param {string[]} [args.gitignoreRules] - List of glob patterns for files to ignore
  */
-export function clone(
-  {
-    targetDir,
-    projectId,
-    branchId,
-    version,
-    ignoreGlobs,
-  }: {
-    targetDir: string;
-    projectId: string;
-    branchId: string;
-    version: number;
-    ignoreGlobs?: string[];
-  },
-): Promise<void> {
+export function clone({
+  targetDir,
+  projectId,
+  branchId,
+  version,
+  gitignoreRules,
+}: {
+  targetDir: string;
+  projectId: string;
+  branchId: string;
+  version: number;
+  gitignoreRules?: string[];
+}): Promise<void> {
   return doAtomically(
     async (tmpDir) => {
       const projectFilesResponse = await sdk.projects.files
@@ -43,7 +41,7 @@ export function clone(
         if (file.type === "directory") continue;
 
         // Skip ignored files
-        if (shouldIgnore(file.path, ignoreGlobs)) continue;
+        if (shouldIgnore(file.path, gitignoreRules)) continue;
 
         // Start a create file task in the background
         const fullPath = path.join(tmpDir, file.path);

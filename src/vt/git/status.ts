@@ -31,7 +31,7 @@ export interface StatusResult {
  * @param {string} args.projectId - The Val Town project ID.
  * @param {string} args.branchId - Optional branch ID to check against.
  * @param {string} args.version - The version to check the status against.
- * @param {string} args.ignoreGlobs - Glob patterns for files to ignore.
+ * @param {string} args.gitignoreRules - Gitignore rules
  *
  * @returns Promise that resolves to a StatusResult object containing categorized files.
  */
@@ -40,13 +40,13 @@ export async function status({
   projectId,
   branchId,
   version,
-  ignoreGlobs,
+  gitignoreRules,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version: number;
-  ignoreGlobs: string[];
+  gitignoreRules: string[];
 }): Promise<StatusResult> {
   const result: StatusResult = {
     modified: [],
@@ -61,13 +61,13 @@ export async function status({
     branchId,
     version,
     targetDir,
-    ignoreGlobs,
+    gitignoreRules,
   );
   const projectFiles = await getProjectFiles(
     projectId,
     branchId,
     version,
-    ignoreGlobs,
+    gitignoreRules,
   );
 
   // Compare local files against project files
@@ -164,7 +164,7 @@ async function getProjectFiles(
   projectId: string,
   branchId: string,
   version: number,
-  ignoreGlobs: string[],
+  gitignoreRules: string[],
 ): Promise<Map<string, FileInfo>> {
   const processedFiles = new Map<string, FileInfo>();
 
@@ -176,7 +176,7 @@ async function getProjectFiles(
     })
   ) {
     if (file.type === "directory") continue;
-    if (shouldIgnore(file.path, ignoreGlobs)) continue;
+    if (shouldIgnore(file.path, gitignoreRules)) continue;
 
     const filePath = path.join(path.dirname(file.path), file.name);
     processedFiles.set(filePath, {
@@ -193,7 +193,7 @@ async function getLocalFiles(
   branchId: string,
   version: number,
   targetDir: string,
-  ignoreGlobs: string[],
+  gitignoreRules: string[],
 ): Promise<Map<string, FileInfo>> {
   const files = new Map<string, FileInfo>();
   const statPromises: Promise<void>[] = [];
@@ -204,7 +204,7 @@ async function getLocalFiles(
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnore(relativePath, ignoreGlobs)) return;
+    if (shouldIgnore(relativePath, gitignoreRules)) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);

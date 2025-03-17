@@ -37,12 +37,12 @@ export default class VTClient {
   }
 
   /**
-   * Gets the list of globs for files that should be ignored by VT.
+   * Gets the list of gitignore rules that should be ignored by VT.
    *
-   * @returns {Promise<RegExp[]>} The list of globs to ignore.
+   * @returns {Promise<RegExp[]>} The list of gitignore rules.
    */
-  private async getIgnoreGlobs(): Promise<string[]> {
-    return await this.#meta.loadIgnoreGlobs();
+  private async getGitignoreRules(): Promise<string[]> {
+    return await this.#meta.loadGitignoreRules();
   }
 
   /**
@@ -265,7 +265,7 @@ export default class VTClient {
       projectId,
       branchId: currentBranch,
       version,
-      ignoreGlobs: await this.getIgnoreGlobs(),
+      gitignoreRules: await this.getGitignoreRules(),
     });
   }
 
@@ -319,7 +319,7 @@ export default class VTClient {
       projectId: config.projectId,
       branchId: config.currentBranch,
       version: config.version,
-      ignoreGlobs: await this.getIgnoreGlobs(),
+      gitignoreRules: await this.getGitignoreRules(),
     });
 
     await this.getMeta().saveConfig(config);
@@ -349,7 +349,7 @@ export default class VTClient {
       targetDir: this.rootPath,
       projectId,
       branchId: currentBranch,
-      ignoreGlobs: await this.getIgnoreGlobs(),
+      gitignoreRules: await this.getGitignoreRules(),
       statusResult: options?.statusResult,
     });
 
@@ -382,9 +382,9 @@ export default class VTClient {
     const statusResult = options?.statusResult || await this.status();
     const created = statusResult.created.map((file) => file.path);
 
-    // We want to ignore newly created files. Adding them to the ignoreGlobs
-    // list is a nice way to do that.
-    const ignoreGlobs = [...(await this.getIgnoreGlobs()), ...created];
+    // We want to ignore newly created files. Adding them to the gitignore
+    // rules list is a nice way to do that.
+    const gitignoreRules = [...(await this.getGitignoreRules()), ...created];
 
     let result: CheckoutResult;
 
@@ -398,9 +398,9 @@ export default class VTClient {
       result = await checkout({
         targetDir: this.rootPath,
         projectId: config.projectId,
-        forkedFrom: options.forkedFrom,
+        forkedFromId: options.forkedFrom,
         name: branchName,
-        ignoreGlobs,
+        gitignoreRules,
         version: sourceVersion,
       });
 
@@ -423,7 +423,7 @@ export default class VTClient {
         projectId: config.projectId,
         branchId: checkoutBranch.id,
         fromBranchId: currentBranchId,
-        ignoreGlobs,
+        gitignoreRules: gitignoreRules,
         version: latestVersion,
       });
 

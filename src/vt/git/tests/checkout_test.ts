@@ -42,7 +42,8 @@ for (const testCase of testCases) {
               version: toBranchData.version,
               targetDir: tempDir,
               projectId: testCase.projectId,
-              ignoreGlobs: [],
+              fromBranchId,
+              gitignoreRules: [],
             });
 
             // Verify project structure after checkout

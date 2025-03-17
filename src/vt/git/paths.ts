@@ -69,18 +69,18 @@ async function getProjectItemType(
  * Checks if a path should be ignored based on gitignore rules.
  *
  * @param {string} filePath - Path to check
- * @param {string[]} ignoreGlobs - Array of glob patterns to check against
+ * @param {string[]} gitignoreRules - Array of gitignore rules to check against
  * @returns {boolean} True if the path should be ignored
  */
 function shouldIgnore(
   filePath: string,
-  ignoreGlobs: string[] = [],
+  gitignoreRules: string[] = [],
 ): boolean {
-  if (ignoreGlobs.length === 0) return false;
+  if (gitignoreRules.length === 0) return false;
 
   // All the libraries for this kinda suck, but this mostly works. Note that
   // there might still be bugs in the gitignore logic.
-  const gitignore = compileGitignore(ignoreGlobs.join("\n"));
+  const gitignore = compileGitignore(gitignoreRules.join("\n"));
   return gitignore.denies(filePath);
 }
 

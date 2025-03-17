@@ -11,7 +11,7 @@ import ValTown from "@valtown/sdk";
  * @param {string} args.projectId The id of the project to upload to.
  * @param {string} args.branchId The branch ID to upload file content to.
  * @param {string} args.branchId The version to compute the status against. Defaults to latest version.
- * @param {string[]} args.ignoreGlobs A list of glob patterns for files to exclude.
+ * @param {string[]} args.gitignoreRules A list of gitignore rules.
  * @param {StatusResult} args.status The current status. If not provided, it will be computed.
  *
  * @returns Promise that resolves when the push operation is complete.
@@ -22,14 +22,14 @@ export async function push({
   branchId,
   version,
   statusResult,
-  ignoreGlobs,
+  gitignoreRules,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version?: number;
   statusResult?: StatusResult;
-  ignoreGlobs: string[];
+  gitignoreRules: string[];
 }): Promise<StatusResult> {
   version = version || await getLatestVersion(projectId, branchId);
 
@@ -39,7 +39,7 @@ export async function push({
     projectId,
     branchId,
     version,
-    ignoreGlobs,
+    gitignoreRules,
   });
 
   // Upload everything that was modified

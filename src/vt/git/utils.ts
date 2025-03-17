@@ -79,14 +79,14 @@ export async function doAtomically<T>(
  * Removes contents from a directory while respecting ignore patterns.
  *
  * @param {string} directory - Directory path to clean
- * @param {string[]} ignoreGlobs - Glob patterns for files to ignore
+ * @param {string[]} gitignoreRules - Gitignore rules
  */
 export async function cleanDirectory(
   directory: string,
-  ignoreGlobs: string[],
+  gitignoreRules: string[],
 ): Promise<void> {
   const filesToRemove = Deno.readDirSync(directory)
-    .filter((entry) => !shouldIgnore(entry.name, ignoreGlobs))
+    .filter((entry) => !shouldIgnore(entry.name, gitignoreRules))
     .map((entry) => ({
       path: path.join(directory, entry.name),
       isDirectory: entry.isDirectory,

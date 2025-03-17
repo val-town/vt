@@ -1,11 +1,21 @@
 import { dirname, globToRegExp } from "@std/path";
 import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
 
+/**
+ * Checks if a directory is empty, ignoring files that match specified glob patterns.
+ *
+ * @param path - Directory path to check
+ * @param gitignoreRules - Gitignore rules
+ * @returns True if directory is empty (after ignoring specified files)
+ *
+ * @example
+ * await isDirectoryEmpty("./mydir", [".git/**"]);
+ */
 export async function isDirectoryEmpty(
   path: string | URL,
-  ignoreGlobs: string[] = [],
+  gitignoreRules: string[] = [],
 ): Promise<boolean> {
-  const ignorePatterns = ignoreGlobs.map((glob) => globToRegExp(glob));
+  const ignorePatterns = gitignoreRules.map((glob) => globToRegExp(glob));
 
   for await (const entry of Deno.readDir(path)) {
     // Check if entry matches any ignore pattern
@@ -40,15 +50,15 @@ export async function removeEmptyDirs(dir: string) {
  *
  * @param rootPath - The full path to the directory to check/create
  * @param options - Configuration options
- * @param options.ignoreGlobs - Glob patterns to ignore when checking if directory is empty
+ * @param options.gitignoreRules - Gitignore rules
  * @throws {Deno.errors.NotADirectory} if the path exists but is not a directory
  * @throws {Deno.errors.AlreadyExists} if the directory exists but is not empty
  */
 export async function checkDirectory(
   rootPath: string,
-  options: { ignoreGlobs?: string[] } = {},
+  options: { gitignoreRules?: string[] } = {},
 ) {
-  const { ignoreGlobs = [] } = options;
+  const { gitignoreRules: gitignoreRules = [] } = options;
 
   try {
     const stat = await Deno.lstat(rootPath);
@@ -68,7 +78,7 @@ export async function checkDirectory(
   }
 
   // Check if existing directory is empty (considering ignored patterns)
-  if (!(await isDirectoryEmpty(rootPath, ignoreGlobs))) {
+  if (!(await isDirectoryEmpty(rootPath, gitignoreRules))) {
     throw new Deno.errors.AlreadyExists(
       `"${rootPath}" already exists and is not empty.`,
     );

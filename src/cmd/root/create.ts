@@ -69,7 +69,7 @@ vt checkout main`,
       if (targetDir === undefined) rootPath = join(rootPath, projectName);
 
       // Make sure directory is safe to create project in
-      await checkDirectory(rootPath, { ignoreGlobs: DEFAULT_IGNORE_PATTERNS });
+      await checkDirectory(rootPath, { gitignoreRules: DEFAULT_IGNORE_PATTERNS });
 
       try {
         const vt = await VTClient.create(
