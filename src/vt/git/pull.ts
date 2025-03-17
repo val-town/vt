@@ -49,10 +49,6 @@ export function pull({
       // files from the server, and then look at all the files we cloned. After
       // cloning, we should not have files that no longer exist on the server,
       // so we can remove them.
-      //
-      // We do it this way where we copy over the current contents and then
-      // clone because we want to keep files that exist locally and were never
-      // pushed, along with all the ignored files.
       const files = new Set<string>();
       for await (
         const file of sdk.projects.files.list(projectId, {
