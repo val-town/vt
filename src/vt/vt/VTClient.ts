@@ -303,12 +303,9 @@ export default class VTClient {
    * pushed) then this fails.
    *
    * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
-   * @returns {Promise<StatusResult>} The StatusResult after pulling
+   * @returns {Promise<void>} Resolves once pull complete
    */
-  public async pull(
-    options?: { statusResult?: StatusResult },
-  ): Promise<StatusResult> {
+  public async pull() {
     const config = await this.getMeta().loadConfig();
 
     config.version = await getLatestVersion(
@@ -316,7 +313,7 @@ export default class VTClient {
       config.currentBranch,
     );
 
-    const statusResult = options?.statusResult || await pull({
+    await pull({
       targetDir: this.rootPath,
       projectId: config.projectId,
       branchId: config.currentBranch,
@@ -325,8 +322,6 @@ export default class VTClient {
     });
 
     await this.getMeta().saveConfig(config);
-
-    return statusResult;
   }
 
   /**

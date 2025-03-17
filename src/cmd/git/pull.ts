@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import { dirtyErrorMsg, displayStatusChanges } from "~/cmd/git/utils.ts";
+import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -20,12 +20,7 @@ export const pullCmd = new Command()
         return;
       }
 
-      await vt.pull({ statusResult });
-      spinner.stop();
-
-      displayStatusChanges(statusResult, {
-        emptyMessage: "Nothing new to pull, everything is up to date.",
-        summaryPrefix: "Changes pulled:",
-      });
+      await vt.pull();
+      spinner.succeed("Successfully pulled the latest changes");
     });
   });

@@ -1,8 +1,8 @@
+import { ensureDir, walk } from "@std/fs";
+import { dirname, join, relative } from "@std/path";
 import { clone } from "~/vt/git/clone.ts";
-import { status, StatusResult } from "~/vt/git/status.ts";
-import * as path from "@std/path";
 import { doAtomically } from "~/vt/git/utils.ts";
-
+import { shouldIgnore } from "~/vt/git/paths.ts";
 /**
  * Pulls latest changes from a val town project into a vt folder.
  *
@@ -19,49 +19,53 @@ export function pull({
   projectId,
   branchId,
   version,
-  statusResult,
   gitignoreRules,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version: number;
-  statusResult?: StatusResult;
   gitignoreRules: string[];
-}): Promise<StatusResult> {
+}): Promise<void> {
   return doAtomically(
-    async (tmpDir) => {
-      // Use provided status, or retreive the status
-      statusResult = statusResult || await status({
-        targetDir: tmpDir,
-        projectId,
-        branchId,
-        gitignoreRules,
-        version,
-      });
+    async (tempDir) => {
+      // Save ignored files
+      const ignoredFiles = new Map<string, Uint8Array>();
 
-      // Remove all existing tracked files
-      const removalPromises = statusResult.not_modified
-        .map((file) => path.join(tmpDir, file.path))
-        .map(async (filePath) => {
-          try {
-            await Deno.remove(filePath);
-          } catch (error) {
-            if (!(error instanceof Deno.errors.NotFound)) throw error;
+      try {
+        // Walk through all files in the target directory
+        for await (const entry of walk(targetDir, { includeDirs: false })) {
+          const relativePath = relative(targetDir, entry.path);
+
+          // Check if this file should be ignored
+          if (shouldIgnore(entry.path)) {
+            // Read file content
+            const content = await Deno.readFile(entry.path);
+            ignoredFiles.set(relativePath, content);
           }
-        });
-      await Promise.all(removalPromises);
+        }
+      } catch (error) {
+        // Handle case where targetDir doesn't exist yet
+        if (!(error instanceof Deno.errors.NotFound)) {
+          throw error;
+        }
+      }
 
       // Clone fresh files from the project
       await clone({
-        targetDir,
+        targetDir: tempDir,
         projectId,
         branchId,
         version,
         gitignoreRules,
       });
 
-      return statusResult;
+      // Restore ignored files
+      for (const [path, content] of ignoredFiles.entries()) {
+        const filePath = join(tempDir, path);
+        await ensureDir(dirname(filePath));
+        await Deno.writeFile(filePath, content);
+      }
     },
     targetDir,
     "vt_pull_",
