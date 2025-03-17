@@ -8,9 +8,8 @@ import { displayStatusChanges } from "~/cmd/git/utils.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { doWithVtClient } from "~/cmd/utils.ts";
 
-/**
- * Formats a version range string based on the first, current, and latest versions.
- */
+// Formats a version range string based on the first, current, and latest
+// versions.
 function getVersionRangeStr(
   firstVersion: number,
   currentVersion: number,
@@ -35,15 +34,6 @@ function getVersionRangeStr(
 export function formatStatus(path: string, status: string): string {
   const config = STATUS_COLORS[status] || { prefix: " ", color: colors.blue };
   return `${config.color(config.prefix)} ${path}`;
-}
-
-/**
- * Handles errors consistently across the application
- */
-function handleError(error: unknown): void {
-  if (error instanceof Error) {
-    console.log(colors.red(error.message));
-  }
 }
 
 export const watchStopCmd = new Command()
@@ -137,12 +127,12 @@ export const watchCmd = new Command()
                 console.log();
                 console.log(watchingForChangesLine());
               }
-            } catch (error) {
-              handleError(error);
+            } catch (e) {
+              if (e instanceof Error) console.log(colors.red(e.message));
             }
           }
-        } catch (error) {
-          handleError(error);
+        } catch (e) {
+          if (e instanceof Error) console.log(colors.red(e.message));
         }
       }
     });
