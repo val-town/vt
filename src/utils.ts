@@ -107,7 +107,5 @@ export async function findRoot(
     levelsUp++;
   }
 
-  throw new Deno.errors.NotFound(
-    `No root directory found in current path or any parent.`,
-  );
+  throw new Deno.errors.NotFound();
 }
