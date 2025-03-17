@@ -1,20 +1,10 @@
-import { copy, walk } from "@std/fs";
 import { relative } from "@std/path";
-import { clone } from "~/vt/git/clone.ts";
-import { doAtomically } from "~/vt/git/utils.ts";
-import sdk from "~/sdk.ts";
+import { copy, walk } from "@std/fs";
 import { shouldIgnore } from "~/vt/git/paths.ts";
-/**
- * Pulls latest changes from a val town project into a vt folder.
- *
- * @param args Options for pull operation.
- * @param {string} args.targetDir - The vt project root directory.
- * @param {string} args.projectId - The id of the project to be pulled.
- * @param {string} args.branchId - The branch ID from which to pull the latest changes.
- * @param {string[]} args.gitignoreRules - A list of gitignore rules.
- *
- * @returns Promise that resolves when the pull operation is complete.
- */
+import sdk from "~/sdk.ts";
+import { doAtomically } from "~/vt/git/utils.ts";
+import { clone } from "~/vt/git/clone.ts";
+
 export function pull({
   targetDir,
   projectId,
@@ -49,6 +39,10 @@ export function pull({
       // files from the server, and then look at all the files we cloned. After
       // cloning, we should not have files that no longer exist on the server,
       // so we can remove them.
+      //
+      // We do it this way where we copy over the current contents and then
+      // clone because we want to keep files that exist locally and were never
+      // pushed, along with all the ignored files.
       const files = new Set<string>();
       for await (
         const file of sdk.projects.files.list(projectId, {
@@ -70,5 +64,6 @@ export function pull({
     },
     targetDir,
     "vt_pull_",
+    true,
   );
 }
