@@ -17,9 +17,8 @@ export const branchCmd = new Command()
       const meta = await vt.getMeta().loadConfig();
 
       const branches: ValTown.Projects.BranchListResponse[] = [];
-      for await (
-        const file of (await sdk.projects.branches.list(meta.projectId, {}))
-      ) branches.push(file);
+      // deno-fmt-ignore
+      for await ( const file of (await sdk.projects.branches.list(meta.projectId, {}))) branches.push(file);
 
       const formatter = new Intl.DateTimeFormat("en-US", {
         year: "numeric",

@@ -50,19 +50,27 @@ export default class VTClient {
    * out to *something* so init also takes an initial branch.
    *
    * @param {string} rootPath The root path where the VT instance will be initialized
-   * @param {string} username The username of the project owner
-   * @param {string} projectName The name of the project
-   * @param {number} version The version of the project to initialize. -1 for latest version
-   * @param {string} branchName The branch name to initialize
+   * @param args The arguments for initialization
+   * @param {string} args.rootPath The root path of the VT directory
+   * @param {string} args.username The username of the project owner
+   * @param {number} args.version The version of the project to initialize. -1 for latest version
+   * @param {string} args.projectName The name of the project
+   * @param {string} args.branchName The branch name to initialize
    * @returns {Promise<VTClient>} A new VTClient instance
    */
-  public static async init(
-    rootPath: string,
-    username: string,
-    projectName: string,
-    version: number = -1,
-    branchName: string = DEFAULT_BRANCH_NAME,
-  ): Promise<VTClient> {
+  public static async init({
+    rootPath,
+    username,
+    projectName,
+    version = -1,
+    branchName = DEFAULT_BRANCH_NAME,
+  }: {
+    rootPath: string;
+    username: string;
+    projectName: string;
+    version?: number;
+    branchName?: string;
+  }): Promise<VTClient> {
     const projectId = await sdk.alias.username.projectName.retrieve(
       username,
       projectName,
@@ -76,10 +84,9 @@ export default class VTClient {
 
     // If they choose -1 as the version then change to use the most recent
     // version
-    if (version == -1) {
-      version =
-        (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
-    }
+    version = version === -1
+      ? (await sdk.projects.branches.retrieve(projectId, branch.id)).version
+      : version;
 
     const vt = new VTClient(rootPath);
 
@@ -92,9 +99,7 @@ export default class VTClient {
           currentBranch: branch.id,
           version: version,
         });
-      } else {
-        throw error;
-      }
+      } else throw error;
     }
 
     return vt;
@@ -218,11 +223,13 @@ export default class VTClient {
 
     // Initialize VT client with the new project
     return VTClient.init(
-      rootPath,
-      username,
-      projectName,
-      branch.version,
-      DEFAULT_BRANCH_NAME,
+      {
+        rootPath,
+        username,
+        projectName,
+        version: branch.version,
+        branchName: DEFAULT_BRANCH_NAME,
+      },
     );
   }
 
@@ -273,25 +280,20 @@ export default class VTClient {
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
-   * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
-  public async status(
-    options?: { statusResult?: StatusResult },
-  ): Promise<StatusResult> {
-    if (options?.statusResult) {
-      return options.statusResult;
-    }
-
-    const { projectId, currentBranch } = await this.getMeta().loadConfig();
+  public async status(): Promise<StatusResult> {
+    const {
+      projectId,
+      currentBranch: branchId,
+    } = await this.getMeta().loadConfig();
 
     return status({
       targetDir: this.rootPath,
       projectId,
-      branchId: currentBranch,
-      version: await getLatestVersion(projectId, currentBranch),
-      ignoreGlobs: await this.getIgnoreGlobs(),
+      branchId,
+      version: await getLatestVersion(projectId, branchId),
+      gitignoreRules: await this.getGitignoreRules(),
     });
   }
 
@@ -301,8 +303,8 @@ export default class VTClient {
    * pushed) then this fails.
    *
    * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
-   * @returns {Promise<StatusResult>} The status result after pulling
+   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
+   * @returns {Promise<StatusResult>} The StatusResult after pulling
    */
   public async pull(
     options?: { statusResult?: StatusResult },
@@ -331,8 +333,8 @@ export default class VTClient {
    * Push changes from the local directory to the Val Town project.
    *
    * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
-   * @returns {Promise<StatusResult>} The status result after pushing
+   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
+   * @returns {Promise<StatusResult>} The StatusResult after pushing
    */
   public async push(
     options?: { statusResult?: StatusResult },
@@ -368,7 +370,7 @@ export default class VTClient {
    * @param {string} branchName The name of the branch to check out to
    * @param {Object} options - Optional parameters
    * @param {string} options.forkedFrom If provided, create a new branch with branchName, forking from this branch
-   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
+   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
    * @returns {Promise<CheckoutResult>}
    */
   public async checkout(
@@ -441,7 +443,7 @@ export default class VTClient {
    * Check if the working directory has uncommitted changes.
    *
    * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched status result to use instead of fetching a new one
+   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
    * @returns {Promise<boolean>} True if there are uncommitted changes
    */
   public async isDirty(

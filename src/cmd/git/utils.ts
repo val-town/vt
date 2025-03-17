@@ -1,5 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
-import { STATUS_COLORS } from "~/consts.ts";
+import { ProjectItem, STATUS_STYLES } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { StatusResult } from "~/vt/git/status.ts";
 
@@ -49,15 +49,27 @@ export function getVersionRangeStr(
   return formattedVersions.join("..");
 }
 
-// Formats a file path with a colored status prefix for display.
+/**
+ * Formats a file path with a colored status prefix for display.
+ *
+ * @param path - The file path to format
+ * @param status - The status of the file (e.g., 'modified', 'deleted')
+ * @param type - The type of the file object (e.g., 'script', 'http', 'file')
+ * @param maxTypeLength - The maximum present file type object literal length (script=6)
+ * @returns A formatted string with colored status prefix, file type, and path
+ *
+ * @example
+ * // Returns something like "✓ (js   ) src/index.js" with appropriate colors
+ * formatStatus('src/index.js', 'success', 'js', 5);
+ */
 export function formatStatus(
   path: string,
-  status: string,
-  type: string,
+  status: keyof StatusResult,
+  type: ProjectItem,
   maxTypeLength: number,
 ): string {
   // Get color configuration for the status or use default
-  const config = STATUS_COLORS[status] || { prefix: " ", color: colors.gray };
+  const config = STATUS_STYLES[status];
 
   // Extract file type with consistent padding
   const paddedFileType = type.padEnd(maxTypeLength);
@@ -138,8 +150,8 @@ export function displayStatusChanges(
       console.log("\n" + summaryPrefix);
       for (const [type, files] of Object.entries(status)) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeConfig = STATUS_COLORS[type] || { color: colors.gray };
-          const coloredType = typeConfig.color(type);
+          const typeColor = STATUS_STYLES[type as keyof StatusResult];
+          const coloredType = typeColor.color(type);
           console.log("  " + files.length + " " + coloredType);
         }
       }

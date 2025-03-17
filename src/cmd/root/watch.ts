@@ -2,11 +2,12 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
-import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
+import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
 import { displayStatusChanges } from "~/cmd/git/utils.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { StatusResult } from "~/vt/git/status.ts";
 
 // Formats a version range string based on the first, current, and latest
 // versions.
@@ -31,8 +32,8 @@ function getVersionRangeStr(
 }
 
 // Formats a file path with a colored status prefix for display.
-export function formatStatus(path: string, status: string): string {
-  const config = STATUS_COLORS[status] || { prefix: " ", color: colors.blue };
+export function formatStatus(path: string, status: keyof StatusResult): string {
+  const config = STATUS_STYLES[status] || { prefix: " ", color: colors.blue };
   return `${config.color(config.prefix)} ${path}`;
 }
 

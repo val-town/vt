@@ -13,8 +13,8 @@ export const pushCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       const statusResult = await vt.push();
-      spinner.stop();
 
+      spinner.stop();
       displayStatusChanges(statusResult, {
         emptyMessage: "Nothing to push, everything is up to date.",
         summaryPrefix: "Changes pushed:",

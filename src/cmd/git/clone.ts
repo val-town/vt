@@ -51,21 +51,18 @@ export const cloneCmd = new Command()
           targetDir = join.join(targetDir, projectName);
         }
 
-        const vt = await VTClient.init(
-          targetDir,
-          ownerName,
+        const vt = await VTClient.init({
+          rootPath: targetDir,
+          username: ownerName,
           projectName,
-          undefined,
           branchName,
-        );
+        });
 
         const relativeTargetDir = relative(Deno.cwd(), targetDir);
 
         // Make sure that the directory is safe to clone into (exists, or gets
-        // created and then exists, and wasn't nonempty)
-        await checkDirectory(targetDir, {
-          ignoreGlobs: ALWAYS_IGNORE_PATTERNS,
-        });
+        // created and then exists, and wasn't nonempty) deno-fmt-ignore
+        await checkDirectory(targetDir, { gitignoreRules: ALWAYS_IGNORE_PATTERNS, });
 
         await vt.clone(targetDir);
         spinner.succeed(

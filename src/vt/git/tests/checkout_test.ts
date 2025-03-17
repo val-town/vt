@@ -98,8 +98,8 @@ Deno.test({
       await checkout({
         targetDir: tempDir,
         projectId: project.id,
-        ignoreGlobs: [],
-        forkedFrom: mainBranch.id,
+        gitignoreRules: [],
+        forkedFromId: mainBranch.id,
         name: newBranchName,
         version: mainBranch.version,
       });

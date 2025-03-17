@@ -46,9 +46,7 @@ async function filePathToFile(
       version,
       branch_id: branchId,
     })
-  ) {
-    if (file.name == filePath) return file;
-  }
+  ) if (file.name == filePath) return file;
 
   throw new Deno.errors.NotFound(`File "${filePath}" not found in project`);
 }
@@ -61,12 +59,15 @@ export async function getLatestVersion(projectId: string, branchId: string) {
 }
 
 /**
- * Generate a random (valid) project name.
+ * Generate a random (valid) project name. Useful for tests.
  */
 export function randomProjectName(label = "") {
   return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
 }
 
+/**
+ * The owner of the API key used to auth the current ValTown instance.
+ */
 const user = await sdk.me.profile.retrieve();
 
 export { branchIdToBranch, filePathToFile, user };

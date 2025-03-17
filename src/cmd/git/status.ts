@@ -1,11 +1,12 @@
 import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
-import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
+import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
 import { displayStatusChanges } from "~/cmd/git/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { StatusResult } from "~/vt/git/status.ts";
 
 // - Only the current version (in green) if it equals the latest version
 // - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green
@@ -33,8 +34,8 @@ function getVersionRangeStr(
 }
 
 // Formats a file path with a colored status prefix for display.
-export function formatStatus(path: string, status: string): string {
-  const config = STATUS_COLORS[status] || { prefix: " ", color: colors.gray };
+export function formatStatus(path: string, status: keyof StatusResult): string {
+  const config = STATUS_STYLES[status] || { prefix: " ", color: colors.gray };
   return `${config.color(config.prefix)} ${path}`;
 }
 
@@ -45,8 +46,7 @@ export const statusCmd = new Command()
     doWithSpinner("Checking status...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-      const status = await vt.status();
-
+      const statusResult = await vt.status();
       const {
         currentBranch: currentBranchId,
         version: currentVersion,
@@ -65,12 +65,13 @@ export const statusCmd = new Command()
       );
 
       spinner.stop(); // Stop spinner before showing status
-
       console.log(
         `On branch ${colors.cyan(currentBranch.name)}@${versionStr}`,
       );
       console.log();
 
-      displayStatusChanges(status, { summaryPrefix: "Changes to be pushed:" });
+      displayStatusChanges(statusResult, {
+        summaryPrefix: "Changes to be pushed:",
+      });
     });
   });

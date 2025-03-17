@@ -73,9 +73,7 @@ export const checkoutCmd = new Command()
                 `Branch "${branch}" already exists. Choose a new branch name. ` +
                   toListBranches,
               );
-            } else {
-              throw e; // Re-throw error if it's not a 409
-            }
+            } else throw e; // Re-throw error if it's not a 409
           }
         } else if (existingBranchName) {
           try {
@@ -93,8 +91,7 @@ export const checkoutCmd = new Command()
                   toListBranches,
               );
               return;
-            }
-            throw e; // Re-throw other errors
+            } else throw e; // Re-throw other errors
           }
         } else {
           spinner.fail(

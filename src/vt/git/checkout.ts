@@ -80,14 +80,10 @@ export function checkout(
         );
 
         // Get the source branch info if provided, otherwise use the target branch
-        if (args.fromBranchId) {
-          fromBranch = await sdk.projects.branches.retrieve(
-            args.projectId,
-            args.fromBranchId,
-          );
-        } else {
-          fromBranch = toBranch; // Default if no source branch specified
-        }
+        fromBranch = await sdk.projects.branches.retrieve(
+          args.projectId,
+          args.fromBranchId,
+        );
       } else {
         // Creating a new fork
         createdNew = true;
@@ -95,13 +91,13 @@ export function checkout(
         // Get the source branch info
         fromBranch = await sdk.projects.branches.retrieve(
           args.projectId,
-          args.forkedFrom,
+          args.forkedFromId,
         );
 
         // Create the new branch
         toBranch = await sdk.projects.branches.create(
           args.projectId,
-          { branchId: args.forkedFrom, name: args.name },
+          { branchId: args.forkedFromId, name: args.name },
         );
 
         checkoutBranchId = toBranch.id;
