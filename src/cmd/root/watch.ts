@@ -6,7 +6,8 @@ import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
 import { displayStatusChanges } from "~/cmd/git/utils.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
-import { doWithVtClient } from "~/cmd/utils.ts";
+import { doWithSpinner } from "~/cmd/utils.ts";
+import { findVtRoot } from "~/vt/vt/utils.ts";
 
 // Formats a version range string based on the first, current, and latest
 // versions.
@@ -73,12 +74,10 @@ export const watchCmd = new Command()
     { default: 300 },
   )
   .action((options) => {
-    const spinner = new Kia("Starting watch mode...");
+    doWithSpinner("Starting watch...", async (spinner) => {
+      const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-    doWithVtClient(async (vt) => {
       try {
-        spinner.start();
-
         // Get initial branch information for display
         const {
           currentBranch: currentBranchId,

@@ -1,6 +1,8 @@
 import { Command } from "@cliffy/command";
 import { dirtyErrorMsg, displayStatusChanges } from "~/cmd/git/utils.ts";
-import { doWithSpinner, doWithVtClient } from "~/cmd/utils.ts";
+import { doWithSpinner } from "~/cmd/utils.ts";
+import VTClient from "~/vt/vt/VTClient.ts";
+import { findVtRoot } from "~/vt/vt/utils.ts";
 
 export const pullCmd = new Command()
   .name("pull")
@@ -9,21 +11,21 @@ export const pullCmd = new Command()
   .option("-f, --force", "Force the pull even if there are unpushed changes")
   .action(({ force }: { force?: boolean }) => {
     doWithSpinner("Pulling latest changes...", async (spinner) => {
-      await doWithVtClient(async (vt) => {
-        // Get the status manually so we don't need to re-fetch it for the pull
-        const statusResult = await vt.status();
-        if (!force && await vt.isDirty({ statusResult })) {
-          spinner.fail(dirtyErrorMsg("pull"));
-          return;
-        }
+      const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-        await vt.pull({ statusResult });
-        spinner.stop();
+      // Get the status manually so we don't need to re-fetch it for the pull
+      const statusResult = await vt.status();
+      if (!force && await vt.isDirty({ statusResult })) {
+        spinner.fail(dirtyErrorMsg("pull"));
+        return;
+      }
 
-        displayStatusChanges(statusResult, {
-          emptyMessage: "Nothing new to pull, everything is up to date.",
-          summaryPrefix: "Changes pulled:",
-        });
+      await vt.pull({ statusResult });
+      spinner.stop();
+
+      displayStatusChanges(statusResult, {
+        emptyMessage: "Nothing new to pull, everything is up to date.",
+        summaryPrefix: "Changes pulled:",
       });
     });
   });
