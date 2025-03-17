@@ -121,7 +121,7 @@ export function displayStatusChanges(
   const maxTypeLength = Object.entries(status)
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
-    .reduce((max, file) => Math.max(max, file.type.length));
+    .reduce((max, file) => Math.max(max, file.type.length), 0);
 
   // Print all changed files state
   for (const [type, files] of Object.entries(status)) {
