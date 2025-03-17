@@ -54,7 +54,9 @@ export async function checkDirectory(
     const stat = await Deno.lstat(rootPath);
 
     if (!stat.isDirectory) {
-      throw new Deno.errors.NotADirectory();
+      throw new Deno.errors.NotADirectory(
+        `"${rootPath}" exists but is not a directory.`,
+      );
     }
   } catch (error) {
     // If directory doesn't exist, create it
@@ -67,7 +69,9 @@ export async function checkDirectory(
 
   // Check if existing directory is empty (considering ignored patterns)
   if (!(await isDirectoryEmpty(rootPath, ignoreGlobs))) {
-    throw new Deno.errors.AlreadyExists();
+    throw new Deno.errors.AlreadyExists(
+      `"${rootPath}" already exists and is not empty.`,
+    );
   }
 }
 

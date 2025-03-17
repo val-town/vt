@@ -60,28 +60,17 @@ export const cloneCmd = new Command()
         );
 
         const relativeTargetDir = relative(Deno.cwd(), targetDir);
-        try {
-          // Make sure that the directory is safe to clone into (exists, or gets
-          // created and then exists, and wasn't nonempty)
-          await checkDirectory(targetDir, {
-            ignoreGlobs: ALWAYS_IGNORE_PATTERNS,
-          });
 
-          await vt.clone(targetDir);
-          spinner.succeed(
-            `Project ${ownerName}/${projectName} cloned to "./${relativeTargetDir}"`,
-          );
-        } catch (error) {
-          if (error instanceof Deno.errors.NotADirectory) {
-            spinner.fail(
-              `"./${relativeTargetDir}" exists but is not a directory.`,
-            );
-          } else if (error instanceof Deno.errors.AlreadyExists) {
-            spinner.fail(
-              `"./${relativeTargetDir}" already exists and is not empty.`,
-            );
-          } else throw error;
-        }
+        // Make sure that the directory is safe to clone into (exists, or gets
+        // created and then exists, and wasn't nonempty)
+        await checkDirectory(targetDir, {
+          ignoreGlobs: ALWAYS_IGNORE_PATTERNS,
+        });
+
+        await vt.clone(targetDir);
+        spinner.succeed(
+          `Project ${ownerName}/${projectName} cloned to "./${relativeTargetDir}"`,
+        );
       });
     },
   );
