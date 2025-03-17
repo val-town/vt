@@ -24,4 +24,3 @@ export async function doWithSpinner(
     if (spinner && spinner.isSpinning()) spinner.stop();
   }
 }
-

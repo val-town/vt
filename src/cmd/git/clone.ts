@@ -58,15 +58,15 @@ export const cloneCmd = new Command()
           branchName,
         });
 
-        const relativeTargetDir = relative(Deno.cwd(), targetDir);
-
         // Make sure that the directory is safe to clone into (exists, or gets
         // created and then exists, and wasn't nonempty) deno-fmt-ignore
         await checkDirectory(targetDir, { gitignoreRules: ALWAYS_IGNORE_PATTERNS, });
 
         await vt.clone(targetDir);
         spinner.succeed(
-          `Project ${ownerName}/${projectName} cloned to "./${relativeTargetDir}"`,
+          `Project ${ownerName}/${projectName} cloned to "./${
+            relative(Deno.cwd(), targetDir)
+          }"`,
         );
       });
     },
