@@ -19,9 +19,9 @@ export const pullCmd = new Command()
         return;
       }
 
+      await vt.pull({ statusResult });
       spinner.stop();
 
-      await vt.pull({ statusResult });
       displayStatusChanges(statusResult, {
         emptyMessage: "Nothing new to pull, everything is up to date.",
         summaryPrefix: "Changes pulled:",
