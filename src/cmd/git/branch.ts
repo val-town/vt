@@ -10,7 +10,7 @@ export const branchCmd = new Command()
   .description("List all project branches")
   .example("List all branches", "vt branch")
   .action(() => {
-    doVtAction("Loading branches...", async ({ vt }) => {
+    doVtAction("Loading branches...", async ({ vt, spinner }) => {
       const meta = await vt.getMeta().loadConfig();
 
       const branches: ValTown.Projects.BranchListResponse[] = [];
@@ -38,6 +38,9 @@ export const branchCmd = new Command()
       const sortedBranches = currentBranch
         ? [currentBranch, ...otherBranches]
         : otherBranches;
+
+      // Stop the spinner before printing out the result
+      spinner.stop();
 
       const branchesTableList = Table.from([
         [
