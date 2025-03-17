@@ -1,7 +1,8 @@
-import { ensureDir, walk } from "@std/fs";
-import { dirname, join, relative } from "@std/path";
+import { copy, walk } from "@std/fs";
+import { relative } from "@std/path";
 import { clone } from "~/vt/git/clone.ts";
 import { doAtomically } from "~/vt/git/utils.ts";
+import sdk from "~/sdk.ts";
 import { shouldIgnore } from "~/vt/git/paths.ts";
 /**
  * Pulls latest changes from a val town project into a vt folder.
@@ -29,29 +30,13 @@ export function pull({
 }): Promise<void> {
   return doAtomically(
     async (tempDir) => {
-      // Save ignored files
-      const ignoredFiles = new Map<string, Uint8Array>();
+      // Copy over all the files in the original dir into the temp dir
+      await copy(targetDir, tempDir, {
+        preserveTimestamps: true,
+        overwrite: true,
+      });
 
-      try {
-        // Walk through all files in the target directory
-        for await (const entry of walk(targetDir, { includeDirs: false })) {
-          const relativePath = relative(targetDir, entry.path);
-
-          // Check if this file should be ignored
-          if (shouldIgnore(entry.path)) {
-            // Read file content
-            const content = await Deno.readFile(entry.path);
-            ignoredFiles.set(relativePath, content);
-          }
-        }
-      } catch (error) {
-        // Handle case where targetDir doesn't exist yet
-        if (!(error instanceof Deno.errors.NotFound)) {
-          throw error;
-        }
-      }
-
-      // Clone fresh files from the project
+      // Clone all the files from the project into the temp dir
       await clone({
         targetDir: tempDir,
         projectId,
@@ -60,11 +45,31 @@ export function pull({
         gitignoreRules,
       });
 
-      // Restore ignored files
-      for (const [path, content] of ignoredFiles.entries()) {
-        const filePath = join(tempDir, path);
-        await ensureDir(dirname(filePath));
-        await Deno.writeFile(filePath, content);
+      // Then delete all files that should no longer exist. So fetch all the
+      // files from the server, and then look at all the files we cloned. After
+      // cloning, we should not have files that no longer exist on the server,
+      // so we can remove them.
+      //
+      // We do it this way where we copy over the current contents and then
+      // clone because we want to keep files that exist locally and were never
+      // pushed, along with all the ignored files.
+      const files = new Set<string>();
+      for await (
+        const file of sdk.projects.files.list(projectId, {
+          branch_id: branchId,
+          version,
+          recursive: true,
+        })
+      ) {
+        files.add(file.path);
+      }
+      for await (const entry of walk(tempDir)) {
+        const relativePath = relative(tempDir, entry.path);
+        if (shouldIgnore(relativePath, gitignoreRules)) continue;
+        if (entry.path === "" || entry.path === tempDir) continue;
+        if (!files.has(relativePath)) {
+          await Deno.remove(entry.path, { recursive: true });
+        }
       }
     },
     targetDir,
