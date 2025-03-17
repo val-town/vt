@@ -45,6 +45,8 @@ export const statusCmd = new Command()
     doWithSpinner("Checking status...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
+      const status = await vt.status();
+
       const {
         currentBranch: currentBranchId,
         version: currentVersion,
@@ -56,14 +58,14 @@ export const statusCmd = new Command()
         currentBranchId,
       );
 
-      const status = await vt.status();
-      spinner.stop(); // Stop spinner before showing status
-
       const versionStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
         currentVersion,
         currentBranch.version,
       );
+
+      spinner.stop(); // Stop spinner before showing status
+
       console.log(
         `On branch ${colors.cyan(currentBranch.name)}@${versionStr}`,
       );
