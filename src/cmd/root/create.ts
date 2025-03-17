@@ -71,8 +71,6 @@ vt checkout main`,
       // Make sure directory is safe to create project in
       await checkDirectory(rootPath, { ignoreGlobs: DEFAULT_IGNORE_PATTERNS });
 
-      spinner.start();
-
       try {
         const vt = await VTClient.create(
           rootPath,
