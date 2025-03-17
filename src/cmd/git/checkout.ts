@@ -1,7 +1,8 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
 import { CheckoutResult } from "~/vt/git/checkout.ts";
-import { dirtyErrorMsg, doVtAction } from "~/cmd/git/utils.ts";
+import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
+import { doWithSpinner, doWithVtClient } from "~/cmd/utils.ts";
 
 const toListBranches = "Use \`vt branch\` to list branches.";
 
@@ -38,67 +39,69 @@ export const checkoutCmd = new Command()
       { branch, force }: { branch?: string; force?: boolean },
       existingBranchName?: string,
     ) => {
-      doVtAction("Checking out branch...", async ({ spinner, vt }) => {
-        const config = await vt.getMeta().loadConfig();
+      doWithSpinner("Checking out branch...", (spinner) => {
+        doWithVtClient(async (vt) => {
+          const config = await vt.getMeta().loadConfig();
 
-        const statusResult = await vt.status();
-        // !branch && await vt.isDirty(cwd) means that we only do the isDirty
-        // check if the branch is not new
-        if (!force && (!branch && await vt.isDirty({ statusResult }))) {
-          spinner.fail(dirtyErrorMsg("checkout"));
-          return;
-        }
+          const statusResult = await vt.status();
+          // !branch && await vt.isDirty(cwd) means that we only do the isDirty
+          // check if the branch is not new
+          if (!force && (!branch && await vt.isDirty({ statusResult }))) {
+            spinner.fail(dirtyErrorMsg("checkout"));
+            return;
+          }
 
-        let checkoutResult: CheckoutResult;
+          let checkoutResult: CheckoutResult;
 
-        if (branch) {
-          // -b flag was used, create new branch from source
-          try {
-            checkoutResult = await vt
-              .checkout(branch, {
-                forkedFrom: config.currentBranch,
+          if (branch) {
+            // -b flag was used, create new branch from source
+            try {
+              checkoutResult = await vt
+                .checkout(branch, {
+                  forkedFrom: config.currentBranch,
+                  statusResult,
+                });
+
+              spinner.succeed(
+                `Created and switched to new branch "${branch}" from "${checkoutResult.fromBranch.name}"`,
+              );
+            } catch (e) {
+              if (e instanceof ValTown.APIError && e.status === 409) {
+                spinner.fail(
+                  `Branch "${branch}" already exists. Choose a new branch name. ` +
+                    toListBranches,
+                );
+              } else {
+                throw e; // Re-throw error if it's not a 409
+              }
+            }
+          } else if (existingBranchName) {
+            try {
+              checkoutResult = await vt.checkout(existingBranchName, {
                 statusResult,
               });
 
-            spinner.succeed(
-              `Created and switched to new branch "${branch}" from "${checkoutResult.fromBranch.name}"`,
-            );
-          } catch (e) {
-            if (e instanceof ValTown.APIError && e.status === 409) {
-              spinner.fail(
-                `Branch "${branch}" already exists. Choose a new branch name. ` +
-                  toListBranches,
+              spinner.succeed(
+                `Switched to branch "${existingBranchName}" from "${checkoutResult.fromBranch.name}"`,
               );
-            } else {
-              throw e; // Re-throw error if it's not a 409
+            } catch (e) {
+              if (e instanceof Deno.errors.NotFound) {
+                spinner.fail(
+                  `Branch "${existingBranchName}" does not exist in project. ` +
+                    toListBranches,
+                );
+                return;
+              }
+              throw e; // Re-throw other errors
             }
-          }
-        } else if (existingBranchName) {
-          try {
-            checkoutResult = await vt.checkout(existingBranchName, {
-              statusResult,
-            });
-
-            spinner.succeed(
-              `Switched to branch "${existingBranchName}" from "${checkoutResult.fromBranch.name}"`,
+          } else {
+            spinner.fail(
+              "Branch name is required. Use -b to create a new branch " +
+                toListBranches,
             );
-          } catch (e) {
-            if (e instanceof Deno.errors.NotFound) {
-              spinner.fail(
-                `Branch "${existingBranchName}" does not exist in project. ` +
-                  toListBranches,
-              );
-              return;
-            }
-            throw e; // Re-throw other errors
+            return;
           }
-        } else {
-          spinner.fail(
-            "Branch name is required. Use -b to create a new branch " +
-              toListBranches,
-          );
-          return;
-        }
+        });
       });
     },
   );

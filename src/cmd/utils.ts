@@ -1,5 +1,6 @@
 import Kia from "kia";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import VTClient from "~/vt/vt/VTClient.ts";
 
 /**
  * Gets active directory path, either from the provided directory or the
@@ -13,45 +14,46 @@ export function getActiveDir(givenDir: string): string {
 }
 
 /**
- * Attempts to find the VT root directory, or return false and updates spinner.
+ * Get a spinner and make sure it stops before exiting.
  *
- * @returns {Promise<string|false>} The VT root path if found, false otherwise
+ * @param spinnerText - Initial spinner text
+ * @param callback - Function to execute with the spinner
+ * @param options - Optional configuration
+ * @param options.autostart - Whether to auto-start the spinner (defaults to true)
  */
-export async function vtRootOrFalse(
-  spinner?: Kia,
-): Promise<string | false> {
+export async function doWithSpinner(
+  spinnerText: string,
+  callback: (spinner: Kia) => Promise<unknown> | unknown,
+  options?: { autostart?: boolean },
+) {
+  let spinner: Kia | undefined;
   try {
-    return await findVtRoot(Deno.cwd());
+    spinner = new Kia(spinnerText);
+    if (options?.autostart !== false) spinner.start();
+    return await callback(spinner);
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
-      if (spinner) {
-        spinner.fail("No .vt directory found in current path or any parent.");
-      }
-      return false;
-    }
-    throw e;
+    if (e instanceof Error) spinner?.fail(e.message);
+  } finally {
+    if (spinner && spinner.isSpinning()) spinner.stop();
   }
 }
 
 /**
- * Get a spinner and make sure it stops before exiting.
+ * Initialize a VT client and execute a callback with it.
+ * Throws Deno.errors.NotFound if no .vt directory is found.
  *
- * @param options - Spinner options or text string
- * @param callback - Function to execute with the spinner
- * @param config - Optional configuration
- * @param config.autostart - Whether to auto-start the spinner (defaults to true)
+ * @param callback - Function to execute with the VT client
+ * @returns The result from the callback
  */
-export async function doWithSpinner(
-  options: string,
-  callback: (spinner: Kia) => Promise<unknown> | unknown,
-  config?: { autostart?: boolean },
-) {
-  let spinner: Kia | undefined;
-  try {
-    spinner = new Kia(options);
-    if (config?.autostart !== false) spinner.start();
-    return await callback(spinner);
-  } finally {
-    if (spinner && spinner.isSpinning()) spinner.stop();
-  }
+export async function doWithVtClient<T>(
+  callback: (vt: VTClient) => Promise<T> | T,
+): Promise<T> {
+  // Find VT root directory - will throw Deno.errors.NotFound if not found
+  const vtRoot = await findVtRoot(Deno.cwd());
+
+  // Initialize VT client
+  const vt = VTClient.from(vtRoot);
+
+  // Execute callback with VT client
+  return await callback(vt);
 }

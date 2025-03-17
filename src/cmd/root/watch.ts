@@ -6,7 +6,7 @@ import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_COLORS } from "~/consts.ts";
 import { displayStatusChanges } from "~/cmd/git/utils.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
-import { vtRootOrFalse } from "~/cmd/utils.ts";
+import { doWithVtClient } from "~/cmd/utils.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -82,72 +82,69 @@ export const watchCmd = new Command()
     "Debounce delay in milliseconds",
     { default: 300 },
   )
-  .action(async (options) => {
+  .action((options) => {
     const spinner = new Kia("Starting watch mode...");
 
-    const vtRoot = await vtRootOrFalse(spinner);
-    if (!vtRoot) return;
-
-    let vt: VTClient;
-    try {
-      spinner.start();
-      vt = VTClient.from(vtRoot);
-
-      // Get initial branch information for display
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
-      const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
-      );
-
-      spinner.stop();
-      console.log(
-        `On branch ${colors.cyan(currentBranch.name)}@${
-          getVersionRangeStr(
-            FIRST_VERSION_NUMBER,
-            currentVersion,
-            currentBranch.version,
-          )
-        }`,
-      );
-    } finally {
-      spinner.stop();
-    }
-
-    console.log("Watching for changes. Press Ctrl+C to stop.");
-
-    const watchingForChangesLine = () =>
-      colors.gray(
-        `--- watching for changes (@${new Date().toLocaleTimeString()}) ---`,
-      );
-
-    console.log();
-    console.log(watchingForChangesLine());
-
-    while (true) {
+    doWithVtClient(async (vt) => {
       try {
-        for await (const status of vt.watch(options.debounceDelay)) {
-          try {
-            if (getTotalChanges(status) > 0) {
-              console.log();
-              displayStatusChanges(status, {
-                headerText: "New changes detected",
-                summaryPrefix: "Pushed:",
-              });
-              console.log();
-              console.log(watchingForChangesLine());
-            }
-          } catch (error) {
-            handleError(error);
-          }
-        }
-      } catch (error) {
-        handleError(error);
+        spinner.start();
+
+        // Get initial branch information for display
+        const {
+          currentBranch: currentBranchId,
+          version: currentVersion,
+          projectId,
+        } = await vt.getMeta().loadConfig();
+        const currentBranch = await sdk.projects.branches.retrieve(
+          projectId,
+          currentBranchId,
+        );
+
+        spinner.stop();
+        console.log(
+          `On branch ${colors.cyan(currentBranch.name)}@${
+            getVersionRangeStr(
+              FIRST_VERSION_NUMBER,
+              currentVersion,
+              currentBranch.version,
+            )
+          }`,
+        );
+      } finally {
+        spinner.stop();
       }
-    }
+
+      console.log("Watching for changes. Press Ctrl+C to stop.");
+
+      const watchingForChangesLine = () =>
+        colors.gray(
+          `--- watching for changes (@${new Date().toLocaleTimeString()}) ---`,
+        );
+
+      console.log();
+      console.log(watchingForChangesLine());
+
+      while (true) {
+        try {
+          for await (const status of vt.watch(options.debounceDelay)) {
+            try {
+              if (getTotalChanges(status) > 0) {
+                console.log();
+                displayStatusChanges(status, {
+                  headerText: "New changes detected",
+                  summaryPrefix: "Pushed:",
+                });
+                console.log();
+                console.log(watchingForChangesLine());
+              }
+            } catch (error) {
+              handleError(error);
+            }
+          }
+        } catch (error) {
+          handleError(error);
+        }
+      }
+    });
   })
   .command("stop", watchStopCmd);

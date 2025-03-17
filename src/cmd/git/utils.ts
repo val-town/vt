@@ -2,10 +2,6 @@ import { colors } from "@cliffy/ansi/colors";
 import { STATUS_COLORS } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { StatusResult } from "~/vt/git/status.ts";
-import Kia from "kia";
-import { findVtRoot } from "~/vt/vt/utils.ts";
-import VTClient from "~/vt/vt/VTClient.ts";
-import { doWithSpinner } from "~/cmd/utils.ts";
 
 /**
  * Generates an error message for commands that cannot be executed with unpushed changes
@@ -149,36 +145,4 @@ export function displayStatusChanges(
       }
     }
   }
-}
-
-/**
- * Execute an action with both a spinner and VT client.
- *
- * @param spinnerText - Text to display in the spinner
- * @param callback - Function to execute with both spinner and VT client
- * @param options - Optional configuration
- * @param options.spinnerAutostart - Whether to auto-start the spinner (defaults to true)
- */
-export async function doVtAction(
-  spinnerText: string,
-  callback: (context: { spinner: Kia; vt: VTClient }) => Promise<void> | void,
-): Promise<void> {
-  await doWithSpinner(spinnerText, async (spinner) => {
-    try {
-      // Find VT root directory
-      const vtRoot = await findVtRoot(Deno.cwd());
-
-      // Initialize VT client
-      const vt = VTClient.from(vtRoot);
-
-      // Execute callback with both spinner and VT client
-      await callback({ spinner, vt });
-    } catch (e) {
-      if (e instanceof Deno.errors.NotFound) {
-        spinner.fail("No .vt directory found in current path or any parent.");
-        return;
-      }
-      throw e;
-    }
-  });
 }
