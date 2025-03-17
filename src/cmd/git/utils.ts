@@ -112,8 +112,8 @@ export function displayStatusChanges(
   const {
     showEmpty = true,
     headerText,
-    summaryPrefix = "Changes:",
-    emptyMessage = "No changes. Working tree clean.",
+    summaryPrefix = "Local Changes:",
+    emptyMessage = "No local changes. Local working tree clean.",
     includeSummary = true,
   } = options;
 
