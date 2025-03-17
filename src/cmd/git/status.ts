@@ -69,8 +69,6 @@ export const statusCmd = new Command()
       );
       console.log();
 
-      displayStatusChanges(status, {
-        summaryPrefix: "Changes to be pushed:",
-      });
+      displayStatusChanges(status, { summaryPrefix: "Changes to be pushed:" });
     });
   });

@@ -25,7 +25,5 @@ export const browseCmd = new Command()
           `Project url opened in browser: ${branch.links.html}`,
         );
       });
-    } else {
-      console.log(`${branch.links.html}`);
-    }
+    } else console.log(`${branch.links.html}`);
   });
