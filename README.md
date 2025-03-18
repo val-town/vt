@@ -36,7 +36,7 @@ deno install -gAfr jsr:@valtown/vt
 Or if you would prefer a more descriptive command with minimal permissions:
 
 ```bash
-deno install --global --force --reload --allow-read --allow-write --allow-env=VAL_TOWN_API_KEY,VAL_TOWN_BASE_URL --allow-net --config jsr:@valtown/vt
+deno install --global --force --reload --allow-read --allow-write --allow-env --allow-net jsr:@valtown/vt
 ```
 
 Set the `VAL_TOWN_API_KEY` environment variable to authenticate. Either as an
