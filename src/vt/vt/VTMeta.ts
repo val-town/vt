@@ -1,6 +1,7 @@
 import type z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 import {
+  ALWAYS_IGNORE_PATTERNS,
   CONFIG_FILE_NAME,
   META_FOLDER_NAME,
   META_LOCK_FILE_NAME,
@@ -93,8 +94,8 @@ export default class VTMeta {
    *
    * @returns {Promise} A promise that resolves with a list of glob strings.
    */
-  public async loadIgnoreGlobs(): Promise<string[]> {
-    const ignoreGlobs: string[] = [];
+  public async loadGitignoreRules(): Promise<string[]> {
+    const gitignoreRules: string[] = [];
 
     for (const filePath of this.ignoreFilesPaths) {
       try {
@@ -106,8 +107,8 @@ export default class VTMeta {
           .map((line) => line.trim()) // get rid of whitespace
           .filter((line) => line && !line.startsWith("#")); // remove empty and commented lines
 
-        // Add all the processed lines from this file to the ignore globs list
-        lines.forEach((line) => ignoreGlobs.push(line));
+        // Add all the processed lines from this file to the gitignore rule list
+        lines.forEach((line) => gitignoreRules.push(line));
       } catch (error) {
         if (error instanceof Deno.errors.NotFound) {
           console.log(`The file ${filePath} was not found`);
@@ -118,7 +119,9 @@ export default class VTMeta {
       }
     }
 
-    return ignoreGlobs;
+    // Apply the always ignore patterns last since git ignores have more
+    // priority the lower down they are.
+    return [...gitignoreRules, ...ALWAYS_IGNORE_PATTERNS];
   }
 
   /**

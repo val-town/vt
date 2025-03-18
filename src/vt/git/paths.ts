@@ -1,6 +1,6 @@
-import * as path from "@std/path";
 import { DEFAULT_VAL_TYPE, type ProjectItem } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
+import { compile as compileGitignore } from "gitignore-parser";
 
 /**
  * Determine the type of a project file.
@@ -66,31 +66,22 @@ async function getProjectItemType(
 }
 
 /**
- * Creates RegExp patterns from glob patterns for ignoring files.
+ * Checks if a path should be ignored based on gitignore rules.
  *
- * @param {string[]} ignoreGlobs - Array of glob patterns to convert
- * @returns {RegExp[]} Array of RegExp patterns
- */
-function createIgnorePatterns(ignoreGlobs: string[]): RegExp[] {
-  return ignoreGlobs.map((glob) =>
-    path.globToRegExp(glob, { extended: true, globstar: true })
-  );
-}
-
-/**
- * Checks if a path should be ignored based on ignore patterns.
- *
- * @param {string} - filePath Path to check
- * @param {string[]} - ignoreGlobs Array of glob patterns to check against
+ * @param {string} filePath - Path to check
+ * @param {string[]} gitignoreRules - Array of gitignore rules to check against
  * @returns {boolean} True if the path should be ignored
  */
 function shouldIgnore(
   filePath: string,
-  ignoreGlobs: string[] = [],
+  gitignoreRules: string[] = [],
 ): boolean {
-  return createIgnorePatterns(ignoreGlobs).some((pattern) =>
-    pattern.test(filePath)
-  );
+  if (gitignoreRules.length === 0) return false;
+
+  // All the libraries for this kinda suck, but this mostly works. Note that
+  // there might still be bugs in the gitignore logic.
+  const gitignore = compileGitignore(gitignoreRules.join("\n"));
+  return gitignore.denies(filePath);
 }
 
 export { getProjectItemType, shouldIgnore };

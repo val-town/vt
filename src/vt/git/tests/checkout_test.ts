@@ -4,7 +4,7 @@ import { assertEquals } from "@std/assert";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { checkout } from "~/vt/git/checkout.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
-import sdk, { branchNameToId, randomProjectName } from "~/sdk.ts";
+import sdk, { branchIdToBranch, randomProjectName } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 // Run test for checking out branches that already exist
@@ -42,7 +42,8 @@ for (const testCase of testCases) {
               version: toBranchData.version,
               targetDir: tempDir,
               projectId: testCase.projectId,
-              ignoreGlobs: [],
+              fromBranchId,
+              gitignoreRules: [],
             });
 
             // Verify project structure after checkout
@@ -80,7 +81,7 @@ Deno.test({
     });
 
     // Get the main branch ID to fork from
-    const mainBranch = await branchNameToId(project.id, DEFAULT_BRANCH_NAME);
+    const mainBranch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
 
     const newBranchName = `test-branch-${crypto.randomUUID()}`;
 
@@ -97,20 +98,19 @@ Deno.test({
       await checkout({
         targetDir: tempDir,
         projectId: project.id,
-        ignoreGlobs: [],
-        forkedFrom: mainBranch.id,
+        gitignoreRules: [],
+        forkedFromId: mainBranch.id,
         name: newBranchName,
         version: mainBranch.version,
       });
 
       try {
-        await branchNameToId(project.id, newBranchName);
+        await branchIdToBranch(project.id, newBranchName);
       } catch {
         throw new Error("Branch was not created successfully");
       }
 
-      // TODO `await sdk.projects.delete(project.id);` (this API endpoint
-      // doesn't exist yet thoguh)
+      await sdk.projects.delete(project.id);
     }, "vt_checkout_test");
   },
 });
