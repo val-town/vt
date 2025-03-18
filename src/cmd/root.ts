@@ -11,6 +11,9 @@ import { DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import Kia from "kia";
 import { APIError } from "@valtown/sdk";
 
+/**
+ * The fully configured cliffy Command class that defines the Val Town cli.
+ */
 const cmd: Command = new Command()
   .name("vt")
   .version(manifest.version)
