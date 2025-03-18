@@ -16,8 +16,6 @@ Options:
 Commands:
 
   clone     <projectUri> [cloneDir] [branchName]  - Clone a val town project
-  pull                                            - Pull the latest changes for a val town project
-  push                                            - Push local changes to a val town project
   status                                          - Show the working tree status
   branch                                          - List all project branches
   watch                                           - Watch for changes and automatically sync with Val Town
@@ -76,11 +74,11 @@ project metadata. Let's start our project by adding a text file.
 echo "Hello val town" > hello.txt
 ```
 
-Upload this file to your project with `vt push`
+Upload this file to your project with `vt sync`
 
 ```bash
-$ vt push
-√ Project pushed successfully from ./helloWorld
+$ vt sync
+√ Project synced successfully from ./helloWorld
 ```
 
 Now run `vt open` to see your file in the Val Town UI.
@@ -93,8 +91,8 @@ with an endpoint.
 
 ```bash
 touch index.http.tsx
-vt push
-√ Project pushed successfully from ./hello-world
+vt sync
+√ Project synced successfully from ./hello-world
 ```
 
 Now, if we return to our browser we can see that an http val has been created.
@@ -106,7 +104,7 @@ export default async function (req) {
 }
 ```
 
-Once that's written, run `vt push` again. Now I get a successful response from
+Once that's written, run `vt sync` again. Now I get a successful response from
 my http val:
 
 ```bash

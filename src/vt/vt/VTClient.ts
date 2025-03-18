@@ -1,12 +1,10 @@
-import { clone } from "~/vt/git/clone.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/git/pull.ts";
-import { push } from "~/vt/git/push.ts";
-import { status, StatusResult } from "~/vt/git/status.ts";
+import { status, StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";
-import { isDirty } from "~/vt/git/utils.ts";
+import { checkout, CheckoutResult } from "~/vt/lib/checkout.ts";
+import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
@@ -115,75 +113,6 @@ export default class VTClient {
    */
   public static from(rootPath: string): VTClient {
     return new VTClient(rootPath);
-  }
-
-  /**
-   * Watch the root directory for changes and automatically push to Val Town
-   * when files are updated locally.
-   *
-   * If another instance of the program is already running then this errors. A
-   * lock file with the running program's PID is maintained automatically so
-   * that this cannot run with multiple instances.
-   *
-   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
-   * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
-   */
-  public async *watch(
-    debounceDelay: number = 300,
-  ): AsyncGenerator<StatusResult> {
-    // Set the lock file at the start
-    await this.getMeta().setLockFile();
-
-    // Track the last time we pushed
-    let lastPushed = 0;
-
-    // Listen for termination signals to perform cleanup
-    for (const signal of ["SIGINT", "SIGTERM"]) {
-      Deno.addSignalListener(signal as Deno.Signal, () => {
-        console.log("Stopping watch process...");
-        this.getMeta().rmLockFile();
-        Deno.exit(0);
-      });
-    }
-
-    const watcher = Deno.watchFs(this.rootPath);
-
-    // Process events and yield results
-    for await (const event of watcher) {
-      try {
-        // Debounce - only push if enough time has elapsed since last push
-        const now = Date.now();
-        if (now - lastPushed < debounceDelay) continue;
-
-        lastPushed = now; // update debouce counter
-        yield await this.push(); // yields the status retreived
-      } catch (e) {
-        if (event.kind === "access") return; // Nothing to do
-
-        // Handle case where the file was deleted before we could push it
-        if (e instanceof Deno.errors.NotFound) {
-          // The file no longer exists at the time of uploading. It could've
-          // just been a temporary file, but since it no longer exists it
-          // isn't our problem.
-          continue;
-        }
-
-        // Handle case where the API returns a 404 Not Found error
-        if (e instanceof ValTown.APIError && e.status === 404) {
-          // The val we're trying to update doesn't exist on the server. This
-          // is usually a result of starting a deletion and then trying to
-          // delete a second time because of duplicate file system events.
-          //
-          // TODO: We should keep a global queue of outgoing requests and
-          // intelligently notice that we have duplicate idempotent (in this
-          // case deletions are) requests in the queue.
-          continue;
-        }
-
-        // Re-throw any other errors
-        throw e;
-      }
-    }
   }
 
   /**
@@ -298,68 +227,6 @@ export default class VTClient {
   }
 
   /**
-   * Pull val town project into a vt directory. Updates all the files in the
-   * directory. If the contents are dirty (files have been updated but not
-   * pushed) then this fails.
-   *
-   * @param {Object} options - Optional parameters
-   * @returns {Promise<void>} Resolves once pull complete
-   */
-  public async pull() {
-    const config = await this.getMeta().loadConfig();
-
-    config.version = await getLatestVersion(
-      config.projectId,
-      config.currentBranch,
-    );
-
-    await pull({
-      targetDir: this.rootPath,
-      projectId: config.projectId,
-      branchId: config.currentBranch,
-      version: config.version,
-      gitignoreRules: await this.getGitignoreRules(),
-    });
-
-    await this.getMeta().saveConfig(config);
-  }
-
-  /**
-   * Push changes from the local directory to the Val Town project.
-   *
-   * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
-   * @returns {Promise<StatusResult>} The StatusResult after pushing
-   */
-  public async push(
-    options?: { statusResult?: StatusResult },
-  ): Promise<StatusResult> {
-    const { projectId, currentBranch, version } = await this
-      .getMeta()
-      .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
-
-    const statusResult = await push({
-      targetDir: this.rootPath,
-      projectId,
-      branchId: currentBranch,
-      gitignoreRules: await this.getGitignoreRules(),
-      statusResult: options?.statusResult,
-    });
-
-    await this.getMeta().saveConfig({
-      projectId,
-      currentBranch,
-      version: await getLatestVersion(projectId, currentBranch),
-    });
-
-    return statusResult;
-  }
-
-  /**
    * Check out a different branch of the project.
    *
    * @param {string} branchName The name of the branch to check out to
@@ -432,6 +299,84 @@ export default class VTClient {
     await this.getMeta().saveConfig(config);
 
     return result;
+  }
+
+  /**
+   * Watch the root directory for changes and automatically sync with Val Town
+   * when files are updated locally.
+   *
+   * If another instance of the program is already running then this errors. A
+   * lock file with the running program's PID is maintained automatically so
+   * that this cannot run with multiple instances.
+   *
+   * @param {number} debounceDelay - Time in milliseconds to wait between syncs (default: 300ms)
+   * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
+   */
+  public async *watch(
+    debounceDelay: number = 300,
+  ): AsyncGenerator<StatusResult> {
+    // Set the lock file at the start
+    await this.getMeta().setLockFile();
+
+    // Track the last time we synced
+    let lastPushed = 0;
+
+    // Listen for termination signals to perform cleanup
+    for (const signal of ["SIGINT", "SIGTERM"]) {
+      Deno.addSignalListener(signal as Deno.Signal, () => {
+        console.log("Stopping watch process...");
+        this.getMeta().rmLockFile();
+        Deno.exit(0);
+      });
+    }
+
+    const watcher = Deno.watchFs(this.rootPath);
+
+    // Process events and yield results
+    for await (const event of watcher) {
+      try {
+        // Debounce - only sync if enough time has elapsed since last sync
+        const now = Date.now();
+        if (now - lastPushed < debounceDelay) continue;
+
+        lastPushed = now; // update debouce counter
+        yield await this.sync(); // yields the status retreived
+      } catch (e) {
+        if (event.kind === "access") return; // Nothing to do
+
+        // Handle case where the file was deleted before we could push it
+        if (e instanceof Deno.errors.NotFound) {
+          // The file no longer exists at the time of uploading. It could've
+          // just been a temporary file, but since it no longer exists it
+          // isn't our problem.
+          continue;
+        }
+
+        // Handle case where the API returns a 404 Not Found error
+        if (e instanceof ValTown.APIError && e.status === 404) {
+          // The val we're trying to update doesn't exist on the server. This
+          // is usually a result of starting a deletion and then trying to
+          // delete a second time because of duplicate file system events.
+          //
+          // TODO: We should keep a global queue of outgoing requests and
+          // intelligently notice that we have duplicate idempotent (in this
+          // case deletions are) requests in the queue.
+          continue;
+        }
+
+        // Re-throw any other errors
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Sync the current working directory with the Val Town project.
+   *
+   * WIP.
+   */
+  public sync(): Promise<StatusResult> {
+    throw new Error("VTClient.sync() is not implemented yet.");
   }
 
   /**

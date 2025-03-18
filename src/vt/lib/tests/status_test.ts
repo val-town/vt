@@ -1,9 +1,9 @@
-import { FileStatus, status, StatusResult } from "~/vt/git/status.ts";
+import { FileStatus, status, StatusResult } from "~/vt/lib/status.ts";
 import * as path from "@std/path";
-import { doWithTempDir } from "~/vt/git/utils.ts";
-import { clone } from "~/vt/git/clone.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import { assert } from "@std/assert";
-import { TestCaseBranchData, testCases } from "~/vt/git/tests/cases.ts";
+import { TestCaseBranchData, testCases } from "~/vt/lib/tests/cases.ts";
 
 for (const testCase of testCases) {
   for (const branchId in testCase.branches) {

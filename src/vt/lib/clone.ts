@@ -1,10 +1,10 @@
 import sdk from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { removeEmptyDirs } from "~/utils.ts";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
 import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
-import { doAtomically } from "~/vt/git/utils.ts";
+import { doAtomically } from "~/vt/lib/utils.ts";
 
 /**
  * Clones a project by downloading its files and directories to the specified

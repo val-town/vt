@@ -1,5 +1,5 @@
-import { cleanDirectory, doAtomically } from "~/vt/git/utils.ts";
-import { clone } from "~/vt/git/clone.ts";
+import { cleanDirectory, doAtomically } from "~/vt/lib/utils.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
 import ValTown from "@valtown/sdk";

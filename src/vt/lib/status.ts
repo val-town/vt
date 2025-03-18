@@ -1,5 +1,5 @@
 import sdk from "~/sdk.ts";
-import { getProjectItemType, shouldIgnore } from "~/vt/git/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 import { ProjectItem } from "~/consts.ts";

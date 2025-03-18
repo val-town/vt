@@ -1,9 +1,9 @@
-import { clone } from "~/vt/git/clone.ts";
-import { doWithTempDir } from "~/vt/git/utils.ts";
+import { clone } from "~/vt/lib/clone.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { assertEquals } from "@std/assert";
-import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
-import { checkout } from "~/vt/git/checkout.ts";
-import { testCases } from "~/vt/git/tests/cases.ts";
+import { verifyProjectStructure } from "~/vt/lib/tests/utils.ts";
+import { checkout } from "~/vt/lib/checkout.ts";
+import { testCases } from "~/vt/lib/tests/cases.ts";
 import sdk, { branchIdToBranch, randomProjectName } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
