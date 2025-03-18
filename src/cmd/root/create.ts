@@ -92,8 +92,7 @@ vt checkout main`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {
-          spinner.fail(`Project name "${projectName}" already exists`);
-          return;
+          throw new Error(`Project name "${projectName}" already exists`);
         } else throw error;
       }
     });

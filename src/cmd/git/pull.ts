@@ -16,8 +16,7 @@ export const pullCmd = new Command()
       // Get the status manually so we don't need to re-fetch it for the pull
       const statusResult = await vt.status();
       if (!force && await vt.isDirty({ statusResult })) {
-        spinner.fail(dirtyErrorMsg("pull"));
-        return;
+        throw new Error(dirtyErrorMsg("pull"));
       }
 
       await vt.pull();

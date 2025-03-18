@@ -49,8 +49,7 @@ export const checkoutCmd = new Command()
         // !branch && await vt.isDirty(cwd) means that we only do the isDirty
         // check if the branch is not new
         if (!force && (!branch && await vt.isDirty({ statusResult }))) {
-          spinner.fail(dirtyErrorMsg("checkout"));
-          return;
+          throw new Error(dirtyErrorMsg("checkout"));
         }
 
         let checkoutResult: CheckoutResult;
@@ -69,7 +68,7 @@ export const checkoutCmd = new Command()
             );
           } catch (e) {
             if (e instanceof ValTown.APIError && e.status === 409) {
-              spinner.fail(
+              throw new Error(
                 `Branch "${branch}" already exists. Choose a new branch name. ` +
                   toListBranches,
               );
@@ -86,19 +85,17 @@ export const checkoutCmd = new Command()
             );
           } catch (e) {
             if (e instanceof Deno.errors.NotFound) {
-              spinner.fail(
+              throw new Error(
                 `Branch "${existingBranchName}" does not exist in project. ` +
                   toListBranches,
               );
-              return;
             } else throw e; // Re-throw other errors
           }
         } else {
-          spinner.fail(
+          throw new Error(
             "Branch name is required. Use -b to create a new branch " +
               toListBranches,
           );
-          return;
         }
       });
     },

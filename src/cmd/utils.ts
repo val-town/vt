@@ -14,13 +14,16 @@ export async function doWithSpinner(
   options?: { autostart?: boolean },
 ) {
   let spinner: Kia | undefined;
+  let status = 0;
   try {
     spinner = new Kia(spinnerText);
     if (options?.autostart !== false) spinner.start();
     return await callback(spinner);
   } catch (e) {
     if (e instanceof Error) spinner?.fail(e.message);
+    status = 1;
   } finally {
     if (spinner && spinner.isSpinning()) spinner.stop();
+    Deno.exit(status);
   }
 }

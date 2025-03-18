@@ -52,14 +52,13 @@ export const watchStopCmd = new Command()
             Deno.kill(pid);
             spinner.succeed(`Stopped watch process with PID: ${pid}`);
           } else {
-            spinner.fail("Invalid PID in lockfile.");
+            throw new Error("Invalid PID in lockfile.");
           }
         } else {
-          spinner.fail("No running watch process found.");
+          throw new Error("No running watch process found.");
         }
-      } catch (error) {
-        spinner.fail("Failed to stop the watch process.");
-        console.error(error);
+      } catch {
+        throw new Error("Failed to stop the watch process.");
       }
     });
   });
