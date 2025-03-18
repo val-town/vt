@@ -1,4 +1,4 @@
-import { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import { shouldIgnore } from "~/vt/git/paths.ts";
 import ValTown from "@valtown/sdk";

@@ -1,4 +1,4 @@
-import z from "zod";
+import type z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 import {
   ALWAYS_IGNORE_PATTERNS,

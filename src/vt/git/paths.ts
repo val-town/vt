@@ -1,4 +1,4 @@
-import { DEFAULT_VAL_TYPE, ProjectItem } from "~/consts.ts";
+import { DEFAULT_VAL_TYPE, type ProjectItem } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 

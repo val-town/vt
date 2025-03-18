@@ -4,9 +4,8 @@ This is the cli to work with projects in the [Val Town](https://val.town)
 platform.
 
 ```
-$ vt
 Usage:   vt
-Version: 0.0.1
+Version: 0.0.3
 
 Options:
 
@@ -20,6 +19,7 @@ Commands:
   push                                            - Push local changes to a val town project
   status                                          - Show the working tree status
   branch                                          - List all project branches
+  browse                                          - Open a project in a web browser
   watch                                           - Watch for changes and automatically sync with Val Town
   checkout  [existingBranchName]                  - Check out a different branch
   create    <projectName> [targetDir]             - Create a new Val Town project
@@ -27,16 +27,16 @@ Commands:
 
 ## Installation
 
-Install with:
+To install or update to the latest version, run:
 
 ```bash
-deno install -A -g -n=vt https://raw.githubusercontent.com/val-town/vt/refs/heads/main/install.ts
+deno install -gAfr jsr:@valtown/vt
 ```
 
 Or if you would prefer a more descriptive command with minimal permissions:
 
 ```bash
-deno install --allow-read --allow-write --allow-run --allow-env --global --name=vt https://raw.githubusercontent.com/val-town/vt/refs/heads/main/install.ts
+deno install --global --force --reload --allow-read --allow-write --allow-env --allow-net jsr:@valtown/vt
 ```
 
 Set the `VAL_TOWN_API_KEY` environment variable to authenticate. Either as an
@@ -53,7 +53,7 @@ Run `vt` to confirm everything is working:
 
 ```bash
 $ vt --version
-vt 0.0.1
+vt 0.0.3
 ```
 
 ## Getting Started

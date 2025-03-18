@@ -2,7 +2,7 @@ import { clone } from "~/vt/git/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/git/pull.ts";
 import { push } from "~/vt/git/push.ts";
-import { status, StatusResult } from "~/vt/git/status.ts";
+import { status, type StatusResult } from "~/vt/git/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
 import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";

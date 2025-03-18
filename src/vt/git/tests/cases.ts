@@ -1,4 +1,4 @@
-import { ExpectedProjectInode } from "~/vt/git/tests/utils.ts";
+import type { ExpectedProjectInode } from "~/vt/git/tests/utils.ts";
 
 export interface TestCaseBranchData {
   version: number;

@@ -2,7 +2,7 @@ import { cleanDirectory, doAtomically } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
-import ValTown from "@valtown/sdk";
+import type ValTown from "@valtown/sdk";
 
 export interface CheckoutResult {
   fromBranch: ValTown.Projects.BranchCreateResponse;
