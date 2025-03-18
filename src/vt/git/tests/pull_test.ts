@@ -32,7 +32,7 @@ for (const testCase of testCases) {
             branchId: branchId, // Use correct branchId
             targetDir: tempDir,
             version: branchData.version, // Use branch-specific version
-            ignoreGlobs: [],
+            gitignoreRules: [],
           });
 
           // Verify project structure

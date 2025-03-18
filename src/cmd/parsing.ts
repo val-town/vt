@@ -1,3 +1,5 @@
+import { VAL_TOWN_PROJECT_URL_REGEX } from "~/consts.ts";
+
 /**
  * Parses a project URI, either username/projectName, projectName (with
  * defaulted username), or `https://www.val.town/x/username/exampleProject`.
@@ -11,8 +13,7 @@ export function parseProjectUri(
   projectUri: string,
   currentUsername: string,
 ): { ownerName: string; projectName: string } {
-  const urlRegex = /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
-  const urlMatch = projectUri.match(urlRegex);
+  const urlMatch = projectUri.match(VAL_TOWN_PROJECT_URL_REGEX);
 
   if (urlMatch) {
     const [, ownerName, projectName] = urlMatch;

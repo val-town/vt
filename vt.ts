@@ -1,48 +1,60 @@
 #!/usr/bin/env -S deno run -A
-import { cmd as vt } from "~/cmd/root.ts";
+import { Confirm } from "@cliffy/prompt";
+import { Secret } from "@cliffy/prompt/secret";
+import { colors } from "@cliffy/ansi/colors";
+import open from "open";
 
-export default vt;
+if (Deno.env.get("VAL_TOWN_API_KEY") === undefined) {
+  console.log(
+    colors.red(
+      "API key is not set! " +
+        colors.bold("VAL_TOWN_API_KEY") +
+        " must be set to use " +
+        colors.bold("`vt`"),
+    ),
+  );
+  console.log();
 
-if (import.meta.main) {
-  await vt.parse(Deno.args);
+  const goToWebsite: boolean = await Confirm.prompt({
+    message:
+      `Would you like to open val.town/settings/api in a browser to get an API key?`,
+  });
+
+  if (goToWebsite) {
+    await open("https://www.val.town/settings/api");
+    console.log("Browser opened to https://www.val.town/settings/api");
+  } else {
+    console.log();
+    console.log(
+      "You can get an API key at https://www.val.town/settings/api with project read/write permissions",
+    );
+  }
+
+  console.log();
+  const apiKey = await Secret.prompt({
+    message: "Please enter your Val Town API key:",
+    validate: (input) => {
+      if (input.length !== 33) {
+        return "API key must be exactly 33 characters long";
+      }
+      return true;
+    },
+  });
+
+  // Set the API key in the environment
+  Deno.env.set("VAL_TOWN_API_KEY", apiKey);
+
+  console.log(colors.green("API key set successfully!"));
+  console.log();
+  console.log(
+    "Note: This key is only set for the current session. To make it permanent, add it to your environment with:" +
+      "\n  `export VAL_TOWN_API_KEY=" + apiKey + "`" +
+      "\nor add it to your .env file.",
+  );
+  console.log();
 }
 
-/**
- * Returns the full command-line invocation as an array.
- * This includes the path to the executable and any script/module URL,
- * followed by the arguments passed to the program.
- *
- * @returns {string[]} An array containing the executable path, script/module URL, and arguments.
- */
-export function runCmd(args: string[]): [string, string[]] {
-  const executablePath = Deno.execPath();
-  const scriptModule = Deno.mainModule;
-
-  // Check if running as a compiled executable
-  const isCompiled = executablePath === scriptModule;
-
-  if (isCompiled) {
-    // Running as a compiled executable
-    // You don't need to explicitly provide the deno executable the permission
-    // flags since ideally it is baked in at compile time.
-    return [executablePath, args];
-  } else {
-    // Running with `deno run`, include deno executable and necessary flags
-    const scriptPath = new URL(scriptModule).pathname;
-
-    // When running with deno you need to explicitly provide all the required
-    // flags
-    return [
-      executablePath,
-      [
-        "run",
-        "--allow-read",
-        "--allow-write",
-        "--allow-env",
-        "--allow-net",
-        scriptPath,
-        ...args,
-      ],
-    ];
-  }
+if (import.meta.main) {
+  const vt = (await import("~/cmd/root/root.ts")).cmd;
+  await vt.parse(Deno.args);
 }

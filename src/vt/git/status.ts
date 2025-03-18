@@ -1,14 +1,17 @@
 import sdk from "~/sdk.ts";
-import type ValTown from "@valtown/sdk";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
+import { ProjectItem } from "~/consts.ts";
 
-const STAT_PROMISES_BATCH_SIZE = 50;
+interface FileInfo {
+  mtime: number;
+  type: ProjectItem;
+}
 
-export interface FileStatus {
-  path: string;
+export interface FileStatus extends FileInfo {
   status: "modified" | "not_modified" | "deleted" | "created";
+  path: string;
 }
 
 export interface StatusResult {
@@ -28,7 +31,7 @@ export interface StatusResult {
  * @param {string} args.projectId - The Val Town project ID.
  * @param {string} args.branchId - Optional branch ID to check against.
  * @param {string} args.version - The version to check the status against.
- * @param {string} args.ignoreGlobs - Glob patterns for files to ignore.
+ * @param {string} args.gitignoreRules - Gitignore rules
  *
  * @returns Promise that resolves to a StatusResult object containing categorized files.
  */
@@ -37,13 +40,13 @@ export async function status({
   projectId,
   branchId,
   version,
-  ignoreGlobs,
+  gitignoreRules,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version: number;
-  ignoreGlobs: string[];
+  gitignoreRules: string[];
 }): Promise<StatusResult> {
   const result: StatusResult = {
     modified: [],
@@ -53,49 +56,59 @@ export async function status({
   };
 
   // Get all files
-  const localFiles = await getLocalFiles(targetDir, ignoreGlobs);
+  const localFiles = await getLocalFiles(
+    projectId,
+    branchId,
+    version,
+    targetDir,
+    gitignoreRules,
+  );
   const projectFiles = await getProjectFiles(
     projectId,
     branchId,
     version,
-    ignoreGlobs,
+    gitignoreRules,
   );
 
   // Compare local files against project files
-  for (const [baseName, { originalPath, modTime }] of localFiles.entries()) {
-    if (!baseName) continue; // Skip empty paths
+  for (const [filePath, localFileInfo] of localFiles.entries()) {
+    if (!filePath) continue; // Skip empty paths
 
-    const projectModTime = projectFiles.get(originalPath);
+    const projectFileInfo = projectFiles.get(filePath);
 
-    if (projectModTime === undefined) {
+    if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
       result.created.push({
-        path: originalPath,
+        type: localFileInfo.type,
+        path: filePath,
+        mtime: localFileInfo.mtime,
         status: "created",
       });
     } else {
-      // File exists in both places, so check if modified
-      if (modTime > projectModTime) {
-        // To make sure it is actually modified we have to actually check the
-        // content delta :(. The mtime is a heuristic.
-        const isModified = await isFileModified(
-          targetDir,
-          originalPath,
-          baseName,
-          projectId,
-          branchId,
-          version,
-        );
+      // File exists in both places, check if modified
+      const isModified = await isFileModified(
+        targetDir,
+        filePath,
+        filePath,
+        projectId,
+        branchId,
+        version,
+        localFileInfo.mtime,
+        projectFileInfo.mtime,
+      );
 
-        if (isModified) {
-          result.modified.push({
-            path: originalPath,
-            status: "modified",
-          });
-        }
+      if (isModified) {
+        result.modified.push({
+          type: localFileInfo.type,
+          path: filePath,
+          mtime: localFileInfo.mtime,
+          status: "modified",
+        });
       } else {
         result.not_modified.push({
-          path: originalPath,
+          type: localFileInfo.type,
+          path: filePath,
+          mtime: localFileInfo.mtime,
           status: "not_modified",
         });
       }
@@ -103,10 +116,12 @@ export async function status({
   }
 
   // Check for files that exist in project but not locally
-  for (const [projectPath, _] of projectFiles.entries()) {
+  for (const [projectPath, projectFileInfo] of projectFiles.entries()) {
     if (!localFiles.has(projectPath)) {
       result.deleted.push({
+        type: projectFileInfo.type,
         path: projectPath,
+        mtime: projectFileInfo.mtime,
         status: "deleted",
       });
     }
@@ -122,7 +137,15 @@ async function isFileModified(
   projectId: string,
   branchId: string,
   version: number,
+  localMtime: number,
+  projectMtime: number,
 ): Promise<boolean> {
+  // First use the mtime as a heuristic to avoid unnecessary content checks
+  if (localMtime <= projectMtime) {
+    return false;
+  }
+
+  // If mtime indicates a possible change, check content
   const projectFileContent = await sdk.projects.files.getContent(
     projectId,
     encodeURIComponent(cleanPath),
@@ -141,33 +164,38 @@ async function getProjectFiles(
   projectId: string,
   branchId: string,
   version: number,
-  ignoreGlobs: string[],
-): Promise<Map<string, number>> {
-  const projectFilesResponse = await sdk.projects.files.list(projectId, {
-    branch_id: branchId,
-    version,
-    recursive: true,
-  });
+  gitignoreRules: string[],
+): Promise<Map<string, FileInfo>> {
+  const processedFiles = new Map<string, FileInfo>();
 
-  const files: ValTown.Projects.FileListResponse[] = [];
-  for await (const file of projectFilesResponse.data) files.push(file);
+  for await (
+    const file of sdk.projects.files.list(projectId, {
+      branch_id: branchId,
+      version,
+      recursive: true,
+    })
+  ) {
+    if (file.type === "directory") continue;
+    if (shouldIgnore(file.path, gitignoreRules)) continue;
 
-  const processedFiles = files
-    .filter((file) => !shouldIgnore(file.path, ignoreGlobs))
-    .filter((file) => file.type !== "directory")
-    .map((file: ValTown.Projects.FileListResponse) => [
-      path.join(path.dirname(file.path), file.name),
-      new Date(file.updatedAt).getTime(),
-    ]) as [string, number][];
+    const filePath = path.join(path.dirname(file.path), file.name);
+    processedFiles.set(filePath, {
+      mtime: new Date(file.updatedAt).getTime(),
+      type: file.type,
+    });
+  }
 
-  return new Map(processedFiles);
+  return processedFiles;
 }
 
 async function getLocalFiles(
+  projectId: string,
+  branchId: string,
+  version: number,
   targetDir: string,
-  ignoreGlobs: string[],
-): Promise<Map<string, { originalPath: string; modTime: number }>> {
-  const files = new Map<string, { originalPath: string; modTime: number }>();
+  gitignoreRules: string[],
+): Promise<Map<string, FileInfo>> {
+  const files = new Map<string, FileInfo>();
   const statPromises: Promise<void>[] = [];
 
   const processEntry = async (entry: fs.WalkEntry) => {
@@ -176,7 +204,7 @@ async function getLocalFiles(
 
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnore(relativePath, ignoreGlobs)) return;
+    if (shouldIgnore(relativePath, gitignoreRules)) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);
@@ -184,22 +212,20 @@ async function getLocalFiles(
       throw new Error("File modification time is null");
     }
 
-    // Store both the cleaned path and original path. We'll want access to
-    // the original (real) path for later when we're accessing mtimes.
+    // Store the path and its modification time
     files.set(path.relative(targetDir, entry.path), {
-      originalPath: relativePath,
-      modTime: stat.mtime.getTime(),
+      type: await getProjectItemType(
+        projectId,
+        branchId,
+        version,
+        relativePath,
+      ),
+      mtime: stat.mtime.getTime(),
     });
   };
 
   for await (const entry of fs.walk(targetDir)) {
     statPromises.push(processEntry(entry));
-
-    // Process stats in batches of 50
-    if (statPromises.length >= STAT_PROMISES_BATCH_SIZE) {
-      await Promise.all(statPromises);
-      statPromises.length = 0;
-    }
   }
 
   await Promise.all(statPromises);

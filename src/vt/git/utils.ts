@@ -3,7 +3,7 @@ import * as path from "@std/path";
 import { shouldIgnore } from "~/vt/git/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
-import { copy, ensureDir } from "@std/fs";
+import { copy, emptyDir, ensureDir } from "@std/fs";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -58,6 +58,7 @@ export async function doAtomically<T>(
   op: (tmpDir: string) => Promise<T>,
   targetDir: string,
   tmpLabel?: string,
+  emptyFirst: boolean = false,
 ): Promise<T> {
   const { tempDir, cleanup } = await withTempDir(tmpLabel);
 
@@ -65,6 +66,9 @@ export async function doAtomically<T>(
   try {
     result = await op(tempDir);
     await ensureDir(targetDir);
+    if (emptyFirst) {
+      await emptyDir(targetDir); // Clean the target directory before copying
+    }
     await copy(tempDir, targetDir, {
       overwrite: true,
       preserveTimestamps: true,
@@ -79,14 +83,14 @@ export async function doAtomically<T>(
  * Removes contents from a directory while respecting ignore patterns.
  *
  * @param {string} directory - Directory path to clean
- * @param {string[]} ignoreGlobs - Glob patterns for files to ignore
+ * @param {string[]} gitignoreRules - Gitignore rules
  */
 export async function cleanDirectory(
   directory: string,
-  ignoreGlobs: string[],
+  gitignoreRules: string[],
 ): Promise<void> {
   const filesToRemove = Deno.readDirSync(directory)
-    .filter((entry) => !shouldIgnore(entry.name, ignoreGlobs))
+    .filter((entry) => !shouldIgnore(entry.name, gitignoreRules))
     .map((entry) => ({
       path: path.join(directory, entry.name),
       isDirectory: entry.isDirectory,
@@ -160,4 +164,15 @@ export async function ensureValtownDir(
       }
     }
   }
+}
+
+/**
+ * Determines the total number of changes, not including not modified files,
+ * from a StatusResult.
+ */
+export function getTotalChanges(status: StatusResult): number {
+  return Object
+    .entries(status)
+    .filter(([type]) => type !== "not_modified")
+    .reduce((sum, [, files]) => sum + files.length, 0);
 }

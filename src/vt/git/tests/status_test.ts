@@ -46,7 +46,7 @@ for (const testCase of testCases) {
             projectId: testCase.projectId,
             version: branchData.version,
             branchId: branchId,
-            ignoreGlobs: [],
+            gitignoreRules: [],
           });
 
           // Validate initial status
@@ -66,7 +66,7 @@ for (const testCase of testCases) {
             projectId: testCase.projectId,
             version: branchData.version,
             branchId: branchId,
-            ignoreGlobs: [],
+            gitignoreRules: [],
           });
 
           // Validate status remains unchanged

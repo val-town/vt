@@ -1,9 +1,7 @@
-import { status } from "~/vt/git/status.ts";
+import { status, type StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
-import { getProjectItemType } from "~/vt/git/paths.ts";
 import ValTown from "@valtown/sdk";
-import { ProjectItem } from "~/consts.ts";
 
 /**
  * Pushes latest changes from a vt folder into a Val Town project.
@@ -13,7 +11,8 @@ import { ProjectItem } from "~/consts.ts";
  * @param {string} args.projectId The id of the project to upload to.
  * @param {string} args.branchId The branch ID to upload file content to.
  * @param {string} args.branchId The version to compute the status against. Defaults to latest version.
- * @param {string[]} args.ignoreGlobs A list of glob patterns for files to exclude.
+ * @param {string[]} args.gitignoreRules A list of gitignore rules.
+ * @param {StatusResult} args.status The current status. If not provided, it will be computed.
  *
  * @returns Promise that resolves when the push operation is complete.
  */
@@ -22,33 +21,30 @@ export async function push({
   projectId,
   branchId,
   version,
-  ignoreGlobs,
+  statusResult,
+  gitignoreRules,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version?: number;
-  ignoreGlobs: string[];
-}): Promise<void> {
+  statusResult?: StatusResult;
+  gitignoreRules: string[];
+}): Promise<StatusResult> {
   version = version || await getLatestVersion(projectId, branchId);
 
-  const statusResult = await status({
-    version,
+  // Use provided status, or retreive the status
+  statusResult = statusResult || await status({
     targetDir,
     projectId,
     branchId,
-    ignoreGlobs,
+    version,
+    gitignoreRules,
   });
 
   // Upload everything that was modified
   for (const file of statusResult.modified) {
-    let type: ProjectItem | undefined = await getProjectItemType(
-      projectId,
-      branchId,
-      version,
-      file.path,
-    );
-    if (type === "directory") type = undefined;
+    if (file.type === "directory") continue;
 
     await sdk.projects.files.update(
       projectId,
@@ -57,7 +53,7 @@ export async function push({
         branch_id: branchId,
         content: await Deno.readTextFile(path.join(targetDir, file.path)),
         name: path.basename(file.path),
-        type,
+        type: file.type,
       },
     );
   }
@@ -72,13 +68,6 @@ export async function push({
 
   // Create all new files
   for (const file of statusResult.created) {
-    const type = await getProjectItemType(
-      projectId,
-      branchId,
-      version,
-      file.path,
-    );
-
     // Ensure parent directories exist before creating the file
     await ensureValtownDir(
       projectId,
@@ -87,7 +76,7 @@ export async function push({
     );
 
     try {
-      if (type === "directory") {
+      if (file.type === "directory") {
         // We already ensured the directory path exists
       } else {
         await sdk.projects.files.create(
@@ -96,7 +85,7 @@ export async function push({
           {
             content: (await Deno.readTextFile(path.join(targetDir, file.path))),
             branch_id: branchId,
-            type,
+            type: file.type,
           },
         );
       }
@@ -104,6 +93,8 @@ export async function push({
       assertAllowedUploadError(error);
     }
   }
+
+  return statusResult;
 }
 
 async function ensureValtownDir(

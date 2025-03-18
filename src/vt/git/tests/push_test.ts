@@ -24,7 +24,7 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          ignoreGlobs: [],
+          gitignoreRules: [],
         });
 
         // Pull and assert that the creation workedpush test
@@ -42,7 +42,7 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          ignoreGlobs: [],
+          gitignoreRules: [],
         });
 
         // Pull and assert that the modification worked
@@ -57,7 +57,7 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          ignoreGlobs: [],
+          gitignoreRules: [],
         });
 
         // Assert that the file no longer exists on the remote

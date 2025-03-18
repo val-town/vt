@@ -8,7 +8,9 @@
     "fmt:check": "deno fmt --check"
   },
   "imports": {
+    "gitignore-parser": "jsr:@cfa/gitignore-parser@^0.1.4",
     "@cliffy/ansi": "jsr:@cliffy/ansi@^1.0.0-rc.7",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.7",
     "@cliffy/table": "jsr:@cliffy/table@1.0.0-rc.7",
     "@deno-library/logger": "jsr:@deno-library/logger@^1.1.9",
     "@std/async": "jsr:@std/async@^1.0.11",
@@ -25,5 +27,9 @@
     "open": "npm:open@^10.1.0",
     "highlight.js": "npm:highlight.js@^11.11.1",
     "kia": "https://deno.land/x/kia@0.4.1/mod.ts"
+  },
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   }
 }

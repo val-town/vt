@@ -1,10 +1,21 @@
-import { basename, globToRegExp } from "@std/path";
+import { dirname, globToRegExp } from "@std/path";
+import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
 
+/**
+ * Checks if a directory is empty, ignoring files that match specified glob patterns.
+ *
+ * @param path - Directory path to check
+ * @param gitignoreRules - Gitignore rules
+ * @returns True if directory is empty (after ignoring specified files)
+ *
+ * @example
+ * await isDirectoryEmpty("./mydir", [".git/**"]);
+ */
 export async function isDirectoryEmpty(
   path: string | URL,
-  ignoreGlobs: string[] = [],
+  gitignoreRules: string[] = [],
 ): Promise<boolean> {
-  const ignorePatterns = ignoreGlobs.map((glob) => globToRegExp(glob));
+  const ignorePatterns = gitignoreRules.map((glob) => globToRegExp(glob));
 
   for await (const entry of Deno.readDir(path)) {
     // Check if entry matches any ignore pattern
@@ -34,27 +45,27 @@ export async function removeEmptyDirs(dir: string) {
 }
 
 /**
- * Validates and ensures a directory exists and is empty.
- * Creates the directory if it doesn't exist.
+ * Validates and ensures a directory exists and is empty. Creates the directory
+ * if it doesn't exist.
  *
  * @param rootPath - The full path to the directory to check/create
  * @param options - Configuration options
- * @param options.ignoreGlobs - Glob patterns to ignore when checking if directory is empty
- * @throws Error if the path exists but is not a directory
- * @throws Error if the directory exists but is not empty
+ * @param options.gitignoreRules - Gitignore rules
+ * @throws {Deno.errors.NotADirectory} if the path exists but is not a directory
+ * @throws {Deno.errors.AlreadyExists} if the directory exists but is not empty
  */
 export async function checkDirectory(
   rootPath: string,
-  options: { ignoreGlobs?: string[] } = {},
+  options: { gitignoreRules?: string[] } = {},
 ) {
-  const { ignoreGlobs = [] } = options;
+  const { gitignoreRules: gitignoreRules = [] } = options;
 
   try {
     const stat = await Deno.lstat(rootPath);
 
     if (!stat.isDirectory) {
-      throw new Error(
-        `Invalid destination, ${rootPath} exists but is not a directory`,
+      throw new Deno.errors.NotADirectory(
+        `"${rootPath}" exists but is not a directory.`,
       );
     }
   } catch (error) {
@@ -67,9 +78,48 @@ export async function checkDirectory(
   }
 
   // Check if existing directory is empty (considering ignored patterns)
-  if (!(await isDirectoryEmpty(rootPath, ignoreGlobs))) {
-    throw new Error(
-      `Cannot proceed, ./${basename(rootPath)} already exists and is not empty`,
+  if (!(await isDirectoryEmpty(rootPath, gitignoreRules))) {
+    throw new Deno.errors.AlreadyExists(
+      `"${rootPath}" already exists and is not empty.`,
     );
   }
+}
+
+/**
+ * Finds the nearest directory that satisfies a root condition by climbing up
+ * the directory tree
+ *
+ * @param {string} startPath The path to start searching from
+ * @param {(path: string) => Promise<boolean>} isRoot Callback function that determines if a path is a root
+ * @param {number} maxLevels The maximum number of levels to walk up (default is MAX_WALK_UP_LEVELS)
+ * @throw {Deno.errors.NotFound} If no root directory is found within the specified levels
+ * @returns The path to the directory that satisfies the root condition
+ */
+export async function findRoot(
+  startPath: string,
+  isRoot: (path: string) => Promise<boolean>,
+  maxLevels: number = MAX_WALK_UP_LEVELS,
+): Promise<string> {
+  let currentPath = startPath;
+  let levelsUp = 0;
+
+  while (levelsUp < maxLevels) {
+    try {
+      // Check if current path satisfies the root condition
+      if (await isRoot(currentPath)) return currentPath;
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+    }
+
+    // Move up to parent directory
+    const parentPath = dirname(currentPath);
+
+    // If we've reached the root and can't go up further
+    if (parentPath === currentPath) break;
+
+    currentPath = parentPath;
+    levelsUp++;
+  }
+
+  throw new Deno.errors.NotFound();
 }
