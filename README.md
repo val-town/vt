@@ -33,6 +33,12 @@ Install with:
 deno install -A -g -n=vt https://raw.githubusercontent.com/val-town/vt/refs/heads/main/install.ts
 ```
 
+To update to the latest version use the `-f` flag to overwrite the last install:
+
+```bash
+deno install -A -g -n=vt -f https://raw.githubusercontent.com/val-town/vt/refs/heads/main/install.ts
+```
+
 Or if you would prefer a more descriptive command with minimal permissions:
 
 ```bash
