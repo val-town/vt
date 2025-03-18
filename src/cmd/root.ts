@@ -11,7 +11,7 @@ import { DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import Kia from "kia";
 import { APIError } from "@valtown/sdk";
 
-const cmd = new Command()
+const cmd: Command = new Command()
   .name("vt")
   .version(manifest.version)
   .help({ colors: Deno.stdout.isTerminal() })

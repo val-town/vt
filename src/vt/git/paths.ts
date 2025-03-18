@@ -1,5 +1,5 @@
 import * as path from "@std/path";
-import { DEFAULT_VAL_TYPE, ProjectItem } from "~/consts.ts";
+import { DEFAULT_VAL_TYPE, type ProjectItem } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 
 /**

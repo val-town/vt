@@ -1,4 +1,4 @@
-import z from "zod";
+import type z from "zod";
 import { VTMetaConfigJsonSchema } from "~/vt/vt/schemas.ts";
 import {
   CONFIG_FILE_NAME,

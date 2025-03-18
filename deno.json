@@ -26,6 +26,7 @@
     "emphasize": "npm:emphasize@^7.0.0",
     "open": "npm:open@^10.1.0",
     "highlight.js": "npm:highlight.js@^11.11.1",
-    "kia": "https://deno.land/x/kia@0.4.1/mod.ts"
+    "kia": "jsr:@jonasschiano/kia@0.0.120",
+
   }
 }

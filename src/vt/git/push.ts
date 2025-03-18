@@ -3,7 +3,7 @@ import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { getProjectItemType } from "~/vt/git/paths.ts";
 import ValTown from "@valtown/sdk";
-import { ProjectItem } from "~/consts.ts";
+import type { ProjectItem } from "~/consts.ts";
 
 /**
  * Pushes latest changes from a vt folder into a Val Town project.
