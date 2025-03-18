@@ -1,6 +1,8 @@
 {
+  "name": "@valtown/vt",
   "version": "0.0.1",
   "exports": "./vt.ts",
+  "license": "MIT",
   "tasks": {
     "run": "./vt.ts",
     "test": "deno test -A",
