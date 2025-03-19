@@ -1,0 +1,3 @@
+{
+  "text": ".vtignore\n.vt/**\n.vt\ndeno.json"
+}

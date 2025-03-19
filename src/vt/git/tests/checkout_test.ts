@@ -1,10 +1,10 @@
 import { clone } from "~/vt/git/clone.ts";
-import { withTempDir } from "~/vt/git/utils.ts";
+import { doWithTempDir } from "~/vt/git/utils.ts";
 import { assertEquals } from "@std/assert";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
 import { checkout } from "~/vt/git/checkout.ts";
 import { testCases } from "~/vt/git/tests/cases.ts";
-import sdk, { branchNameToId } from "~/sdk.ts";
+import sdk, { branchIdToBranch, randomProjectName } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 // Run test for checking out branches that already exist
@@ -26,9 +26,7 @@ for (const testCase of testCases) {
           net: true,
         },
         async fn() {
-          const { tempDir, cleanup } = await withTempDir("vt_checkout_test");
-
-          try {
+          await doWithTempDir(async (tempDir) => {
             // Clone the "from" branch
             await clone({
               targetDir: tempDir,
@@ -44,7 +42,8 @@ for (const testCase of testCases) {
               version: toBranchData.version,
               targetDir: tempDir,
               projectId: testCase.projectId,
-              ignoreGlobs: [],
+              fromBranchId,
+              gitignoreRules: [],
             });
 
             // Verify project structure after checkout
@@ -58,9 +57,7 @@ for (const testCase of testCases) {
               true,
               `Checkout to branch ${toBranchId} failed structure verification`,
             );
-          } finally {
-            await cleanup();
-          }
+          }, "vt_checkout_test");
         },
       });
     }
@@ -79,26 +76,21 @@ Deno.test({
     // Create a new test project
     const project = await sdk.projects.create({
       privacy: "public",
-      name: crypto.randomUUID(),
+      name: randomProjectName(),
       description: "test project",
     });
 
     // Get the main branch ID to fork from
-    const mainBranchId = await branchNameToId(project.id, DEFAULT_BRANCH_NAME);
-    const mainBranch = await sdk.projects.branches.retrieve(
-      project.id,
-      mainBranchId,
-    );
+    const mainBranch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
 
     const newBranchName = `test-branch-${crypto.randomUUID()}`;
-    const { tempDir, cleanup } = await withTempDir("vt_checkout_test");
 
-    try {
+    await doWithTempDir(async (tempDir) => {
       // Clone the "from" branch
       await clone({
         targetDir: tempDir,
         projectId: project.id,
-        branchId: mainBranchId,
+        branchId: mainBranch.id,
         version: mainBranch.version,
       });
 
@@ -106,21 +98,19 @@ Deno.test({
       await checkout({
         targetDir: tempDir,
         projectId: project.id,
-        ignoreGlobs: [],
-        forkedFrom: mainBranch.id,
+        gitignoreRules: [],
+        forkedFromId: mainBranch.id,
         name: newBranchName,
         version: mainBranch.version,
       });
 
       try {
-        await branchNameToId(project.id, newBranchName);
+        await branchIdToBranch(project.id, newBranchName);
       } catch {
         throw new Error("Branch was not created successfully");
       }
-    } finally {
-      await cleanup();
-      // TODO `await sdk.projects.delete(project.id);` (this API endpoint
-      // doesn't exist yet thoguh)
-    }
+
+      await sdk.projects.delete(project.id);
+    }, "vt_checkout_test");
   },
 });

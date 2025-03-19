@@ -1,5 +1,5 @@
 import { clone } from "~/vt/git/clone.ts";
-import { withTempDir } from "~/vt/git/utils.ts";
+import { doWithTempDir } from "~/vt/git/utils.ts";
 import { assertEquals } from "@std/assert";
 import { pull } from "~/vt/git/pull.ts";
 import { verifyProjectStructure } from "~/vt/git/tests/utils.ts";
@@ -17,9 +17,7 @@ for (const testCase of testCases) {
         net: true,
       },
       async fn() {
-        const { tempDir, cleanup } = await withTempDir("vt_pull_test");
-
-        try {
+        await doWithTempDir(async (tempDir) => {
           // First clone with version + 2
           await clone({
             targetDir: tempDir,
@@ -34,7 +32,7 @@ for (const testCase of testCases) {
             branchId: branchId, // Use correct branchId
             targetDir: tempDir,
             version: branchData.version, // Use branch-specific version
-            ignoreGlobs: [],
+            gitignoreRules: [],
           });
 
           // Verify project structure
@@ -48,9 +46,7 @@ for (const testCase of testCases) {
             true,
             "Project structure verification failed",
           );
-        } finally {
-          await cleanup();
-        }
+        }, "vt_pull_test");
       },
     });
   }

@@ -1,9 +1,9 @@
-import { FileStatus, status, StatusResult } from "~/vt/git/status.ts";
+import { type FileStatus, status, type StatusResult } from "~/vt/git/status.ts";
 import * as path from "@std/path";
-import { withTempDir } from "~/vt/git/utils.ts";
+import { doWithTempDir } from "~/vt/git/utils.ts";
 import { clone } from "~/vt/git/clone.ts";
 import { assert } from "@std/assert";
-import { TestCaseBranchData, testCases } from "~/vt/git/tests/cases.ts";
+import { type TestCaseBranchData, testCases } from "~/vt/git/tests/cases.ts";
 
 for (const testCase of testCases) {
   for (const branchId in testCase.branches) {
@@ -17,9 +17,7 @@ for (const testCase of testCases) {
         net: true,
       },
       async fn() {
-        const { tempDir, cleanup } = await withTempDir("vt_status_test");
-
-        try {
+        await doWithTempDir(async (tempDir) => {
           // Clone the project
           await clone({
             targetDir: tempDir,
@@ -48,7 +46,7 @@ for (const testCase of testCases) {
             projectId: testCase.projectId,
             version: branchData.version,
             branchId: branchId,
-            ignoreGlobs: [],
+            gitignoreRules: [],
           });
 
           // Validate initial status
@@ -68,14 +66,12 @@ for (const testCase of testCases) {
             projectId: testCase.projectId,
             version: branchData.version,
             branchId: branchId,
-            ignoreGlobs: [],
+            gitignoreRules: [],
           });
 
           // Validate status remains unchanged
           validateStatus(result, branchData);
-        } finally {
-          await cleanup();
-        }
+        }, "vt_status_test");
       },
     });
   }
