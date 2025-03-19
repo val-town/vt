@@ -1,9 +1,13 @@
 import { VTSchema } from "~/vt/vt/schemas.ts";
-import { CONFIG_FILE_NAME, META_FOLDER_NAME } from "~/consts.ts";
+import {
+  CONFIG_FILE_NAME,
+  META_FOLDER_NAME,
+  META_IGNORE_FILE_NAME,
+} from "~/consts.ts";
 import type z from "zod";
 import { ALWAYS_IGNORE_PATTERNS, META_LOCK_FILE_NAME } from "~/consts.ts";
 import * as path from "@std/path";
-import { ensureDir } from "@std/fs";
+import { ensureDir, walk } from "@std/fs";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -33,10 +37,25 @@ export default class VTMeta {
   /**
    * Gets the full path to all ignore files.
    *
-   * @returns {string} The full file path as a string.
+   * @returns {string[]} Array of full file paths as strings.
    */
-  public get gitignoreFileRules(): string[] {
-    return [path.join(this.#rootPath, ".vtignore")];
+  private async gitignoreFilePaths(): Promise<string[]> {
+    const ignoreFiles: string[] = [];
+
+    // Walk through all directories recursively starting from root path
+    for await (const file of walk(this.#rootPath)) {
+      if (path.basename(file.path) === META_IGNORE_FILE_NAME) {
+        ignoreFiles.push(file.path);
+      }
+    }
+
+    // Always include the root meta ignore file if it wasn't found in the walk
+    const rootMetaIgnore = path.join(this.#rootPath, META_IGNORE_FILE_NAME);
+    if (!ignoreFiles.includes(rootMetaIgnore)) {
+      ignoreFiles.push(rootMetaIgnore);
+    }
+
+    return ignoreFiles;
   }
 
   /**
@@ -92,7 +111,7 @@ export default class VTMeta {
   public async loadGitignoreRules(): Promise<string[]> {
     const gitignoreRules: string[] = [];
 
-    for (const filePath of this.gitignoreFileRules) {
+    for (const filePath of await this.gitignoreFilePaths()) {
       try {
         // Read the ignore file
         const content = await Deno.readTextFile(filePath);
