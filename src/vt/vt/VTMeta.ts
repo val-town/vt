@@ -63,8 +63,7 @@ export default class VTMeta {
 
     const result = VTSchema.safeParse(parsedData);
     if (!result.success) {
-      console.error("Invalid schema format");
-      throw new Error("Invalid schema format");
+      throw new Error("Configuration does not conform to schema");
     }
 
     return result.data;
