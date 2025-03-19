@@ -35,7 +35,7 @@ export default class VTMeta {
    *
    * @returns {string} The full file path as a string.
    */
-  public get ignoreFilesPaths(): string[] {
+  public get gitignoreFileRules(): string[] {
     return [path.join(this.#rootPath, ".vtignore")];
   }
 
@@ -92,7 +92,7 @@ export default class VTMeta {
   public async loadGitignoreRules(): Promise<string[]> {
     const gitignoreRules: string[] = [];
 
-    for (const filePath of this.ignoreFilesPaths) {
+    for (const filePath of this.gitignoreFileRules) {
       try {
         // Read the ignore file
         const content = await Deno.readTextFile(filePath);
