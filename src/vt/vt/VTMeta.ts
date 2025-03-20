@@ -98,25 +98,16 @@ export default class VTMeta {
     const gitignoreRules: string[] = [];
 
     for (const filePath of this.ignoreFilesPaths) {
-      try {
-        // Read the ignore file
-        const content = await Deno.readTextFile(filePath);
+      // Read the ignore file
+      const content = await Deno.readTextFile(filePath);
 
-        const lines = content
-          .split("\n") // split by newline
-          .map((line) => line.trim()) // get rid of whitespace
-          .filter((line) => line && !line.startsWith("#")); // remove empty and commented lines
+      const lines = content
+        .split("\n") // split by newline
+        .map((line) => line.trim()) // get rid of whitespace
+        .filter((line) => line && !line.startsWith("#")); // remove empty and commented lines
 
-        // Add all the processed lines from this file to the gitignore rule list
-        lines.forEach((line) => gitignoreRules.push(line));
-      } catch (error) {
-        if (error instanceof Deno.errors.NotFound) {
-          console.log(`The file ${filePath} was not found`);
-        } else {
-          throw error;
-        }
-        console.log(`Error loading ${filePath}, skipping`);
-      }
+      // Add all the processed lines from this file to the gitignore rule list
+      lines.forEach((line) => gitignoreRules.push(line));
     }
 
     // Apply the always ignore patterns last since git ignores have more

@@ -42,7 +42,7 @@ export function clone({
         if (file.type === "directory") {
           // Create directories, even if they would otherwise get created during
           // the createFile call later, so that we get empty directories
-          await ensureDir(path.join(tmpDir, file.path));
+          await Deno.mkdir(path.join(tmpDir, file.path), { recursive: true });
         } else {
           // Start a create file task in the background
           const fullPath = path.join(tmpDir, file.path);
