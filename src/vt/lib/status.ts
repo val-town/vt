@@ -2,7 +2,7 @@ import sdk from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import { ProjectItemType } from "~/consts.ts";
+import type { ProjectItemType } from "~/consts.ts";
 
 interface FileInfo {
   mtime: number;

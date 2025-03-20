@@ -5,7 +5,7 @@ import { push } from "~/vt/lib/push.ts";
 import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, CheckoutResult } from "~/vt/lib/checkout.ts";
+import { checkout, type CheckoutResult } from "~/vt/lib/checkout.ts";
 import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";

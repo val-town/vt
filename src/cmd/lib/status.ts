@@ -6,7 +6,7 @@ import { displayStatusChanges } from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { StatusResult } from "~/vt/lib/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 // - Only the current version (in green) if it equals the latest version
 // - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green

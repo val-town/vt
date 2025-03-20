@@ -7,7 +7,7 @@ import { displayStatusChanges } from "~/cmd/lib/utils.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { StatusResult } from "~/vt/lib/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 // Formats a version range string based on the first, current, and latest
 // versions.
