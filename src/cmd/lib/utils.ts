@@ -1,7 +1,7 @@
 import { colors } from "@cliffy/ansi/colors";
 import { ProjectItemType, STATUS_STYLES } from "~/consts.ts";
-import { getTotalChanges } from "~/vt/git/utils.ts";
-import { StatusResult } from "~/vt/git/status.ts";
+import { getTotalChanges } from "~/vt/lib/utils.ts";
+import { StatusResult } from "~/vt/lib/status.ts";
 
 /**
  * Generates an error message for commands that cannot be executed with unpushed changes

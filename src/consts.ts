@@ -1,5 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
-import type { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";

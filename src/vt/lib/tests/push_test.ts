@@ -1,7 +1,7 @@
-import { doWithTempDir } from "~/vt/git/utils.ts";
-import { doWithNewProject } from "~/vt/git/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk from "~/sdk.ts";
-import { push } from "~/vt/git/push.ts";
+import { push } from "~/vt/lib/push.ts";
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
 import ValTown from "@valtown/sdk";

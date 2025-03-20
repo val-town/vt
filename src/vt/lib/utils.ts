@@ -1,6 +1,6 @@
-import type { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 import * as path from "@std/path";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
 import { copy, ensureDir } from "@std/fs";

@@ -1,12 +1,12 @@
-import { clone } from "~/vt/git/clone.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/git/pull.ts";
-import { push } from "~/vt/git/push.ts";
-import { status, type StatusResult } from "~/vt/git/status.ts";
+import { pull } from "~/vt/lib/pull.ts";
+import { push } from "~/vt/lib/push.ts";
+import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";
-import { isDirty } from "~/vt/git/utils.ts";
+import { checkout, CheckoutResult } from "~/vt/lib/checkout.ts";
+import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";

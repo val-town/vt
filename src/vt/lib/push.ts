@@ -1,4 +1,4 @@
-import { status, type StatusResult } from "~/vt/git/status.ts";
+import { status, type StatusResult } from "~/vt/lib/status.ts";
 import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";

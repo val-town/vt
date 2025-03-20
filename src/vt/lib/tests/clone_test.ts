@@ -1,7 +1,7 @@
-import { doWithTempDir } from "~/vt/git/utils.ts";
-import { doWithNewProject } from "~/vt/git/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
-import { clone } from "~/vt/git/clone.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";

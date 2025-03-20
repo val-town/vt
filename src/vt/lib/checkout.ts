@@ -1,8 +1,8 @@
-import { doAtomically } from "~/vt/git/utils.ts";
+import { doAtomically } from "~/vt/lib/utils.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
 import type ValTown from "@valtown/sdk";
-import { pull } from "~/vt/git/pull.ts";
+import { pull } from "~/vt/lib/pull.ts";
 
 export interface CheckoutResult {
   fromBranch: ValTown.Projects.BranchCreateResponse;

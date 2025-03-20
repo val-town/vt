@@ -1,9 +1,9 @@
 import { join, relative } from "@std/path";
 import { copy, walk } from "@std/fs";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
 import sdk from "~/sdk.ts";
-import { doAtomically } from "~/vt/git/utils.ts";
-import { clone } from "~/vt/git/clone.ts";
+import { doAtomically } from "~/vt/lib/utils.ts";
+import { clone } from "~/vt/lib/clone.ts";
 
 /**
  * Pulls latest changes from a Val Town project into a vt folder.
