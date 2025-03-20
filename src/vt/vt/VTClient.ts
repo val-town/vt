@@ -46,6 +46,31 @@ export default class VTClient {
   }
 
   /**
+   * Adds editor configuration files to the target directory.
+   *
+   * @param {object} options - Options for adding editor files
+   * @param {boolean} options.noDenoJson - Whether to skip adding deno.json
+   * @returns {Promise<void>}
+   */
+  public async addEditorFiles(
+    options?: { noDenoJson?: boolean },
+  ): Promise<void> {
+    // Always add the vt ignore file
+    await Deno.writeTextFile(
+      join(this.rootPath, META_IGNORE_FILE_NAME),
+      vtIgnore.text,
+    );
+
+    // Add deno.json unless explicitly disabled
+    if (!options?.noDenoJson) {
+      await Deno.writeTextFile(
+        join(this.rootPath, "deno.json"),
+        JSON.stringify(denoJson, undefined, 2),
+      );
+    }
+  }
+
+  /**
    * Initialize the VT instance for a project. You always have to be checked
    * out to *something* so init also takes an initial branch.
    *
@@ -237,33 +262,14 @@ export default class VTClient {
    * Clone val town project into a directory using the current configuration.
    *
    * @param {string} targetDir - The directory to clone the project into.
-   * @param {object} options - Optional settings for the clone process.
-   * @param {boolean} options.addDenoJson - Whether to add deno.json to the cloned directory.
    * @returns {Promise<void>}
    */
-  public async clone(
-    targetDir: string,
-    options?: { addDenoJson?: boolean; addVtIgnore?: boolean },
-  ): Promise<void> {
+  public async clone(targetDir: string): Promise<void> {
     const { projectId, currentBranch, version } = await this.getMeta()
       .loadConfig();
 
     if (!projectId || !currentBranch || version === null) {
       throw new Error("Configuration not loaded");
-    }
-
-    // Add the vt ignore file
-    await Deno.writeTextFile(
-      join(targetDir, META_IGNORE_FILE_NAME),
-      vtIgnore.text,
-    );
-
-    // Check if addDenoJson is true and copy deno.json if so
-    if (options?.addDenoJson) {
-      await Deno.writeTextFile(
-        join(targetDir, "deno.json"),
-        JSON.stringify(denoJson, undefined, 2),
-      );
     }
 
     // Do the clone using the configuration
@@ -302,10 +308,9 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @param {Object} options - Optional parameters
    * @returns {Promise<void>} Resolves once pull complete
    */
-  public async pull() {
+  public async pull(): Promise<void> {
     const config = await this.getMeta().loadConfig();
 
     config.version = await getLatestVersion(

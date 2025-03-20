@@ -14,6 +14,7 @@ export const createCmd = new Command()
   .option("--public", "Create as public project (default)")
   .option("--private", "Create as private project")
   .option("--unlisted", "Create as unlisted project")
+  .option("--no-editor-files", "Skip creating editor configuration files")
   .option("-d, --description <desc:string>", "Project description")
   .example(
     "Start fresh",
@@ -41,7 +42,12 @@ vt push
 vt checkout main`,
   )
   .action((
-    { public: isPublic, private: isPrivate, unlisted, description }: {
+    {
+      public: isPublic,
+      private: isPrivate,
+      unlisted,
+      description,
+    }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
@@ -66,13 +72,14 @@ vt checkout main`,
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       try {
-        await VTClient.create(
+        const vt = await VTClient.create(
           rootPath,
           projectName,
           user.username!, // Init the client with authenticated user
           privacy,
           description,
         );
+        await vt.addEditorFiles();
 
         // If no target directory specified, use project name
         if (targetDir === undefined) rootPath = join(rootPath, projectName);

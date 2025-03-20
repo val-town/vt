@@ -28,46 +28,41 @@ export const cloneCmd = new Command()
     "Clone into a new directory",
     `vt clone username/projectName new-directory`,
   )
-  .action(
-    (
-      _: unknown,
-      projectUri: string,
-      rootPath?: string,
-      branchName?: string,
-    ) => {
-      doWithSpinner("Cloning project...", async (spinner) => {
-        let targetDir = rootPath || Deno.cwd();
+  .action((_, projectUri: string, rootPath?: string, branchName?: string) => {
+    doWithSpinner("Cloning project...", async (spinner) => {
+      let targetDir = rootPath || Deno.cwd();
 
-        const { ownerName, projectName } = parseProjectUri(
-          projectUri,
-          user.username!,
-        );
+      const { ownerName, projectName } = parseProjectUri(
+        projectUri,
+        user.username!,
+      );
 
-        branchName = branchName || DEFAULT_BRANCH_NAME;
+      branchName = branchName || DEFAULT_BRANCH_NAME;
 
-        // By default, if the target directory is the current working directory,
-        // then use the project name as the target directory
-        if (rootPath === undefined) {
-          targetDir = join.join(targetDir, projectName);
-        }
+      // By default, if the target directory is the current working directory,
+      // then use the project name as the target directory
+      if (rootPath === undefined) {
+        targetDir = join.join(targetDir, projectName);
+      }
 
-        const vt = await VTClient.init({
-          rootPath: targetDir,
-          username: ownerName,
-          projectName,
-          branchName,
-        });
-
-        // Make sure that the directory is safe to clone into (exists, or gets
-        // created and then exists, and wasn't nonempty) deno-fmt-ignore
-        await checkDirectory(targetDir, { gitignoreRules: ALWAYS_IGNORE_PATTERNS, });
-
-        await vt.clone(targetDir);
-        spinner.succeed(
-          `Project ${ownerName}/${projectName} cloned to "./${
-            relative(Deno.cwd(), targetDir)
-          }"`,
-        );
+      const vt = await VTClient.init({
+        rootPath: targetDir,
+        username: ownerName,
+        projectName,
+        branchName,
       });
-    },
-  );
+
+      // Make sure that the directory is safe to clone into (exists, or gets
+      // created and then exists, and wasn't nonempty) deno-fmt-ignore
+      await checkDirectory(targetDir, { gitignoreRules: ALWAYS_IGNORE_PATTERNS, });
+
+      await vt.clone(targetDir);
+      await vt.addEditorFiles();
+
+      spinner.succeed(
+        `Project ${ownerName}/${projectName} cloned to "./${
+          relative(Deno.cwd(), targetDir)
+        }"`,
+      );
+    });
+  });
