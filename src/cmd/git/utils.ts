@@ -1,5 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
-import { ProjectItem, STATUS_STYLES } from "~/consts.ts";
+import { ProjectItemType, STATUS_STYLES } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/git/utils.ts";
 import { StatusResult } from "~/vt/git/status.ts";
 
@@ -65,7 +65,7 @@ export function getVersionRangeStr(
 export function formatStatus(
   path: string,
   status: keyof StatusResult,
-  type: ProjectItem,
+  type: ProjectItemType,
   maxTypeLength: number,
 ): string {
   // Get color configuration for the status or use default

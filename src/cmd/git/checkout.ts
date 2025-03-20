@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
-import { CheckoutResult } from "~/vt/git/checkout.ts";
+import type { CheckoutResult } from "~/vt/git/checkout.ts";
 import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";

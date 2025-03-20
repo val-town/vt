@@ -2,11 +2,11 @@ import sdk from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/git/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import { ProjectItem } from "~/consts.ts";
+import { ProjectItemType } from "~/consts.ts";
 
 interface FileInfo {
   mtime: number;
-  type: ProjectItem;
+  type: ProjectItemType;
 }
 
 export interface FileStatus extends FileInfo {

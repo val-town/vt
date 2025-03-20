@@ -35,27 +35,26 @@ export function clone({
       const projectFilesResponse = await sdk.projects.files
         .list(projectId, { recursive: true, branch_id: branchId, version });
 
-      const clonePromises: Promise<void>[] = [];
       for await (const file of projectFilesResponse.data) {
-        // Skip directories
-        if (file.type === "directory") continue;
-
         // Skip ignored files
         if (shouldIgnore(file.path, gitignoreRules)) continue;
 
-        // Start a create file task in the background
-        const fullPath = path.join(tmpDir, file.path);
-        clonePromises.push(createFile(
-          fullPath,
-          projectId,
-          branchId,
-          version,
-          file,
-        ));
+        if (file.type === "directory") {
+          // Create directories, even if they would otherwise get created during
+          // the createFile call later, so that we get empty directories
+          await ensureDir(path.join(tmpDir, file.path));
+        } else {
+          // Start a create file task in the background
+          const fullPath = path.join(tmpDir, file.path);
+          await createFile(
+            fullPath,
+            projectId,
+            branchId,
+            version,
+            file,
+          );
+        }
       }
-
-      // Wait for all file operations to complete
-      await Promise.all(clonePromises);
 
       removeEmptyDirs(tmpDir);
     },
@@ -76,17 +75,25 @@ async function createFile(
   // Add all needed parents for creating the file
   await ensureDir(path.dirname(fullPath));
 
+  const updatedAt = new Date(file.updatedAt);
+
+  // Check if file exists and has the same mtime as file.updatedAt
+  const fileInfo = await Deno.stat(fullPath).catch(() => null);
+  if (fileInfo) {
+    if (fileInfo.mtime && fileInfo.mtime.getTime() === updatedAt.getTime()) {
+      return; // If mtime matches updatedAt, no need to update
+    }
+  }
+
   // Get and write the file content
-  const content = await sdk.projects.files.getContent(
+  await sdk.projects.files.getContent(
     projectId,
     encodeURIComponent(file.path),
     { branch_id: branchId, version },
-  ).then((resp) => resp.text());
-
-  await ensureDir(path.dirname(fullPath));
-  await Deno.writeTextFile(fullPath, content);
+  )
+    .then((resp) => resp.text())
+    .then((content) => Deno.writeTextFile(fullPath, content));
 
   // Set the file's mtime right after creating it
-  const updatedAt = new Date(file.updatedAt);
   await Deno.utime(fullPath, updatedAt, updatedAt);
 }

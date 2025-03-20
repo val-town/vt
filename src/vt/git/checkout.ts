@@ -1,8 +1,8 @@
-import { cleanDirectory, doAtomically } from "~/vt/git/utils.ts";
-import { clone } from "~/vt/git/clone.ts";
+import { doAtomically } from "~/vt/git/utils.ts";
 import sdk from "~/sdk.ts";
 import { copy } from "@std/fs";
 import type ValTown from "@valtown/sdk";
+import { pull } from "~/vt/git/pull.ts";
 
 export interface CheckoutResult {
   fromBranch: ValTown.Projects.BranchCreateResponse;
@@ -105,16 +105,13 @@ export function checkout(
       }
 
       // Clone the branch into the temporary directory
-      await clone({
+      await pull({
         targetDir: tmpDir,
         projectId: args.projectId,
         branchId: checkoutBranchId,
         gitignoreRules: args.gitignoreRules,
         version: checkoutVersion,
       });
-
-      // Purge their version before copying back over
-      await cleanDirectory(args.targetDir, args.gitignoreRules);
 
       // We cloned with gitignore rules so we're safe to copy everything
       await copy(tmpDir, args.targetDir, {

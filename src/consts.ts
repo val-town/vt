@@ -50,4 +50,5 @@ export const ProjectItems = [
 export const VAL_TOWN_PROJECT_URL_REGEX =
   /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
-export type ProjectItem = typeof ProjectItems[number];
+export type ProjectItemType = typeof ProjectItems[number];
+export type ProjectFileType = Exclude<ProjectItemType, "directory">;

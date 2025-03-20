@@ -68,7 +68,7 @@ Deno.test({
           ValTown.APIError,
           "404",
         );
-      }, "vt_push_test");
+      }, "vt_push_test_");
     });
   },
 });

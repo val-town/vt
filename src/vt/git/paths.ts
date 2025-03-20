@@ -1,4 +1,4 @@
-import { DEFAULT_VAL_TYPE, type ProjectItem } from "~/consts.ts";
+import { DEFAULT_VAL_TYPE, type ProjectItemType } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
@@ -26,7 +26,7 @@ async function getProjectItemType(
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ProjectItem> {
+): Promise<ProjectItemType> {
   try {
     // If a file already exists in the project at the given path, then the type
     // is whatever it already is on the website.
