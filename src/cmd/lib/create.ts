@@ -65,16 +65,8 @@ vt checkout main`,
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
-      // If no target directory specified, use project name
-      if (targetDir === undefined) rootPath = join(rootPath, projectName);
-
-      // Make sure directory is safe to create project in
-      await checkDirectory(rootPath, {
-        gitignoreRules: DEFAULT_IGNORE_PATTERNS,
-      });
-
       try {
-        const vt = await VTClient.create(
+        await VTClient.create(
           rootPath,
           projectName,
           user.username!, // Init the client with authenticated user
@@ -82,8 +74,13 @@ vt checkout main`,
           description,
         );
 
-        // Clone the initial project structure
-        await vt.clone(rootPath);
+        // If no target directory specified, use project name
+        if (targetDir === undefined) rootPath = join(rootPath, projectName);
+
+        // Make sure directory is safe to create project in
+        await checkDirectory(rootPath, {
+          gitignoreRules: DEFAULT_IGNORE_PATTERNS,
+        });
 
         spinner.succeed(
           `Created ${privacy} project ${projectName} in ./${
