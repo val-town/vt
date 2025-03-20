@@ -123,3 +123,18 @@ export async function findRoot(
 
   throw new Deno.errors.NotFound();
 }
+
+/**
+ * Converts a string to sentence case (capitalizes only the first letter)
+ * while preserving all other characters exactly as they are.
+ *
+ * @param {string} text - The input text to format
+ * @returns {string} Text with only the first letter capitalized
+ */
+export function sentenceCase(text: string) {
+  // Handle empty or non-string inputs
+  if (!text || typeof text !== "string" || text.length === 0) return "";
+
+  // Capitalize only the first letter and keep the rest unchanged
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
