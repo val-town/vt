@@ -50,7 +50,7 @@ export async function push({
     .map(async (file) => {
       await sdk.projects.files.update(
         projectId,
-        encodeURIComponent(file.path),
+        file.path,
         {
           branch_id: branchId,
           content: await Deno.readTextFile(path.join(targetDir, file.path)),
@@ -62,7 +62,7 @@ export async function push({
 
   // Delete files that exist on the server but not locally
   const deletedPromises = statusResult.deleted.map(async (file) => {
-    await sdk.projects.files.delete(projectId, encodeURIComponent(file.path), {
+    await sdk.projects.files.delete(projectId, file.path, {
       branch_id: branchId,
       version,
     });
@@ -87,7 +87,7 @@ export async function push({
           // Upload the file
           await sdk.projects.files.create(
             projectId,
-            encodeURIComponent(file.path),
+            file.path,
             {
               content:
                 (await Deno.readTextFile(path.join(targetDir, file.path))),
@@ -137,7 +137,7 @@ async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        encodeURIComponent(currentPath),
+        currentPath,
         {
           type: "directory",
           branch_id: branchId,

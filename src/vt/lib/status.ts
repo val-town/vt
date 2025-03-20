@@ -148,7 +148,7 @@ async function isFileModified(
   // If mtime indicates a possible change, check content
   const projectFileContent = await sdk.projects.files.getContent(
     projectId,
-    encodeURIComponent(cleanPath),
+    cleanPath,
     { branch_id: branchId, version },
   ).then((resp) => resp.text());
 

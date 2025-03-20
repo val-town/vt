@@ -61,7 +61,7 @@ Deno.test({
               const dirPath = pathParts.slice(0, -1).join("/");
               await sdk.projects.files.create(
                 project.id,
-                encodeURIComponent(dirPath),
+                dirPath,
                 { branch_id: branch.id, type: "directory" },
               );
             }
@@ -69,7 +69,7 @@ Deno.test({
             // Create the file
             await sdk.projects.files.create(
               project.id,
-              encodeURIComponent(file.path),
+              file.path,
               {
                 content: file.content,
                 branch_id: branch.id,
@@ -80,7 +80,7 @@ Deno.test({
         });
 
         await doWithTempDir(async (tempDir) => {
-          await t.step("clone the project", async () => {
+          await t.step("verify cloned files", async () => {
             // Clone the project to the temp directory
             await clone({
               targetDir: tempDir,
@@ -88,9 +88,7 @@ Deno.test({
               branchId: branch.id,
               version: await getLatestVersion(project.id, branch.id),
             });
-          });
 
-          await t.step("verify cloned files", async () => {
             // Verify all files were correctly cloned
             for (const file of filesToCreate) {
               const localFilePath = join(tempDir, file.path);
@@ -144,7 +142,7 @@ Deno.test({
           // Create an empty directory to test explicit directory creation
           await sdk.projects.files.create(
             project.id,
-            encodeURIComponent(emptyDirPath),
+            emptyDirPath,
             { branch_id: branch.id, type: "directory" },
           );
         });

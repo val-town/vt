@@ -88,7 +88,7 @@ async function createFile(
   // Get and write the file content
   await sdk.projects.files.getContent(
     projectId,
-    encodeURIComponent(file.path),
+    file.path,
     { branch_id: branchId, version },
   )
     .then((resp) => resp.text())

@@ -143,7 +143,7 @@ export async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        encodeURIComponent(currentPath),
+        currentPath,
         {
           type: "directory",
           branch_id: branchId,
