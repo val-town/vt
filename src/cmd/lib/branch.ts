@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import sdk from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import ValTown from "@valtown/sdk";
+import type ValTown from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -14,11 +14,11 @@ export const branchCmd = new Command()
   .action(() => {
     doWithSpinner("Loading branches...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-      const meta = await vt.getMeta().loadConfig();
+      const meta = await vt.getMeta().loadState();
 
       const branches: ValTown.Projects.BranchListResponse[] = [];
       // deno-fmt-ignore
-      for await ( const file of (await sdk.projects.branches.list(meta.projectId, {}))) branches.push(file);
+      for await ( const file of (await sdk.projects.branches.list(meta.project.id, {}))) branches.push(file);
 
       const formatter = new Intl.DateTimeFormat("en-US", {
         year: "numeric",
@@ -29,10 +29,10 @@ export const branchCmd = new Command()
       // Separate current branch, place it at the top, and then sort the rest
       // by update time
       const currentBranch = branches
-        .find((branch) => branch.id === meta.currentBranch);
+        .find((branch) => branch.id === meta.branch.id);
 
       const otherBranches = branches
-        .filter((branch) => branch.id !== meta.currentBranch)
+        .filter((branch) => branch.id !== meta.branch.id)
         .sort((a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
@@ -53,7 +53,7 @@ export const branchCmd = new Command()
         ],
         ...sortedBranches.map(
           (branch) => [
-            branch.id === meta.currentBranch
+            branch.id === meta.branch.id
               ? colors.green(`* ${branch.name}`)
               : branch.name,
             colors.cyan(branch.version.toString()),

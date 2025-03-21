@@ -45,15 +45,10 @@ export const watchStopCmd = new Command()
     const vt = VTClient.from(cwd);
     doWithSpinner("Stopping the watch process...", async (spinner) => {
       try {
-        const pidStr = await vt.getMeta().getLockFile();
-        if (pidStr) {
-          const pid = parseInt(pidStr, 10);
-          if (!isNaN(pid)) {
-            Deno.kill(pid);
-            spinner.succeed(`Stopped watch process with PID: ${pid}`);
-          } else {
-            throw new Error("Invalid PID in lockfile.");
-          }
+        const { lastRun } = await vt.getMeta().loadState();
+        if (lastRun.pid) {
+          Deno.kill(lastRun.pid);
+          spinner.succeed(`Stopped watch process with PID: ${lastRun.pid}`);
         } else {
           throw new Error("No running watch process found.");
         }
@@ -76,21 +71,17 @@ export const watchCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
+      const state = await vt.getMeta().loadState();
       const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
+        state.project.id,
+        state.branch.id,
       );
 
       spinner.stop();
 
       const versionRangeStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
-        currentVersion,
+        state.branch.version,
         currentBranch.version,
       );
       console.log(

@@ -47,20 +47,16 @@ export const statusCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       const statusResult = await vt.status();
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
+      const state = await vt.getMeta().loadState();
 
       const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
+        state.project.id,
+        state.branch.id,
       );
 
       const versionStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
-        currentVersion,
+        state.branch.version,
         currentBranch.version,
       );
 

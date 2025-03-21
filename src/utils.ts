@@ -104,4 +104,3 @@ export function sentenceCase(text: string): string {
   // Capitalize only the first letter and keep the rest unchanged
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
-

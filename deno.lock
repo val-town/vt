@@ -36,7 +36,10 @@
     "npm:@types/parse-gitignore@*": "1.0.2",
     "npm:emphasize@7": "7.0.0",
     "npm:highlight.js@^11.11.1": "11.11.1",
+    "npm:lodash@^4.17.21": "4.17.21",
     "npm:open@^10.1.0": "10.1.0",
+    "npm:ts-essentials@^10.0.4": "10.0.4",
+    "npm:word-wrap@^1.2.5": "1.2.5",
     "npm:zod@^3.24.2": "3.24.2"
   },
   "jsr": {
@@ -246,6 +249,9 @@
         "is-inside-container"
       ]
     },
+    "lodash@4.17.21": {
+      "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="
+    },
     "lowlight@3.1.0": {
       "integrity": "sha512-CEbNVoSikAxwDMDPjXlqlFYiZLkDJHwyGu/MfOsJnF3d7f3tds5J3z8s/l9TMXhzfsJCCJEAsD78842mwmg0PQ==",
       "dependencies": [
@@ -266,12 +272,21 @@
     "run-applescript@7.0.0": {
       "integrity": "sha512-9by4Ij99JUr/MCFBUkDKLWK3G9HVXmabKz9U5MlIAIuvuzkiOicRYs8XJLxX+xahD+mLiiCYDqF9dKAgtzKP1A=="
     },
+    "ts-essentials@10.0.4": {
+      "integrity": "sha512-lwYdz28+S4nicm+jFi6V58LaAIpxzhg9rLdgNC1VsdP/xiFBseGhF1M/shwCk6zMmwahBZdXcl34LVHrEang3A=="
+    },
     "undici-types@6.20.0": {
       "integrity": "sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg=="
+    },
+    "word-wrap@1.2.5": {
+      "integrity": "sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA=="
     },
     "zod@3.24.2": {
       "integrity": "sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ=="
     }
+  },
+  "redirects": {
+    "https://deno.land/x/xdg/src/mod.deno.ts": "https://deno.land/x/xdg@v10.6.0/src/mod.deno.ts"
   },
   "remote": {
     "https://cdn.skypack.dev/-/@types/lodash@v4.17.16-ZoQyn4yRPyyvaHlFqaCl/dist=es2019,mode=imports/optimized/@types/lodash.js": "5d71afac9a0636b438aff7daa03026bc53a42b37fb59459792dee56119b9ae05",
@@ -312,6 +327,10 @@
     "https://deno.land/x/os_paths@v7.2.0/src/mod.deno.ts": "5e34d7c1a033665276a1a06e3957a52218bf4711a801f38cf92978aacfad5666",
     "https://deno.land/x/os_paths@v7.2.0/src/platform-adapters/_base.ts": "ca9adf679709824e070631921932620ab4dc2a39fff9706f95592d1620e34dc6",
     "https://deno.land/x/os_paths@v7.2.0/src/platform-adapters/deno.deno.ts": "d184d709522bf2703dc12ff335eb6a10d758a3a5dd4d97524d2aef9d3d448c13",
+    "https://deno.land/x/xdg@v10.6.0/dist/esm/lib/XDG.js": "4c04a45149d66e4ca29ea914aac137e7b0f0b6a8ef431ffc63fef46bc3747064",
+    "https://deno.land/x/xdg@v10.6.0/src/mod.deno.ts": "e478cc109794bfc130ec81711f9a20d594e6fad848f796c68b75dbe510683c39",
+    "https://deno.land/x/xdg@v10.6.0/src/platform-adapters/_base.ts": "c79a7f0e5b1d77e23cbc6c782a02958573338e9dfa644a7aa5a1f7c402ff56ef",
+    "https://deno.land/x/xdg@v10.6.0/src/platform-adapters/deno.deno.ts": "5f5852dc4588c10ad8fd0450421fa728741838cf5839a209d53323ccc9ed4c00",
     "https://deno.land/x/xdg_portable@v10.6.0/dist/esm/lib/XDG.js": "4c04a45149d66e4ca29ea914aac137e7b0f0b6a8ef431ffc63fef46bc3747064",
     "https://deno.land/x/xdg_portable@v10.6.0/src/mod.deno.ts": "e478cc109794bfc130ec81711f9a20d594e6fad848f796c68b75dbe510683c39",
     "https://deno.land/x/xdg_portable@v10.6.0/src/platform-adapters/_base.ts": "c79a7f0e5b1d77e23cbc6c782a02958573338e9dfa644a7aa5a1f7c402ff56ef",
@@ -335,7 +354,10 @@
       "jsr:@valtown/sdk@0.37",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
+      "npm:lodash@^4.17.21",
       "npm:open@^10.1.0",
+      "npm:ts-essentials@^10.0.4",
+      "npm:word-wrap@^1.2.5",
       "npm:zod@^3.24.2"
     ]
   }

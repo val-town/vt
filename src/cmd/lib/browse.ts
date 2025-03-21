@@ -12,10 +12,10 @@ export const browseCmd = new Command()
   .action(async ({ browser }: { browser?: boolean }) => {
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-    const config = await vt.getMeta().loadConfig();
+    const state = await vt.getMeta().loadState();
     const branch = await sdk.projects.branches.retrieve(
-      config.projectId,
-      config.currentBranch,
+      state.project.id,
+      String(state.branch.version),
     );
 
     if (browser) {

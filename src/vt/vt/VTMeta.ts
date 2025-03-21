@@ -6,7 +6,7 @@ import {
 } from "~/consts.ts";
 import { ALWAYS_IGNORE_PATTERNS } from "~/consts.ts";
 import * as path from "@std/path";
-import { ensureDir, walk } from "@std/fs";
+import { ensureDir, exists, walk } from "@std/fs";
 import { VTStateSchema } from "~/vt/vt/schemas.ts";
 import type { z } from "zod";
 
@@ -39,7 +39,7 @@ export default class VTMeta {
   /**
    * Gets the full path to all ignore files.
    *
-   * @returns {string[]} Array of full file paths as strings.
+   * @returns {Promise<string[]>} Array of full file paths as strings.
    */
   private async gitignoreFilePaths(): Promise<string[]> {
     const ignoreFiles: string[] = [];
@@ -47,13 +47,15 @@ export default class VTMeta {
     // Walk through all directories recursively starting from root path
     for await (const file of walk(this.#rootPath)) {
       if (path.basename(file.path) === META_IGNORE_FILE_NAME) {
-        ignoreFiles.push(file.path);
+        if (await exists(file.path)) ignoreFiles.push(file.path);
       }
     }
 
     // Always include the root meta ignore file if it wasn't found in the walk
     const rootMetaIgnore = path.join(this.#rootPath, META_IGNORE_FILE_NAME);
-    if (!ignoreFiles.includes(rootMetaIgnore)) ignoreFiles.push(rootMetaIgnore);
+    if (!ignoreFiles.includes(rootMetaIgnore) && await exists(rootMetaIgnore)) {
+      ignoreFiles.push(rootMetaIgnore);
+    }
 
     return ignoreFiles;
   }
@@ -78,16 +80,14 @@ export default class VTMeta {
   }
 
   /**
-   * Saves the state configuration to the metadata file.
-   * This method validates the complete state object and writes it to the metadata file,
-   * overwriting any existing configuration.
+   * Saves the state state metadata. Automatically updates lastRun info.
    *
-   * @param state - Complete state object to save, excluding lastRunningPid
-   * @returns Promise that resolves when the configuration has been saved
+   * @param state - Complete state object to save, excluding last run info
+   * @returns Promise that resolves when the state data has been saved
    * @throws Will throw if validation fails or if file operations encounter errors
    */
   public async saveState(
-    state: Omit<z.infer<typeof VTStateSchema>, "lastRunningPid">,
+    state: Omit<z.infer<typeof VTStateSchema>, "lastRun">,
   ): Promise<void> {
     // Validate complete state
     const validatedState: z.infer<typeof VTStateSchema> = VTStateSchema.parse({
@@ -101,7 +101,7 @@ export default class VTMeta {
     // Ensure the metadata directory exists
     await ensureDir(path.join(this.#rootPath, META_FOLDER_NAME));
 
-    // Write the configuration to file
+    // Write the meta to file
     await Deno.writeTextFile(
       this.getMetaFilePath(),
       JSON.stringify(validatedState, null, JSON_INDENT_SPACES),
