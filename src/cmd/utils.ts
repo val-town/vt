@@ -22,6 +22,7 @@ export async function doWithSpinner(
     if (options?.autostart !== false) spinner.start();
     return await callback(spinner);
   } catch (e) {
+    console.log(e)
     if (e instanceof ValTown.APIError) {
       spinner?.fail(sentenceCase(e.message.replace(/^\d+\s+/, "")));
     } else if (e instanceof Error) spinner?.fail(e.message);

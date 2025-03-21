@@ -36,6 +36,7 @@
     "npm:@types/parse-gitignore@*": "1.0.2",
     "npm:emphasize@7": "7.0.0",
     "npm:highlight.js@^11.11.1": "11.11.1",
+    "npm:lodash@^4.17.21": "4.17.21",
     "npm:open@^10.1.0": "10.1.0",
     "npm:zod@^3.24.2": "3.24.2"
   },
@@ -246,6 +247,9 @@
         "is-inside-container"
       ]
     },
+    "lodash@4.17.21": {
+      "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg=="
+    },
     "lowlight@3.1.0": {
       "integrity": "sha512-CEbNVoSikAxwDMDPjXlqlFYiZLkDJHwyGu/MfOsJnF3d7f3tds5J3z8s/l9TMXhzfsJCCJEAsD78842mwmg0PQ==",
       "dependencies": [
@@ -274,6 +278,8 @@
     }
   },
   "remote": {
+    "https://cdn.skypack.dev/-/@types/lodash@v4.17.16-ZoQyn4yRPyyvaHlFqaCl/dist=es2019,mode=imports/optimized/@types/lodash.js": "5d71afac9a0636b438aff7daa03026bc53a42b37fb59459792dee56119b9ae05",
+    "https://cdn.skypack.dev/@types/lodash?dts": "06c8e578fb91e13d74acbe08ffb5afcdd56c76c9d231fce32bb532a6587e67bf",
     "https://deno.land/std@0.122.0/_util/assert.ts": "2f868145a042a11d5ad0a3c748dcf580add8a0dbc0e876eaa0026303a5488f58",
     "https://deno.land/std@0.122.0/bytes/bytes_list.ts": "3bff6a09c72b2e0b1e92e29bd3b135053894196cca07a2bba842901073efe5cb",
     "https://deno.land/std@0.122.0/bytes/equals.ts": "69f55fdbd45c71f920c1a621e6c0865dc780cd8ae34e0f5e55a9497b70c31c1b",
@@ -333,6 +339,7 @@
       "jsr:@valtown/sdk@0.37",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
+      "npm:lodash@^4.17.21",
       "npm:open@^10.1.0",
       "npm:zod@^3.24.2"
     ]

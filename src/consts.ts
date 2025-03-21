@@ -16,10 +16,9 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
   ".env",
 ];
 
-export const CONFIG_FILE_NAME = "vt.json";
+export const META_STATE_FILE_NAME = "state.json";
 export const META_FOLDER_NAME = ".vt";
 export const META_IGNORE_FILE_NAME = ".vtignore";
-export const META_LOCK_FILE_NAME = "lock";
 
 export const MAX_WALK_UP_LEVELS = 100;
 
@@ -51,3 +50,5 @@ export const VAL_TOWN_PROJECT_URL_REGEX =
 
 export type ProjectItemType = typeof ProjectItems[number];
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+
+export const JSON_INDENT_SPACES = 4;

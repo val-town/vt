@@ -6,8 +6,14 @@ import { z } from "zod";
  * Contains required metadata for operations that require context about the val
  * town directory you are in, like the project that it represents.
  */
-export const VTSchema = z.object({
-  projectId: z.string().uuid(),
-  currentBranch: z.string().uuid(),
-  version: z.number().gte(0),
+export const VTStateSchema = z.object({
+  project: z.object({
+    id: z.string().uuid(),
+  }),
+  branch: z.object({
+    id: z.string().uuid(),
+    version: z.number().gte(0),
+  }),
+  lastRunningPid: z.number().gte(0),
 });
+
