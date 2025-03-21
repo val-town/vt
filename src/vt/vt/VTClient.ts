@@ -256,12 +256,9 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async clone(targetDir: string): Promise<void> {
-    const { projectId, currentBranch, version } = await this.getMeta()
+    const { projectId, currentBranch, version } = await this
+      .getMeta()
       .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
 
     // Do the clone using the configuration
     await clone({
@@ -330,13 +327,9 @@ export default class VTClient {
   public async push(
     options?: { statusResult?: StatusResult },
   ): Promise<StatusResult> {
-    const { projectId, currentBranch, version } = await this
+    const { projectId, currentBranch } = await this
       .getMeta()
       .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
 
     const statusResult = await push({
       targetDir: this.rootPath,
