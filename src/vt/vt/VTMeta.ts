@@ -90,8 +90,13 @@ export default class VTMeta {
     state: Omit<z.infer<typeof VTStateSchema>, "lastRunningPid">,
   ): Promise<void> {
     // Validate complete state
-    const stateSchema = VTStateSchema.omit({ lastRunningPid: true });
-    const validatedState = stateSchema.parse(state);
+    const validatedState: z.infer<typeof VTStateSchema> = VTStateSchema.parse({
+      ...state,
+      lastRun: {
+        time: new Date().toISOString(),
+        pid: Deno.pid,
+      },
+    });
 
     // Ensure the metadata directory exists
     await ensureDir(path.join(this.#rootPath, META_FOLDER_NAME));
