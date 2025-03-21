@@ -220,11 +220,7 @@ Deno.test({
         // Check that the directory exists on the server
         const listResult = await listProjectItems(
           project.id,
-          {
-            path: "/",
-            branch_id: branch.id,
-            version: branch.version + 1,
-          },
+          { path: "", branch_id: branch.id, version: branch.version + 1 },
         );
 
         assertEquals(
