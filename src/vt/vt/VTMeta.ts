@@ -10,10 +10,6 @@ import { ensureDir, walk } from "@std/fs";
 import { VTStateSchema } from "~/vt/vt/schemas.ts";
 import type { z } from "zod";
 
-// @deno-types="https://cdn.skypack.dev/@types/lodash?dts"
-import _ from "lodash";
-import type { DeepPartial } from "~/utils.ts";
-
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
  * to mutate and retreive them. It maintains the state of the vt folder. Used
@@ -36,7 +32,7 @@ export default class VTMeta {
    *
    * @returns {string} The full file path as a string.
    */
-  public get metaFilePath(): string {
+  public getMetaFilePath(): string {
     return path.join(this.#rootPath, META_FOLDER_NAME, META_STATE_FILE_NAME);
   }
 
@@ -69,7 +65,7 @@ export default class VTMeta {
    * @throws {Error} Will throw an error if the file cannot be read or parsed.
    */
   public async loadState(): Promise<z.infer<typeof VTStateSchema>> {
-    const data = await Deno.readTextFile(this.metaFilePath);
+    const data = await Deno.readTextFile(this.getMetaFilePath());
     const parsedData = JSON.parse(data);
     parsedData.lastRunningPid = Deno.pid; // Update the last running PID
 
@@ -82,15 +78,15 @@ export default class VTMeta {
   }
 
   /**
-   * Initializes the state configuration in the metadata file.
+   * Saves the state configuration to the metadata file.
    * This method validates the complete state object and writes it to the metadata file,
    * overwriting any existing configuration.
    *
-   * @param state - Complete state object to initialize, excluding lastRunningPid
-   * @returns Promise that resolves when the configuration has been initialized
+   * @param state - Complete state object to save, excluding lastRunningPid
+   * @returns Promise that resolves when the configuration has been saved
    * @throws Will throw if validation fails or if file operations encounter errors
    */
-  public async initState(
+  public async saveState(
     state: Omit<z.infer<typeof VTStateSchema>, "lastRunningPid">,
   ): Promise<void> {
     // Validate complete state
@@ -102,40 +98,8 @@ export default class VTMeta {
 
     // Write the configuration to file
     await Deno.writeTextFile(
-      this.metaFilePath,
+      this.getMetaFilePath(),
       JSON.stringify(validatedState, null, JSON_INDENT_SPACES),
-    );
-  }
-
-  /**
-   * Updates the provided state configuration in the metadata file.
-   * This method validates the input, merges it with existing configuration,
-   * and writes the result back to the metadata file.
-   *
-   * @param state - Partial state object to update
-   * @returns Promise that resolves when the configuration has been updated
-   * @throws Will throw if validation fails or if file operations encounter errors
-   */
-  public async updateState(
-    state: DeepPartial<z.infer<typeof VTStateSchema>>,
-  ): Promise<void> {
-    // Validate input state
-    const partialStateSchema = VTStateSchema.partial();
-    const validatedState = partialStateSchema.parse(state);
-
-    // Read and merge with existing config
-    const existingConfig = JSON.parse(
-      await Deno.readTextFile(this.metaFilePath),
-    );
-    const mergedConfig = _.merge(existingConfig, validatedState);
-
-    // Ensure the metadata directory exists
-    await ensureDir(path.join(this.#rootPath, META_FOLDER_NAME));
-
-    // Write the merged configuration to file
-    await Deno.writeTextFile(
-      this.metaFilePath,
-      JSON.stringify(mergedConfig, null, JSON_INDENT_SPACES),
     );
   }
 

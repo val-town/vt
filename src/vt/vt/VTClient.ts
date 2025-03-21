@@ -107,10 +107,10 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.getMeta().metaFilePath);
+      await Deno.stat(vt.getMeta().getMetaFilePath());
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.getMeta().initState({
+        await vt.getMeta().saveState({
           project: { id: projectId },
           branch: { id: branch.id, version: version },
         });
@@ -314,7 +314,7 @@ export default class VTClient {
       gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
 
-    await this.getMeta().updateState(state);
+    await this.getMeta().saveState(state);
   }
 
   /**
@@ -337,7 +337,7 @@ export default class VTClient {
       statusResult: options?.statusResult,
     });
 
-    await this.getMeta().updateState({
+    await this.getMeta().saveState({
       project: { id: state.project.id },
       branch: {
         id: state.branch.id,
@@ -420,7 +420,7 @@ export default class VTClient {
     }
 
     // Update the config with the new branch
-    await this.getMeta().updateState(config);
+    await this.getMeta().saveState(config);
 
     return result;
   }
