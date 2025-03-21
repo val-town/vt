@@ -143,9 +143,9 @@ export async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        currentPath,
         {
           type: "directory",
+          path: currentPath,
           branch_id: branchId,
           content: null,
         },

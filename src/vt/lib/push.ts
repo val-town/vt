@@ -50,8 +50,8 @@ export async function push({
     .map(async (file) => {
       await sdk.projects.files.update(
         projectId,
-        file.path,
         {
+          path: file.path,
           branch_id: branchId,
           content: await Deno.readTextFile(path.join(targetDir, file.path)),
           name: path.basename(file.path),
@@ -62,9 +62,9 @@ export async function push({
 
   // Delete files that exist on the server but not locally
   const deletedPromises = statusResult.deleted.map(async (file) => {
-    await sdk.projects.files.delete(projectId, file.path, {
+    await sdk.projects.files.delete(projectId, {
+      path: file.path,
       branch_id: branchId,
-      version,
     });
   });
 
@@ -76,37 +76,32 @@ export async function push({
   }
 
   // Upload all files that exist locally but not on the server
-  const createdPromises = [];
   for (const file of statusResult.created) {
-    createdPromises.push(async () => {
-      try {
-        if (file.type === "directory") {
-          // We want to make sure we get all the empty directories
-          ensureValtownDir(projectId, branchId, file.path);
-        } else {
-          // Upload the file
-          await sdk.projects.files.create(
-            projectId,
-            file.path,
-            {
-              content:
-                (await Deno.readTextFile(path.join(targetDir, file.path))),
-              branch_id: branchId,
-              type: file.type,
-            },
-          );
-        }
-      } catch (error) {
-        assertAllowedUploadError(error);
+    try {
+      if (file.type === "directory") {
+        // We want to make sure we get all the empty directories
+        ensureValtownDir(projectId, branchId, file.path);
+      } else {
+        // Upload the file
+        await sdk.projects.files.create(
+          projectId,
+          {
+            path: file.path,
+            content: (await Deno.readTextFile(path.join(targetDir, file.path))),
+            branch_id: branchId,
+            type: file.type,
+          },
+        );
       }
-    });
+    } catch (error) {
+      assertAllowedUploadError(error);
+    }
   }
 
   // Wait for all operations to complete
   await Promise.all([
     ...modifiedPromises,
     ...deletedPromises,
-    ...createdPromises,
   ]);
 
   return statusResult;
@@ -137,8 +132,8 @@ async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        currentPath,
         {
+          path: currentPath,
           type: "directory",
           branch_id: branchId,
           content: null,

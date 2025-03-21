@@ -29,7 +29,11 @@ Deno.test({
 
         // Pull and assert that the creation workedpush test
         const originalFileContent = await sdk.projects.files
-          .getContent(project.id, vtFilePath)
+          .getContent(project.id, {
+            path: vtFilePath,
+            branch_id: branch.id,
+            version: branch.version,
+          })
           .then((resp) => resp.text());
         assertEquals(
           originalFileContent,
@@ -47,7 +51,11 @@ Deno.test({
 
         // Pull and assert that the modification worked
         const newFileContent = await sdk.projects.files
-          .getContent(project.id, vtFilePath)
+          .getContent(project.id, {
+            path: vtFilePath,
+            branch_id: branch.id,
+            version: branch.version,
+          })
           .then((resp) => resp.text());
         assertEquals(newFileContent, "test2");
 
@@ -63,7 +71,11 @@ Deno.test({
         // Assert that the file no longer exists on the remote
         await assertRejects(
           async () => {
-            await sdk.projects.files.getContent(project.id, vtFilePath);
+            await sdk.projects.files.getContent(project.id, {
+              path: vtFilePath,
+              version: branch.version,
+              branch_id: branch.id,
+            });
           },
           ValTown.APIError,
           "404",

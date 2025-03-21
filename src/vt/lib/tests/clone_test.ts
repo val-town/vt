@@ -61,16 +61,19 @@ Deno.test({
               const dirPath = pathParts.slice(0, -1).join("/");
               await sdk.projects.files.create(
                 project.id,
-                dirPath,
-                { branch_id: branch.id, type: "directory" },
+                {
+                  path: dirPath,
+                  branch_id: branch.id,
+                  type: "directory",
+                },
               );
             }
 
             // Create the file
             await sdk.projects.files.create(
               project.id,
-              file.path,
               {
+                path: file.path,
                 content: file.content,
                 branch_id: branch.id,
                 type: file.type as ProjectFileType,
@@ -142,8 +145,7 @@ Deno.test({
           // Create an empty directory to test explicit directory creation
           await sdk.projects.files.create(
             project.id,
-            emptyDirPath,
-            { branch_id: branch.id, type: "directory" },
+            { path: emptyDirPath, branch_id: branch.id, type: "directory" },
           );
         });
 

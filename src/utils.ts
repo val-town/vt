@@ -29,21 +29,6 @@ export async function isDirectoryEmpty(
   return true;
 }
 
-export async function removeEmptyDirs(dir: string) {
-  for await (const entry of Deno.readDir(dir)) {
-    if (!entry.isDirectory) continue;
-
-    const path = `${dir}/${entry.name}`;
-    await removeEmptyDirs(path);
-
-    try {
-      await Deno.remove(path);
-    } catch {
-      // the errors are for deleting non empty dirs
-    }
-  }
-}
-
 /**
  * Validates and ensures a directory exists and is empty. Creates the directory
  * if it doesn't exist.

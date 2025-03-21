@@ -1,7 +1,7 @@
 import { join, relative } from "@std/path";
 import { copy, walk } from "@std/fs";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
-import sdk from "~/sdk.ts";
+import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 
@@ -63,12 +63,12 @@ export function pull({
 
       // Get list of files from the server
       const files = new Set<string>();
-      for await (
-        const file of sdk.projects.files.list(projectId, {
+      for (
+        const file of (await listProjectItems(projectId, {
+          path: "",
           branch_id: branchId,
           version,
-          recursive: true,
-        })
+        }))
       ) {
         files.add(file.path);
       }
@@ -85,7 +85,6 @@ export function pull({
       await Promise.all(filesToDelete.map(async (filePath) => {
         const relativePath = relative(tempDir, filePath);
         const deletionPath = join(targetDir, relativePath);
-        console.log(deletionPath);
         await Deno.remove(deletionPath, { recursive: true });
       }));
     },
