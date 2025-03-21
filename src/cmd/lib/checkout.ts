@@ -47,9 +47,20 @@ export const checkoutCmd = new Command()
         const config = await vt.getMeta().loadConfig();
 
         const statusResult = await vt.status();
-        // !branch && await vt.isDirty(cwd) means that we only do the isDirty
-        // check if the branch is not new
-        if (!force && (!branch && await vt.isDirty({ statusResult }))) {
+
+        if (
+          !force &&
+          (!branch && existingBranchName &&
+            (await vt.isDirty({ statusResult }) ||
+              await vt.isDirty({
+                statusResult: await vt.status({
+                  branchId: (await branchIdToBranch(
+                    config.projectId,
+                    existingBranchName,
+                  )).id,
+                }),
+              })))
+        ) {
           throw new Error(dirtyErrorMsg("checkout"));
         }
 
@@ -76,21 +87,6 @@ export const checkoutCmd = new Command()
             } else throw e; // Re-throw error if it's not a 409
           }
         } else if (existingBranchName) {
-          const existingBranchId = await branchIdToBranch(
-            config.projectId,
-            existingBranchName,
-          );
-
-          // There's a risk that the branch they are checking out to has files
-          // that conflict, so do another dirty check
-          const statusResult = await vt.status({
-            branchId: existingBranchId.id,
-          });
-
-          if (!force && (!branch && await vt.isDirty({ statusResult }))) {
-            throw new Error(dirtyErrorMsg("checkout"));
-          }
-
           try {
             checkoutResult = await vt.checkout(existingBranchName, {
               statusResult,
