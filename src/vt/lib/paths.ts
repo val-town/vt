@@ -1,6 +1,8 @@
 import { DEFAULT_VAL_TYPE, type ProjectItemType } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
+import { walk } from "@std/fs";
+import { join } from "@std/path";
 
 /**
  * Determine the type of a project file.
@@ -68,20 +70,46 @@ async function getProjectItemType(
 /**
  * Checks if a path should be ignored based on gitignore rules.
  *
- * @param {string} filePath - Path to check
+ * If rootDir is provided, and the path is a directory, then it checks if all
+ * paths downward are ignored.
+ *
+ * @param {string} pathToCheck - Path to check
  * @param {string[]} gitignoreRules - Array of gitignore rules to check against
- * @returns {boolean} True if the path should be ignored
+ * @param {string|null} [rootDir=null] - Root directory to use for relative paths and file system operations
+ * @returns {Promise<boolean>} True if the path should be ignored
  */
-function shouldIgnore(
-  filePath: string,
+async function shouldIgnore(
+  pathToCheck: string,
   gitignoreRules: string[] = [],
-): boolean {
+  rootDir: string | null = null,
+): Promise<boolean> {
   if (gitignoreRules.length === 0) return false;
 
   // All the libraries for this kinda suck, but this mostly works. Note that
   // there might still be bugs in the gitignore logic.
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
-  return gitignore.denies(filePath);
+
+  // If rootDir is null, don't perform file system operations
+  // Just check if the path itself is ignored
+  if (rootDir === null) return gitignore.denies(pathToCheck);
+
+  const fullPath = join(rootDir, pathToCheck);
+
+  // If it's not a directory, just check the file directly
+  const fileInfo = await Deno.stat(fullPath).catch(() => null);
+  if (!fileInfo || !fileInfo.isDirectory) return gitignore.denies(pathToCheck);
+
+  // Use Deno's walk to traverse the directory
+  for await (const entry of walk(fullPath)) {
+    if (entry.isFile) {
+      const relativePath = entry.path.replace(rootDir + "/", "");
+      // If a file is found that is not ignored then we don't ignore the
+      // directory, and we can return early
+      if (!gitignore.denies(relativePath)) return false;
+    }
+  }
+
+  return true;
 }
 
 export { getProjectItemType, shouldIgnore };

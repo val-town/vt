@@ -1,33 +1,6 @@
-import { dirname, globToRegExp } from "@std/path";
+import { dirname } from "@std/path";
 import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
-
-/**
- * Checks if a directory is empty, ignoring files that match specified glob patterns.
- *
- * @param path - Directory path to check
- * @param gitignoreRules - Gitignore rules
- * @returns True if directory is empty (after ignoring specified files)
- *
- * @example
- * await isDirectoryEmpty("./mydir", [".git/**"]);
- */
-export async function isDirectoryEmpty(
-  path: string | URL,
-  gitignoreRules: string[] = [],
-): Promise<boolean> {
-  const ignorePatterns = gitignoreRules.map((glob) => globToRegExp(glob));
-
-  for await (const entry of Deno.readDir(path)) {
-    // Check if entry matches any ignore pattern
-    const shouldIgnore = ignorePatterns.some((pattern) =>
-      pattern.test(entry.name)
-    );
-    if (!shouldIgnore) {
-      return false;
-    }
-  }
-  return true;
-}
+import { shouldIgnore } from "~/vt/lib/paths.ts";
 
 /**
  * Validates and ensures a directory exists and is empty. Creates the directory
@@ -35,15 +8,19 @@ export async function isDirectoryEmpty(
  *
  * @param rootPath - The full path to the directory to check/create
  * @param options - Configuration options
- * @param options.gitignoreRules - Gitignore rules
+ * @param options.gitignoreRules - Gitignore rules to use when checking if directory is empty
+ * @returns True if the directory was created or is empty after ignoring specified files
  * @throws {Deno.errors.NotADirectory} if the path exists but is not a directory
  * @throws {Deno.errors.AlreadyExists} if the directory exists but is not empty
+ *
+ * @example
+ * await checkDirectory("./mydir", { gitignoreRules: [".git/**"] });
  */
 export async function checkDirectory(
   rootPath: string,
   options: { gitignoreRules?: string[] } = {},
-) {
-  const { gitignoreRules: gitignoreRules = [] } = options;
+): Promise<boolean> {
+  const { gitignoreRules = [] } = options;
 
   try {
     const stat = await Deno.lstat(rootPath);
@@ -57,17 +34,21 @@ export async function checkDirectory(
     // If directory doesn't exist, create it
     if (error instanceof Deno.errors.NotFound) {
       await Deno.mkdir(rootPath, { recursive: true });
-      return; // Directory is newly created so we know it's empty
+      return true; // Directory is newly created so we know it's empty
     }
     throw error; // Re-throw any other errors
   }
 
   // Check if existing directory is empty (considering ignored patterns)
-  if (!(await isDirectoryEmpty(rootPath, gitignoreRules))) {
-    throw new Deno.errors.AlreadyExists(
-      `"${rootPath}" already exists and is not empty.`,
-    );
+  for await (const entry of Deno.readDir(rootPath)) {
+    if (!(await shouldIgnore(entry.name, gitignoreRules, rootPath))) {
+      throw new Deno.errors.AlreadyExists(
+        `"${rootPath}" already exists and is not empty.`,
+      );
+    }
   }
+
+  return true; // Directory exists and is empty (after applying ignore rules)
 }
 
 /**
@@ -116,7 +97,7 @@ export async function findRoot(
  * @param {string} text - The input text to format
  * @returns {string} Text with only the first letter capitalized
  */
-export function sentenceCase(text: string) {
+export function sentenceCase(text: string): string {
   // Handle empty or non-string inputs
   if (!text || typeof text !== "string" || text.length === 0) return "";
 

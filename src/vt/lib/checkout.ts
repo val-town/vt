@@ -1,8 +1,11 @@
 import { doAtomically } from "~/vt/lib/utils.ts";
 import sdk from "~/sdk.ts";
-import { copy } from "@std/fs";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
+import { relative } from "@std/path";
+import { walk } from "@std/fs";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
+import { listProjectItems } from "~/sdk.ts";
 
 export interface CheckoutResult {
   fromBranch: ValTown.Projects.BranchCreateResponse;
@@ -43,17 +46,18 @@ type ForkCheckoutParams = BaseCheckoutParams & {
 export function checkout(args: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
- * Creates a new branch from a project's branch and checks it out.
- *
- * @param {object} args
- * @param {string} args.targetDir - The directory where the fork will be checked out.
- * @param {string} args.projectId - The ID of the project to fork.
- * @param {string} args.forkedFrom - The branch ID from which to create the fork.
- * @param {string} args.name - The name for the new forked branch.
- * @param {number} args.version - The version of the fork to checkout.
- * @param {string[]} args.gitignoreRules - List of gitignore rules.
- * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch details).
- */
+  * Creates a new branch from a project's branch and checks it out.
+  *
+  * @param {object} args
+  * @param {string} args.targetDir - The directory where the fork will be checked out.
+  * @param {string} args.projectId - The ID of the project to fork.
+  * @param {string} args.forkedFrom - The branch ID from which to create the fork.
+  * @param {string} args.name - The name for the new forked branch.
+  * @param {number} args.version - The version of the fork to checkout.
+  * @param {string[]} args.gitignoreRules - List of gitignore rules.
+  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
+ details).
+  */
 export function checkout(
   args: ForkCheckoutParams,
 ): Promise<CheckoutResult>;
@@ -104,20 +108,51 @@ export function checkout(
         checkoutVersion = toBranch.version;
       }
 
-      // Clone the branch into the temporary directory
+      // Get files from the source branch
+      const fromFiles = new Set(
+        await listProjectItems(args.projectId, {
+          path: "",
+          branch_id: fromBranch.id,
+          version: fromBranch.version,
+        }).then((resp) => resp.map((file) => file.path)),
+      );
+
+      // Get files from the target branch
+      const toFiles = new Set(
+        await listProjectItems(args.projectId, {
+          path: "",
+          branch_id: checkoutBranchId,
+          version: checkoutVersion,
+        }).then((resp) => resp.map((file) => file.path)),
+      );
+
+      // Clone the target branch into the temporary directory
       await pull({
         targetDir: tmpDir,
         projectId: args.projectId,
         branchId: checkoutBranchId,
-        gitignoreRules: args.gitignoreRules,
         version: checkoutVersion,
+        gitignoreRules: args.gitignoreRules,
       });
 
-      // We cloned with gitignore rules so we're safe to copy everything
-      await copy(tmpDir, args.targetDir, {
-        overwrite: true,
-        preserveTimestamps: true,
-      });
+      // Walk through the target directory to find files
+      for await (const entry of walk(args.targetDir)) {
+        if (entry.isDirectory) continue;
+
+        const relativePath = relative(args.targetDir, entry.path);
+
+        // Skip files that match gitignore rules
+        if (await shouldIgnore(relativePath, args.gitignoreRules)) continue;
+
+        // Skip root directory
+        if (relativePath === "" || entry.path === args.targetDir) continue;
+
+        // If the file was in the source branch but not in the target branch, delete it
+        // This preserves untracked files (files not in fromFiles)
+        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+          await Deno.remove(entry.path, { recursive: true });
+        }
+      }
 
       // Return checkout result with branch information
       return {

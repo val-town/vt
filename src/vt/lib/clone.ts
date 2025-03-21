@@ -40,7 +40,7 @@ export function clone({
       await Promise.all(projectItems
         .map(async (file) => {
           // Skip ignored files
-          if (shouldIgnore(file.path, gitignoreRules)) return;
+          if (await shouldIgnore(file.path, gitignoreRules, targetDir)) return;
 
           if (file.type === "directory") {
             // Create directories, even if they would otherwise get created during

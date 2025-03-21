@@ -19,7 +19,6 @@ Deno.test({
         // Create a file and push
         const vtFilePath = "test.txt";
         const localFilePath = join(tempDir, vtFilePath);
-        console.log(localFilePath);
         await Deno.writeTextFile(localFilePath, "test");
         await push({
           targetDir: tempDir,

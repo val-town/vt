@@ -58,35 +58,25 @@ export function pull({
         gitignoreRules,
       });
 
-      // Collect files to delete
-      const filesToDelete: string[] = [];
-
       // Get list of files from the server
-      const files = new Set<string>();
-      for (
-        const file of (await listProjectItems(projectId, {
+      const files = new Set(
+        await listProjectItems(projectId, {
           path: "",
           branch_id: branchId,
           version,
-        }))
-      ) {
-        files.add(file.path);
-      }
+        }).then((resp) => resp.map((file) => file.path)),
+      );
 
       // Identify files that should be deleted
       for await (const entry of walk(tempDir)) {
         const relativePath = relative(tempDir, entry.path);
-        if (shouldIgnore(relativePath, gitignoreRules)) continue;
+        if (await shouldIgnore(relativePath, gitignoreRules, tempDir)) continue;
         if (entry.path === "" || entry.path === tempDir) continue;
-        if (!files.has(relativePath)) filesToDelete.push(entry.path);
+        if (!files.has(relativePath)) {
+          await Deno.remove(join(targetDir, relativePath), { recursive: true });
+          await Deno.remove(join(tempDir, relativePath), { recursive: true });
+        }
       }
-
-      // Perform all the deletions operations
-      await Promise.all(filesToDelete.map(async (filePath) => {
-        const relativePath = relative(tempDir, filePath);
-        const deletionPath = join(targetDir, relativePath);
-        await Deno.remove(deletionPath, { recursive: true });
-      }));
     },
     targetDir,
     "vt_pull_",
