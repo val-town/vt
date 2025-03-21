@@ -147,6 +147,9 @@ export default class VTClient {
   public async *watch(
     debounceDelay: number = 300,
   ): AsyncGenerator<StatusResult> {
+    // Do an initial push
+    yield await this.push();
+
     // Set the lock file at the start
     await this.getMeta().setLockFile();
 
