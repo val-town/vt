@@ -46,18 +46,17 @@ type ForkCheckoutParams = BaseCheckoutParams & {
 export function checkout(args: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
-  * Creates a new branch from a project's branch and checks it out.
-  *
-  * @param {object} args
-  * @param {string} args.targetDir - The directory where the fork will be checked out.
-  * @param {string} args.projectId - The ID of the project to fork.
-  * @param {string} args.forkedFrom - The branch ID from which to create the fork.
-  * @param {string} args.name - The name for the new forked branch.
-  * @param {number} args.version - The version of the fork to checkout.
-  * @param {string[]} args.gitignoreRules - List of gitignore rules.
-  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
- details).
-  */
+ * Creates a new branch from a project's branch and checks it out.
+ *
+ * @param {object} args
+ * @param {string} args.targetDir - The directory where the fork will be checked out.
+ * @param {string} args.projectId - The ID of the project to fork.
+ * @param {string} args.forkedFrom - The branch ID from which to create the fork.
+ * @param {string} args.name - The name for the new forked branch.
+ * @param {number} args.version - The version of the fork to checkout.
+ * @param {string[]} args.gitignoreRules - List of gitignore rules.
+ * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch details).
+ */
 export function checkout(
   args: ForkCheckoutParams,
 ): Promise<CheckoutResult>;
