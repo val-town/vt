@@ -37,15 +37,6 @@ export default class VTClient {
   }
 
   /**
-   * Gets the list of gitignore rules that should be ignored by VT.
-   *
-   * @returns {Promise<RegExp[]>} The list of gitignore rules.
-   */
-  private async getGitignoreRules(): Promise<string[]> {
-    return await this.#meta.loadGitignoreRules();
-  }
-
-  /**
    * Adds editor configuration files to the target directory.
    *
    * @param {object} options - Options for adding editor files
@@ -278,7 +269,7 @@ export default class VTClient {
       projectId,
       branchId: currentBranch,
       version,
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }
 
@@ -299,7 +290,7 @@ export default class VTClient {
       projectId,
       branchId,
       version: await getLatestVersion(projectId, branchId),
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }
 
@@ -323,7 +314,7 @@ export default class VTClient {
       projectId: config.projectId,
       branchId: config.currentBranch,
       version: config.version,
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
 
     await this.getMeta().saveConfig(config);
@@ -351,7 +342,7 @@ export default class VTClient {
       targetDir: this.rootPath,
       projectId,
       branchId: currentBranch,
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
       statusResult: options?.statusResult,
     });
 
@@ -386,7 +377,10 @@ export default class VTClient {
 
     // We want to ignore newly created files. Adding them to the gitignore
     // rules list is a nice way to do that.
-    const gitignoreRules = [...(await this.getGitignoreRules()), ...created];
+    const gitignoreRules = [
+      ...(await this.getMeta().loadGitignoreRules()),
+      ...created,
+    ];
 
     let result: CheckoutResult;
 
