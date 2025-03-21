@@ -6,8 +6,8 @@ import {
 } from "~/consts.ts";
 import * as path from "@std/path";
 import { ensureDir, exists } from "@std/fs";
-import type { DeepPartial } from "ts-essentials";
 import type { VTConfigSchema } from "~/vt/vt/schemas.ts";
+import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
 
 // @deno-types="https://cdn.skypack.dev/@types/lodash?dts"
 import _ from "lodash";
@@ -78,20 +78,18 @@ export default class VTConfig {
   /**
    * Loads and merges all configuration files using Lodash's merge.
    *
-   * @param {DeepPartial<Record<string, unknown>>[]} overrides - Optional array of configuration overrides to apply.
-   * @returns {Promise<Record<string, unknown>>} A promise that resolves with the merged configuration.
+   * @returns {Promise<z.infer<typeof VTConfigSchema>>} A promise that resolves with the merged configuration.
    * @throws {Error} Will throw an error if the files cannot be read or parsed.
    */
-  public async loadConfig(
-    overrides: DeepPartial<Record<string, unknown>>[] = [],
-  ): Promise<z.infer<typeof VTConfigSchema>> {
+  public async loadConfig(): Promise<z.infer<typeof VTConfigSchema>> {
     const configPaths = await this.getConfigFilePaths();
     let mergedConfig: Record<string, unknown> = {};
 
     for (const configPath of configPaths) {
       try {
         const data = await Deno.readTextFile(configPath);
-        const parsedData = JSON.parse(data);
+        // Parse the YAML data instead of JSON
+        const parsedData = parseYaml(data);
 
         // Use lodash merge for deep merging of configuration objects
         mergedConfig = _.merge({}, mergedConfig, parsedData);
@@ -103,11 +101,6 @@ export default class VTConfig {
           );
         } else throw e;
       }
-    }
-
-    // Apply any overrides
-    for (const override of overrides) {
-      mergedConfig = _.merge({}, mergedConfig, override);
     }
 
     return mergedConfig as z.infer<typeof VTConfigSchema>;
@@ -124,10 +117,10 @@ export default class VTConfig {
     // Ensure the metadata directory exists
     await ensureDir(path.join(this.#rootPath, META_FOLDER_NAME));
 
-    // Write the configuration to file
+    // Write the configuration to file as YAML
     await Deno.writeTextFile(
       this.getLocalConfigPath(),
-      JSON.stringify(config, null, JSON_INDENT_SPACES),
+      stringifyYaml(config, { indent: JSON_INDENT_SPACES }),
     );
   }
 }
