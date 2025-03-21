@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk from "~/sdk.ts";
+import sdk, { listProjectItems } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
@@ -184,4 +184,57 @@ Deno.test({
     });
   },
   sanitizeResources: false,
+});
+
+Deno.test({
+  name: "test pushing empty directory",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create an empty directory
+        const emptyDirPath = join(tempDir, "empty_dir");
+        await Deno.mkdir(emptyDirPath, { recursive: true });
+
+        // Push the empty directory
+        const pushResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          gitignoreRules: [],
+        });
+
+        // Check that the empty directory was pushed
+        assertEquals(
+          pushResult.created.some((item) =>
+            item.type === "directory" && item.path === "empty_dir"
+          ),
+          true,
+          "Empty directory should be created",
+        );
+
+        // Check that the directory exists on the server
+        const listResult = await listProjectItems(
+          project.id,
+          {
+            path: "/",
+            branch_id: branch.id,
+            version: branch.version + 1,
+          },
+        );
+
+        assertEquals(
+          listResult.some((item) =>
+            item.type === "directory" && item.path === "empty_dir"
+          ),
+          true,
+          "Empty directory should exist on server",
+        );
+      }, "vt_push_empty_dir_test_");
+    });
+  },
 });

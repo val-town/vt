@@ -80,7 +80,7 @@ export async function push({
     try {
       if (file.type === "directory") {
         // We want to make sure we get all the empty directories
-        await ensureValtownDir(projectId, branchId, file.path);
+        await ensureValtownDir(projectId, branchId, file.path, true);
       } else {
         // Upload the file
         await sdk.projects.files.create(
@@ -111,9 +111,10 @@ async function ensureValtownDir(
   projectId: string,
   branchId: string,
   filePath: string,
+  isDirectory = false,
 ): Promise<void> {
   // Note that we cannot use path logic here because it must specific to val town
-  const dirPath = path.dirname(filePath);
+  const dirPath = isDirectory ? filePath : path.dirname(filePath);
 
   // If path is "." (current directory) or empty, no directories need to be created
   if (dirPath === "." || dirPath === "") return;
@@ -132,12 +133,7 @@ async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        {
-          path: currentPath,
-          type: "directory",
-          branch_id: branchId,
-          content: null,
-        },
+        { path: currentPath, type: "directory", branch_id: branchId },
       );
     } catch (error) {
       assertAllowedUploadError(error);
