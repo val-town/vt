@@ -19,6 +19,7 @@ Deno.test({
         // Create a file and push
         const vtFilePath = "test.txt";
         const localFilePath = join(tempDir, vtFilePath);
+        console.log(localFilePath);
         await Deno.writeTextFile(localFilePath, "test");
         await push({
           targetDir: tempDir,
@@ -32,7 +33,7 @@ Deno.test({
           .getContent(project.id, {
             path: vtFilePath,
             branch_id: branch.id,
-            version: branch.version,
+            version: branch.version + 1,
           })
           .then((resp) => resp.text());
         assertEquals(
@@ -54,7 +55,7 @@ Deno.test({
           .getContent(project.id, {
             path: vtFilePath,
             branch_id: branch.id,
-            version: branch.version,
+            version: branch.version + 2,
           })
           .then((resp) => resp.text());
         assertEquals(newFileContent, "test2");
