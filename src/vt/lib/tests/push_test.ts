@@ -84,3 +84,104 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "test rename file",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a folder
+        const folderPath = join(tempDir, "folder");
+        await Deno.mkdir(folderPath, { recursive: true });
+
+        // Create original file
+        const oldPath = join(folderPath, "old.txt");
+        await Deno.writeTextFile(oldPath, "content");
+
+        // Push original file
+        await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          gitignoreRules: [],
+        });
+
+        // Rename file (delete old, create new)
+        await Deno.remove(oldPath);
+        const newPath = join(folderPath, "new.txt");
+        await Deno.writeTextFile(newPath, "content");
+
+        // Push renamed file
+        const statusResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          gitignoreRules: [],
+        });
+
+        // Check modified array
+        assertEquals(
+          statusResult.modified.length,
+          0,
+          "Should have no modified files",
+        );
+
+        // Check not_modified array
+        assertEquals(statusResult.not_modified.length, 1);
+        assertEquals(statusResult.not_modified[0].type, "directory");
+        assertEquals(statusResult.not_modified[0].path, "folder");
+        assertEquals(statusResult.not_modified[0].status, "not_modified");
+
+        // Check deleted array
+        assertEquals(statusResult.deleted.length, 1);
+        assertEquals(statusResult.deleted[0].type, "file");
+        assertEquals(statusResult.deleted[0].path, "folder/old.txt");
+        assertEquals(statusResult.deleted[0].status, "deleted");
+
+        // Check created array
+        assertEquals(statusResult.created.length, 1);
+        assertEquals(statusResult.created[0].type, "file");
+        assertEquals(statusResult.created[0].path, "folder/new.txt");
+        assertEquals(statusResult.created[0].status, "created");
+
+        // Check old file is gone
+        await assertRejects(
+          async () => {
+            const response = await sdk.projects.files.getContent(project.id, {
+              path: "folder/old.txt",
+              branch_id: branch.id,
+              version: 4,
+            });
+
+            // Ensure the response body is consumed even if we don't expect to get here
+            await response.text();
+            return response;
+          },
+          ValTown.APIError,
+          "404",
+          "file should have been deleted during rename",
+        );
+
+        // Check new file exists with the right content
+        const content = await sdk.projects.files
+          .getContent(project.id, {
+            path: "folder/new.txt",
+            branch_id: branch.id,
+            version: 4,
+          })
+          .then((resp) => resp.text());
+        assertEquals(
+          content,
+          "content",
+          "file content should match after rename",
+        );
+      }, "vt_rename_test_");
+    });
+  },
+  sanitizeResources: false,
+});

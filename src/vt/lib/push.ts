@@ -80,7 +80,7 @@ export async function push({
     try {
       if (file.type === "directory") {
         // We want to make sure we get all the empty directories
-        ensureValtownDir(projectId, branchId, file.path);
+        await ensureValtownDir(projectId, branchId, file.path);
       } else {
         // Upload the file
         await sdk.projects.files.create(
