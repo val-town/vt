@@ -1,12 +1,12 @@
-import { clone } from "~/vt/git/clone.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/git/pull.ts";
-import { push } from "~/vt/git/push.ts";
-import { status, type StatusResult } from "~/vt/git/status.ts";
+import { pull } from "~/vt/lib/pull.ts";
+import { push } from "~/vt/lib/push.ts";
+import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";
-import { isDirty } from "~/vt/git/utils.ts";
+import { checkout, type CheckoutResult } from "~/vt/lib/checkout.ts";
+import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
@@ -37,12 +37,28 @@ export default class VTClient {
   }
 
   /**
-   * Gets the list of gitignore rules that should be ignored by VT.
+   * Adds editor configuration files to the target directory.
    *
-   * @returns {Promise<RegExp[]>} The list of gitignore rules.
+   * @param {object} options - Options for adding editor files
+   * @param {boolean} options.noDenoJson - Whether to skip adding deno.json
+   * @returns {Promise<void>}
    */
-  private async getGitignoreRules(): Promise<string[]> {
-    return await this.#meta.loadGitignoreRules();
+  public async addEditorFiles(
+    options?: { noDenoJson?: boolean },
+  ): Promise<void> {
+    // Always add the vt ignore file
+    await Deno.writeTextFile(
+      join(this.rootPath, META_IGNORE_FILE_NAME),
+      vtIgnore.text,
+    );
+
+    // Add deno.json unless explicitly disabled
+    if (!options?.noDenoJson) {
+      await Deno.writeTextFile(
+        join(this.rootPath, "deno.json"),
+        JSON.stringify(denoJson, undefined, 2),
+      );
+    }
   }
 
   /**
@@ -131,6 +147,9 @@ export default class VTClient {
   public async *watch(
     debounceDelay: number = 300,
   ): AsyncGenerator<StatusResult> {
+    // Do an initial push
+    yield await this.push();
+
     // Set the lock file at the start
     await this.getMeta().setLockFile();
 
@@ -237,34 +256,12 @@ export default class VTClient {
    * Clone val town project into a directory using the current configuration.
    *
    * @param {string} targetDir - The directory to clone the project into.
-   * @param {object} options - Optional settings for the clone process.
-   * @param {boolean} options.addDenoJson - Whether to add deno.json to the cloned directory.
    * @returns {Promise<void>}
    */
-  public async clone(
-    targetDir: string,
-    options?: { addDenoJson?: boolean; addVtIgnore?: boolean },
-  ): Promise<void> {
-    const { projectId, currentBranch, version } = await this.getMeta()
+  public async clone(targetDir: string): Promise<void> {
+    const { projectId, currentBranch, version } = await this
+      .getMeta()
       .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
-
-    // Add the vt ignore file
-    await Deno.writeTextFile(
-      join(targetDir, META_IGNORE_FILE_NAME),
-      vtIgnore.text,
-    );
-
-    // Check if addDenoJson is true and copy deno.json if so
-    if (options?.addDenoJson) {
-      await Deno.writeTextFile(
-        join(targetDir, "deno.json"),
-        JSON.stringify(denoJson, undefined, 2),
-      );
-    }
 
     // Do the clone using the configuration
     await clone({
@@ -272,7 +269,7 @@ export default class VTClient {
       projectId,
       branchId: currentBranch,
       version,
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }
 
@@ -280,20 +277,27 @@ export default class VTClient {
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
+   * @param {Object} options - Options for status check
+   * @param {string} [options.branchId] - Optional branch ID to check against. Defaults to current branch.
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
-  public async status(): Promise<StatusResult> {
+  public async status(
+    { branchId }: { branchId?: string } = {},
+  ): Promise<StatusResult> {
     const {
       projectId,
-      currentBranch: branchId,
+      currentBranch: configBranchId,
     } = await this.getMeta().loadConfig();
+
+    // Use provided branchId or fall back to the current branch from config
+    const targetBranchId = branchId || configBranchId;
 
     return status({
       targetDir: this.rootPath,
       projectId,
-      branchId,
-      version: await getLatestVersion(projectId, branchId),
-      gitignoreRules: await this.getGitignoreRules(),
+      branchId: targetBranchId,
+      version: await getLatestVersion(projectId, targetBranchId),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }
 
@@ -302,10 +306,9 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @param {Object} options - Optional parameters
    * @returns {Promise<void>} Resolves once pull complete
    */
-  public async pull() {
+  public async pull(): Promise<void> {
     const config = await this.getMeta().loadConfig();
 
     config.version = await getLatestVersion(
@@ -318,7 +321,7 @@ export default class VTClient {
       projectId: config.projectId,
       branchId: config.currentBranch,
       version: config.version,
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
 
     await this.getMeta().saveConfig(config);
@@ -334,19 +337,15 @@ export default class VTClient {
   public async push(
     options?: { statusResult?: StatusResult },
   ): Promise<StatusResult> {
-    const { projectId, currentBranch, version } = await this
+    const { projectId, currentBranch } = await this
       .getMeta()
       .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
 
     const statusResult = await push({
       targetDir: this.rootPath,
       projectId,
       branchId: currentBranch,
-      gitignoreRules: await this.getGitignoreRules(),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
       statusResult: options?.statusResult,
     });
 
@@ -381,7 +380,10 @@ export default class VTClient {
 
     // We want to ignore newly created files. Adding them to the gitignore
     // rules list is a nice way to do that.
-    const gitignoreRules = [...(await this.getGitignoreRules()), ...created];
+    const gitignoreRules = [
+      ...(await this.getMeta().loadGitignoreRules()),
+      ...created,
+    ];
 
     let result: CheckoutResult;
 

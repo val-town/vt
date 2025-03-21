@@ -113,7 +113,6 @@ export default class VTMeta {
 
     for (const filePath of await this.gitignoreFilePaths()) {
       try {
-        // Read the ignore file
         const content = await Deno.readTextFile(filePath);
 
         const lines = content
@@ -123,13 +122,9 @@ export default class VTMeta {
 
         // Add all the processed lines from this file to the gitignore rule list
         lines.forEach((line) => gitignoreRules.push(line));
-      } catch (error) {
-        if (error instanceof Deno.errors.NotFound) {
-          console.log(`The file ${filePath} was not found`);
-        } else {
-          throw error;
-        }
-        console.log(`Error loading ${filePath}, skipping`);
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) continue;
+        else throw e;
       }
     }
 

@@ -3,11 +3,11 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
-import { getTotalChanges } from "~/vt/git/utils.ts";
+import { displayStatusChanges } from "~/cmd/lib/utils.ts";
+import { getTotalChanges } from "~/vt/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 // Formats a version range string based on the first, current, and latest
 // versions.

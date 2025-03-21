@@ -1,10 +1,11 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
-import { CheckoutResult } from "~/vt/git/checkout.ts";
-import { dirtyErrorMsg } from "~/cmd/git/utils.ts";
+import type { CheckoutResult } from "~/vt/lib/checkout.ts";
+import { dirtyErrorMsg } from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { branchIdToBranch } from "~/sdk.ts";
 
 const toListBranches = "Use \`vt branch\` to list branches.";
 
@@ -46,9 +47,20 @@ export const checkoutCmd = new Command()
         const config = await vt.getMeta().loadConfig();
 
         const statusResult = await vt.status();
-        // !branch && await vt.isDirty(cwd) means that we only do the isDirty
-        // check if the branch is not new
-        if (!force && (!branch && await vt.isDirty({ statusResult }))) {
+
+        if (
+          !force &&
+          (!branch && existingBranchName &&
+            (await vt.isDirty({ statusResult }) ||
+              await vt.isDirty({
+                statusResult: await vt.status({
+                  branchId: (await branchIdToBranch(
+                    config.projectId,
+                    existingBranchName,
+                  )).id,
+                }),
+              })))
+        ) {
           throw new Error(dirtyErrorMsg("checkout"));
         }
 

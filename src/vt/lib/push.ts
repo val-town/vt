@@ -1,10 +1,12 @@
-import { status, type StatusResult } from "~/vt/git/status.ts";
+import { status, type StatusResult } from "~/vt/lib/status.ts";
 import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
+import type { ProjectItemType } from "~/consts.ts";
 
 /**
- * Pushes latest changes from a vt folder into a Val Town project.
+ * Pushes latest changes from a vt folder into a Val Town project. Note that
+ * this is NOT atomic and you could end up with partial updates.
  *
  * @param args Options for pull operation.
  * @param {string} args.targetDir The vt project root directory.
@@ -42,47 +44,49 @@ export async function push({
     gitignoreRules,
   });
 
-  // Upload everything that was modified
-  for (const file of statusResult.modified) {
-    if (file.type === "directory") continue;
-
-    await sdk.projects.files.update(
-      projectId,
-      encodeURIComponent(file.path),
-      {
-        branch_id: branchId,
-        content: await Deno.readTextFile(path.join(targetDir, file.path)),
-        name: path.basename(file.path),
-        type: file.type,
-      },
-    );
-  }
-
-  // Delete everything that was deleted
-  for (const file of statusResult.deleted) {
-    await sdk.projects.files.delete(projectId, file.path, {
-      branch_id: branchId,
-      version,
+  // Upload files that were modified locally
+  const modifiedPromises = statusResult.modified
+    .filter((file) => file.type !== "directory")
+    .map(async (file) => {
+      await sdk.projects.files.update(
+        projectId,
+        {
+          path: file.path,
+          branch_id: branchId,
+          content: await Deno.readTextFile(path.join(targetDir, file.path)),
+          name: path.basename(file.path),
+          type: file.type as Exclude<ProjectItemType, "directory">,
+        },
+      );
     });
+
+  // Delete files that exist on the server but not locally
+  const deletedPromises = statusResult.deleted.map(async (file) => {
+    await sdk.projects.files.delete(projectId, {
+      path: file.path,
+      branch_id: branchId,
+    });
+  });
+
+  // First ensure all directories exist
+  for (const file of statusResult.created) {
+    if (file.path.includes("/")) {
+      await ensureValtownDir(projectId, branchId, file.path);
+    }
   }
 
-  // Create all new files
+  // Upload all files that exist locally but not on the server
   for (const file of statusResult.created) {
-    // Ensure parent directories exist before creating the file
-    await ensureValtownDir(
-      projectId,
-      branchId,
-      file.path,
-    );
-
     try {
       if (file.type === "directory") {
-        // We already ensured the directory path exists
+        // We want to make sure we get all the empty directories
+        await ensureValtownDir(projectId, branchId, file.path, true);
       } else {
+        // Upload the file
         await sdk.projects.files.create(
           projectId,
-          encodeURIComponent(file.path),
           {
+            path: file.path,
             content: (await Deno.readTextFile(path.join(targetDir, file.path))),
             branch_id: branchId,
             type: file.type,
@@ -94,6 +98,12 @@ export async function push({
     }
   }
 
+  // Wait for all operations to complete
+  await Promise.all([
+    ...modifiedPromises,
+    ...deletedPromises,
+  ]);
+
   return statusResult;
 }
 
@@ -101,13 +111,13 @@ async function ensureValtownDir(
   projectId: string,
   branchId: string,
   filePath: string,
+  isDirectory = false,
 ): Promise<void> {
-  const dirPath = path.dirname(filePath);
+  // Note that we cannot use path logic here because it must specific to val town
+  const dirPath = isDirectory ? filePath : path.dirname(filePath);
 
   // If path is "." (current directory) or empty, no directories need to be created
-  if (dirPath === "." || dirPath === "") {
-    return;
-  }
+  if (dirPath === "." || dirPath === "") return;
 
   // Split the path into segments
   const segments = dirPath.split("/");
@@ -123,12 +133,7 @@ async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        encodeURIComponent(currentPath),
-        {
-          type: "directory",
-          branch_id: branchId,
-          content: null,
-        },
+        { path: currentPath, type: "directory", branch_id: branchId },
       );
     } catch (error) {
       assertAllowedUploadError(error);
@@ -138,10 +143,6 @@ async function ensureValtownDir(
 
 function assertAllowedUploadError(error: unknown) {
   if (error instanceof ValTown.APIError) {
-    if (error.status != 409) {
-      throw error;
-    }
-  } else {
-    throw error;
-  }
+    if (error.status != 409) throw error;
+  } else throw error;
 }

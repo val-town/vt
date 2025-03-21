@@ -14,6 +14,7 @@ export const createCmd = new Command()
   .option("--public", "Create as public project (default)")
   .option("--private", "Create as private project")
   .option("--unlisted", "Create as unlisted project")
+  .option("--no-editor-files", "Skip creating editor configuration files")
   .option("-d, --description <desc:string>", "Project description")
   .example(
     "Start fresh",
@@ -41,7 +42,12 @@ vt push
 vt checkout main`,
   )
   .action((
-    { public: isPublic, private: isPrivate, unlisted, description }: {
+    {
+      public: isPublic,
+      private: isPrivate,
+      unlisted,
+      description,
+    }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
@@ -65,14 +71,6 @@ vt checkout main`,
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
-      // If no target directory specified, use project name
-      if (targetDir === undefined) rootPath = join(rootPath, projectName);
-
-      // Make sure directory is safe to create project in
-      await checkDirectory(rootPath, {
-        gitignoreRules: DEFAULT_IGNORE_PATTERNS,
-      });
-
       try {
         const vt = await VTClient.create(
           rootPath,
@@ -81,9 +79,15 @@ vt checkout main`,
           privacy,
           description,
         );
+        await vt.addEditorFiles();
 
-        // Clone the initial project structure
-        await vt.clone(rootPath);
+        // If no target directory specified, use project name
+        if (targetDir === undefined) rootPath = join(rootPath, projectName);
+
+        // Make sure directory is safe to create project in
+        await checkDirectory(rootPath, {
+          gitignoreRules: DEFAULT_IGNORE_PATTERNS,
+        });
 
         spinner.succeed(
           `Created ${privacy} project ${projectName} in ./${
