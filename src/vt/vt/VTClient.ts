@@ -274,19 +274,26 @@ export default class VTClient {
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
+   * @param {Object} options - Options for status check
+   * @param {string} [options.branchId] - Optional branch ID to check against. Defaults to current branch.
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
-  public async status(): Promise<StatusResult> {
+  public async status(
+    { branchId }: { branchId?: string } = {},
+  ): Promise<StatusResult> {
     const {
       projectId,
-      currentBranch: branchId,
+      currentBranch: configBranchId,
     } = await this.getMeta().loadConfig();
+
+    // Use provided branchId or fall back to the current branch from config
+    const targetBranchId = branchId || configBranchId;
 
     return status({
       targetDir: this.rootPath,
       projectId,
-      branchId,
-      version: await getLatestVersion(projectId, branchId),
+      branchId: targetBranchId,
+      version: await getLatestVersion(projectId, targetBranchId),
       gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }

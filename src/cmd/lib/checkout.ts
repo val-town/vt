@@ -5,6 +5,7 @@ import { dirtyErrorMsg } from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { branchIdToBranch } from "~/sdk.ts";
 
 const toListBranches = "Use \`vt branch\` to list branches.";
 
@@ -75,6 +76,21 @@ export const checkoutCmd = new Command()
             } else throw e; // Re-throw error if it's not a 409
           }
         } else if (existingBranchName) {
+          const existingBranchId = await branchIdToBranch(
+            config.projectId,
+            existingBranchName,
+          );
+
+          // There's a risk that the branch they are checking out to has files
+          // that conflict, so do another dirty check
+          const statusResult = await vt.status({
+            branchId: existingBranchId.id,
+          });
+
+          if (!force && (!branch && await vt.isDirty({ statusResult }))) {
+            throw new Error(dirtyErrorMsg("checkout"));
+          }
+
           try {
             checkoutResult = await vt.checkout(existingBranchName, {
               statusResult,
