@@ -180,7 +180,7 @@ async function getProjectFiles(
   const filesMap = new Map<string, FileInfo>();
 
   for (const file of projectItems) {
-    if (!(await shouldIgnore(file.path, gitignoreRules))) {
+    if (!shouldIgnore(file.path, gitignoreRules)) {
       const filePath = path.join(path.dirname(file.path), file.name);
       filesMap.set(filePath, {
         mtime: new Date(file.updatedAt).getTime(),
@@ -205,9 +205,7 @@ async function getLocalFiles(
   const processEntry = async (entry: fs.WalkEntry) => {
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
-    if (
-      await shouldIgnore(relativePath, gitignoreRules, targetDir)
-    ) return;
+    if (shouldIgnore(relativePath, gitignoreRules)) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);

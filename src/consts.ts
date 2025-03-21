@@ -6,7 +6,6 @@ export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
 export const ALWAYS_IGNORE_PATTERNS: string[] = [
   ".vtignore",
-  ".vt/**",
   ".vt",
   ".env",
 ];

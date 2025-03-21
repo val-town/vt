@@ -1,8 +1,6 @@
 import { DEFAULT_VAL_TYPE, type ProjectItemType } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
-import { walk } from "@std/fs";
-import { join } from "@std/path";
 
 /**
  * Determine the type of a project file.
@@ -75,41 +73,18 @@ async function getProjectItemType(
  *
  * @param {string} pathToCheck - Path to check
  * @param {string[]} gitignoreRules - Array of gitignore rules to check against
- * @param {string|null} [rootDir=null] - Root directory to use for relative paths and file system operations
  * @returns {Promise<boolean>} True if the path should be ignored
  */
-async function shouldIgnore(
+function shouldIgnore(
   pathToCheck: string,
   gitignoreRules: string[] = [],
-  rootDir: string | null = null,
-): Promise<boolean> {
+): boolean {
   if (gitignoreRules.length === 0) return false;
 
   // All the libraries for this kinda suck, but this mostly works. Note that
   // there might still be bugs in the gitignore logic.
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
-
-  // If rootDir is null, don't perform file system operations
-  // Just check if the path itself is ignored
-  if (rootDir === null) return gitignore.denies(pathToCheck);
-
-  const fullPath = join(rootDir, pathToCheck);
-
-  // If it's not a directory, just check the file directly
-  const fileInfo = await Deno.stat(fullPath).catch(() => null);
-  if (!fileInfo || !fileInfo.isDirectory) return gitignore.denies(pathToCheck);
-
-  // Use Deno's walk to traverse the directory
-  for await (const entry of walk(fullPath)) {
-    if (entry.isFile) {
-      const relativePath = entry.path.replace(rootDir + "/", "");
-      // If a file is found that is not ignored then we don't ignore the
-      // directory, and we can return early
-      if (!gitignore.denies(relativePath)) return false;
-    }
-  }
-
-  return true;
+  return gitignore.denies(pathToCheck);
 }
 
 export { getProjectItemType, shouldIgnore };

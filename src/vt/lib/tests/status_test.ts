@@ -97,7 +97,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "test status with vtignore",
+  name: "test status detects empty directory",
   permissions: {
     read: true,
     write: true,
@@ -106,49 +106,33 @@ Deno.test({
   async fn() {
     await doWithNewProject(async ({ project, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        // Create a local file that matches gitignore pattern
-        await Deno.mkdir(join(tempDir, "logs"), { recursive: true });
-        await Deno.writeTextFile(
-          join(tempDir, "logs/debug.log"),
-          "debug log content",
-        );
+        await Deno.mkdir(join(tempDir, "empty_dir"));
 
-        // Create a non-ignored file
-        await Deno.writeTextFile(
-          join(tempDir, "readme.md"),
-          "this is a readme file",
-        );
-
-        // Fetch the status
-        const result: StatusResult = await status({
+        const statusResult = await status({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          version: branch.version + 1,
-          gitignoreRules: ["*.log"],
+          version: branch.version,
+          gitignoreRules: [
+            ".vtignore",
+            ".vt",
+            "deno.json",
+            ".vtignore",
+            ".vt",
+            ".env",
+          ],
         });
 
-        const allFiles = [
-          ...result.modified,
-          ...result.not_modified,
-          ...result.created,
-          ...result.deleted,
-        ].map((file) => file.path);
-
-        // The ignored files should not appear in any of the status categories
-        assertEquals(
-          allFiles.includes("logs"),
-          false,
-          "ignored directories should not appear in status results",
+        // Verify the empty directory is detected as a new item to be created
+        const createdDir = statusResult.created.find(
+          (item) => item.type === "directory" && item.path === "empty_dir",
         );
-
-        // The non-ignored file should appear in the status results
         assertEquals(
-          allFiles.includes("readme.md"),
+          !!createdDir,
           true,
-          "non-ignored files should appear in status results",
+          "empty directory should be detected as created",
         );
-      }, "vt_status_gitignore_test_");
+      }, "vt_status_empty_dir_test_");
     });
   },
 });

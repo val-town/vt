@@ -41,7 +41,7 @@ export async function checkDirectory(
 
   // Check if existing directory is empty (considering ignored patterns)
   for await (const entry of Deno.readDir(rootPath)) {
-    if (!(await shouldIgnore(entry.name, gitignoreRules, rootPath))) {
+    if (!shouldIgnore(entry.name, gitignoreRules)) {
       throw new Deno.errors.AlreadyExists(
         `"${rootPath}" already exists and is not empty.`,
       );

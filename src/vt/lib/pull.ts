@@ -70,7 +70,7 @@ export function pull({
       // Identify files that should be deleted
       for await (const entry of walk(tempDir)) {
         const relativePath = relative(tempDir, entry.path);
-        if (await shouldIgnore(relativePath, gitignoreRules, tempDir)) continue;
+        if (shouldIgnore(relativePath, gitignoreRules)) continue;
         if (entry.path === "" || entry.path === tempDir) continue;
         if (!files.has(relativePath)) {
           await Deno.remove(join(targetDir, relativePath), { recursive: true });
