@@ -1,7 +1,5 @@
 import { Command } from "@cliffy/command";
 import { basename, join } from "@std/path";
-import { checkDirectory } from "~/utils.ts";
-import { DEFAULT_IGNORE_PATTERNS } from "~/consts.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
@@ -57,7 +55,10 @@ vt checkout main`,
     targetDir?: string,
   ) => {
     doWithSpinner("Creating project...", async (spinner) => {
-      let rootPath = targetDir || Deno.cwd();
+      let rootPath: string;
+      if (!targetDir) {
+        rootPath = join(Deno.cwd(), projectName);
+      } else rootPath = targetDir;
 
       // Check for mutually exclusive privacy flags
       const privacyFlags =
@@ -80,14 +81,6 @@ vt checkout main`,
           description,
         );
         await vt.addEditorFiles();
-
-        // If no target directory specified, use project name
-        if (targetDir === undefined) rootPath = join(rootPath, projectName);
-
-        // Make sure directory is safe to create project in
-        await checkDirectory(rootPath, {
-          gitignoreRules: DEFAULT_IGNORE_PATTERNS,
-        });
 
         spinner.succeed(
           `Created ${privacy} project ${projectName} in ./${

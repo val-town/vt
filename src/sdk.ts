@@ -82,7 +82,10 @@ export async function listProjectItems(
 ): Promise<ValTown.Projects.FileRetrieveResponse.Data[]> {
   const files: ValTown.Projects.FileRetrieveResponse.Data[] = [];
   let cursor = 0;
-  const batch = 100;
+  const batchSizes = [100, 1, 10]; // Try these batch sizes in order
+  let currentBatchIndex = 0;
+  let batch = batchSizes[currentBatchIndex];
+  let foundWorkingBatch = false;
 
   while (true) {
     const resp = await sdk.projects.files.retrieve(projectId, {
@@ -94,10 +97,27 @@ export async function listProjectItems(
       recursive: recursive ?? true,
     });
 
-    resp.data.forEach((file) => files.push(file));
+    if (resp.data.length === 0) {
+      if (foundWorkingBatch) {
+        // If we've already found a working batch size but now got empty results,
+        // it means we've reached the end of the data
+        break;
+      }
 
-    // If no more results or we've reached the end, break
-    if (resp.data.length === 0) break;
+      // Try the next batch size in our sequence
+      currentBatchIndex++;
+
+      // If we've tried all batch sizes with no success, break
+      if (currentBatchIndex >= batchSizes.length) break;
+
+      batch = batchSizes[currentBatchIndex];
+      continue;
+    }
+
+    // We found data, mark that we have a working batch size
+    foundWorkingBatch = true;
+
+    resp.data.forEach((file) => files.push(file));
 
     // Move to next batch
     cursor += batch;

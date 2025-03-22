@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { listProjectItems } from "~/sdk.ts";
+import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
@@ -13,73 +13,80 @@ Deno.test({
     write: true,
     net: true,
   },
-  async fn() {
+  async fn(t) {
     await doWithNewProject(async ({ project, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        // Create a file and push
         const vtFilePath = "test.txt";
         const localFilePath = join(tempDir, vtFilePath);
-        await Deno.writeTextFile(localFilePath, "test");
-        await push({
-          targetDir: tempDir,
-          projectId: project.id,
-          branchId: branch.id,
-          gitignoreRules: [],
-        });
 
-        // Pull and assert that the creation workedpush test
-        const originalFileContent = await sdk.projects.files
-          .getContent(project.id, {
-            path: vtFilePath,
-            branch_id: branch.id,
-            version: branch.version + 1,
-          })
-          .then((resp) => resp.text());
-        assertEquals(
-          originalFileContent,
-          "test",
-        );
+        await t.step("create a file and push it", async () => {
+          await Deno.writeTextFile(localFilePath, "test");
+          await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            version: await getLatestVersion(project.id, branch.id),
+            gitignoreRules: [],
+          });
 
-        // Modify the file and push
-        await Deno.writeTextFile(localFilePath, "test2");
-        await push({
-          targetDir: tempDir,
-          projectId: project.id,
-          branchId: branch.id,
-          gitignoreRules: [],
-        });
-
-        // Pull and assert that the modification worked
-        const newFileContent = await sdk.projects.files
-          .getContent(project.id, {
-            path: vtFilePath,
-            branch_id: branch.id,
-            version: branch.version + 2,
-          })
-          .then((resp) => resp.text());
-        assertEquals(newFileContent, "test2");
-
-        // Delete the file and push
-        await Deno.remove(localFilePath);
-        await push({
-          targetDir: tempDir,
-          projectId: project.id,
-          branchId: branch.id,
-          gitignoreRules: [],
-        });
-
-        // Assert that the file no longer exists on the remote
-        await assertRejects(
-          async () => {
-            await sdk.projects.files.getContent(project.id, {
+          // Pull and assert that the creation worked
+          const originalFileContent = await sdk.projects.files
+            .getContent(project.id, {
               path: vtFilePath,
-              version: branch.version,
               branch_id: branch.id,
-            });
-          },
-          ValTown.APIError,
-          "404",
-        );
+              version: await getLatestVersion(project.id, branch.id),
+            })
+            .then((resp) => resp.text());
+          assertEquals(
+            originalFileContent,
+            "test",
+          );
+        });
+
+        await t.step("modify the file and push changes", async () => {
+          await Deno.writeTextFile(localFilePath, "test2");
+          await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            version: await getLatestVersion(project.id, branch.id),
+            gitignoreRules: [],
+          });
+
+          // Pull and assert that the modification worked
+          const newFileContent = await sdk.projects.files
+            .getContent(project.id, {
+              path: vtFilePath,
+              branch_id: branch.id,
+              version: await getLatestVersion(project.id, branch.id),
+            })
+            .then((resp) => resp.text());
+          assertEquals(newFileContent, "test2");
+        });
+
+        await t.step("delete the file and push deletion", async () => {
+          await Deno.remove(localFilePath);
+          await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            version: await getLatestVersion(project.id, branch.id),
+            gitignoreRules: [],
+          });
+
+          // Assert that the file no longer exists on the remote
+          await assertRejects(
+            async () => {
+              await sdk.projects.files.getContent(project.id, {
+                path: vtFilePath,
+                version: branch.version,
+                branch_id: branch.id,
+              });
+            },
+            ValTown.APIError,
+            "404",
+          );
+        });
       }, "vt_push_test_");
     });
   },
