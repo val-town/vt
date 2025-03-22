@@ -28,10 +28,35 @@ async function getProjectItemType(
   filePath: string,
 ): Promise<ProjectItemType> {
   try {
-    // If a file already exists in the project at the given path, then the type
-    // is whatever it already is on the website.
-    return await filePathToFile(projectId, branchId, version, filePath)
-      .then((resp) => resp.type);
+    // Try up to 5 previous versions to determine the type
+    for (let i = 0; i < 5; i++) {
+      try {
+        // Try to get the file at the current version min, ensuring version
+        // doesn't go below 1
+        const versionToCheck = Math.max(1, version - i);
+        const result = await filePathToFile(
+          projectId,
+          branchId,
+          versionToCheck,
+          filePath,
+        )
+          .then((resp) => resp.type);
+        return result;
+      } catch (e) {
+        // If not found and we haven't tried all versions yet, continue to the
+        // next version
+        if (e instanceof Deno.errors.NotFound && i < 4) {
+          continue;
+        } else if (!(e instanceof Deno.errors.NotFound) || i >= 4) {
+          // If it's not a NotFound error or we've tried all versions, handle
+          // it in the outer catch
+          throw e;
+        }
+      }
+    }
+
+    // If we get here, we couldn't find the file in any of the 5 versions
+    throw new Deno.errors.NotFound();
   } catch (e) {
     // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
     if (e instanceof Deno.errors.NotFound) {
