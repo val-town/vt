@@ -1,9 +1,9 @@
-import type { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 import * as path from "@std/path";
-import { shouldIgnore } from "~/vt/git/paths.ts";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
-import { copy, emptyDir, ensureDir } from "@std/fs";
+import { copy, ensureDir } from "@std/fs";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -58,7 +58,6 @@ export async function doAtomically<T>(
   op: (tmpDir: string) => Promise<T>,
   targetDir: string,
   tmpLabel?: string,
-  emptyFirst: boolean = false,
 ): Promise<T> {
   const { tempDir, cleanup } = await withTempDir(tmpLabel);
 
@@ -66,9 +65,6 @@ export async function doAtomically<T>(
   try {
     result = await op(tempDir);
     await ensureDir(targetDir);
-    if (emptyFirst) {
-      await emptyDir(targetDir); // Clean the target directory before copying
-    }
     await copy(tempDir, targetDir, {
       overwrite: true,
       preserveTimestamps: true,
@@ -147,9 +143,9 @@ export async function ensureValtownDir(
     try {
       await sdk.projects.files.create(
         projectId,
-        encodeURIComponent(currentPath),
         {
           type: "directory",
+          path: currentPath,
           branch_id: branchId,
           content: null,
         },

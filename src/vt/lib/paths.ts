@@ -1,4 +1,4 @@
-import { DEFAULT_VAL_TYPE, type ProjectItem } from "~/consts.ts";
+import { DEFAULT_VAL_TYPE, type ProjectItemType } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
@@ -26,12 +26,37 @@ async function getProjectItemType(
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ProjectItem> {
+): Promise<ProjectItemType> {
   try {
-    // If a file already exists in the project at the given path, then the type
-    // is whatever it already is on the website.
-    return await filePathToFile(projectId, branchId, version, filePath)
-      .then((resp) => resp.type);
+    // Try up to 5 previous versions to determine the type
+    for (let i = 0; i < 5; i++) {
+      try {
+        // Try to get the file at the current version min, ensuring version
+        // doesn't go below 1
+        const versionToCheck = Math.max(1, version - i);
+        const result = await filePathToFile(
+          projectId,
+          branchId,
+          versionToCheck,
+          filePath,
+        )
+          .then((resp) => resp.type);
+        return result;
+      } catch (e) {
+        // If not found and we haven't tried all versions yet, continue to the
+        // next version
+        if (e instanceof Deno.errors.NotFound && i < 4) {
+          continue;
+        } else if (!(e instanceof Deno.errors.NotFound) || i >= 4) {
+          // If it's not a NotFound error or we've tried all versions, handle
+          // it in the outer catch
+          throw e;
+        }
+      }
+    }
+
+    // If we get here, we couldn't find the file in any of the 5 versions
+    throw new Deno.errors.NotFound();
   } catch (e) {
     // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
     if (e instanceof Deno.errors.NotFound) {
@@ -68,12 +93,15 @@ async function getProjectItemType(
 /**
  * Checks if a path should be ignored based on gitignore rules.
  *
- * @param {string} filePath - Path to check
+ * If rootDir is provided, and the path is a directory, then it checks if all
+ * paths downward are ignored.
+ *
+ * @param {string} pathToCheck - Path to check
  * @param {string[]} gitignoreRules - Array of gitignore rules to check against
- * @returns {boolean} True if the path should be ignored
+ * @returns {Promise<boolean>} True if the path should be ignored
  */
 function shouldIgnore(
-  filePath: string,
+  pathToCheck: string,
   gitignoreRules: string[] = [],
 ): boolean {
   if (gitignoreRules.length === 0) return false;
@@ -81,7 +109,7 @@ function shouldIgnore(
   // All the libraries for this kinda suck, but this mostly works. Note that
   // there might still be bugs in the gitignore logic.
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
-  return gitignore.denies(filePath);
+  return gitignore.denies(pathToCheck);
 }
 
 export { getProjectItemType, shouldIgnore };

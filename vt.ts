@@ -55,6 +55,6 @@ if (Deno.env.get("VAL_TOWN_API_KEY") === undefined) {
 }
 
 if (import.meta.main) {
-  const vt = (await import("~/cmd/root/root.ts")).cmd;
+  const vt = (await import("~/cmd/root.ts")).cmd;
   await vt.parse(Deno.args);
 }
