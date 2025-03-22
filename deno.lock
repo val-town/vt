@@ -31,6 +31,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/path@~1.0.6": "1.0.8",
     "jsr:@std/text@~1.0.7": "1.0.11",
+    "jsr:@valtown/sdk@*": "0.37.0",
     "jsr:@valtown/sdk@0.37": "0.37.0",
     "npm:@types/node@*": "22.12.0",
     "npm:@types/parse-gitignore@*": "1.0.2",
