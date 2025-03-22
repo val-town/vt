@@ -145,7 +145,7 @@ export default class VTClient {
    * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
    */
   public async *watch(
-    debounceDelay: number = 300,
+    debounceDelay: number = 600,
   ): AsyncGenerator<StatusResult> {
     // Do an initial push
     yield await this.push();
