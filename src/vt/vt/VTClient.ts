@@ -1,15 +1,16 @@
-import { clone } from "~/vt/git/clone.ts";
+import { clone } from "~/vt/lib/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/git/pull.ts";
-import { push } from "~/vt/git/push.ts";
-import { status, type StatusResult } from "~/vt/git/status.ts";
+import { pull } from "~/vt/lib/pull.ts";
+import { push } from "~/vt/lib/push.ts";
+import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, CheckoutResult } from "~/vt/git/checkout.ts";
-import { isDirty } from "~/vt/git/utils.ts";
+import { checkout, type CheckoutResult } from "~/vt/lib/checkout.ts";
+import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
+import VTConfig from "~/vt/config.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -37,12 +38,38 @@ export default class VTClient {
   }
 
   /**
-   * Gets the list of gitignore rules that should be ignored by VT.
+   * Gets the configuration for vt, relative to root path.
    *
-   * @returns {Promise<RegExp[]>} The list of gitignore rules.
+   * @returns {Promise<Record<string, unknown>>} A promise that resolves with the project configuration.
    */
-  private async getGitignoreRules(): Promise<string[]> {
-    return await this.#meta.loadGitignoreRules();
+  public async getConfig(): Promise<Record<string, unknown>> {
+    const vtConfig = new VTConfig(this.rootPath);
+    return await vtConfig.loadConfig();
+  }
+
+  /**
+   * Adds editor configuration files to the target directory.
+   *
+   * @param {object} options - Options for adding editor files
+   * @param {boolean} options.noDenoJson - Whether to skip adding deno.json
+   * @returns {Promise<void>}
+   */
+  public async addEditorFiles(
+    options?: { noDenoJson?: boolean },
+  ): Promise<void> {
+    // Always add the vt ignore file
+    await Deno.writeTextFile(
+      join(this.rootPath, META_IGNORE_FILE_NAME),
+      vtIgnore.text,
+    );
+
+    // Add deno.json unless explicitly disabled
+    if (!options?.noDenoJson) {
+      await Deno.writeTextFile(
+        join(this.rootPath, "deno.json"),
+        JSON.stringify(denoJson, undefined, 2),
+      );
+    }
   }
 
   /**
@@ -91,13 +118,12 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     try {
-      await Deno.stat(vt.getMeta().configFilePath);
+      await Deno.stat(vt.getMeta().getMetaFilePath());
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        await vt.getMeta().saveConfig({
-          projectId,
-          currentBranch: branch.id,
-          version: version,
+        await vt.getMeta().saveState({
+          project: { id: projectId },
+          branch: { id: branch.id, version: version },
         });
       } else throw error;
     }
@@ -131,8 +157,8 @@ export default class VTClient {
   public async *watch(
     debounceDelay: number = 300,
   ): AsyncGenerator<StatusResult> {
-    // Set the lock file at the start
-    await this.getMeta().setLockFile();
+    // Do an initial push
+    yield await this.push();
 
     // Track the last time we pushed
     let lastPushed = 0;
@@ -141,7 +167,6 @@ export default class VTClient {
     for (const signal of ["SIGINT", "SIGTERM"]) {
       Deno.addSignalListener(signal as Deno.Signal, () => {
         console.log("Stopping watch process...");
-        this.getMeta().rmLockFile();
         Deno.exit(0);
       });
     }
@@ -237,42 +262,18 @@ export default class VTClient {
    * Clone val town project into a directory using the current configuration.
    *
    * @param {string} targetDir - The directory to clone the project into.
-   * @param {object} options - Optional settings for the clone process.
-   * @param {boolean} options.addDenoJson - Whether to add deno.json to the cloned directory.
    * @returns {Promise<void>}
    */
-  public async clone(
-    targetDir: string,
-    options?: { addDenoJson?: boolean; addVtIgnore?: boolean },
-  ): Promise<void> {
-    const { projectId, currentBranch, version } = await this.getMeta()
-      .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
-
-    // Add the vt ignore file
-    await Deno.writeTextFile(
-      join(targetDir, META_IGNORE_FILE_NAME),
-      vtIgnore.text,
-    );
-
-    // Check if addDenoJson is true and copy deno.json if so
-    if (options?.addDenoJson) {
-      await Deno.writeTextFile(
-        join(targetDir, "deno.json"),
-        JSON.stringify(denoJson, undefined, 2),
-      );
-    }
+  public async clone(targetDir: string): Promise<void> {
+    const config = await this.getMeta().loadState();
 
     // Do the clone using the configuration
     await clone({
       targetDir,
-      projectId,
-      branchId: currentBranch,
-      version,
-      gitignoreRules: await this.getGitignoreRules(),
+      projectId: config.project.id,
+      branchId: config.branch.id,
+      version: config.branch.version,
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }
 
@@ -280,20 +281,24 @@ export default class VTClient {
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
+   * @param {Object} options - Options for status check
+   * @param {string} [options.branchId] - Optional branch ID to check against. Defaults to current branch.
    * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
    */
-  public async status(): Promise<StatusResult> {
-    const {
-      projectId,
-      currentBranch: branchId,
-    } = await this.getMeta().loadConfig();
+  public async status(
+    { branchId }: { branchId?: string } = {},
+  ): Promise<StatusResult> {
+    const state = await this.getMeta().loadState();
+
+    // Use provided branchId or fall back to the current branch from config
+    const targetBranchId = branchId || state.branch.id;
 
     return status({
       targetDir: this.rootPath,
-      projectId,
-      branchId,
-      version: await getLatestVersion(projectId, branchId),
-      gitignoreRules: await this.getGitignoreRules(),
+      projectId: state.project.id,
+      branchId: targetBranchId,
+      version: await getLatestVersion(state.branch.id, targetBranchId),
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
   }
 
@@ -302,26 +307,25 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @param {Object} options - Optional parameters
    * @returns {Promise<void>} Resolves once pull complete
    */
-  public async pull() {
-    const config = await this.getMeta().loadConfig();
+  public async pull(): Promise<void> {
+    const state = await this.getMeta().loadState();
 
-    config.version = await getLatestVersion(
-      config.projectId,
-      config.currentBranch,
+    state.branch.version = await getLatestVersion(
+      state.project.id,
+      state.branch.id,
     );
 
     await pull({
       targetDir: this.rootPath,
-      projectId: config.projectId,
-      branchId: config.currentBranch,
-      version: config.version,
-      gitignoreRules: await this.getGitignoreRules(),
+      projectId: state.project.id,
+      branchId: state.branch.id,
+      version: state.branch.version,
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
     });
 
-    await this.getMeta().saveConfig(config);
+    await this.getMeta().saveState(state);
   }
 
   /**
@@ -334,26 +338,22 @@ export default class VTClient {
   public async push(
     options?: { statusResult?: StatusResult },
   ): Promise<StatusResult> {
-    const { projectId, currentBranch, version } = await this
-      .getMeta()
-      .loadConfig();
-
-    if (!projectId || !currentBranch || version === null) {
-      throw new Error("Configuration not loaded");
-    }
+    const state = await this.getMeta().loadState();
 
     const statusResult = await push({
       targetDir: this.rootPath,
-      projectId,
-      branchId: currentBranch,
-      gitignoreRules: await this.getGitignoreRules(),
+      projectId: state.project.id,
+      branchId: state.branch.id,
+      gitignoreRules: await this.getMeta().loadGitignoreRules(),
       statusResult: options?.statusResult,
     });
 
-    await this.getMeta().saveConfig({
-      projectId,
-      currentBranch,
-      version: await getLatestVersion(projectId, currentBranch),
+    await this.getMeta().saveState({
+      project: { id: state.project.id },
+      branch: {
+        id: state.branch.id,
+        version: await getLatestVersion(state.project.id, state.branch.id),
+      },
     });
 
     return statusResult;
@@ -372,8 +372,8 @@ export default class VTClient {
     branchName: string,
     options?: { forkedFrom?: string; statusResult?: StatusResult },
   ): Promise<CheckoutResult> {
-    const config = await this.getMeta().loadConfig();
-    const currentBranchId = config.currentBranch;
+    const config = await this.getMeta().loadState();
+    const currentBranchId = config.branch.id;
 
     // Get files that were newly created but not yet committed
     const statusResult = options?.statusResult || await this.status();
@@ -381,55 +381,57 @@ export default class VTClient {
 
     // We want to ignore newly created files. Adding them to the gitignore
     // rules list is a nice way to do that.
-    const gitignoreRules = [...(await this.getGitignoreRules()), ...created];
+    const gitignoreRules = [
+      ...(await this.getMeta().loadGitignoreRules()),
+      ...created,
+    ];
 
     let result: CheckoutResult;
 
     if (options?.forkedFrom) {
       // Create a new branch from the specified source
       const sourceVersion = await getLatestVersion(
-        config.projectId,
+        config.project.id,
         options.forkedFrom,
       );
 
       result = await checkout({
         targetDir: this.rootPath,
-        projectId: config.projectId,
+        projectId: config.project.id,
         forkedFromId: options.forkedFrom,
         name: branchName,
         gitignoreRules,
         version: sourceVersion,
       });
 
-      config.currentBranch = result.toBranch.id;
-      config.version = result.toBranch.version;
+      config.branch.id = result.toBranch.id;
+      config.branch.version = result.toBranch.version;
     } else {
       // Check out existing branch
       const checkoutBranch = await branchIdToBranch(
-        config.projectId,
+        config.project.id,
         branchName,
       );
 
       const latestVersion = await getLatestVersion(
-        config.projectId,
+        config.project.id,
         checkoutBranch.id,
       );
 
       result = await checkout({
         targetDir: this.rootPath,
-        projectId: config.projectId,
+        projectId: config.project.id,
         branchId: checkoutBranch.id,
         fromBranchId: currentBranchId,
         gitignoreRules: gitignoreRules,
         version: latestVersion,
       });
 
-      config.currentBranch = result.toBranch.id;
-      config.version = latestVersion;
+      config.branch = { id: result.toBranch.id, version: latestVersion };
     }
 
     // Update the config with the new branch
-    await this.getMeta().saveConfig(config);
+    await this.getMeta().saveState(config);
 
     return result;
   }

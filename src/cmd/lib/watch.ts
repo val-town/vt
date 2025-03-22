@@ -3,11 +3,11 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
-import { getTotalChanges } from "~/vt/git/utils.ts";
+import { displayStatusChanges } from "~/cmd/lib/utils.ts";
+import { getTotalChanges } from "~/vt/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 // Formats a version range string based on the first, current, and latest
 // versions.
@@ -45,15 +45,10 @@ export const watchStopCmd = new Command()
     const vt = VTClient.from(cwd);
     doWithSpinner("Stopping the watch process...", async (spinner) => {
       try {
-        const pidStr = await vt.getMeta().getLockFile();
-        if (pidStr) {
-          const pid = parseInt(pidStr, 10);
-          if (!isNaN(pid)) {
-            Deno.kill(pid);
-            spinner.succeed(`Stopped watch process with PID: ${pid}`);
-          } else {
-            throw new Error("Invalid PID in lockfile.");
-          }
+        const { lastRun } = await vt.getMeta().loadState();
+        if (lastRun.pid) {
+          Deno.kill(lastRun.pid);
+          spinner.succeed(`Stopped watch process with PID: ${lastRun.pid}`);
         } else {
           throw new Error("No running watch process found.");
         }
@@ -76,21 +71,17 @@ export const watchCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
+      const state = await vt.getMeta().loadState();
       const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
+        state.project.id,
+        state.branch.id,
       );
 
       spinner.stop();
 
       const versionRangeStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
-        currentVersion,
+        state.branch.version,
         currentBranch.version,
       );
       console.log(

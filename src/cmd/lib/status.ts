@@ -2,11 +2,11 @@ import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
+import { displayStatusChanges } from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 // - Only the current version (in green) if it equals the latest version
 // - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green
@@ -47,20 +47,16 @@ export const statusCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       const statusResult = await vt.status();
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
+      const state = await vt.getMeta().loadState();
 
       const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
+        state.project.id,
+        state.branch.id,
       );
 
       const versionStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
-        currentVersion,
+        state.branch.version,
         currentBranch.version,
       );
 

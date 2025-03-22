@@ -1,3 +1,3 @@
 {
-  "text": ".vtignore\n.vt/**\n.vt\ndeno.json"
+  "text": "deno.json"
 }

@@ -1,12 +1,14 @@
 import { colors } from "@cliffy/ansi/colors";
-import type { StatusResult } from "~/vt/git/status.ts";
+import { join } from "@std/path";
+import type { StatusResult } from "~/vt/lib/status.ts";
+import xdg from "xdg";
 
 export const DEFAULT_BRANCH_NAME = "main";
+export const PROGRAM_NAME = "vt";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
 export const ALWAYS_IGNORE_PATTERNS: string[] = [
   ".vtignore",
-  ".vt/**",
   ".vt",
   ".env",
 ];
@@ -17,10 +19,11 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
   ".env",
 ];
 
-export const CONFIG_FILE_NAME = "vt.json";
+export const META_STATE_FILE_NAME = "state.json";
+export const VT_CONFIG_FILE_NAME = "config.yaml";
 export const META_FOLDER_NAME = ".vt";
 export const META_IGNORE_FILE_NAME = ".vtignore";
-export const META_LOCK_FILE_NAME = "lock";
+export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
 
 export const MAX_WALK_UP_LEVELS = 100;
 
@@ -50,4 +53,7 @@ export const ProjectItems = [
 export const VAL_TOWN_PROJECT_URL_REGEX =
   /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
-export type ProjectItem = typeof ProjectItems[number];
+export type ProjectItemType = typeof ProjectItems[number];
+export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+
+export const JSON_INDENT_SPACES = 4;
