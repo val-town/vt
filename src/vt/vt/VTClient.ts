@@ -10,7 +10,6 @@ import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
-import type { DeepPartial } from "ts-essentials";
 import VTConfig from "~/vt/config.ts";
 
 /**
@@ -41,14 +40,11 @@ export default class VTClient {
   /**
    * Gets the configuration for vt, relative to root path.
    *
-   * @param {DeepPartial<Record<string, unknown>>[]} overrides - Optional array of configuration overrides to apply.
    * @returns {Promise<Record<string, unknown>>} A promise that resolves with the project configuration.
    */
-  public async getConfig(
-    overrides: DeepPartial<Record<string, unknown>>[] = [],
-  ): Promise<Record<string, unknown>> {
+  public async getConfig(): Promise<Record<string, unknown>> {
     const vtConfig = new VTConfig(this.rootPath);
-    return await vtConfig.loadConfig(overrides);
+    return await vtConfig.loadConfig();
   }
 
   /**

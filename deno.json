@@ -8,8 +8,8 @@
   "tasks": {
     "run": "./vt.ts",
     "test": "deno test -A",
-    "check": "deno check .",
-    "fmt:check": "deno fmt --check"
+    "check": "deno --allow-import check .",
+    "fmt:check": "deno fmt --allow-http --check"
   },
   "imports": {
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
