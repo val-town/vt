@@ -8,7 +8,7 @@
   "tasks": {
     "run": "./vt.ts",
     "test": "deno test -A",
-    "check": "deno --allow-import check .",
+    "check": "deno check . --allow-import",
     "fmt:check": "deno fmt --allow-http --check"
   },
   "imports": {
