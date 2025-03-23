@@ -1,9 +1,16 @@
 import sdk, { listProjectItems } from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
-import * as path from "@std/path";
 import { ensureDir } from "@std/fs";
-import { doAtomically } from "~/vt/lib/utils.ts";
+import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
+import {
+  type FileStateChanges,
+  type FileStatus,
+  newFileStateChanges,
+} from "~/vt/lib/pending.ts";
+import type { ProjectItemType } from "~/consts.ts";
+import { dirname } from "@std/path/dirname";
+import { join } from "@std/path";
 
 /**
  * Clones a project by downloading its files and directories to the specified
@@ -15,6 +22,7 @@ import { doAtomically } from "~/vt/lib/utils.ts";
  * @param {string} [args.branchId] - The branch ID to clone.
  * @param {number} [args.version] - The version of the project to clone.
  * @param {string[]} [args.gitignoreRules] - List of glob patterns for files to ignore
+ * @param {boolean} [args.dryRun] - If true, don't actually write files, just report what would change
  */
 export function clone({
   targetDir,
@@ -22,15 +30,18 @@ export function clone({
   branchId,
   version,
   gitignoreRules,
+  dryRun = false,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version: number;
   gitignoreRules?: string[];
-}): Promise<void> {
+  dryRun?: boolean;
+}): Promise<FileStateChanges> {
   return doAtomically(
     async (tmpDir) => {
+      const changes = newFileStateChanges();
       const projectItems = await listProjectItems(projectId, {
         version,
         branch_id: branchId,
@@ -45,19 +56,26 @@ export function clone({
           if (file.type === "directory") {
             // Create directories, even if they would otherwise get created during
             // the createFile call later, so that we get empty directories
-            await ensureDir(path.join(tmpDir, file.path));
+            if (!dryRun) {
+              await ensureDir(join(tmpDir, file.path));
+            }
           } else {
             // Start a create file task in the background
-            const fullPath = path.join(tmpDir, file.path);
             await createFile(
-              fullPath,
+              file.path,
+              targetDir,
+              tmpDir,
               projectId,
               branchId,
               version,
               file,
+              changes,
+              dryRun,
             );
           }
         }));
+
+      return changes;
     },
     targetDir,
     "vt_clone_",
@@ -65,25 +83,62 @@ export function clone({
 }
 
 async function createFile(
-  rootPath: string,
+  path: string,
+  originalRoot: string,
+  targetRoot: string,
   projectId: string,
   branchId: string,
   version: number,
   file: Valtown.Projects.FileRetrieveResponse.Data,
+  changes: FileStateChanges,
+  dryRun: boolean,
 ): Promise<void> {
-  const fullPath = path.join(path.dirname(rootPath), file.name);
-
   // Add all needed parents for creating the file
-  await ensureDir(path.dirname(fullPath));
+  if (!dryRun) await ensureDir(join(targetRoot, dirname(path)));
 
   const updatedAt = new Date(file.updatedAt);
+  const fileStatus: FileStatus = {
+    mtime: updatedAt.getTime(),
+    type: file.type as ProjectItemType,
+    path: file.path,
+    status: "created", // Default status, may change below
+  };
 
-  // Check if file exists and has the same mtime as file.updatedAt
-  const fileInfo = await Deno.stat(fullPath).catch(() => null);
-  if (fileInfo) {
-    if (fileInfo.mtime && fileInfo.mtime.getTime() === updatedAt.getTime()) {
-      return; // If mtime matches updatedAt, no need to update
+  // Check if file exists
+  const fileInfo = await Deno.stat(join(originalRoot, path)).catch(() => null);
+  if (fileInfo && fileInfo.mtime) {
+    const localMtime = fileInfo.mtime.getTime();
+    const projectMtime = updatedAt.getTime();
+
+    // Check if the file is modified using the imported function
+    const modified = await isFileModified({
+      path: file.path,
+      targetDir: originalRoot,
+      originalPath: path,
+      projectId,
+      branchId,
+      version,
+      localMtime,
+      projectMtime,
+    });
+
+    if (!modified) {
+      // File exists and is not modified
+      fileStatus.status = "not_modified";
+      changes.not_modified.push(fileStatus);
+      await ensureDir(join(targetRoot, dirname(path))); // Ensure the directory exists
+      await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
+      return;
+    } else {
+      fileStatus.status = "modified";
+      changes.modified.push(fileStatus);
     }
+  } else {
+    changes.created.push(fileStatus);
+  }
+
+  if (dryRun) {
+    return; // Don't actually modify files in dry run mode
   }
 
   // Get and write the file content
@@ -92,8 +147,8 @@ async function createFile(
     { path: file.path, branch_id: branchId, version },
   )
     .then((resp) => resp.text())
-    .then((content) => Deno.writeTextFile(fullPath, content));
+    .then((content) => Deno.writeTextFile(path, content));
 
   // Set the file's mtime right after creating it
-  await Deno.utime(fullPath, updatedAt, updatedAt);
+  await Deno.utime(path, updatedAt, updatedAt);
 }

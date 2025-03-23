@@ -51,9 +51,9 @@ export const checkoutCmd = new Command()
         if (
           !force &&
           (!branch && existingBranchName &&
-            (await vt.isDirty({ statusResult }) ||
+            (await vt.isDirty({ fileStateChanges: statusResult }) ||
               await vt.isDirty({
-                statusResult: await vt.status({
+                fileStateChanges: await vt.status({
                   branchId: (await branchIdToBranch(
                     config.projectId,
                     existingBranchName,
@@ -72,7 +72,7 @@ export const checkoutCmd = new Command()
             checkoutResult = await vt
               .checkout(branch, {
                 forkedFrom: config.currentBranch,
-                statusResult,
+                fileStateChanges: statusResult,
               });
 
             spinner.succeed(
@@ -89,7 +89,7 @@ export const checkoutCmd = new Command()
         } else if (existingBranchName) {
           try {
             checkoutResult = await vt.checkout(existingBranchName, {
-              statusResult,
+              fileStateChanges: statusResult,
             });
 
             spinner.succeed(

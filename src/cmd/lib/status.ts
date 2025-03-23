@@ -2,11 +2,11 @@ import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/lib/utils.ts";
+import { displayFileStateChanges } from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import type { StatusResult } from "~/vt/lib/status.ts";
+import type { FileStateChanges } from "~/vt/lib/pending.ts";
 
 // - Only the current version (in green) if it equals the latest version
 // - A range string "firstVersion..currentVersion..latestVersion" with currentVersion in green
@@ -34,7 +34,7 @@ function getVersionRangeStr(
 }
 
 // Formats a file path with a colored status prefix for display.
-export function formatStatus(path: string, status: keyof StatusResult): string {
+export function formatStatus(path: string, status: keyof FileStateChanges): string {
   const config = STATUS_STYLES[status] || { prefix: " ", color: colors.gray };
   return `${config.color(config.prefix)} ${path}`;
 }
@@ -70,7 +70,7 @@ export const statusCmd = new Command()
       );
       console.log();
 
-      displayStatusChanges(statusResult, {
+      displayFileStateChanges(statusResult, {
         summaryPrefix: "Changes to be pushed:",
       });
     });

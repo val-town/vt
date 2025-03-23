@@ -2,7 +2,6 @@ import { clone } from "~/vt/lib/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
-import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
 import { checkout, type CheckoutResult } from "~/vt/lib/checkout.ts";
@@ -10,6 +9,8 @@ import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
+import type { FileStateChanges } from "~/vt/lib/pending.ts";
+import { status } from "~/vt/lib/status.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -142,11 +143,11 @@ export default class VTClient {
    * that this cannot run with multiple instances.
    *
    * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
-   * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
+   * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
   public async *watch(
-    debounceDelay: number = 600,
-  ): AsyncGenerator<StatusResult> {
+    debounceDelay: number = 300,
+  ): AsyncGenerator<FileStateChanges> {
     // Do an initial push
     yield await this.push();
 
@@ -279,11 +280,11 @@ export default class VTClient {
    *
    * @param {Object} options - Options for status check
    * @param {string} [options.branchId] - Optional branch ID to check against. Defaults to current branch.
-   * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
+   * @returns {Promise<FileStateChanges>} A StatusResult object containing categorized files.
    */
   public async status(
     { branchId }: { branchId?: string } = {},
-  ): Promise<StatusResult> {
+  ): Promise<FileStateChanges> {
     const {
       projectId,
       currentBranch: configBranchId,
@@ -306,9 +307,11 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @returns {Promise<void>} Resolves once pull complete
+   * @param {Partial<Parameters<typeof pull>[0]>} options - Optional parameters for pull
    */
-  public async pull(): Promise<void> {
+  public async pull(
+    options?: Partial<Parameters<typeof pull>[0]>,
+  ): Promise<ReturnType<typeof pull>> {
     const config = await this.getMeta().loadConfig();
 
     config.version = await getLatestVersion(
@@ -316,37 +319,43 @@ export default class VTClient {
       config.currentBranch,
     );
 
-    await pull({
-      targetDir: this.rootPath,
-      projectId: config.projectId,
-      branchId: config.currentBranch,
-      version: config.version,
-      gitignoreRules: await this.getMeta().loadGitignoreRules(),
+    const result = await pull({
+      ...{
+        targetDir: this.rootPath,
+        projectId: config.projectId,
+        branchId: config.currentBranch,
+        version: config.version,
+        gitignoreRules: await this.getMeta().loadGitignoreRules(),
+      },
+      ...options,
     });
 
     await this.getMeta().saveConfig(config);
+
+    return result;
   }
 
   /**
    * Push changes from the local directory to the Val Town project.
    *
-   * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
-   * @returns {Promise<StatusResult>} The StatusResult after pushing
+   * @param {Partial<Parameters<typeof pull>[0]>} options - Optional parameters for push
+   * @returns {Promise<FileStateChanges>} The StatusResult after pushing
    */
   public async push(
-    options?: { statusResult?: StatusResult },
-  ): Promise<StatusResult> {
+    options?: Partial<Parameters<typeof push>[0]>,
+  ): Promise<ReturnType<typeof push>> {
     const { projectId, currentBranch } = await this
       .getMeta()
       .loadConfig();
 
-    const statusResult = await push({
-      targetDir: this.rootPath,
-      projectId,
-      branchId: currentBranch,
-      gitignoreRules: await this.getMeta().loadGitignoreRules(),
-      statusResult: options?.statusResult,
+    const fileStateChanges = await push({
+      ...{
+        targetDir: this.rootPath,
+        projectId,
+        branchId: currentBranch,
+        gitignoreRules: await this.getMeta().loadGitignoreRules(),
+      },
+      ...options,
     });
 
     await this.getMeta().saveConfig({
@@ -355,7 +364,7 @@ export default class VTClient {
       version: await getLatestVersion(projectId, currentBranch),
     });
 
-    return statusResult;
+    return fileStateChanges;
   }
 
   /**
@@ -364,19 +373,19 @@ export default class VTClient {
    * @param {string} branchName The name of the branch to check out to
    * @param {Object} options - Optional parameters
    * @param {string} options.forkedFrom If provided, create a new branch with branchName, forking from this branch
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
+   * @param {FileStateChanges} options.fileStateChanges If provided, use this pre-fetched file state changes
    * @returns {Promise<CheckoutResult>}
    */
   public async checkout(
     branchName: string,
-    options?: { forkedFrom?: string; statusResult?: StatusResult },
+    options?: { forkedFrom?: string; fileStateChanges?: FileStateChanges },
   ): Promise<CheckoutResult> {
     const config = await this.getMeta().loadConfig();
     const currentBranchId = config.currentBranch;
 
     // Get files that were newly created but not yet committed
-    const statusResult = options?.statusResult || await this.status();
-    const created = statusResult.created.map((file) => file.path);
+    const fileStateChanges = options?.fileStateChanges || await this.status();
+    const created = fileStateChanges.created.map((file) => file.path);
 
     // We want to ignore newly created files. Adding them to the gitignore
     // rules list is a nice way to do that.
@@ -440,13 +449,13 @@ export default class VTClient {
    * Check if the working directory has uncommitted changes.
    *
    * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
+   * @param {FileStateChanges} options.fileStateChanges - Optional pre-fetched file state changes to use
    * @returns {Promise<boolean>} True if there are uncommitted changes
    */
   public async isDirty(
-    options?: { statusResult?: StatusResult },
+    options?: { fileStateChanges?: FileStateChanges },
   ): Promise<boolean> {
-    const statusResult = options?.statusResult || await this.status();
-    return isDirty(statusResult);
+    const fileStateChanges = options?.fileStateChanges || await this.status();
+    return isDirty(fileStateChanges);
   }
 }

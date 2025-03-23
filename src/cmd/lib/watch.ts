@@ -3,7 +3,7 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/lib/utils.ts";
+import { displayFileStateChanges } from "~/cmd/lib/utils.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -113,7 +113,7 @@ export const watchCmd = new Command()
             try {
               if (getTotalChanges(status) > 0) {
                 console.log();
-                displayStatusChanges(status, {
+                displayFileStateChanges(status, {
                   headerText: "New changes detected",
                   summaryPrefix: "Pushed:",
                 });

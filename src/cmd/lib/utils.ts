@@ -1,7 +1,7 @@
 import { colors } from "@cliffy/ansi/colors";
 import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
-import type { StatusResult } from "~/vt/lib/status.ts";
+import type { FileStateChanges } from "~/vt/lib/pending.ts";
 
 /**
  * Generates an error message for commands that cannot be executed with unpushed changes
@@ -64,7 +64,7 @@ export function getVersionRangeStr(
  */
 export function formatStatus(
   path: string,
-  status: keyof StatusResult,
+  status: keyof FileStateChanges,
   type: ProjectItemType,
   maxTypeLength: number,
 ): string {
@@ -90,7 +90,7 @@ export function formatStatus(
 /**
  * Displays file changes and summary information from a status result.
  *
- * @param status - The status result containing modified, created, and deleted files
+ * @param changes - The status result containing modified, created, and deleted files
  * @param options - Display options
  * @param options.showEmpty - Whether to show output when there are no changes (default: true)
  * @param options.headerText - Custom header text to display before file changes (optional)
@@ -99,8 +99,8 @@ export function formatStatus(
  * @param options.includeSummary - Whether to display the summary (default: true)
  * @returns The total number of changes
  */
-export function displayStatusChanges(
-  status: StatusResult,
+export function displayFileStateChanges(
+  changes: FileStateChanges,
   options: {
     showEmpty?: boolean;
     headerText?: string;
@@ -116,27 +116,26 @@ export function displayStatusChanges(
     emptyMessage = "No local changes. Local working tree clean.",
     includeSummary = true,
   } = options;
-
-  const totalChanges = getTotalChanges(status);
+  const totalChanges = getTotalChanges(changes);
 
   // Exit early if we do not show empty
   if (totalChanges === 0 && !showEmpty) return;
 
   // Display header if provided
-  if (headerText) console.log(headerText);
+  if (headerText && totalChanges !== 0) console.log(headerText);
 
   // Calculate the longest type length from all files
-  const maxTypeLength = Object.entries(status)
+  const maxTypeLength = Object.entries(changes)
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
     .reduce((max, file) => Math.max(max, file.type.length), 0);
 
   // Print all changed files state
-  for (const [type, files] of Object.entries(status)) {
+  for (const [type, files] of Object.entries(changes)) {
     if (type !== "not_modified") {
       for (const file of files) {
         console.log(
-          formatStatus(file.path, file.status, file.type, maxTypeLength),
+          "  " + formatStatus(file.path, file.status, file.type, maxTypeLength),
         );
       }
     }
@@ -148,9 +147,9 @@ export function displayStatusChanges(
       console.log(colors.green(emptyMessage));
     } else {
       console.log("\n" + summaryPrefix);
-      for (const [type, files] of Object.entries(status)) {
+      for (const [type, files] of Object.entries(changes)) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeColor = STATUS_STYLES[type as keyof StatusResult];
+          const typeColor = STATUS_STYLES[type as keyof FileStateChanges];
           const coloredType = typeColor.color(type);
           console.log("  " + files.length + " " + coloredType);
         }
@@ -158,3 +157,6 @@ export function displayStatusChanges(
     }
   }
 }
+
+export const noChangesDryRunMsg = "Dry run completed. " +
+  colors.underline("No changes were made.");

@@ -1,9 +1,9 @@
-import type { StatusResult } from "~/vt/lib/status.ts";
-import * as path from "@std/path";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
 import { copy, ensureDir } from "@std/fs";
+import type { FileStateChanges } from "~/vt/lib/pending.ts";
+import { dirname, join } from "@std/path";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -88,7 +88,7 @@ export async function cleanDirectory(
   const filesToRemove = Deno.readDirSync(directory)
     .filter((entry) => !shouldIgnore(entry.name, gitignoreRules))
     .map((entry) => ({
-      path: path.join(directory, entry.name),
+      path: join(directory, entry.name),
       isDirectory: entry.isDirectory,
     }));
 
@@ -102,10 +102,10 @@ export async function cleanDirectory(
 /**
  * Check if the target directory is dirty (has unpushed local changes).
  *
- * @param {StatusResult} statusResult - Result of a status operation.
+ * @param {FileStateChanges} fileStateChanges - The current file state changes
  */
-export function isDirty(statusResult: StatusResult): boolean {
-  return statusResult.modified.length > 0;
+export function isDirty(fileStateChanges: FileStateChanges): boolean {
+  return fileStateChanges.modified.length > 0;
 }
 
 /**
@@ -122,7 +122,7 @@ export async function ensureValtownDir(
   branchId: string,
   filePath: string,
 ): Promise<void> {
-  const dirPath = path.dirname(filePath);
+  const dirPath = dirname(filePath);
 
   // If path is "." (current directory) or empty, no directories need to be created
   if (dirPath === "." || dirPath === "") {
@@ -166,9 +166,53 @@ export async function ensureValtownDir(
  * Determines the total number of changes, not including not modified files,
  * from a StatusResult.
  */
-export function getTotalChanges(status: StatusResult): number {
+export function getTotalChanges(status: FileStateChanges): number {
   return Object
     .entries(status)
     .filter(([type]) => type !== "not_modified")
     .reduce((sum, [, files]) => sum + files.length, 0);
+}
+
+export async function isFileModified(
+  {
+    path,
+    targetDir,
+    originalPath,
+    projectId,
+    branchId,
+    version,
+    localMtime,
+    projectMtime,
+  }: {
+    path: string;
+    targetDir: string;
+    originalPath: string;
+    projectId: string;
+    branchId: string;
+    version: number;
+    localMtime: number;
+    projectMtime: number;
+  },
+): Promise<boolean> {
+  // First use the mtime as a heuristic to avoid unnecessary content checks
+  if (localMtime <= projectMtime) {
+    return false;
+  }
+
+  // If mtime indicates a possible change, check content
+  const projectFileContent = await sdk.projects.files.getContent(
+    projectId,
+    {
+      path,
+      branch_id: branchId,
+      version,
+    },
+  ).then((resp) => resp.text());
+
+  // For some reason the local paths seem to have an extra newline
+  const localFileContent = await Deno.readTextFile(
+    join(targetDir, originalPath),
+  );
+
+  return projectFileContent !== localFileContent;
 }

@@ -1,25 +1,13 @@
-import sdk, { listProjectItems } from "~/sdk.ts";
+import { listProjectItems } from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import type { ProjectItemType } from "~/consts.ts";
-
-interface FileInfo {
-  mtime: number;
-  type: ProjectItemType;
-}
-
-export interface FileStatus extends FileInfo {
-  status: "modified" | "not_modified" | "deleted" | "created";
-  path: string;
-}
-
-export interface StatusResult {
-  modified: FileStatus[];
-  not_modified: FileStatus[];
-  deleted: FileStatus[];
-  created: FileStatus[];
-}
+import {
+  type FileInfo,
+  type FileStateChanges,
+  newFileStateChanges,
+} from "~/vt/lib/pending.ts";
+import { isFileModified } from "~/vt/lib/utils.ts";
 
 /**
  * Scans a directory and determines the status of all files compared to the Val
@@ -47,13 +35,8 @@ export async function status({
   branchId: string;
   version: number;
   gitignoreRules: string[];
-}): Promise<StatusResult> {
-  const result: StatusResult = {
-    modified: [],
-    not_modified: [],
-    deleted: [],
-    created: [],
-  };
+}): Promise<FileStateChanges> {
+  const result = newFileStateChanges();
 
   // Get all files
   const localFiles = await getLocalFiles(
@@ -87,16 +70,16 @@ export async function status({
     } else {
       if (localFileInfo.type !== "directory") {
         // File exists in both places, check if modified
-        const isModified = await isFileModified(
+        const isModified = await isFileModified({
+          path: filePath,
           targetDir,
-          filePath,
-          filePath,
+          originalPath: filePath,
           projectId,
           branchId,
           version,
-          localFileInfo.mtime,
-          projectFileInfo.mtime,
-        );
+          localMtime: localFileInfo.mtime,
+          projectMtime: projectFileInfo.mtime,
+        });
 
         if (isModified) {
           result.modified.push({
@@ -130,39 +113,6 @@ export async function status({
   }
 
   return result;
-}
-
-async function isFileModified(
-  targetDir: string,
-  originalPath: string,
-  cleanPath: string,
-  projectId: string,
-  branchId: string,
-  version: number,
-  localMtime: number,
-  projectMtime: number,
-): Promise<boolean> {
-  // First use the mtime as a heuristic to avoid unnecessary content checks
-  if (localMtime <= projectMtime) {
-    return false;
-  }
-
-  // If mtime indicates a possible change, check content
-  const projectFileContent = await sdk.projects.files.getContent(
-    projectId,
-    {
-      path: cleanPath,
-      branch_id: branchId,
-      version,
-    },
-  ).then((resp) => resp.text());
-
-  // For some reason the local paths seem to have an extra newline
-  const localFileContent = await Deno.readTextFile(
-    path.join(targetDir, originalPath),
-  );
-
-  return projectFileContent !== localFileContent;
 }
 
 async function getProjectFiles(
