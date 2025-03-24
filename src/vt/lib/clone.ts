@@ -104,29 +104,27 @@ async function createFile(
     status: "created", // Default status
   };
 
-  // Check for existing file and determine status (skip in dry run mode)
-  if (!dryRun) {
-    const fileInfo = await Deno.stat(join(originalRoot, path)).catch(() =>
-      null
-    );
+  // Check for existing file and determine status
+  const fileInfo = await Deno
+    .stat(join(originalRoot, path))
+    .catch(() => null);
 
-    if (fileInfo?.mtime) {
-      const localMtime = fileInfo.mtime.getTime();
-      const projectMtime = updatedAt.getTime();
+  if (fileInfo !== null) {
+    const localMtime = fileInfo.mtime!.getTime();
+    const projectMtime = updatedAt.getTime();
 
-      const modified = await isFileModified({
-        path: file.path,
-        targetDir: originalRoot,
-        originalPath: path,
-        projectId,
-        branchId,
-        version,
-        localMtime,
-        projectMtime,
-      });
+    const modified = await isFileModified({
+      path: file.path,
+      targetDir: originalRoot,
+      originalPath: path,
+      projectId,
+      branchId,
+      version,
+      localMtime,
+      projectMtime,
+    });
 
-      fileStatus.status = modified ? "modified" : "not_modified";
-    }
+    fileStatus.status = modified ? "modified" : "not_modified";
   }
 
   // Track file status

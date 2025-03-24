@@ -173,6 +173,25 @@ export function getTotalChanges(status: FileState): number {
     .reduce((sum, [, files]) => sum + files.length, 0);
 }
 
+/**
+ * Determines if a local file has been modified compared to its project version.
+ *
+ * This function uses a two-step approach to check for modifications:
+ * 1. First, it compares modification timestamps as a quick heuristic
+ * 2. If timestamps suggest a change, it performs a full content comparison
+ *
+ * @param {object} params - The parameters object
+ * @param {string} params.path - The file path in the project
+ * @param {string} params.targetDir - The local target directory
+ * @param {string} params.originalPath - The original file path
+ * @param {string} params.projectId - The ID of the project
+ * @param {string} params.branchId - The ID of the branch
+ * @param {number} [params.version] - Optional version number
+ * @param {number} params.localMtime - Modification time of the local file
+ * @param {number} params.projectMtime - Modification time of the project file
+ *
+ * @returns {Promise<boolean>} True if the file has been modified, false otherwise
+ */
 export async function isFileModified(
   {
     path,
@@ -195,7 +214,8 @@ export async function isFileModified(
   },
 ): Promise<boolean> {
   // First use the mtime as a heuristic to avoid unnecessary content checks
-  if (localMtime <= projectMtime) return false;
+  if (projectMtime == localMtime) return false;
+  if (projectMtime > localMtime) return true;
 
   // If mtime indicates a possible change, check content
   const projectFileContent = await sdk.projects.files.getContent(
