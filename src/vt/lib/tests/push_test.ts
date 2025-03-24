@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import sdk, { listProjectItems } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
@@ -25,7 +25,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
             gitignoreRules: [],
           });
 
@@ -34,7 +33,6 @@ Deno.test({
             .getContent(project.id, {
               path: vtFilePath,
               branch_id: branch.id,
-              version: await getLatestVersion(project.id, branch.id),
             })
             .then((resp) => resp.text());
           assertEquals(
@@ -49,7 +47,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
             gitignoreRules: [],
           });
 
@@ -58,7 +55,6 @@ Deno.test({
             .getContent(project.id, {
               path: vtFilePath,
               branch_id: branch.id,
-              version: await getLatestVersion(project.id, branch.id),
             })
             .then((resp) => resp.text());
           assertEquals(newFileContent, "test2");
@@ -70,7 +66,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
             gitignoreRules: [],
           });
 
@@ -79,7 +74,6 @@ Deno.test({
             async () => {
               await sdk.projects.files.getContent(project.id, {
                 path: vtFilePath,
-                version: branch.version,
                 branch_id: branch.id,
               });
             },
@@ -162,7 +156,6 @@ Deno.test({
             const response = await sdk.projects.files.getContent(project.id, {
               path: "folder/old.txt",
               branch_id: branch.id,
-              version: 4,
             });
 
             // Ensure the response body is consumed even if we don't expect to get here
@@ -179,7 +172,6 @@ Deno.test({
           .getContent(project.id, {
             path: "folder/new.txt",
             branch_id: branch.id,
-            version: 4,
           })
           .then((resp) => resp.text());
         assertEquals(
@@ -227,7 +219,11 @@ Deno.test({
         // Check that the directory exists on the server
         const listResult = await listProjectItems(
           project.id,
-          { path: "", branch_id: branch.id, version: branch.version + 1 },
+          {
+            path: "",
+            branch_id: branch.id,
+            recursive: true,
+          },
         );
 
         assertEquals(

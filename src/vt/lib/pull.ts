@@ -64,6 +64,7 @@ export function pull({
           path: "",
           branch_id: branchId,
           version,
+          recursive: true,
         }).then((resp) => resp.map((file) => file.path)),
       );
 

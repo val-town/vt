@@ -130,7 +130,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "test typical cloning",
+  name: "test cloning empty directory",
   permissions: {
     read: true,
     write: true,

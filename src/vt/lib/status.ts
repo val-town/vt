@@ -175,6 +175,7 @@ async function getProjectFiles(
     path: "",
     branch_id: branchId,
     version,
+    recursive: true,
   });
 
   const filesMap = new Map<string, FileInfo>();
