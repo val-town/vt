@@ -45,28 +45,31 @@ export async function push({
   });
 
   // Upload files that were modified locally
-  const modifiedPromises = statusResult.modified
-    .filter((file) => file.type !== "directory")
-    .map(async (file) => {
-      await sdk.projects.files.update(
-        projectId,
-        {
-          path: file.path,
-          branch_id: branchId,
-          content: await Deno.readTextFile(path.join(targetDir, file.path)),
-          name: path.basename(file.path),
-          type: file.type as Exclude<ProjectItemType, "directory">,
-        },
-      );
-    });
+  await Promise.all(
+    statusResult.modified
+      .filter((file) => file.type !== "directory")
+      .map(async (file) => {
+        await sdk.projects.files.update(
+          projectId,
+          {
+            path: file.path,
+            branch_id: branchId,
+            content: await Deno.readTextFile(path.join(targetDir, file.path)),
+            name: path.basename(file.path),
+            type: file.type as Exclude<ProjectItemType, "directory">,
+          },
+        );
+      }),
+  );
 
   // Delete files that exist on the server but not locally
-  const deletedPromises = statusResult.deleted.map(async (file) => {
+  await Promise.all(statusResult.deleted.map(async (file) => {
     await sdk.projects.files.delete(projectId, {
       path: file.path,
       branch_id: branchId,
+      recursive: true,
     });
-  });
+  }));
 
   // First ensure all directories exist
   for (const file of statusResult.created) {
@@ -98,12 +101,6 @@ export async function push({
     }
   }
 
-  // Wait for all operations to complete
-  await Promise.all([
-    ...modifiedPromises,
-    ...deletedPromises,
-  ]);
-
   return statusResult;
 }
 
@@ -115,9 +112,6 @@ async function ensureValtownDir(
 ): Promise<void> {
   // Note that we cannot use path logic here because it must specific to val town
   const dirPath = isDirectory ? filePath : path.dirname(filePath);
-
-  // If path is "." (current directory) or empty, no directories need to be created
-  if (dirPath === "." || dirPath === "") return;
 
   // Split the path into segments
   const segments = dirPath.split("/");

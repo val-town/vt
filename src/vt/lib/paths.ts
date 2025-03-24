@@ -1,4 +1,8 @@
-import { DEFAULT_VAL_TYPE, type ProjectItemType } from "~/consts.ts";
+import {
+  DEFAULT_VAL_TYPE,
+  type ProjectItemType,
+  RECENT_VERSION_COUNT,
+} from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
@@ -27,67 +31,41 @@ async function getProjectItemType(
   version: number,
   filePath: string,
 ): Promise<ProjectItemType> {
-  try {
-    // Try up to 5 previous versions to determine the type
-    for (let i = 0; i < 5; i++) {
-      try {
-        // Try to get the file at the current version min, ensuring version
-        // doesn't go below 1
-        const versionToCheck = Math.max(1, version - i);
-        const result = await filePathToFile(
-          projectId,
-          branchId,
-          versionToCheck,
-          filePath,
-        )
-          .then((resp) => resp.type);
-        return result;
-      } catch (e) {
-        // If not found and we haven't tried all versions yet, continue to the
-        // next version
-        if (e instanceof Deno.errors.NotFound && i < 4) {
-          continue;
-        } else if (!(e instanceof Deno.errors.NotFound) || i >= 4) {
-          // If it's not a NotFound error or we've tried all versions, handle
-          // it in the outer catch
-          throw e;
-        }
-      }
-    }
-
-    // If we get here, we couldn't find the file in any of the 5 versions
-    throw new Deno.errors.NotFound();
-  } catch (e) {
-    // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
-    if (e instanceof Deno.errors.NotFound) {
-      if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
-        const isCron = filePath.includes("cron");
-        const isHttp = filePath.includes("http");
-        const isEmail = filePath.includes("email");
-
-        // If it's ambiguous then it is a script val by default
-        if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
-          return DEFAULT_VAL_TYPE;
-        }
-
-        // But otherwise look at the file name and try to figure out what type
-        // of val it is based on whether the file name contains a pattern like
-        // "cron," etc
-        if (isCron) return "interval";
-        if (isHttp) return "http";
-        if (isEmail) return "email";
-
-        // If we can't figure it out, default to script
-        return DEFAULT_VAL_TYPE;
-      }
-
-      // Otherwise, it's just a plain old file val
-      return "file";
-    } else {
-      // Re-throw any other errors
-      throw e;
+  for (let i = version; i > version - RECENT_VERSION_COUNT; i--) {
+    try {
+      return await filePathToFile(projectId, branchId, version, filePath)
+        .then((resp) => resp.type);
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        continue;
+      } else throw e;
     }
   }
+
+  // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
+  if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
+    const isCron = filePath.includes("cron");
+    const isHttp = filePath.includes("http");
+    const isEmail = filePath.includes("email");
+
+    // If it's ambiguous then it is a script val by default
+    if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
+      return DEFAULT_VAL_TYPE;
+    }
+
+    // But otherwise look at the file name and try to figure out what type
+    // of val it is based on whether the file name contains a pattern like
+    // "cron," etc
+    if (isCron) return "interval";
+    if (isHttp) return "http";
+    if (isEmail) return "email";
+
+    // If we can't figure it out, default to script
+    return DEFAULT_VAL_TYPE;
+  }
+
+  // Otherwise, it's just a plain old file val
+  return "file";
 }
 
 /**

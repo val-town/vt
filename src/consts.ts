@@ -51,3 +51,5 @@ export const VAL_TOWN_PROJECT_URL_REGEX =
 
 export type ProjectItemType = typeof ProjectItems[number];
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+
+export const RECENT_VERSION_COUNT = 5;
