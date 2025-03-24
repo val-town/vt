@@ -195,7 +195,7 @@ export async function isFileModified(
   },
 ): Promise<boolean> {
   // First use the mtime as a heuristic to avoid unnecessary content checks
-  if (localMtime <= projectMtime) {
+  if (localMtime >= projectMtime) {
     return false;
   }
 
