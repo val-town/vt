@@ -59,7 +59,7 @@ async function filePathToFile(
 }
 
 /**
- * Lists all file paths in a project with manual recursion
+ * Lists all file paths in a project with pagination support
  *
  * @param {string} projectId The ID of the project
  * @param {Object} params The parameters for listing project items
@@ -68,73 +68,62 @@ async function filePathToFile(
  * @param {number} params.version The version of the project
  * @param {Object} [params.options] Additional options for filtering
  * @param {boolean} [params.options.recursive=true] Whether to recursively list files in subdirectories
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse.Data[]>} Promise resolving to an array of file data
+ * @returns {Promise<Set<string>>} Promise resolving to a Set of file paths
  * @throws {Error} if the API request fails
  */
 export async function listProjectItems(
   projectId: string,
-  { path, branch_id, version, recursive = true }: {
+  { path, branch_id, version, recursive }: {
     path: string;
     branch_id: string;
-    version?: number;
+    version: number;
     recursive?: boolean;
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse.Data[]> {
-  const allFiles: ValTown.Projects.FileRetrieveResponse.Data[] = [];
-  const visitedPaths = new Set<string>();
+  const files: ValTown.Projects.FileRetrieveResponse.Data[] = [];
+  let cursor = 0;
+  const batchSizes = [100, 1, 10]; // Try these batch sizes in order
+  let currentBatchIndex = 0;
+  let batch = batchSizes[currentBatchIndex];
+  let foundWorkingBatch = false;
 
-  async function fetchFilesInPath(currentPath: string): Promise<void> {
-    // Avoid revisiting paths
-    if (visitedPaths.has(currentPath)) return;
-    visitedPaths.add(currentPath);
+  while (true) {
+    const resp = await sdk.projects.files.retrieve(projectId, {
+      path,
+      offset: cursor,
+      limit: batch,
+      branch_id,
+      version,
+      recursive: recursive ?? true,
+    });
 
-    let cursor = 0;
-    const limit = 100;
-
-    while (true) {
-      const resp = await sdk.projects.files.retrieve(projectId, {
-        path: currentPath,
-        offset: cursor,
-        limit,
-        branch_id,
-        version,
-      });
-
-      // If no data returned, we've reached the end
-      if (resp.data.length === 0) break;
-
-      // Add files to our result list
-      allFiles.push(...resp.data);
-
-      // If we're doing recursive listing, queue up directory traversal
-      if (recursive) {
-        const directoryPromises = resp.data
-          .filter((file) => file.type === "directory")
-          .map((dir) => {
-            const dirPath = dir.path.endsWith("/") ? dir.path : `${dir.path}/`;
-            return fetchFilesInPath(dirPath);
-          });
-
-        await Promise.all(directoryPromises);
+    if (resp.data.length === 0) {
+      if (foundWorkingBatch) {
+        // If we've already found a working batch size but now got empty results,
+        // it means we've reached the end of the data
+        break;
       }
 
-      // Move to next batch
-      cursor += resp.data.length;
+      // Try the next batch size in our sequence
+      currentBatchIndex++;
 
-      // If we got fewer items than the limit, we've reached the end
-      if (!resp.links.next) break;
+      // If we've tried all batch sizes with no success, break
+      if (currentBatchIndex >= batchSizes.length) break;
+
+      batch = batchSizes[currentBatchIndex];
+      continue;
     }
+
+    // We found data, mark that we have a working batch size
+    foundWorkingBatch = true;
+
+    resp.data.forEach((file) => files.push(file));
+
+    // Move to next batch
+    cursor += batch;
   }
 
-  // Normalize the path - root is represented as an empty string
-  const normalizedPath = path === ""
-    ? ""
-    : (path.endsWith("/") ? path : `${path}/`);
-
-  // Start the recursive process from the initial path
-  await fetchFilesInPath(normalizedPath);
-  console.log(allFiles)
-  return allFiles;
+  return files;
 }
 
 /**

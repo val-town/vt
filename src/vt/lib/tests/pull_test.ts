@@ -39,7 +39,6 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
-              version: branch.version + 1,
             });
           });
 
@@ -81,7 +80,6 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
-              version: branch.version + 2,
             });
 
             // Verify updated content
@@ -109,7 +107,6 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
-              version: branch.version + 3,
             });
 
             // Verify file was deleted locally
@@ -160,7 +157,6 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          version: branch.version + 1,
           gitignoreRules: ["*.log"],
         });
 

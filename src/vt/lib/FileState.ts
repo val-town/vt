@@ -148,36 +148,4 @@ export class FileState {
 
     return this;
   }
-
-  /**
-   * Processes the current state to ensure consistency between created, deleted and modified files.
-   * This is automatically handled by insert() but can be called explicitly if needed.
-   */
-  processCreatedAndDeleted(): this {
-    // Create a map of paths from deleted items
-    const deletedPaths = new Map(this.deleted.map((item) => [item.path, item]));
-
-    // Find items that exist in both created and deleted
-    const toKeep: FileStatus[] = [];
-
-    for (const createdItem of this.created) {
-      if (deletedPaths.has(createdItem.path)) {
-        // Move to modified
-        this.modified.push({
-          ...createdItem,
-          status: "modified",
-        });
-        // Mark this path to be removed from deleted
-        deletedPaths.delete(createdItem.path);
-      } else {
-        toKeep.push(createdItem);
-      }
-    }
-
-    // Update the state
-    this.created = toKeep;
-    this.deleted = this.deleted.filter((item) => deletedPaths.has(item.path));
-
-    return this;
-  }
 }

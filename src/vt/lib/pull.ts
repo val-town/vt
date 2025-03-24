@@ -39,7 +39,7 @@ export function pull({
   targetDir: string;
   projectId: string;
   branchId: string;
-  version: number;
+  version?: number;
   gitignoreRules?: string[];
   dryRun?: boolean;
 }): Promise<FileState> {
@@ -123,8 +123,7 @@ export function pull({
         }
       }
 
-      // Process any created/deleted pairs to ensure consistent state
-      return changes.processCreatedAndDeleted();
+      return changes;
     },
     targetDir,
     "vt_pull_",
