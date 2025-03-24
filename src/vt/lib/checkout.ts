@@ -121,6 +121,7 @@ export function checkout(
           path: "",
           branch_id: fromBranch.id,
           version: fromBranch.version,
+          recursive: true,
         }).then((resp) => resp.map((file) => file.path)),
       );
 

@@ -55,19 +55,16 @@ export async function status({
 
   // Compare local files against project files
   for (const [filePath, localFileInfo] of localFiles.entries()) {
-    if (!filePath) continue; // Skip empty paths
-
     const projectFileInfo = projectFiles.get(filePath);
 
     if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
-      const fileStatus: FileStatus = {
+      result.insert({
         type: localFileInfo.type,
         path: filePath,
         mtime: localFileInfo.mtime,
         status: "created",
-      };
-      result.insert(fileStatus);
+      });
     } else {
       if (localFileInfo.type !== "directory") {
         // File exists in both places, check if modified
@@ -132,25 +129,19 @@ async function getProjectFiles(
   version: number | undefined = undefined,
   gitignoreRules?: string[],
 ): Promise<Map<string, FileInfo>> {
-  const projectItems = await listProjectItems(projectId, {
+  const projectItems = (await listProjectItems(projectId, {
     path: "",
     branch_id: branchId,
     version,
-  });
+    recursive: true,
+  }))
+    .filter((file) => !shouldIgnore(file.path, gitignoreRules))
+    .map((file): [string, FileInfo] => [
+      file.path,
+      { mtime: new Date(file.updatedAt).getTime(), type: file.type },
+    ]);
 
-  const filesMap = new Map<string, FileInfo>();
-
-  for (const file of projectItems) {
-    if (!shouldIgnore(file.path, gitignoreRules)) {
-      const filePath = path.join(path.dirname(file.path), file.name);
-      filesMap.set(filePath, {
-        mtime: new Date(file.updatedAt).getTime(),
-        type: file.type,
-      });
-    }
-  }
-
-  return filesMap;
+  return new Map<string, FileInfo>(projectItems);
 }
 
 async function getLocalFiles(
@@ -167,12 +158,10 @@ async function getLocalFiles(
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
     if (shouldIgnore(relativePath, gitignoreRules)) return;
+    if (entry.path === targetDir) return;
 
     // Stat the file to get the modification time
     const stat = await Deno.stat(entry.path);
-    if (stat.mtime === null) {
-      throw new Error("File modification time is null");
-    }
 
     // Store the path and its modification time
     files.set(path.relative(targetDir, entry.path), {
@@ -182,7 +171,7 @@ async function getLocalFiles(
         version,
         relativePath,
       ),
-      mtime: stat.mtime.getTime(),
+      mtime: stat.mtime!.getTime(),
     });
   };
 

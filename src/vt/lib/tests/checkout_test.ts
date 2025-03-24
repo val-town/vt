@@ -8,7 +8,12 @@ import { exists } from "@std/fs";
 
 Deno.test({
   name: "test branch checkout",
-  permissions: { read: true, write: true, net: true },
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+  },
   async fn() {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a file on main branch
@@ -41,6 +46,7 @@ Deno.test({
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           version: mainBranch.version + 1,
+          gitignoreRules: [],
         });
 
         // Verify main file exists but feature file doesn't
@@ -66,6 +72,7 @@ Deno.test({
           branchId: featureBranch.id,
           fromBranchId: mainBranch.id,
           version: featureBranch.version + 1,
+          gitignoreRules: [],
         });
 
         // Verify branch info
@@ -127,6 +134,7 @@ Deno.test({
           forkedFromId: mainBranch.id,
           name: "new-feature",
           version: mainBranch.version + 1,
+          gitignoreRules: [],
         });
 
         // Verify branch creation
@@ -201,6 +209,7 @@ Deno.test({
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           version: mainBranch.version + 1,
+          gitignoreRules: [],
         });
 
         // Create a file that's not tracked in any branch
@@ -225,6 +234,7 @@ Deno.test({
           branchId: featureBranch.id,
           fromBranchId: mainBranch.id,
           version: featureBranch.version + 1,
+          gitignoreRules: [],
         });
 
         // Verify untracked file is preserved
@@ -273,6 +283,7 @@ Deno.test("file not in target branch should be deleted", async (t) => {
           branchId: featureBranch.id,
           fromBranchId: featureBranch.id,
           version: featureBranch.version + 1,
+          gitignoreRules: [],
         });
 
         assert(
@@ -292,6 +303,7 @@ Deno.test("file not in target branch should be deleted", async (t) => {
           branchId: mainBranch.id,
           fromBranchId: featureBranch.id,
           version: mainBranch.version + 1,
+          gitignoreRules: [],
         });
       });
 

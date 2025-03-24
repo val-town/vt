@@ -1,5 +1,5 @@
 import * as path from "@std/path";
-import sdk from "~/sdk.ts";
+import sdk, { getLatestVersion } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
 import type { ProjectItemType } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
@@ -37,14 +37,18 @@ export async function push({
   gitignoreRules?: string[];
   dryRun?: boolean;
 }): Promise<FileState> {
+  version = version || await getLatestVersion(projectId, branchId);
+
   // Use provided status, or retrieve the status
-  fileState = fileState || await status({
-    targetDir,
-    projectId,
-    branchId,
-    version,
-    gitignoreRules,
-  });
+  if (!fileState || fileState.isEmpty()) {
+    fileState = await status({
+      targetDir,
+      projectId,
+      branchId,
+      version,
+      gitignoreRules,
+    });
+  }
 
   if (dryRun) return fileState; // Exit early if dry run
 
@@ -69,6 +73,7 @@ export async function push({
     await sdk.projects.files.delete(projectId, {
       path: file.path,
       branch_id: branchId,
+      recursive: true,
     });
   });
 
@@ -120,8 +125,8 @@ async function ensureValtownDir(
   // Note that we cannot use path logic here because it must specific to val town
   const dirPath = isDirectory ? filePath : path.dirname(filePath);
 
-  // If path is "." (current directory) or empty, no directories need to be created
-  if (dirPath === "." || dirPath === "") return;
+  // If path is "" (root) no directories need to be created
+  if (dirPath === "") return;
 
   // Split the path into segments
   const segments = dirPath.split("/");

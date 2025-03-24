@@ -21,26 +21,28 @@ export interface FileStatus extends FileInfo {
  * merging, and processing file states.
  */
 export class FileState {
-  modified: FileStatus[] = [];
-  not_modified: FileStatus[] = [];
-  deleted: FileStatus[] = [];
-  created: FileStatus[] = [];
+  #modified: Set<FileStatus>;
+  #not_modified: Set<FileStatus>;
+  #deleted: Set<FileStatus>;
+  #created: Set<FileStatus>;
 
-  /**
-   * Creates a new FileState instance with empty arrays or
-   * initializes it with the provided state.
-   *
-   * @param initialState - Optional initial state to use
-   */
-  constructor(initialState?: Partial<FileState>) {
-    if (initialState) {
-      Object.assign(this, initialState);
-    }
+  public constructor(
+    initialState?: Partial<{
+      modified?: FileStatus[];
+      not_modified?: FileStatus[];
+      deleted?: FileStatus[];
+      created?: FileStatus[];
+    }>,
+  ) {
+    this.#modified = new Set<FileStatus>(initialState?.modified || []);
+    this.#not_modified = new Set<FileStatus>(initialState?.not_modified || []);
+    this.#deleted = new Set<FileStatus>(initialState?.deleted || []);
+    this.#created = new Set<FileStatus>(initialState?.created || []);
   }
 
   /**
-   * Creates an empty FileState object with initialized empty arrays
-   * for all status categories.
+   * Creates an empty FileState object with initialized empty sets for all
+   * status categories.
    */
   static empty(): FileState {
     return new FileState();
@@ -52,76 +54,24 @@ export class FileState {
    *
    * @param file - The file status to insert
    */
-  insert(file: FileStatus): this {
-    // Find if the file exists in any category
-    const findInCategory = (
-      category: FileStatusType,
-    ): FileStatus | undefined => {
-      return this[category].find((item) => item.path === file.path);
-    };
+  public insert(file: FileStatus): this {
+    if (file.path.length === 0) throw new Error("File path cannot be empty");
 
-    // Remove file from a category if it exists
-    const removeFromCategory = (
-      category: FileStatusType,
-      path: string,
-    ): void => {
-      this[category] = this[category].filter((item) => item.path !== path);
-    };
-
-    // Handle different state transitions based on current status and new status
     switch (file.status) {
       case "created":
-        // If file was previously deleted, mark as modified instead
-        if (findInCategory("deleted")) {
-          removeFromCategory("deleted", file.path);
-          this.modified.push({ ...file, status: "modified" });
-        } // If file already exists in any other category, it can't be newly created
-        else if (findInCategory("modified") || findInCategory("not_modified")) {
-          // Update to modified if it exists
-          removeFromCategory("modified", file.path);
-          removeFromCategory("not_modified", file.path);
-          this.modified.push({ ...file, status: "modified" });
-        } else {
-          // It's a genuinely new file
-          this.created.push(file);
-        }
+        this.#created.add(file);
         break;
-
       case "deleted":
-        // If file was newly created and now deleted, remove it completely
-        if (findInCategory("created")) {
-          removeFromCategory("created", file.path);
-        } // Otherwise mark as deleted
-        else if (!findInCategory("deleted")) {
-          removeFromCategory("modified", file.path);
-          removeFromCategory("not_modified", file.path);
-          this.deleted.push(file);
-        }
+        this.#deleted.add(file);
         break;
-
       case "modified":
-        // Remove from other categories and add to modified
-        removeFromCategory("created", file.path);
-        removeFromCategory("not_modified", file.path);
-        removeFromCategory("deleted", file.path);
-
-        // Only add if not already in modified
-        if (!findInCategory("modified")) {
-          this.modified.push(file);
-        }
+        this.#modified.add(file);
         break;
-
       case "not_modified":
-        // Only add if file doesn't exist in any category
-        if (
-          !findInCategory("created") &&
-          !findInCategory("modified") &&
-          !findInCategory("deleted") &&
-          !findInCategory("not_modified")
-        ) {
-          this.not_modified.push(file);
-        }
+        this.#not_modified.add(file);
         break;
+      default:
+        throw new Error(`Unknown file status: ${file.status}`);
     }
 
     return this;
@@ -131,21 +81,45 @@ export class FileState {
    * Merges a source FileState object into the current instance.
    * @param source - The FileState object to merge from
    */
-  merge(source: FileState): this {
-    const categories: FileStatusType[] = [
-      "modified",
-      "not_modified",
-      "deleted",
-      "created",
-    ];
-
-    // Insert each file from the source state
-    for (const category of categories) {
-      for (const file of source[category]) {
-        this.insert(file);
-      }
-    }
+  public merge(source: FileState): this {
+    for (const file of source.modified) this.insert(file);
+    for (const file of source.not_modified) this.insert(file);
+    for (const file of source.deleted) this.insert(file);
+    for (const file of source.created) this.insert(file);
 
     return this;
+  }
+
+  get modified(): FileStatus[] {
+    return [...this.#modified];
+  }
+  get not_modified(): FileStatus[] {
+    return [...this.#not_modified];
+  }
+  get deleted(): FileStatus[] {
+    return [...this.#deleted];
+  }
+  get created(): FileStatus[] {
+    return [...this.#created];
+  }
+
+  /**
+   * Determines if this FileState has any files in any state.
+   * Returns true if there are files, false if all sets are empty.
+   */
+  public isEmpty(): boolean {
+    return this.#modified.size === 0 &&
+      this.#not_modified.size === 0 &&
+      this.#deleted.size === 0 &&
+      this.#created.size === 0;
+  }
+
+  public toJSON() {
+    return {
+      created: this.created,
+      modified: this.modified,
+      not_modified: this.not_modified,
+      deleted: this.deleted,
+    };
   }
 }

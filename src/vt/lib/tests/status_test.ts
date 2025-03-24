@@ -33,8 +33,6 @@ Deno.test({
           type: "file",
         });
 
-        const updatedVersion = branch.version + 2;
-
         // Create the same files locally but with modifications
         await Deno.writeTextFile(
           join(tempDir, remoteFile1),
@@ -53,7 +51,6 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          version: updatedVersion,
         });
 
         // Test file that exists in both places but was modified locally
@@ -133,6 +130,67 @@ Deno.test({
           "empty directory should be detected as created",
         );
       }, "vt_status_empty_dir_test_");
+    });
+  },
+});
+
+Deno.test({
+  name: "test status detects renamed files",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a folder
+        const folderPath = join(tempDir, "folder");
+        await Deno.mkdir(folderPath, { recursive: true });
+
+        // Create original file
+        const oldPath = join(folderPath, "old.txt");
+        await Deno.writeTextFile(oldPath, "content");
+
+        // Push original file to remote
+        await sdk.projects.files.create(project.id, {
+          path: "folder/old.txt",
+          content: "content",
+          branch_id: branch.id,
+          type: "file",
+        });
+
+        // Rename file (delete old, create new)
+        await Deno.remove(oldPath);
+        const newPath = join(folderPath, "new.txt");
+        await Deno.writeTextFile(newPath, "content");
+
+        // Run status check
+        const statusResult = await status({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Check not_modified array
+        assertEquals(statusResult.not_modified.length, 1);
+        assertEquals(statusResult.not_modified[0].type, "directory");
+        assertEquals(statusResult.not_modified[0].path, "folder");
+        assertEquals(statusResult.not_modified[0].status, "not_modified");
+
+        // Check deleted array
+        assertEquals(statusResult.deleted.length, 1);
+        assertEquals(statusResult.deleted[0].type, "file");
+        assertEquals(statusResult.deleted[0].path, "folder/old.txt");
+        assertEquals(statusResult.deleted[0].status, "deleted");
+
+        // Check created array
+        assertEquals(statusResult.created.length, 1);
+        assertEquals(statusResult.created[0].type, "file");
+        assertEquals(statusResult.created[0].path, "folder/new.txt");
+        assertEquals(statusResult.created[0].status, "created");
+      }, "vt_status_rename_test_");
     });
   },
 });

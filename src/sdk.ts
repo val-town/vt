@@ -64,8 +64,8 @@ async function filePathToFile(
  * @param {string} projectId The ID of the project
  * @param {Object} params The parameters for listing project items
  * @param {string} params.path The root path to start listing from
- * @param {string} params.branch_id The ID of the project branch to reference
- * @param {number} params.version The version of the project. Defaults to latest
+ * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
+ * @param {number} [params.version] - The version of the project. Defaults to latest.
  * @param {Object} [params.options] Additional options for filtering
  * @param {boolean} [params.options.recursive=true] Whether to recursively list files in subdirectories
  * @returns {Promise<Set<string>>} Promise resolving to a Set of file paths
@@ -73,54 +73,40 @@ async function filePathToFile(
  */
 export async function listProjectItems(
   projectId: string,
-  { path, branch_id, version, recursive }: {
+  {
+    path,
+    branch_id,
+    version,
+    recursive,
+  }: {
     path: string;
-    branch_id: string;
+    branch_id?: string;
     version?: number;
     recursive?: boolean;
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse.Data[]> {
   const files: ValTown.Projects.FileRetrieveResponse.Data[] = [];
   let cursor = 0;
-  const batchSizes = [100, 1, 10]; // Try these batch sizes in order
-  let currentBatchIndex = 0;
-  let batch = batchSizes[currentBatchIndex];
-  let foundWorkingBatch = false;
+  const batchSize = 100; // Single, reasonable batch size
 
   while (true) {
     const resp = await sdk.projects.files.retrieve(projectId, {
       path,
       offset: cursor,
-      limit: batch,
+      limit: batchSize,
       branch_id,
       version,
-      recursive: recursive ?? true,
+      recursive,
     });
 
-    if (resp.data.length === 0) {
-      if (foundWorkingBatch) {
-        // If we've already found a working batch size but now got empty results,
-        // it means we've reached the end of the data
-        break;
-      }
+    // Add the files to our result array
+    files.push(...resp.data);
 
-      // Try the next batch size in our sequence
-      currentBatchIndex++;
-
-      // If we've tried all batch sizes with no success, break
-      if (currentBatchIndex >= batchSizes.length) break;
-
-      batch = batchSizes[currentBatchIndex];
-      continue;
-    }
-
-    // We found data, mark that we have a working batch size
-    foundWorkingBatch = true;
-
-    resp.data.forEach((file) => files.push(file));
+    // If we got fewer items than the batch size, we've reached the end
+    if (!resp.links.next) break;
 
     // Move to next batch
-    cursor += batch;
+    cursor += batchSize;
   }
 
   return files;

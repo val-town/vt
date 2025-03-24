@@ -1,10 +1,10 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import sdk, { listProjectItems } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
 import ValTown from "@valtown/sdk";
-import sdk, { listProjectItems } from "~/sdk.ts";
 
 Deno.test({
   name: "test pushing",
@@ -12,6 +12,7 @@ Deno.test({
     read: true,
     write: true,
     net: true,
+    env: true,
   },
   async fn(t) {
     await doWithNewProject(async ({ project, branch }) => {
@@ -25,6 +26,7 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
+            gitignoreRules: [],
           });
 
           // Pull and assert that the creation worked
@@ -46,6 +48,7 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
+            gitignoreRules: [],
           });
 
           // Pull and assert that the modification worked
@@ -64,6 +67,7 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
+            gitignoreRules: [],
           });
 
           // Assert that the file no longer exists on the remote
@@ -121,11 +125,7 @@ Deno.test({
         });
 
         // Check modified array
-        assertEquals(
-          statusResult.modified.length,
-          0,
-          "Should have no modified files",
-        );
+        assertEquals(statusResult.modified.length, 0);
 
         // Check not_modified array
         assertEquals(statusResult.not_modified.length, 1);
@@ -199,6 +199,7 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
+          gitignoreRules: [],
         });
 
         // Check that the empty directory was pushed
@@ -213,7 +214,11 @@ Deno.test({
         // Check that the directory exists on the server
         const listResult = await listProjectItems(
           project.id,
-          { path: "", branch_id: branch.id },
+          {
+            path: "",
+            branch_id: branch.id,
+            recursive: true,
+          },
         );
 
         assertEquals(

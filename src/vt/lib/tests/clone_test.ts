@@ -13,6 +13,7 @@ Deno.test({
     read: true,
     write: true,
     net: true,
+    env: true,
   },
   async fn(t) {
     await doWithNewProject(async ({ project, branch }) => {
@@ -130,7 +131,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "test typical cloning",
+  name: "test cloning empty directory",
   permissions: {
     read: true,
     write: true,
@@ -156,6 +157,7 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
+              version: await getLatestVersion(project.id, branch.id),
             });
           });
 

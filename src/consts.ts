@@ -1,7 +1,6 @@
 //deno-fmt-ignore-file
 
 import { colors } from "@cliffy/ansi/colors";
-
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
@@ -48,3 +47,5 @@ export const VAL_TOWN_PROJECT_URL_REGEX = /^http[s]?:\/\/www\.val\.town\/x\/([^\
 
 export type ProjectItemType = typeof ProjectItems[number];
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+
+export const RECENT_VERSION_COUNT = 5;
