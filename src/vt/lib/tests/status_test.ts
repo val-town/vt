@@ -11,6 +11,7 @@ Deno.test({
     read: true,
     write: true,
     net: true,
+    env: true,
   },
   async fn() {
     await doWithNewProject(async ({ project, branch }) => {
