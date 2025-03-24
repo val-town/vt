@@ -52,10 +52,11 @@ export async function doWithTempDir<T>(
  * Create a directory atomically by first doing logic to create it in a temp
  * directory, and then moving it to a destination afterwards.
  *
+ * @param op - The function to run with access to the temp dir. Returns a result to be propagated and whether to copy the files over.
  * @param {string} targetDir - The directory to eventually send the output to.
  */
 export async function doAtomically<T>(
-  op: (tmpDir: string) => Promise<T>,
+  op: (tmpDir: string) => Promise<[T, boolean]>,
   targetDir: string,
   tmpLabel?: string,
 ): Promise<T> {
@@ -63,12 +64,16 @@ export async function doAtomically<T>(
 
   let result: T;
   try {
-    result = await op(tempDir);
-    await ensureDir(targetDir);
-    await copy(tempDir, targetDir, {
-      overwrite: true,
-      preserveTimestamps: true,
-    });
+    const [opResult, copyBack] = await op(tempDir);
+    result = opResult;
+
+    if (copyBack) {
+      await ensureDir(targetDir);
+      await copy(tempDir, targetDir, {
+        overwrite: true,
+        preserveTimestamps: true,
+      });
+    }
   } finally {
     cleanup();
   }

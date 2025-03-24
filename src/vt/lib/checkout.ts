@@ -190,12 +190,12 @@ export function checkout(
       }
 
       // Return checkout result with branch information
-      return {
+      return [{
         fromBranch,
         toBranch,
         createdNew,
         fileStateChanges,
-      };
+      }, !args.dryRun];
     },
     args.targetDir,
     "vt_checkout_",

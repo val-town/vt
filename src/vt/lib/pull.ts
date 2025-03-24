@@ -124,7 +124,7 @@ export function pull({
         }
       }
 
-      return changes;
+      return [changes, !dryRun];
     },
     targetDir,
     "vt_pull_",

@@ -34,7 +34,7 @@ async function getProjectItemType(
   version: number | undefined = undefined,
   filePath: string,
 ): Promise<ProjectItemType> {
-  for (let i = (version || 1); i > (version || 1) - RECENT_VERSION_COUNT; i--) {
+  for (let i = version || 1; i > (version || 1) - RECENT_VERSION_COUNT; i--) {
     try {
       return await filePathToFile(projectId, branchId, version, filePath)
         .then((resp) => resp.type);

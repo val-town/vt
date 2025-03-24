@@ -78,7 +78,7 @@ export function clone({
           }
         }));
 
-      return changes;
+      return [changes, !dryRun];
     },
     targetDir,
     "vt_clone_",

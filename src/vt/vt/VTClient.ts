@@ -450,7 +450,7 @@ export default class VTClient {
 
         if (!baseParams.dryRun) {
           config.currentBranch = result.toBranch!.id;
-          config.version = branchParams.version;
+          config.version = branchParams.version!;
         }
       }
 
