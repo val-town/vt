@@ -4,28 +4,37 @@ import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
 import { relative } from "@std/path";
 import { walk } from "@std/fs";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
+import {
+  emptyFileStateChanges,
+  type FileStateChanges,
+  mergeFileStateChanges,
+  processCreatedAndDeleted,
+} from "~/vt/lib/pending.ts";
 
-export interface CheckoutResult {
+export interface CheckoutResult<TDryRun extends boolean = false> {
+  // If TDRyRun is true, toBranch will be null
   fromBranch: ValTown.Projects.BranchCreateResponse;
-  toBranch: ValTown.Projects.BranchCreateResponse;
+  toBranch: TDryRun extends true ? null : ValTown.Projects.BranchCreateResponse;
   createdNew: boolean;
+  fileStateChanges: FileStateChanges;
 }
 
-type BaseCheckoutParams = {
+export type BaseCheckoutParams = {
   targetDir: string;
   projectId: string;
+  dryRun: boolean;
   gitignoreRules: string[];
 };
 
-type BranchCheckoutParams = BaseCheckoutParams & {
+export type BranchCheckoutParams = BaseCheckoutParams & {
   branchId: string;
   version: number;
   fromBranchId: string;
 };
 
-type ForkCheckoutParams = BaseCheckoutParams & {
+export type ForkCheckoutParams = BaseCheckoutParams & {
   forkedFromId: string;
   name: string;
   version: number;
@@ -59,15 +68,17 @@ export function checkout(args: BranchCheckoutParams): Promise<CheckoutResult>;
  */
 export function checkout(
   args: ForkCheckoutParams,
-): Promise<CheckoutResult>;
+): Promise<CheckoutResult<typeof args.dryRun>>;
 export function checkout(
   args: BranchCheckoutParams | ForkCheckoutParams,
-): Promise<CheckoutResult> {
+): Promise<CheckoutResult<typeof args.dryRun>> {
   return doAtomically(
     async (tmpDir) => {
-      let checkoutBranchId: string;
-      let checkoutVersion: number;
-      let toBranch: ValTown.Projects.BranchCreateResponse;
+      const fileStateChanges = emptyFileStateChanges();
+
+      let checkoutBranchId: string | null = null;
+      let checkoutVersion: number | null = null;
+      let toBranch: ValTown.Projects.BranchCreateResponse | null = null;
       let fromBranch: ValTown.Projects.BranchCreateResponse;
       let createdNew = false;
 
@@ -98,13 +109,15 @@ export function checkout(
         );
 
         // Create the new branch
-        toBranch = await sdk.projects.branches.create(
-          args.projectId,
-          { branchId: args.forkedFromId, name: args.name },
-        );
+        if (!args.dryRun) {
+          toBranch = await sdk.projects.branches.create(
+            args.projectId,
+            { branchId: args.forkedFromId, name: args.name },
+          );
 
-        checkoutBranchId = toBranch.id;
-        checkoutVersion = toBranch.version;
+          checkoutBranchId = toBranch.id;
+          checkoutVersion = toBranch.version;
+        }
       }
 
       // Get files from the source branch
@@ -116,23 +129,32 @@ export function checkout(
         }).then((resp) => resp.map((file) => file.path)),
       );
 
-      // Get files from the target branch
+      // Get files from the target branch. Note that the target branch is
+      // effectively the same as the source branch if
+      // checkoutBranchId/checkoutVersionId are undefined, since in that case
+      // we are forking, and when we are forking we are copying the from
+      // branch.
       const toFiles = new Set(
         await listProjectItems(args.projectId, {
           path: "",
-          branch_id: checkoutBranchId,
-          version: checkoutVersion,
+          branch_id: checkoutBranchId || fromBranch.id,
+          version: checkoutVersion || fromBranch.version,
+          recursive: true,
         }).then((resp) => resp.map((file) => file.path)),
       );
 
       // Clone the target branch into the temporary directory
-      await pull({
-        targetDir: tmpDir,
-        projectId: args.projectId,
-        branchId: checkoutBranchId,
-        version: checkoutVersion,
-        gitignoreRules: args.gitignoreRules,
-      });
+      mergeFileStateChanges(
+        fileStateChanges,
+        await pull({
+          targetDir: tmpDir,
+          projectId: args.projectId,
+          branchId: checkoutBranchId || fromBranch.id,
+          version: checkoutVersion || fromBranch.version,
+          gitignoreRules: args.gitignoreRules,
+          dryRun: args.dryRun,
+        }),
+      );
 
       // Walk through the target directory to find files
       for await (const entry of walk(args.targetDir)) {
@@ -141,16 +163,29 @@ export function checkout(
         const relativePath = relative(args.targetDir, entry.path);
 
         // Skip files that match gitignore rules
-        if (await shouldIgnore(relativePath, args.gitignoreRules)) continue;
+        if (shouldIgnore(relativePath, args.gitignoreRules)) continue;
 
         // Skip root directory
         if (relativePath === "" || entry.path === args.targetDir) continue;
 
         // If the file was in the source branch but not in the target branch, delete it
         // This preserves untracked files (files not in fromFiles)
-        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
-          await Deno.remove(entry.path, { recursive: true });
+        if (!args.dryRun) {
+          if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+            await Deno.remove(entry.path, { recursive: true });
+          }
         }
+        fileStateChanges.deleted.push({
+          path: relativePath,
+          mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
+          status: "deleted",
+          type: await getProjectItemType(
+            args.projectId,
+            fromBranch.id,
+            fromBranch.version,
+            relativePath,
+          ),
+        });
       }
 
       // Return checkout result with branch information
@@ -158,6 +193,7 @@ export function checkout(
         fromBranch,
         toBranch,
         createdNew,
+        fileStateChanges: processCreatedAndDeleted(fileStateChanges),
       };
     },
     args.targetDir,

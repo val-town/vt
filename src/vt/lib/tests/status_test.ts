@@ -1,9 +1,10 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk from "~/sdk.ts";
-import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
+import { status } from "~/vt/lib/status.ts";
+import type { FileStateChanges } from "~/vt/lib/pending.ts";
 
 Deno.test({
   name: "test file status reporting",
@@ -48,7 +49,7 @@ Deno.test({
         );
 
         // Run status check
-        const result: StatusResult = await status({
+        const result: FileStateChanges = await status({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,

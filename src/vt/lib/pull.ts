@@ -5,8 +5,8 @@ import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import {
+  emptyFileStateChanges,
   type FileStateChanges,
-  newFileStateChanges,
 } from "~/vt/lib/pending.ts";
 
 /**
@@ -48,7 +48,7 @@ export function pull({
 }): Promise<FileStateChanges> {
   return doAtomically(
     async (tempDir) => {
-      const changes: FileStateChanges = newFileStateChanges();
+      const changes: FileStateChanges = emptyFileStateChanges();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the

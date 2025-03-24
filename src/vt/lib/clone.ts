@@ -4,9 +4,9 @@ import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir } from "@std/fs";
 import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
 import {
+  emptyFileStateChanges,
   type FileStateChanges,
   type FileStatus,
-  newFileStateChanges,
 } from "~/vt/lib/pending.ts";
 import type { ProjectItemType } from "~/consts.ts";
 import { dirname } from "@std/path/dirname";
@@ -41,7 +41,7 @@ export function clone({
 }): Promise<FileStateChanges> {
   return doAtomically(
     async (tmpDir) => {
-      const changes = newFileStateChanges();
+      const changes = emptyFileStateChanges();
       const projectItems = await listProjectItems(projectId, {
         version,
         branch_id: branchId,
@@ -147,8 +147,8 @@ async function createFile(
     { path: file.path, branch_id: branchId, version },
   )
     .then((resp) => resp.text())
-    .then((content) => Deno.writeTextFile(path, content));
+    .then((content) => Deno.writeTextFile(join(targetRoot, path), content));
 
   // Set the file's mtime right after creating it
-  await Deno.utime(path, updatedAt, updatedAt);
+  await Deno.utime(join(targetRoot, path), updatedAt, updatedAt);
 }

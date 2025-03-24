@@ -1,5 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
-import type { StatusResult } from "~/vt/lib/status.ts";
+import type { FileStateChanges } from "~/vt/lib/pending.ts";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
@@ -26,7 +26,7 @@ export const MAX_WALK_UP_LEVELS = 100;
 export const FIRST_VERSION_NUMBER = 1;
 
 export const STATUS_STYLES: Record<
-  keyof StatusResult,
+  keyof FileStateChanges,
   { prefix: string; color: (text: string) => string }
 > = {
   modified: { prefix: "M", color: colors.yellow },

@@ -3,9 +3,9 @@ import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 import {
+  emptyFileStateChanges,
   type FileInfo,
   type FileStateChanges,
-  newFileStateChanges,
 } from "~/vt/lib/pending.ts";
 import { isFileModified } from "~/vt/lib/utils.ts";
 
@@ -36,7 +36,7 @@ export async function status({
   version: number;
   gitignoreRules: string[];
 }): Promise<FileStateChanges> {
-  const result = newFileStateChanges();
+  const result = emptyFileStateChanges();
 
   // Get all files
   const localFiles = await getLocalFiles(

@@ -4,7 +4,13 @@ import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, type CheckoutResult } from "~/vt/lib/checkout.ts";
+import {
+  type BaseCheckoutParams,
+  type BranchCheckoutParams,
+  checkout,
+  type CheckoutResult,
+  type ForkCheckoutParams,
+} from "~/vt/lib/checkout.ts";
 import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
@@ -314,10 +320,12 @@ export default class VTClient {
   ): Promise<ReturnType<typeof pull>> {
     const config = await this.getMeta().loadConfig();
 
-    config.version = await getLatestVersion(
-      config.projectId,
-      config.currentBranch,
-    );
+    if (options && !options.dryRun) {
+      config.version = await getLatestVersion(
+        config.projectId,
+        config.currentBranch,
+      );
+    }
 
     const result = await pull({
       ...{
@@ -330,7 +338,9 @@ export default class VTClient {
       ...options,
     });
 
-    await this.getMeta().saveConfig(config);
+    if (options && !options.dryRun) {
+      await this.getMeta().saveConfig(config);
+    }
 
     return result;
   }
@@ -371,14 +381,14 @@ export default class VTClient {
    * Check out a different branch of the project.
    *
    * @param {string} branchName The name of the branch to check out to
-   * @param {Object} options - Optional parameters
-   * @param {string} options.forkedFrom If provided, create a new branch with branchName, forking from this branch
-   * @param {FileStateChanges} options.fileStateChanges If provided, use this pre-fetched file state changes
+   * @param {Partial<BranchCheckoutParams | ForkCheckoutParams> & { fileStateChanges?: FileStateChanges }} options - Optional parameters
    * @returns {Promise<CheckoutResult>}
    */
   public async checkout(
     branchName: string,
-    options?: { forkedFrom?: string; fileStateChanges?: FileStateChanges },
+    options?: Partial<BranchCheckoutParams | ForkCheckoutParams> & {
+      fileStateChanges?: FileStateChanges;
+    },
   ): Promise<CheckoutResult> {
     const config = await this.getMeta().loadConfig();
     const currentBranchId = config.currentBranch;
@@ -394,28 +404,42 @@ export default class VTClient {
       ...created,
     ];
 
+    // Common checkout parameters
+    const baseParams: BaseCheckoutParams = {
+      targetDir: this.rootPath,
+      projectId: config.projectId,
+      dryRun: options?.dryRun || false,
+      gitignoreRules,
+    };
+
     let result: CheckoutResult;
 
-    if (options?.forkedFrom) {
-      // Create a new branch from the specified source
+    // Check if we're forking from another branch
+    if (
+      options && "forkedFromId" in options &&
+      typeof options.forkedFromId === "string"
+    ) {
+      // Creating a new branch from a specified source
       const sourceVersion = await getLatestVersion(
         config.projectId,
-        options.forkedFrom,
+        options.forkedFromId,
       );
 
-      result = await checkout({
-        targetDir: this.rootPath,
-        projectId: config.projectId,
-        forkedFromId: options.forkedFrom,
+      const forkParams: ForkCheckoutParams = {
+        ...baseParams,
+        forkedFromId: options.forkedFromId,
         name: branchName,
-        gitignoreRules,
-        version: sourceVersion,
-      });
+        version: options.version || sourceVersion,
+      };
 
-      config.currentBranch = result.toBranch.id;
-      config.version = result.toBranch.version;
+      result = await checkout(forkParams);
+
+      if (!baseParams.dryRun) {
+        config.currentBranch = result.toBranch!.id;
+        config.version = result.toBranch!.version;
+      }
     } else {
-      // Check out existing branch
+      // Checking out an existing branch
       const checkoutBranch = await branchIdToBranch(
         config.projectId,
         branchName,
@@ -426,17 +450,19 @@ export default class VTClient {
         checkoutBranch.id,
       );
 
-      result = await checkout({
-        targetDir: this.rootPath,
-        projectId: config.projectId,
+      const branchParams: BranchCheckoutParams = {
+        ...baseParams,
         branchId: checkoutBranch.id,
         fromBranchId: currentBranchId,
-        gitignoreRules: gitignoreRules,
-        version: latestVersion,
-      });
+        version: options?.version || latestVersion,
+      };
 
-      config.currentBranch = result.toBranch.id;
-      config.version = latestVersion;
+      result = await checkout(branchParams);
+
+      if (!baseParams.dryRun) {
+        config.currentBranch = result.toBranch!.id;
+        config.version = branchParams.version;
+      }
     }
 
     // Update the config with the new branch
