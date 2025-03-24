@@ -6,26 +6,21 @@ import { relative } from "@std/path";
 import { walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import {
-  emptyFileStateChanges,
-  type FileStateChanges,
-  mergeFileStateChanges,
-  processCreatedAndDeleted,
-} from "~/vt/lib/pending.ts";
+import { FileState } from "~/vt/lib/FileState.ts";
 
-export interface CheckoutResult<TDryRun extends boolean = false> {
+export interface CheckoutResult {
   // If TDRyRun is true, toBranch will be null
   fromBranch: ValTown.Projects.BranchCreateResponse;
-  toBranch: TDryRun extends true ? null : ValTown.Projects.BranchCreateResponse;
+  toBranch: ValTown.Projects.BranchCreateResponse | null;
   createdNew: boolean;
-  fileStateChanges: FileStateChanges;
+  fileStateChanges: FileState;
 }
 
 export type BaseCheckoutParams = {
   targetDir: string;
   projectId: string;
-  dryRun: boolean;
-  gitignoreRules: string[];
+  dryRun?: boolean;
+  gitignoreRules?: string[];
 };
 
 export type BranchCheckoutParams = BaseCheckoutParams & {
@@ -68,13 +63,13 @@ export function checkout(args: BranchCheckoutParams): Promise<CheckoutResult>;
  */
 export function checkout(
   args: ForkCheckoutParams,
-): Promise<CheckoutResult<typeof args.dryRun>>;
+): Promise<CheckoutResult>;
 export function checkout(
   args: BranchCheckoutParams | ForkCheckoutParams,
-): Promise<CheckoutResult<typeof args.dryRun>> {
+): Promise<CheckoutResult> {
   return doAtomically(
     async (tmpDir) => {
-      const fileStateChanges = emptyFileStateChanges();
+      const fileStateChanges = FileState.empty();
 
       let checkoutBranchId: string | null = null;
       let checkoutVersion: number | null = null;
@@ -144,17 +139,24 @@ export function checkout(
       );
 
       // Clone the target branch into the temporary directory
-      mergeFileStateChanges(
-        fileStateChanges,
-        await pull({
-          targetDir: tmpDir,
-          projectId: args.projectId,
-          branchId: checkoutBranchId || fromBranch.id,
-          version: checkoutVersion || fromBranch.version,
-          gitignoreRules: args.gitignoreRules,
-          dryRun: args.dryRun,
-        }),
-      );
+      const pullResult = await pull({
+        targetDir: tmpDir,
+        projectId: args.projectId,
+        branchId: checkoutBranchId || fromBranch.id,
+        version: checkoutVersion || fromBranch.version,
+        gitignoreRules: args.gitignoreRules || [],
+        dryRun: args.dryRun,
+      });
+
+      // Convert pull result to FileState and merge it
+      const pullFileState = new FileState({
+        modified: pullResult.modified,
+        not_modified: pullResult.not_modified,
+        deleted: pullResult.deleted,
+        created: pullResult.created,
+      });
+
+      fileStateChanges.merge(pullFileState);
 
       // Walk through the target directory to find files
       for await (const entry of walk(args.targetDir)) {
@@ -175,7 +177,8 @@ export function checkout(
             await Deno.remove(entry.path, { recursive: true });
           }
         }
-        fileStateChanges.deleted.push({
+
+        fileStateChanges.insert({
           path: relativePath,
           mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
           status: "deleted",
@@ -188,12 +191,15 @@ export function checkout(
         });
       }
 
+      // Process created and deleted files to identify modifications
+      fileStateChanges.processCreatedAndDeleted();
+
       // Return checkout result with branch information
       return {
         fromBranch,
         toBranch,
         createdNew,
-        fileStateChanges: processCreatedAndDeleted(fileStateChanges),
+        fileStateChanges,
       };
     },
     args.targetDir,

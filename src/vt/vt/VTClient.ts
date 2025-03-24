@@ -15,8 +15,8 @@ import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
-import type { FileStateChanges } from "~/vt/lib/pending.ts";
 import { status } from "~/vt/lib/status.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -153,7 +153,7 @@ export default class VTClient {
    */
   public async *watch(
     debounceDelay: number = 300,
-  ): AsyncGenerator<FileStateChanges> {
+  ): AsyncGenerator<FileState> {
     // Do an initial push
     yield await this.push();
 
@@ -288,7 +288,7 @@ export default class VTClient {
    */
   public async status(
     { branchId }: { branchId?: string } = {},
-  ): Promise<FileStateChanges> {
+  ): Promise<FileState> {
     return await this.getMeta().doWithConfig(async (config) => {
       // Use provided branchId or fall back to the current branch from config
       const targetBranchId = branchId || config.currentBranch;
@@ -297,7 +297,6 @@ export default class VTClient {
         targetDir: this.rootPath,
         projectId: config.projectId,
         branchId: targetBranchId,
-        version: await getLatestVersion(config.projectId, targetBranchId),
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
       });
     });
@@ -314,7 +313,7 @@ export default class VTClient {
     options?: Partial<Parameters<typeof pull>[0]>,
   ): Promise<ReturnType<typeof pull>> {
     return await this.getMeta().doWithConfig(async (config) => {
-      if (options && !options.dryRun) {
+      if (options?.dryRun === false) {
         config.version = await getLatestVersion(
           config.projectId,
           config.currentBranch,
@@ -331,10 +330,6 @@ export default class VTClient {
         },
         ...options,
       });
-
-      if (options && !options.dryRun) {
-        await this.getMeta().saveConfig(config);
-      }
 
       return result;
     });
@@ -360,7 +355,7 @@ export default class VTClient {
         ...options,
       });
 
-      if (options && "dryRun" in options && !options.dryRun) {
+      if (options?.dryRun === false) {
         config.version = await getLatestVersion(
           config.projectId,
           config.currentBranch,
@@ -381,7 +376,7 @@ export default class VTClient {
   public async checkout(
     branchName: string,
     options?: Partial<BranchCheckoutParams | ForkCheckoutParams> & {
-      fileStateChanges?: FileStateChanges;
+      fileStateChanges?: FileState;
     },
   ): Promise<CheckoutResult> {
     return await this.getMeta().doWithConfig(async (config) => {
@@ -471,7 +466,7 @@ export default class VTClient {
    * @returns {Promise<boolean>} True if there are uncommitted changes
    */
   public async isDirty(
-    options?: { fileStateChanges?: FileStateChanges },
+    options?: { fileStateChanges?: FileState },
   ): Promise<boolean> {
     const fileStateChanges = options?.fileStateChanges || await this.status();
     return isDirty(fileStateChanges);

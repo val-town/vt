@@ -3,14 +3,10 @@ import type Valtown from "@valtown/sdk";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir } from "@std/fs";
 import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
-import {
-  emptyFileStateChanges,
-  type FileStateChanges,
-  type FileStatus,
-} from "~/vt/lib/pending.ts";
 import type { ProjectItemType } from "~/consts.ts";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
+import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
 
 /**
  * Clones a project by downloading its files and directories to the specified
@@ -20,7 +16,7 @@ import { join } from "@std/path";
  * @param {string} args.targetDir - The directory where the project will be cloned
  * @param {string} args.projectId - The uuid of the project to be cloned
  * @param {string} [args.branchId] - The branch ID to clone.
- * @param {number} [args.version] - The version of the project to clone.
+ * @param {number} [args.version] - The version of the project to clone. Defaults to latest.
  * @param {string[]} [args.gitignoreRules] - List of glob patterns for files to ignore
  * @param {boolean} [args.dryRun] - If true, don't actually write files, just report what would change
  */
@@ -35,13 +31,13 @@ export function clone({
   targetDir: string;
   projectId: string;
   branchId: string;
-  version: number;
+  version?: number;
   gitignoreRules?: string[];
   dryRun?: boolean;
-}): Promise<FileStateChanges> {
+}): Promise<FileState> {
   return doAtomically(
     async (tmpDir) => {
-      const changes = emptyFileStateChanges();
+      const changes = FileState.empty();
       const projectItems = await listProjectItems(projectId, {
         version,
         branch_id: branchId,
@@ -75,7 +71,8 @@ export function clone({
           }
         }));
 
-      return changes;
+      // Process any created/deleted files to ensure consistent state
+      return changes.processCreatedAndDeleted();
     },
     targetDir,
     "vt_clone_",
@@ -88,9 +85,9 @@ async function createFile(
   targetRoot: string,
   projectId: string,
   branchId: string,
-  version: number,
+  version: number | undefined = undefined,
   file: Valtown.Projects.FileRetrieveResponse.Data,
-  changes: FileStateChanges,
+  changes: FileState,
   dryRun: boolean,
 ): Promise<void> {
   // Add all needed parents for creating the file
@@ -125,20 +122,23 @@ async function createFile(
     if (!modified) {
       // File exists and is not modified
       fileStatus.status = "not_modified";
-      changes.not_modified.push(fileStatus);
-      await ensureDir(join(targetRoot, dirname(path))); // Ensure the directory exists
-      await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
-      return;
     } else {
       fileStatus.status = "modified";
-      changes.modified.push(fileStatus);
     }
-  } else {
-    changes.created.push(fileStatus);
   }
+
+  // Add the file to the appropriate collection in our FileState
+  changes.insert(fileStatus);
 
   if (dryRun) {
     return; // Don't actually modify files in dry run mode
+  }
+
+  // For not_modified files, just copy them
+  if (fileStatus.status === "not_modified") {
+    await ensureDir(join(targetRoot, dirname(path))); // Ensure the directory exists
+    await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
+    return;
   }
 
   // Get and write the file content

@@ -1,5 +1,5 @@
 import { DEFAULT_VAL_TYPE, type ProjectItemType } from "~/consts.ts";
-import { filePathToFile } from "~/sdk.ts";
+import { filePathToFile, getLatestVersion } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
 /**
@@ -18,15 +18,19 @@ import { compile as compileGitignore } from "gitignore-parser";
  * 3. If the file does not match the val extension criteria (.ts + optional
  *    identifier), return "file".
  *
- * @param filepath - Path or filename to analyze
+ * @param projectId - The ID of the project
+ * @param branchId - The ID of the branch
+ * @param version - The version of the project (optional, defaults to latest)
+ * @param {string} filePath - The path of the val or file to get the type of
  * @returns The val file type
  */
 async function getProjectItemType(
   projectId: string,
   branchId: string,
-  version: number,
+  version: number | undefined = undefined,
   filePath: string,
 ): Promise<ProjectItemType> {
+  version = version || await getLatestVersion(projectId, branchId);
   try {
     // Try up to 5 previous versions to determine the type
     for (let i = 0; i < 5; i++) {

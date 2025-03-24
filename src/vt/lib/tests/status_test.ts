@@ -4,7 +4,7 @@ import sdk from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
-import type { FileStateChanges } from "~/vt/lib/pending.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 Deno.test({
   name: "test file status reporting",
@@ -49,12 +49,11 @@ Deno.test({
         );
 
         // Run status check
-        const result: FileStateChanges = await status({
+        const result: FileState = await status({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
           version: updatedVersion,
-          gitignoreRules: [],
         });
 
         // Test file that exists in both places but was modified locally

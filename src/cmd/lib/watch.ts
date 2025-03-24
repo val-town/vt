@@ -7,7 +7,7 @@ import { displayFileStateChanges } from "~/cmd/lib/utils.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import type { FileStateChanges } from "~/vt/lib/pending.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 // Formats a version range string based on the first, current, and latest
 // versions.
@@ -34,7 +34,7 @@ function getVersionRangeStr(
 // Formats a file path with a colored status prefix for display.
 export function formatStatus(
   path: string,
-  status: keyof FileStateChanges,
+  status: keyof FileState,
 ): string {
   const config = STATUS_STYLES[status] || { prefix: " ", color: colors.blue };
   return `${config.color(config.prefix)} ${path}`;

@@ -2,8 +2,8 @@ import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
 import { copy, ensureDir } from "@std/fs";
-import type { FileStateChanges } from "~/vt/lib/pending.ts";
 import { dirname, join } from "@std/path";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -104,7 +104,7 @@ export async function cleanDirectory(
  *
  * @param {FileStateChanges} fileStateChanges - The current file state changes
  */
-export function isDirty(fileStateChanges: FileStateChanges): boolean {
+export function isDirty(fileStateChanges: FileState): boolean {
   return fileStateChanges.modified.length > 0;
 }
 
@@ -166,7 +166,7 @@ export async function ensureValtownDir(
  * Determines the total number of changes, not including not modified files,
  * from a StatusResult.
  */
-export function getTotalChanges(status: FileStateChanges): number {
+export function getTotalChanges(status: FileState): number {
   return Object
     .entries(status)
     .filter(([type]) => type !== "not_modified")
@@ -189,7 +189,7 @@ export async function isFileModified(
     originalPath: string;
     projectId: string;
     branchId: string;
-    version: number;
+    version?: number;
     localMtime: number;
     projectMtime: number;
   },

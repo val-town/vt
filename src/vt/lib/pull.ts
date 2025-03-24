@@ -4,10 +4,7 @@ import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
-import {
-  emptyFileStateChanges,
-  type FileStateChanges,
-} from "~/vt/lib/pending.ts";
+import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
 
 /**
  * Pulls latest changes from a Val Town project into a vt folder.
@@ -36,19 +33,19 @@ export function pull({
   projectId,
   branchId,
   version,
-  gitignoreRules,
+  gitignoreRules = [],
   dryRun = false,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version: number;
-  gitignoreRules: string[];
+  gitignoreRules?: string[];
   dryRun?: boolean;
-}): Promise<FileStateChanges> {
+}): Promise<FileState> {
   return doAtomically(
     async (tempDir) => {
-      const changes: FileStateChanges = emptyFileStateChanges();
+      const changes = FileState.empty();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the
@@ -72,9 +69,7 @@ export function pull({
       });
 
       // Merge the clone changes into our changes object
-      changes.modified.push(...cloneChanges.modified);
-      changes.not_modified.push(...cloneChanges.not_modified);
-      changes.created.push(...cloneChanges.created);
+      changes.merge(cloneChanges);
 
       // Get list of files from the server
       const files = new Set(
@@ -93,13 +88,15 @@ export function pull({
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
           if (relativePath === "" || entry.path === targetDir) continue;
           if (!files.has(relativePath)) {
-            const stat = await Deno.stat(entry.path);
-            changes.deleted.push({
-              path: relativePath,
-              status: "deleted",
-              type: stat.isDirectory ? "directory" : "file",
-              mtime: stat.mtime?.getTime()!,
-            });
+            await Deno.stat(entry.path)
+              .then((stat) =>
+                changes.insert({
+                  path: relativePath,
+                  status: "deleted",
+                  type: stat.isDirectory ? "directory" : "file",
+                  mtime: stat.mtime?.getTime()!,
+                })
+              );
           }
         }
       } else {
@@ -110,12 +107,13 @@ export function pull({
           if (relativePath === "" || entry.path === tempDir) continue;
           if (!files.has(relativePath)) {
             const stat = await Deno.stat(entry.path);
-            changes.deleted.push({
+            const fileStatus: FileStatus = {
               path: relativePath,
               status: "deleted",
               type: stat.isDirectory ? "directory" : "file",
               mtime: stat.mtime?.getTime()!,
-            });
+            };
+            changes.insert(fileStatus);
 
             await Deno.remove(join(targetDir, relativePath), {
               recursive: true,
@@ -125,7 +123,8 @@ export function pull({
         }
       }
 
-      return changes;
+      // Process any created/deleted pairs to ensure consistent state
+      return changes.processCreatedAndDeleted();
     },
     targetDir,
     "vt_pull_",

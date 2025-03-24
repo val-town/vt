@@ -2,12 +2,12 @@ import { listProjectItems } from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import {
-  emptyFileStateChanges,
-  type FileInfo,
-  type FileStateChanges,
-} from "~/vt/lib/pending.ts";
 import { isFileModified } from "~/vt/lib/utils.ts";
+import {
+  type FileInfo,
+  FileState,
+  type FileStatus,
+} from "~/vt/lib/FileState.ts";
 
 /**
  * Scans a directory and determines the status of all files compared to the Val
@@ -18,10 +18,10 @@ import { isFileModified } from "~/vt/lib/utils.ts";
  * @param {string} args.targetDir - The directory to scan for changes.
  * @param {string} args.projectId - The Val Town project ID.
  * @param {string} args.branchId - Optional branch ID to check against.
- * @param {string} args.version - The version to check the status against.
- * @param {string} args.gitignoreRules - Gitignore rules
+ * @param [string] args.version - The version to check the status against. Defaults to the latest version.
+ * @param [string] args.gitignoreRules - Gitignore rules
  *
- * @returns Promise that resolves to a StatusResult object containing categorized files.
+ * @returns Promise that resolves to a FileState object containing categorized files.
  */
 export async function status({
   targetDir,
@@ -33,10 +33,10 @@ export async function status({
   targetDir: string;
   projectId: string;
   branchId: string;
-  version: number;
-  gitignoreRules: string[];
-}): Promise<FileStateChanges> {
-  const result = emptyFileStateChanges();
+  version?: number;
+  gitignoreRules?: string[];
+}): Promise<FileState> {
+  const result = FileState.empty();
 
   // Get all files
   const localFiles = await getLocalFiles(
@@ -61,12 +61,13 @@ export async function status({
 
     if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
-      result.created.push({
+      const fileStatus: FileStatus = {
         type: localFileInfo.type,
         path: filePath,
         mtime: localFileInfo.mtime,
         status: "created",
-      });
+      };
+      result.insert(fileStatus);
     } else {
       if (localFileInfo.type !== "directory") {
         // File exists in both places, check if modified
@@ -82,20 +83,30 @@ export async function status({
         });
 
         if (isModified) {
-          result.modified.push({
+          const fileStatus: FileStatus = {
             type: localFileInfo.type,
             path: filePath,
             mtime: localFileInfo.mtime,
             status: "modified",
-          });
+          };
+          result.insert(fileStatus);
+        } else {
+          const fileStatus: FileStatus = {
+            type: localFileInfo.type,
+            path: filePath,
+            mtime: localFileInfo.mtime,
+            status: "not_modified",
+          };
+          result.insert(fileStatus);
         }
       } else {
-        result.not_modified.push({
+        const fileStatus: FileStatus = {
           type: localFileInfo.type,
           path: filePath,
           mtime: localFileInfo.mtime,
           status: "not_modified",
-        });
+        };
+        result.insert(fileStatus);
       }
     }
   }
@@ -103,7 +114,7 @@ export async function status({
   // Check for files that exist in project but not locally
   for (const [projectPath, projectFileInfo] of projectFiles.entries()) {
     if (!localFiles.has(projectPath)) {
-      result.deleted.push({
+      result.insert({
         type: projectFileInfo.type,
         path: projectPath,
         mtime: projectFileInfo.mtime,
@@ -112,14 +123,15 @@ export async function status({
     }
   }
 
-  return result;
+  // Process any created/deleted pairs to ensure consistent state
+  return result.processCreatedAndDeleted();
 }
 
 async function getProjectFiles(
   projectId: string,
   branchId: string,
-  version: number,
-  gitignoreRules: string[],
+  version: number | undefined = undefined,
+  gitignoreRules?: string[],
 ): Promise<Map<string, FileInfo>> {
   const projectItems = await listProjectItems(projectId, {
     path: "",
@@ -145,9 +157,9 @@ async function getProjectFiles(
 async function getLocalFiles(
   projectId: string,
   branchId: string,
-  version: number,
+  version: number | undefined = undefined,
   targetDir: string,
-  gitignoreRules: string[],
+  gitignoreRules?: string[],
 ): Promise<Map<string, FileInfo>> {
   const files = new Map<string, FileInfo>();
   const statPromises: Promise<void>[] = [];

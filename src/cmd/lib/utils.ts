@@ -1,7 +1,7 @@
 import { colors } from "@cliffy/ansi/colors";
 import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
-import type { FileStateChanges } from "~/vt/lib/pending.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Generates an error message for commands that cannot be executed with unpushed changes
@@ -64,7 +64,7 @@ export function getVersionRangeStr(
  */
 export function formatStatus(
   path: string,
-  status: keyof FileStateChanges,
+  status: keyof FileState,
   type: ProjectItemType,
   maxTypeLength: number,
 ): string {
@@ -100,7 +100,7 @@ export function formatStatus(
  * @returns The total number of changes
  */
 export function displayFileStateChanges(
-  changes: FileStateChanges,
+  changes: FileState,
   options: {
     showEmpty?: boolean;
     headerText?: string;
@@ -149,7 +149,7 @@ export function displayFileStateChanges(
       console.log("\n" + summaryPrefix);
       for (const [type, files] of Object.entries(changes)) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeColor = STATUS_STYLES[type as keyof FileStateChanges];
+          const typeColor = STATUS_STYLES[type as keyof FileState];
           const coloredType = typeColor.color(type);
           console.log("  " + files.length + " " + coloredType);
         }

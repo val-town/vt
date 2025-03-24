@@ -40,7 +40,6 @@ Deno.test({
               projectId: project.id,
               branchId: branch.id,
               version: branch.version + 1,
-              gitignoreRules: [],
             });
           });
 
@@ -83,7 +82,6 @@ Deno.test({
               projectId: project.id,
               branchId: branch.id,
               version: branch.version + 2,
-              gitignoreRules: [],
             });
 
             // Verify updated content
@@ -112,7 +110,6 @@ Deno.test({
               projectId: project.id,
               branchId: branch.id,
               version: branch.version + 3,
-              gitignoreRules: [],
             });
 
             // Verify file was deleted locally

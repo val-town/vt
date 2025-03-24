@@ -1,9 +1,9 @@
 import * as path from "@std/path";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import sdk from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
 import type { ProjectItemType } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { FileStateChanges } from "~/vt/lib/pending.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Pushes latest changes from a vt folder into a Val Town project. Note that
@@ -13,9 +13,10 @@ import type { FileStateChanges } from "~/vt/lib/pending.ts";
  * @param {string} args.targetDir The vt project root directory.
  * @param {string} args.projectId The id of the project to upload to.
  * @param {string} args.branchId The branch ID to upload file content to.
- * @param {string} args.branchId The version to compute the file state changes against. Defaults to latest version.
+ * @param {number} [args.version] The version to compute the file state changes against. Defaults to latest version.
  * @param {string[]} args.gitignoreRules A list of gitignore rules.
- * @param {FileStateChanges} args.fileStateChanges The current file state changes. If not provided, it will be computed.
+ * @param {FileState} args.fileState The current file state. If not provided, it will be computed.
+ * @param {boolean} [args.dryRun] If true, don't actually modify files on server, just report what would change.
  *
  * @returns Promise that resolves when the push operation is complete.
  */
@@ -24,20 +25,20 @@ export async function push({
   projectId,
   branchId,
   version,
-  fileStateChanges,
+  fileState,
   gitignoreRules,
+  dryRun = false,
 }: {
   targetDir: string;
   projectId: string;
   branchId: string;
   version?: number;
-  fileStateChanges?: FileStateChanges;
-  gitignoreRules: string[];
-}): Promise<FileStateChanges> {
-  version = version || await getLatestVersion(projectId, branchId);
-
-  // Use provided status, or retreive the status
-  fileStateChanges = fileStateChanges || await status({
+  fileState?: FileState;
+  gitignoreRules?: string[];
+  dryRun?: boolean;
+}): Promise<FileState> {
+  // Use provided status, or retrieve the status
+  fileState = fileState || await status({
     targetDir,
     projectId,
     branchId,
@@ -45,8 +46,10 @@ export async function push({
     gitignoreRules,
   });
 
+  if (dryRun) return fileState; // Exit early if dry run
+
   // Upload files that were modified locally
-  const modifiedPromises = fileStateChanges.modified
+  const modifiedPromises = fileState.modified
     .filter((file) => file.type !== "directory")
     .map(async (file) => {
       await sdk.projects.files.update(
@@ -62,7 +65,7 @@ export async function push({
     });
 
   // Delete files that exist on the server but not locally
-  const deletedPromises = fileStateChanges.deleted.map(async (file) => {
+  const deletedPromises = fileState.deleted.map(async (file) => {
     await sdk.projects.files.delete(projectId, {
       path: file.path,
       branch_id: branchId,
@@ -70,14 +73,14 @@ export async function push({
   });
 
   // First ensure all directories exist
-  for (const file of fileStateChanges.created) {
+  for (const file of fileState.created) {
     if (file.path.includes("/")) {
-      await ensureValtownDir(projectId, branchId, file.path);
+      await ensureValtownDir(projectId, branchId, file.path, false);
     }
   }
 
   // Upload all files that exist locally but not on the server
-  for (const file of fileStateChanges.created) {
+  for (const file of fileState.created) {
     try {
       if (file.type === "directory") {
         // We want to make sure we get all the empty directories
@@ -105,7 +108,7 @@ export async function push({
     ...deletedPromises,
   ]);
 
-  return fileStateChanges;
+  return fileState;
 }
 
 async function ensureValtownDir(

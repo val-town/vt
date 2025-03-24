@@ -156,7 +156,6 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
-              version: await getLatestVersion(project.id, branch.id),
             });
           });
 

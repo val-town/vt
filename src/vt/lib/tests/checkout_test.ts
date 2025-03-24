@@ -41,7 +41,6 @@ Deno.test({
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify main file exists but feature file doesn't
@@ -67,12 +66,11 @@ Deno.test({
           branchId: featureBranch.id,
           fromBranchId: mainBranch.id,
           version: featureBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify branch info
         assertEquals(result.fromBranch.id, mainBranch.id);
-        assertEquals(result.toBranch.id, featureBranch.id);
+        assertEquals(result.toBranch!.id, featureBranch.id);
         assertEquals(result.createdNew, false);
 
         // Verify both files exist now
@@ -114,7 +112,6 @@ Deno.test({
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Create untracked file
@@ -130,12 +127,11 @@ Deno.test({
           forkedFromId: mainBranch.id,
           name: "new-feature",
           version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify branch creation
         assertEquals(result.createdNew, true);
-        assertEquals(result.toBranch.name, "new-feature");
+        assertEquals(result.toBranch!.name, "new-feature");
 
         // Verify files exist
         assert(
@@ -158,9 +154,8 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: mainBranch.id,
-          fromBranchId: result.toBranch.id,
+          fromBranchId: result.toBranch!.id,
           version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify original content
@@ -206,7 +201,6 @@ Deno.test({
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Create a file that's not tracked in any branch
@@ -231,7 +225,6 @@ Deno.test({
           branchId: featureBranch.id,
           fromBranchId: mainBranch.id,
           version: featureBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify untracked file is preserved
@@ -280,7 +273,6 @@ Deno.test("file not in target branch should be deleted", async (t) => {
           branchId: featureBranch.id,
           fromBranchId: featureBranch.id,
           version: featureBranch.version + 1,
-          gitignoreRules: [],
         });
 
         assert(
@@ -300,7 +292,6 @@ Deno.test("file not in target branch should be deleted", async (t) => {
           branchId: mainBranch.id,
           fromBranchId: featureBranch.id,
           version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
       });
 
