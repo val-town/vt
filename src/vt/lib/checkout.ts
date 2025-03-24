@@ -191,9 +191,6 @@ export function checkout(
         });
       }
 
-      // Process created and deleted files to identify modifications
-      fileStateChanges.processCreatedAndDeleted();
-
       // Return checkout result with branch information
       return {
         fromBranch,

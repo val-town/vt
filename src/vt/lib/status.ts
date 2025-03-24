@@ -123,8 +123,7 @@ export async function status({
     }
   }
 
-  // Process any created/deleted pairs to ensure consistent state
-  return result.processCreatedAndDeleted();
+  return result;
 }
 
 async function getProjectFiles(

@@ -38,7 +38,7 @@ async function branchIdToBranch(
 async function filePathToFile(
   projectId: string,
   branchId: string,
-  version: number,
+  version: number | undefined = undefined,
   filePath: string,
 ): Promise<ValTown.Projects.FileRetrieveResponse.Data> {
   // Get all files in the project
@@ -65,7 +65,7 @@ async function filePathToFile(
  * @param {Object} params The parameters for listing project items
  * @param {string} params.path The root path to start listing from
  * @param {string} params.branch_id The ID of the project branch to reference
- * @param {number} params.version The version of the project
+ * @param {number} params.version The version of the project. Defaults to latest
  * @param {Object} [params.options] Additional options for filtering
  * @param {boolean} [params.options.recursive=true] Whether to recursively list files in subdirectories
  * @returns {Promise<Set<string>>} Promise resolving to a Set of file paths
@@ -76,7 +76,7 @@ export async function listProjectItems(
   { path, branch_id, version, recursive }: {
     path: string;
     branch_id: string;
-    version: number;
+    version?: number;
     recursive?: boolean;
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse.Data[]> {
