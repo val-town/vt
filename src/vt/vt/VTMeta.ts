@@ -90,6 +90,24 @@ export default class VTMeta {
   }
 
   /**
+   * Performs operations on the configuration and automatically saves it.
+   *
+   * @param callback - A function that receives the current config and can modify it
+   * @returns {Promise<T>} A promise that resolves to the return value of the callback
+   * @throws {Error} Will throw an error if the config cannot be loaded or saved
+   */
+  public async doWithConfig<T>(
+    callback: (
+      config: z.infer<typeof VTMetaConfigJsonSchema>,
+    ) => T | Promise<T>,
+  ): Promise<T> {
+    const config = await this.loadConfig();
+    const result = await Promise.resolve(callback(config));
+    await this.saveConfig(config);
+    return result;
+  }
+
+  /**
    * Loads the ignore list of globs from ignore files.
    *
    * @returns {Promise} A promise that resolves with a list of glob strings.
