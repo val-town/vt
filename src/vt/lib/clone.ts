@@ -133,10 +133,7 @@ async function createFile(
   changes.insert(fileStatus);
 
   // Stop here for dry runs
-  if (dryRun) {
-    await ensureDir(join(targetRoot, dirname(path)));
-    return;
-  }
+  if (dryRun) return;
 
   // Ensure target directory exists
   await ensureDir(join(targetRoot, dirname(path)));
