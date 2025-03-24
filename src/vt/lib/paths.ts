@@ -1,4 +1,8 @@
-import { DEFAULT_VAL_TYPE, type ProjectItem } from "~/consts.ts";
+import {
+  DEFAULT_VAL_TYPE,
+  type ProjectItemType,
+  RECENT_VERSION_COUNT,
+} from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
@@ -26,54 +30,56 @@ async function getProjectItemType(
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ProjectItem> {
-  try {
-    // If a file already exists in the project at the given path, then the type
-    // is whatever it already is on the website.
-    return await filePathToFile(projectId, branchId, version, filePath)
-      .then((resp) => resp.type);
-  } catch (e) {
-    // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
-    if (e instanceof Deno.errors.NotFound) {
-      if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
-        const isCron = filePath.includes("cron");
-        const isHttp = filePath.includes("http");
-        const isEmail = filePath.includes("email");
-
-        // If it's ambiguous then it is a script val by default
-        if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
-          return DEFAULT_VAL_TYPE;
-        }
-
-        // But otherwise look at the file name and try to figure out what type
-        // of val it is based on whether the file name contains a pattern like
-        // "cron," etc
-        if (isCron) return "interval";
-        if (isHttp) return "http";
-        if (isEmail) return "email";
-
-        // If we can't figure it out, default to script
-        return DEFAULT_VAL_TYPE;
-      }
-
-      // Otherwise, it's just a plain old file val
-      return "file";
-    } else {
-      // Re-throw any other errors
-      throw e;
+): Promise<ProjectItemType> {
+  for (let i = version; i > version - RECENT_VERSION_COUNT; i--) {
+    try {
+      return await filePathToFile(projectId, branchId, version, filePath)
+        .then((resp) => resp.type);
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        continue;
+      } else throw e;
     }
   }
+
+  // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val
+  if (/\.(ts|tsx|js|jsx)$/.test(filePath)) {
+    const isCron = filePath.includes("cron");
+    const isHttp = filePath.includes("http");
+    const isEmail = filePath.includes("email");
+
+    // If it's ambiguous then it is a script val by default
+    if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
+      return DEFAULT_VAL_TYPE;
+    }
+
+    // But otherwise look at the file name and try to figure out what type
+    // of val it is based on whether the file name contains a pattern like
+    // "cron," etc
+    if (isCron) return "interval";
+    if (isHttp) return "http";
+    if (isEmail) return "email";
+
+    // If we can't figure it out, default to script
+    return DEFAULT_VAL_TYPE;
+  }
+
+  // Otherwise, it's just a plain old file val
+  return "file";
 }
 
 /**
  * Checks if a path should be ignored based on gitignore rules.
  *
- * @param {string} filePath - Path to check
+ * If rootDir is provided, and the path is a directory, then it checks if all
+ * paths downward are ignored.
+ *
+ * @param {string} pathToCheck - Path to check
  * @param {string[]} gitignoreRules - Array of gitignore rules to check against
- * @returns {boolean} True if the path should be ignored
+ * @returns {Promise<boolean>} True if the path should be ignored
  */
 function shouldIgnore(
-  filePath: string,
+  pathToCheck: string,
   gitignoreRules: string[] = [],
 ): boolean {
   if (gitignoreRules.length === 0) return false;
@@ -81,7 +87,7 @@ function shouldIgnore(
   // All the libraries for this kinda suck, but this mostly works. Note that
   // there might still be bugs in the gitignore logic.
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
-  return gitignore.denies(filePath);
+  return gitignore.denies(pathToCheck);
 }
 
 export { getProjectItemType, shouldIgnore };

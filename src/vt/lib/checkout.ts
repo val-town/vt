@@ -1,8 +1,11 @@
-import { cleanDirectory, doAtomically } from "~/vt/git/utils.ts";
-import { clone } from "~/vt/git/clone.ts";
+import { doAtomically } from "~/vt/lib/utils.ts";
 import sdk from "~/sdk.ts";
-import { copy } from "@std/fs";
 import type ValTown from "@valtown/sdk";
+import { pull } from "~/vt/lib/pull.ts";
+import { relative } from "@std/path";
+import { walk } from "@std/fs";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
+import { listProjectItems } from "~/sdk.ts";
 
 export interface CheckoutResult {
   fromBranch: ValTown.Projects.BranchCreateResponse;
@@ -104,23 +107,53 @@ export function checkout(
         checkoutVersion = toBranch.version;
       }
 
-      // Clone the branch into the temporary directory
-      await clone({
+      // Get files from the source branch
+      const fromFiles = new Set(
+        await listProjectItems(args.projectId, {
+          path: "",
+          branch_id: fromBranch.id,
+          version: fromBranch.version,
+          recursive: true,
+        }).then((resp) => resp.map((file) => file.path)),
+      );
+
+      // Get files from the target branch
+      const toFiles = new Set(
+        await listProjectItems(args.projectId, {
+          path: "",
+          branch_id: checkoutBranchId,
+          version: checkoutVersion,
+          recursive: true,
+        }).then((resp) => resp.map((file) => file.path)),
+      );
+
+      // Clone the target branch into the temporary directory
+      await pull({
         targetDir: tmpDir,
         projectId: args.projectId,
         branchId: checkoutBranchId,
-        gitignoreRules: args.gitignoreRules,
         version: checkoutVersion,
+        gitignoreRules: args.gitignoreRules,
       });
 
-      // Purge their version before copying back over
-      await cleanDirectory(args.targetDir, args.gitignoreRules);
+      // Walk through the target directory to find files
+      for await (const entry of walk(args.targetDir)) {
+        if (entry.isDirectory) continue;
 
-      // We cloned with gitignore rules so we're safe to copy everything
-      await copy(tmpDir, args.targetDir, {
-        overwrite: true,
-        preserveTimestamps: true,
-      });
+        const relativePath = relative(args.targetDir, entry.path);
+
+        // Skip files that match gitignore rules
+        if (shouldIgnore(relativePath, args.gitignoreRules)) continue;
+
+        // Skip root directory
+        if (relativePath === "" || entry.path === args.targetDir) continue;
+
+        // If the file was in the source branch but not in the target branch, delete it
+        // This preserves untracked files (files not in fromFiles)
+        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+          await Deno.remove(entry.path, { recursive: true });
+        }
+      }
 
       // Return checkout result with branch information
       return {

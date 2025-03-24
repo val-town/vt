@@ -1,4 +1,6 @@
+import ValTown from "@valtown/sdk";
 import Kia from "kia";
+import { sentenceCase } from "~/utils.ts";
 
 /**
  * Get a spinner and make sure it stops before exiting.
@@ -20,7 +22,9 @@ export async function doWithSpinner(
     if (options?.autostart !== false) spinner.start();
     return await callback(spinner);
   } catch (e) {
-    if (e instanceof Error) spinner?.fail(e.message);
+    if (e instanceof ValTown.APIError) {
+      spinner?.fail(sentenceCase(e.message.replace(/^\d+\s+/, "")));
+    } else if (e instanceof Error) spinner?.fail(e.message);
     status = 1;
   } finally {
     if (spinner && spinner.isSpinning()) spinner.stop();

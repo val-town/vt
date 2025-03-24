@@ -1,12 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
-import type { StatusResult } from "~/vt/git/status.ts";
+import type { StatusResult } from "~/vt/lib/status.ts";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
 export const ALWAYS_IGNORE_PATTERNS: string[] = [
   ".vtignore",
-  ".vt/**",
   ".vt",
   ".env",
 ];
@@ -50,4 +49,7 @@ export const ProjectItems = [
 export const VAL_TOWN_PROJECT_URL_REGEX =
   /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
-export type ProjectItem = typeof ProjectItems[number];
+export type ProjectItemType = typeof ProjectItems[number];
+export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+
+export const RECENT_VERSION_COUNT = 5;

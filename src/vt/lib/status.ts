@@ -1,12 +1,12 @@
-import sdk from "~/sdk.ts";
-import { getProjectItemType, shouldIgnore } from "~/vt/git/paths.ts";
+import sdk, { listProjectItems } from "~/sdk.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import { ProjectItem } from "~/consts.ts";
+import type { ProjectItemType } from "~/consts.ts";
 
 interface FileInfo {
   mtime: number;
-  type: ProjectItem;
+  type: ProjectItemType;
 }
 
 export interface FileStatus extends FileInfo {
@@ -85,25 +85,27 @@ export async function status({
         status: "created",
       });
     } else {
-      // File exists in both places, check if modified
-      const isModified = await isFileModified(
-        targetDir,
-        filePath,
-        filePath,
-        projectId,
-        branchId,
-        version,
-        localFileInfo.mtime,
-        projectFileInfo.mtime,
-      );
+      if (localFileInfo.type !== "directory") {
+        // File exists in both places, check if modified
+        const isModified = await isFileModified(
+          targetDir,
+          filePath,
+          filePath,
+          projectId,
+          branchId,
+          version,
+          localFileInfo.mtime,
+          projectFileInfo.mtime,
+        );
 
-      if (isModified) {
-        result.modified.push({
-          type: localFileInfo.type,
-          path: filePath,
-          mtime: localFileInfo.mtime,
-          status: "modified",
-        });
+        if (isModified) {
+          result.modified.push({
+            type: localFileInfo.type,
+            path: filePath,
+            mtime: localFileInfo.mtime,
+            status: "modified",
+          });
+        }
       } else {
         result.not_modified.push({
           type: localFileInfo.type,
@@ -148,8 +150,11 @@ async function isFileModified(
   // If mtime indicates a possible change, check content
   const projectFileContent = await sdk.projects.files.getContent(
     projectId,
-    encodeURIComponent(cleanPath),
-    { branch_id: branchId, version },
+    {
+      path: cleanPath,
+      branch_id: branchId,
+      version,
+    },
   ).then((resp) => resp.text());
 
   // For some reason the local paths seem to have an extra newline
@@ -166,26 +171,26 @@ async function getProjectFiles(
   version: number,
   gitignoreRules: string[],
 ): Promise<Map<string, FileInfo>> {
-  const processedFiles = new Map<string, FileInfo>();
+  const projectItems = await listProjectItems(projectId, {
+    path: "",
+    branch_id: branchId,
+    version,
+    recursive: true,
+  });
 
-  for await (
-    const file of sdk.projects.files.list(projectId, {
-      branch_id: branchId,
-      version,
-      recursive: true,
-    })
-  ) {
-    if (file.type === "directory") continue;
-    if (shouldIgnore(file.path, gitignoreRules)) continue;
+  const filesMap = new Map<string, FileInfo>();
 
-    const filePath = path.join(path.dirname(file.path), file.name);
-    processedFiles.set(filePath, {
-      mtime: new Date(file.updatedAt).getTime(),
-      type: file.type,
-    });
+  for (const file of projectItems) {
+    if (!shouldIgnore(file.path, gitignoreRules)) {
+      const filePath = path.join(path.dirname(file.path), file.name);
+      filesMap.set(filePath, {
+        mtime: new Date(file.updatedAt).getTime(),
+        type: file.type,
+      });
+    }
   }
 
-  return processedFiles;
+  return filesMap;
 }
 
 async function getLocalFiles(
@@ -199,9 +204,6 @@ async function getLocalFiles(
   const statPromises: Promise<void>[] = [];
 
   const processEntry = async (entry: fs.WalkEntry) => {
-    // Skip directories, we don't track directories themselves as objects
-    if (entry.isDirectory) return;
-
     // Check if this is on the ignore list
     const relativePath = path.relative(targetDir, entry.path);
     if (shouldIgnore(relativePath, gitignoreRules)) return;
@@ -214,7 +216,7 @@ async function getLocalFiles(
 
     // Store the path and its modification time
     files.set(path.relative(targetDir, entry.path), {
-      type: await getProjectItemType(
+      type: entry.isDirectory ? "directory" : await getProjectItemType(
         projectId,
         branchId,
         version,

@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import { displayStatusChanges } from "~/cmd/git/utils.ts";
+import { displayStatusChanges } from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
