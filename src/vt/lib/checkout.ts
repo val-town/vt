@@ -21,18 +21,17 @@ export type BaseCheckoutParams = {
   projectId: string;
   dryRun?: boolean;
   gitignoreRules?: string[];
+  version?: number;
 };
 
 export type BranchCheckoutParams = BaseCheckoutParams & {
   branchId: string;
-  version: number;
   fromBranchId: string;
 };
 
 export type ForkCheckoutParams = BaseCheckoutParams & {
   forkedFromId: string;
   name: string;
-  version: number;
 };
 
 /**
@@ -42,8 +41,8 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
  * @param {string} args.targetDir - The directory where the branch will be checked out.
  * @param {string} args.projectId - The ID of the project.
  * @param {string} args.branchId - The ID of the branch to checkout.
- * @param {number} args.version - The version of the branch to checkout.
- * @param {string[]} args.gitignoreRules - List of gitignore rules.
+ * @param {number} [args.version] - The version of the branch to checkout. Defaults to latest.
+ * @param {string[]} [args.gitignoreRules] - List of gitignore rules. Defaults to [].
  * @param {string} [args.fromBranchId] - The ID of the branch we're switching from.
  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information.
  */
@@ -57,13 +56,11 @@ export function checkout(args: BranchCheckoutParams): Promise<CheckoutResult>;
  * @param {string} args.projectId - The ID of the project to fork.
  * @param {string} args.forkedFrom - The branch ID from which to create the fork.
  * @param {string} args.name - The name for the new forked branch.
- * @param {number} args.version - The version of the fork to checkout.
- * @param {string[]} args.gitignoreRules - List of gitignore rules.
+ * @param {number} [args.version] - The version of the fork to checkout. Defaults to latest.
+ * @param {string[]} [args.gitignoreRules] - List of gitignore rules. Defaults to [].
  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch details).
  */
-export function checkout(
-  args: ForkCheckoutParams,
-): Promise<CheckoutResult>;
+export function checkout(args: ForkCheckoutParams): Promise<CheckoutResult>;
 export function checkout(
   args: BranchCheckoutParams | ForkCheckoutParams,
 ): Promise<CheckoutResult> {
@@ -72,7 +69,7 @@ export function checkout(
       const fileStateChanges = FileState.empty();
 
       let checkoutBranchId: string | null = null;
-      let checkoutVersion: number | null = null;
+      let checkoutVersion: number | undefined = undefined;
       let toBranch: ValTown.Projects.BranchCreateResponse | null = null;
       let fromBranch: ValTown.Projects.BranchCreateResponse;
       let createdNew = false;
