@@ -5,6 +5,7 @@ import { checkout } from "~/vt/lib/checkout.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
+import type ValTown from "@valtown/sdk";
 
 Deno.test({
   name: "test branch checkout",
@@ -14,28 +15,32 @@ Deno.test({
     net: true,
     env: true,
   },
-  async fn() {
+  async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
-      // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
-        path: "main.txt",
-        content: "file on main branch",
-        branch_id: mainBranch.id,
-        type: "file",
-      });
+      let featureBranch: ValTown.Projects.BranchCreateResponse;
 
-      // Create a new branch from main
-      const featureBranch = await sdk.projects.branches.create(
-        project.id,
-        { branchId: mainBranch.id, name: "feature" },
-      );
+      await t.step("create files on main and feature branches", async () => {
+        // Create a file on main branch
+        await sdk.projects.files.create(project.id, {
+          path: "main.txt",
+          content: "file on main branch",
+          branch_id: mainBranch.id,
+          type: "file",
+        });
 
-      // Add a file to the feature branch
-      await sdk.projects.files.create(project.id, {
-        path: "feature.txt",
-        content: "file on feature branch",
-        branch_id: featureBranch.id,
-        type: "file",
+        // Create a new branch from main
+        featureBranch = await sdk.projects.branches.create(
+          project.id,
+          { branchId: mainBranch.id, name: "feature" },
+        );
+
+        // Add a file to the feature branch
+        await sdk.projects.files.create(project.id, {
+          path: "feature.txt",
+          content: "file on feature branch",
+          branch_id: featureBranch.id,
+          type: "file",
+        });
       });
 
       await doWithTempDir(async (tempDir) => {
@@ -45,8 +50,6 @@ Deno.test({
           projectId: project.id,
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
-          version: mainBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify main file exists but feature file doesn't
@@ -72,12 +75,11 @@ Deno.test({
           branchId: featureBranch.id,
           fromBranchId: mainBranch.id,
           version: featureBranch.version + 1,
-          gitignoreRules: [],
         });
 
         // Verify branch info
         assertEquals(result.fromBranch.id, mainBranch.id);
-        assertEquals(result.toBranch!.id, featureBranch.id);
+        assertEquals(result.toBranch!.id, featureBranch!.id);
         assertEquals(result.createdNew, false);
 
         // Verify both files exist now
@@ -118,7 +120,7 @@ Deno.test({
           projectId: project.id,
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
-          version: mainBranch.version + 1,
+          version: 1,
         });
 
         // Create untracked file
@@ -133,8 +135,7 @@ Deno.test({
           projectId: project.id,
           forkedFromId: mainBranch.id,
           name: "new-feature",
-          version: mainBranch.version + 1,
-          gitignoreRules: [],
+          version: 2,
         });
 
         // Verify branch creation
@@ -163,7 +164,7 @@ Deno.test({
           projectId: project.id,
           branchId: mainBranch.id,
           fromBranchId: result.toBranch!.id,
-          version: mainBranch.version + 1,
+          version: 3,
         });
 
         // Verify original content
@@ -208,8 +209,7 @@ Deno.test({
           projectId: project.id,
           branchId: mainBranch.id,
           fromBranchId: mainBranch.id,
-          version: mainBranch.version + 1,
-          gitignoreRules: [],
+          version: 1,
         });
 
         // Create a file that's not tracked in any branch
@@ -233,8 +233,7 @@ Deno.test({
           projectId: project.id,
           branchId: featureBranch.id,
           fromBranchId: mainBranch.id,
-          version: featureBranch.version + 1,
-          gitignoreRules: [],
+          version: 2,
         });
 
         // Verify untracked file is preserved
@@ -283,8 +282,7 @@ Deno.test("file not in target branch should be deleted", async (t) => {
           projectId: project.id,
           branchId: featureBranch.id,
           fromBranchId: featureBranch.id,
-          version: featureBranch.version + 1,
-          gitignoreRules: [],
+          version: 1,
         });
 
         assert(
@@ -308,19 +306,20 @@ Deno.test("file not in target branch should be deleted", async (t) => {
             projectId: project.id,
             branchId: mainBranch.id,
             fromBranchId: featureBranch.id,
+            version: 1,
           });
         });
 
         await t.step("verify file states", async () => {
           assert(
-            !await exists(join(mainTempDir, "feature.txt")),
+            !(await exists(join(mainTempDir, "feature.txt"))),
             "feature file should be deleted",
           );
 
           // Local file should not exist in the main branch temp dir
           // since it's a different directory
           assert(
-            !await exists(join(mainTempDir, "local.txt")),
+            !(await exists(join(mainTempDir, "local.txt"))),
             "local file should not exist in main branch directory",
           );
         });
@@ -385,6 +384,7 @@ Deno.test({
             projectId: project.id,
             branchId: mainBranch.id,
             fromBranchId: mainBranch.id,
+            version: 1,
           });
 
           assertEquals(result.fileStateChanges.created.length, 1);
@@ -400,6 +400,7 @@ Deno.test({
             projectId: project.id,
             branchId: mainBranch.id,
             fromBranchId: mainBranch.id,
+            version: 1,
           });
 
           // Modify the file locally
@@ -414,6 +415,7 @@ Deno.test({
             branchId: mainBranch.id,
             fromBranchId: mainBranch.id,
             dryRun: true,
+            version: 2,
           });
 
           // Verify fileStateChanges contains the modified file

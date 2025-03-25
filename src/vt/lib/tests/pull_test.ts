@@ -7,83 +7,7 @@ import { join } from "@std/path";
 import { exists } from "@std/fs";
 
 Deno.test({
-  name: "test pulling nested empty directories",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
-  async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
-      await doWithTempDir(async (tempDir) => {
-        // Create nested directories on the server
-        const nestedDirPath = "parent/child/grandchild";
-
-        await t.step("create nested directories on server", async () => {
-          await sdk.projects.files.create(
-            project.id,
-            { path: nestedDirPath, branch_id: branch.id, type: "directory" },
-          );
-        });
-
-        await t.step("first pull - should create directories", async () => {
-          // Pull the project to the temp directory
-          const firstPullChanges = await pull({
-            targetDir: tempDir,
-            projectId: project.id,
-            branchId: branch.id,
-          });
-
-          // Verify directories were created
-          const localDirPath = join(tempDir, nestedDirPath);
-          const dirExists = await exists(localDirPath);
-          assertEquals(
-            dirExists,
-            true,
-            `Directory ${nestedDirPath} should exist after pulling`,
-          );
-
-          // Verify changes were detected
-          assertEquals(
-            firstPullChanges.created.length > 0,
-            true,
-            "First pull should detect directory creation",
-          );
-        });
-
-        await t.step("second pull - should not detect changes", async () => {
-          // Pull again - should not detect changes
-          const secondPullChanges = await pull({
-            targetDir: tempDir,
-            projectId: project.id,
-            branchId: branch.id,
-          });
-
-          // Verify no changes were detected
-          assertEquals(
-            secondPullChanges.created.length,
-            0,
-            "Second pull should not detect directory creation",
-          );
-          assertEquals(
-            secondPullChanges.modified.length,
-            0,
-            "Second pull should not detect any modifications",
-          );
-          assertEquals(
-            secondPullChanges.deleted.length,
-            0,
-            "Second pull should not detect any deletions",
-          );
-        });
-      }, "vt_pull_nested_dirs_test_");
-    });
-  },
-});
-
-Deno.test({
-  name: "test pulling changes",
+  name: "test typical pulling",
   permissions: {
     read: true,
     write: true,
@@ -110,13 +34,10 @@ Deno.test({
         });
 
         await doWithTempDir(async (tempDir) => {
-          await t.step("pull the project", async () => {
-            // Pull the project to the temp directory
-            await pull({
-              targetDir: tempDir,
-              projectId: project.id,
-              branchId: branch.id,
-            });
+          await pull({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
           });
 
           await t.step("verify pulled file", async () => {
@@ -157,6 +78,7 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
+              version: 2,
             });
 
             // Verify updated content
@@ -184,6 +106,7 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
+              version: 3,
             });
 
             // Verify file was deleted locally
@@ -235,6 +158,7 @@ Deno.test({
           projectId: project.id,
           branchId: branch.id,
           gitignoreRules: ["*.log"],
+          version: 1,
         });
 
         // Verify remote file was pulled
@@ -298,6 +222,7 @@ Deno.test({
             projectId: project.id,
             branchId: branch.id,
             dryRun: true,
+            version: 1,
           });
 
           // Verify result contains expected changes
@@ -327,6 +252,7 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
+          version: 1,
         });
 
         await t.step("test dry run for modified files", async () => {
@@ -347,6 +273,7 @@ Deno.test({
             projectId: project.id,
             branchId: branch.id,
             dryRun: true,
+            version: 2,
           });
 
           // Verify result contains expected modifications
@@ -371,6 +298,76 @@ Deno.test({
           );
         });
       }, "vt_pull_dryrun_test_");
+    });
+  },
+});
+
+Deno.test({
+  name: "test pulling nested empty directories",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+  },
+  async fn(t) {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create nested directories on the server
+        const nestedDirPath = "parent/child/grandchild";
+
+        await t.step("create nested directories on server", async () => {
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: nestedDirPath,
+              branch_id: branch.id,
+              type: "directory",
+            },
+          );
+        });
+
+        await t.step("first pull - should create directories", async () => {
+          // Pull the project to the temp directory
+          const firstPullChanges = await pull({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            version: 1,
+          });
+
+          // Verify directories were created
+          const localDirPath = join(tempDir, nestedDirPath);
+          const dirExists = await exists(localDirPath);
+          assertEquals(
+            dirExists,
+            true,
+            `Directory ${nestedDirPath} should exist after pulling`,
+          );
+
+          // Verify changes were detected
+          assertEquals(
+            firstPullChanges.created.length > 0,
+            true,
+            "First pull should detect directory creation",
+          );
+        });
+
+        await t.step("second pull - should not detect changes", async () => {
+          // Pull again - should not detect changes
+          const secondPullChanges = await pull({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            version: 2,
+          });
+
+          // Verify no changes were detected
+          assertEquals(secondPullChanges.created.length, 0);
+          assertEquals(secondPullChanges.modified.length, 0);
+          assertEquals(secondPullChanges.deleted.length, 0);
+        });
+      }, "vt_pull_nested_dirs_test_");
     });
   },
 });

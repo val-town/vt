@@ -7,7 +7,7 @@ import { join } from "@std/path";
 import ValTown from "@valtown/sdk";
 
 Deno.test({
-  name: "test pushing",
+  name: "test typical pushing",
   permissions: {
     read: true,
     write: true,
@@ -26,7 +26,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            gitignoreRules: [],
           });
 
           // Pull and assert that the creation worked
@@ -48,7 +47,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            gitignoreRules: [],
           });
 
           // Pull and assert that the modification worked
@@ -67,7 +65,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            gitignoreRules: [],
           });
 
           // Assert that the file no longer exists on the remote
@@ -88,7 +85,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "test rename file",
+  name: "test renaming file",
   permissions: {
     read: true,
     write: true,
@@ -199,7 +196,6 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          gitignoreRules: [],
         });
 
         // Check that the empty directory was pushed
@@ -234,7 +230,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "test push with dryRun",
+  name: "test dry run push",
   permissions: {
     read: true,
     write: true,
@@ -253,7 +249,6 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          gitignoreRules: [],
           dryRun: true,
         });
 
