@@ -1,7 +1,7 @@
 import {
   DEFAULT_VAL_TYPE,
-  type ProjectItemType,
   RECENT_VERSION_COUNT,
+  type ProjectItemType
 } from "~/consts.ts";
 import { filePathToFile } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
