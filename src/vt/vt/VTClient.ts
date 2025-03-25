@@ -355,7 +355,7 @@ export default class VTClient {
         ...options,
       });
 
-      if (options?.dryRun === false) {
+      if (!options || options.dryRun === false) {
         config.version = await getLatestVersion(
           config.projectId,
           config.currentBranch,
