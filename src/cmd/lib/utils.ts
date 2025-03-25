@@ -2,6 +2,7 @@ import { colors } from "@cliffy/ansi/colors";
 import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
 import type { StatusResult } from "~/vt/lib/status.ts";
+import { basename, dirname, join } from "@std/path";
 
 /**
  * Generates an error message for commands that cannot be executed with unpushed changes
@@ -69,7 +70,10 @@ export function formatStatus(
   maxTypeLength: number,
 ): string {
   // Get color configuration for the status or use default
-  const config = STATUS_STYLES[status];
+  const styleConfig = STATUS_STYLES[status];
+
+  // Colorize the path so that the basename is colored
+  const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
 
   // Extract file type with consistent padding
   const paddedFileType = type.padEnd(maxTypeLength);
@@ -81,10 +85,10 @@ export function formatStatus(
   const typeIndicator = typeStart + typeContent + typeEnd;
 
   // Get the base status text
-  const baseStatusText = config.color(config.prefix) + " ";
+  const baseStatusText = styleConfig.color(styleConfig.prefix) + " ";
 
   // Combine the status prefix, type indicator, and path
-  return baseStatusText + typeIndicator + " " + path;
+  return baseStatusText + typeIndicator + " " + coloredPath;
 }
 
 /**
