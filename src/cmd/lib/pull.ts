@@ -51,6 +51,7 @@ export const pullCmd = new Command()
             headerText: "Changes that would be pulled:",
             summaryPrefix: "Would pull:",
             emptyMessage: "No changes to pull",
+            includeTypes: false,
             includeSummary: true,
           });
           console.log();

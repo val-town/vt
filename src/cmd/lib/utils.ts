@@ -64,11 +64,19 @@ export function getVersionRangeStr(
 export function formatStatus(
   path: string,
   status: keyof FileState,
-  type: ProjectItemType,
-  maxTypeLength: number,
+  type?: ProjectItemType,
+  maxTypeLength: number = 0,
 ): string {
   // Get color configuration for the status or use default
   const config = STATUS_STYLES[status];
+
+  // Get the base status text
+  const baseStatusText = config.color(config.prefix) + " ";
+
+  // If type is empty or undefined, don't include type indicator
+  if (!type) {
+    return baseStatusText + path;
+  }
 
   // Extract file type with consistent padding
   const paddedFileType = type.padEnd(maxTypeLength);
@@ -78,9 +86,6 @@ export function formatStatus(
   const typeContent = colors.dim(paddedFileType);
   const typeEnd = colors.gray(")");
   const typeIndicator = typeStart + typeContent + typeEnd;
-
-  // Get the base status text
-  const baseStatusText = config.color(config.prefix) + " ";
 
   // Combine the status prefix, type indicator, and path
   return baseStatusText + typeIndicator + " " + path;
@@ -96,6 +101,7 @@ export function formatStatus(
  * @param options.summaryPrefix - Text to show before the summary (default: "Changes:")
  * @param options.emptyMessage - Message to show when there are no changes (default: "No changes")
  * @param options.includeSummary - Whether to display the summary (default: true)
+ * @param options.includeTypes - Whether to display the (detected) types of the files (default: true)
  * @returns The total number of changes
  */
 export function displayFileStateChanges(
@@ -106,6 +112,7 @@ export function displayFileStateChanges(
     summaryPrefix?: string;
     emptyMessage?: string;
     includeSummary?: boolean;
+    includeTypes?: boolean;
   } = {},
 ): void {
   const {
@@ -114,6 +121,7 @@ export function displayFileStateChanges(
     summaryPrefix = "Local Changes:",
     emptyMessage = "No local changes. Local working tree clean.",
     includeSummary = true,
+    includeTypes = true,
   } = options;
   const totalChanges = fileStateChanges.changes();
 
@@ -134,7 +142,13 @@ export function displayFileStateChanges(
     if (type !== "not_modified") {
       for (const file of files) {
         console.log(
-          "  " + formatStatus(file.path, file.status, file.type, maxTypeLength),
+          "  " +
+            formatStatus(
+              file.path,
+              file.status,
+              includeTypes ? file.type : undefined,
+              maxTypeLength,
+            ),
         );
       }
     }
