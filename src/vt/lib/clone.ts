@@ -1,7 +1,7 @@
 import sdk, { listProjectItems } from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
-import { ensureDir } from "@std/fs";
+import { ensureDir, exists } from "@std/fs";
 import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
 import type { ProjectItemType } from "~/consts.ts";
 import { dirname } from "@std/path/dirname";
@@ -56,12 +56,15 @@ export function clone({
             // directories
             if (dryRun === false) await ensureDir(join(tmpDir, file.path));
 
-            changes.insert({
-              mtime: Date.now(),
-              type: "directory" as ProjectItemType,
-              path: file.path,
-              status: "created",
-            });
+            // If the directory is new mark it as created
+            if (!(await exists(join(targetDir, file.path)))) {
+              changes.insert({
+                mtime: Date.now(),
+                type: "directory" as ProjectItemType,
+                path: file.path,
+                status: "created",
+              });
+            }
           } else {
             // Start a create file task in the background
             await createFile(
