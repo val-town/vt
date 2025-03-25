@@ -209,7 +209,6 @@ export async function isFileModified(
 ): Promise<boolean> {
   // First use the mtime as a heuristic to avoid unnecessary content checks
   if (projectMtime == localMtime) return false;
-  if (projectMtime > localMtime) return true;
 
   // If mtime indicates a possible change, check content
   const projectFileContent = await sdk.projects.files.getContent(

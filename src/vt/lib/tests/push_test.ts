@@ -279,3 +279,44 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "test push with no changes",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a file
+        const vtFilePath = "test.txt";
+        const localFilePath = join(tempDir, vtFilePath);
+        await Deno.writeTextFile(localFilePath, "test content");
+
+        // Do the push
+        const firstResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Verify that FileState reports the file was created. We have better
+        // tests for ensuring this operation with more detail, this is just to
+        // make sure it's idempotent.
+        assertEquals(firstResult.created.length, 1);
+        assertEquals(firstResult.size(), 1);
+
+        const secondResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+        // Should be no changes on the second push
+        assertEquals(secondResult.not_modified.length, 1);
+        assertEquals(secondResult.size(), 1);
+      }, "vt_push_nochange_test_");
+    });
+  },
+});
