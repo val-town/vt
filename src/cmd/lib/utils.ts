@@ -1,5 +1,10 @@
 import { colors } from "@cliffy/ansi/colors";
-import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
+import {
+  ProjectItemColors,
+  type ProjectItemType,
+  STATUS_STYLES,
+  TypeToTypeStr,
+} from "~/consts.ts";
 import { getTotalChanges } from "~/vt/lib/utils.ts";
 import type { StatusResult } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
@@ -69,26 +74,20 @@ export function formatStatus(
   type: ProjectItemType,
   maxTypeLength: number,
 ): string {
-  // Get color configuration for the status or use default
   const styleConfig = STATUS_STYLES[status];
-
-  // Colorize the path so that the basename is colored
   const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
 
-  // Extract file type with consistent padding
-  const paddedFileType = type.padEnd(maxTypeLength);
+  // Format type indicator with consistent padding and colors
+  const typeStr = TypeToTypeStr[type].padEnd(maxTypeLength);
+  const typeIndicator = //
+    colors.gray("(") +
+    ProjectItemColors[type](typeStr) +
+    colors.gray(")");
 
-  // Create formatted type indicator with colors
-  const typeStart = colors.gray("(");
-  const typeContent = colors.dim(paddedFileType);
-  const typeEnd = colors.gray(")");
-  const typeIndicator = typeStart + typeContent + typeEnd;
-
-  // Get the base status text
-  const baseStatusText = styleConfig.color(styleConfig.prefix) + " ";
-
-  // Combine the status prefix, type indicator, and path
-  return baseStatusText + typeIndicator + " " + coloredPath;
+  // Construct the final formatted string
+  return `${
+    styleConfig.color(styleConfig.prefix)
+  } ${typeIndicator} ${coloredPath}`;
 }
 
 /**
