@@ -1,6 +1,5 @@
 import { colors } from "@cliffy/ansi/colors";
 import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
-import { getTotalChanges } from "~/vt/lib/utils.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
@@ -88,9 +87,9 @@ export function formatStatus(
 }
 
 /**
- * Displays file changes and summary information from a status result.
+ * Displays file changes and summary information from a FileStateChanges
  *
- * @param changes - The status result containing modified, created, and deleted files
+ * @param fileStateChanges - The file state changes, containing modified, created, and deleted files
  * @param options - Display options
  * @param options.showEmpty - Whether to show output when there are no changes (default: true)
  * @param options.headerText - Custom header text to display before file changes (optional)
@@ -100,7 +99,7 @@ export function formatStatus(
  * @returns The total number of changes
  */
 export function displayFileStateChanges(
-  changes: FileState,
+  fileStateChanges: FileState,
   options: {
     showEmpty?: boolean;
     headerText?: string;
@@ -116,7 +115,7 @@ export function displayFileStateChanges(
     emptyMessage = "No local changes. Local working tree clean.",
     includeSummary = true,
   } = options;
-  const totalChanges = getTotalChanges(changes);
+  const totalChanges = fileStateChanges.changes();
 
   // Exit early if we do not show empty
   if (totalChanges === 0 && !showEmpty) return;
@@ -125,13 +124,13 @@ export function displayFileStateChanges(
   if (headerText && totalChanges !== 0) console.log(headerText);
 
   // Calculate the longest type length from all files
-  const maxTypeLength = Object.entries(changes)
+  const maxTypeLength = fileStateChanges.entries()
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
     .reduce((max, file) => Math.max(max, file.type.length), 0);
 
   // Print all changed files state
-  for (const [type, files] of Object.entries(changes)) {
+  for (const [type, files] of fileStateChanges.entries()) {
     if (type !== "not_modified") {
       for (const file of files) {
         console.log(
@@ -147,7 +146,7 @@ export function displayFileStateChanges(
       console.log(colors.green(emptyMessage));
     } else {
       console.log("\n" + summaryPrefix);
-      for (const [type, files] of Object.entries(changes)) {
+      for (const [type, files] of fileStateChanges.entries()) {
         if (type !== "not_modified" && files.length > 0) {
           const typeColor = STATUS_STYLES[type as keyof FileState];
           const coloredType = typeColor.color(type);

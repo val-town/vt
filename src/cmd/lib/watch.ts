@@ -4,7 +4,6 @@ import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils.ts";
-import { getTotalChanges } from "~/vt/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
@@ -112,11 +111,13 @@ export const watchCmd = new Command()
 
       while (true) {
         try {
-          for await (const status of vt.watch(options.debounceDelay)) {
+          for await (
+            const fileStateChanges of vt.watch(options.debounceDelay)
+          ) {
             try {
-              if (getTotalChanges(status) > 0) {
+              if (fileStateChanges.size() > 0) {
                 console.log();
-                displayFileStateChanges(status, {
+                displayFileStateChanges(fileStateChanges, {
                   headerText: "New changes detected",
                   summaryPrefix: "Pushed:",
                 });

@@ -57,6 +57,36 @@ export class FileState {
   }
 
   /**
+   * Returns the total number of files across all status categories.
+   *
+   * @returns The total number of files in this FileState
+   */
+  public size(): number {
+    return this.#modified.size +
+      this.#not_modified.size +
+      this.#deleted.size +
+      this.#created.size;
+  }
+
+  /**
+   * Returns the total number of changes. This is the total number of files
+   * minus the files that were not modified.
+   *
+   * @returns The total number of files in this FileState
+   */
+  public changes(): number {
+    return this.size() - this.#not_modified.size;
+  }
+
+  /**
+   * Returns the file state as an array of key-value pairs.
+   * @returns An array of entries from the JSON representation
+   */
+  public entries(): [string, FileStatus[]][] {
+    return Object.entries(this.toJSON());
+  }
+
+  /**
    * Inserts a file with the specified status, automatically handling transitions
    * between states based on existing entries.
    *
