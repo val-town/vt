@@ -44,14 +44,14 @@ export function pull({
   dryRun?: boolean;
 }): Promise<FileState> {
   return doAtomically(
-    async (tempDir) => {
+    async (tmpDir) => {
       const changes = FileState.empty();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the
       // proper status for modified files (e.g. if they existed and would be
       // changed then they're modified)
-      await copy(targetDir, tempDir, {
+      await copy(targetDir, tmpDir, {
         preserveTimestamps: true,
         overwrite: true,
       });
@@ -60,7 +60,7 @@ export function pull({
       // implicitly will overwrite files with the current version on the
       // server.
       const cloneChanges = await clone({
-        targetDir: tempDir,
+        targetDir: tmpDir,
         projectId,
         branchId,
         version,
@@ -102,10 +102,10 @@ export function pull({
         }
       } else {
         // In actual run mode, we scan the temp directory
-        for await (const entry of walk(tempDir)) {
-          const relativePath = relative(tempDir, entry.path);
+        for await (const entry of walk(tmpDir)) {
+          const relativePath = relative(tmpDir, entry.path);
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
-          if (relativePath === "" || entry.path === tempDir) continue;
+          if (relativePath === "" || entry.path === tmpDir) continue;
           if (!files.has(relativePath)) {
             const stat = await Deno.stat(entry.path);
             const fileStatus: FileStatus = {
@@ -119,7 +119,7 @@ export function pull({
             await Deno.remove(join(targetDir, relativePath), {
               recursive: true,
             });
-            await Deno.remove(join(tempDir, relativePath), { recursive: true });
+            await Deno.remove(join(tmpDir, relativePath), { recursive: true });
           }
         }
       }

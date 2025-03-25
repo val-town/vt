@@ -3,7 +3,7 @@ import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
 import { relative } from "@std/path";
-import { walk } from "@std/fs";
+import { copy, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { FileState } from "~/vt/lib/FileState.ts";
@@ -66,6 +66,15 @@ export function checkout(
 ): Promise<CheckoutResult> {
   return doAtomically(
     async (tmpDir) => {
+      // Copy over the current state. That way we get accurate delta
+      // information when we pull (internally, pull will call clone, and clone
+      // will notice files that it is overwriting and mark them as overwritten
+      // instead of created in such cases.)
+      await copy(args.targetDir, tmpDir, {
+        preserveTimestamps: true,
+        overwrite: true,
+      });
+
       const fileStateChanges = FileState.empty();
 
       let checkoutBranchId: string | null = null;
@@ -158,35 +167,56 @@ export function checkout(
 
       // Walk through the target directory to find files
       for await (const entry of walk(args.targetDir)) {
-        if (entry.isDirectory) continue;
-
         const relativePath = relative(args.targetDir, entry.path);
 
-        // Skip files that match gitignore rules
+        // Skip files that match gitignore rules, and root dir
         if (shouldIgnore(relativePath, args.gitignoreRules)) continue;
-
-        // Skip root directory
         if (relativePath === "" || entry.path === args.targetDir) continue;
 
-        // If the file was in the source branch but not in the target branch, delete it
-        // This preserves untracked files (files not in fromFiles)
-        if (!args.dryRun) {
-          if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+        // If the file was in the source branch but not in the target branch,
+        // delete it. This preserves untracked files (files not in fromFiles)
+        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+          fileStateChanges.insert({
+            path: relativePath,
+            mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
+            status: "deleted",
+            type: await getProjectItemType(
+              args.projectId,
+              fromBranch.id,
+              fromBranch.version,
+              relativePath,
+            ),
+          });
+          if (!args.dryRun) {
             await Deno.remove(entry.path, { recursive: true });
           }
         }
-
-        fileStateChanges.insert({
-          path: relativePath,
-          mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
-          status: "deleted",
-          type: await getProjectItemType(
-            args.projectId,
-            fromBranch.id,
-            fromBranch.version,
-            relativePath,
-          ),
-        });
+        //
+        // const isModified = await isFileModified({
+        //   path: relativePath,
+        //   projectId: args.projectId,
+        //   branchId: checkoutBranchId || fromBranch.id,
+        //   version: checkoutVersion || fromBranch.version,
+        //   targetDir: args.targetDir,
+        //   projectMtime: await Deno.stat(entry.path)
+        //     .then((s) => s.mtime?.getTime()!),
+        //   localMtime: await Deno.stat(entry.path)
+        //     .then((s) => s.mtime?.getTime()!),
+        //   originalPath: entry.path,
+        // });
+        // if (isModified) {
+        //   fileStateChanges.insert({
+        //     path: relativePath,
+        //     mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
+        //     status: "modified",
+        //     type: await getProjectItemType(
+        //       args.projectId,
+        //       checkoutBranchId || fromBranch.id,
+        //       checkoutVersion || fromBranch.version,
+        //       relativePath,
+        //     ),
+        //   });
+        // }
       }
 
       // Return checkout result with branch information

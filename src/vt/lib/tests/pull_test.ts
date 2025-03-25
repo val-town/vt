@@ -188,3 +188,113 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "test pulling with dry run",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn(t) {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a test file on the server
+        const vtFilePath = "server-file.txt";
+        const fileContent = "This is a server file";
+
+        await t.step("create file on server", async () => {
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: vtFilePath,
+              content: fileContent,
+              branch_id: branch.id,
+              type: "file",
+            },
+          );
+        });
+
+        await t.step("perform dry run pull", async () => {
+          // Run pull with dryRun option
+          const fileStateChanges = await pull({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            dryRun: true,
+          });
+
+          // Verify result contains expected changes
+          assertEquals(
+            fileStateChanges.created.length,
+            1,
+            "dry run should detect one file to create",
+          );
+          assertEquals(
+            fileStateChanges.created[0].path,
+            vtFilePath,
+            "correct file path should be detected",
+          );
+
+          // Verify file wasn't actually created
+          const localFilePath = join(tempDir, vtFilePath);
+          const fileExists = await exists(localFilePath);
+          assertEquals(
+            fileExists,
+            false,
+            "file should not be created during dry run",
+          );
+        });
+
+        // Now actually pull the file so we can test modifications
+        await pull({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        await t.step("test dry run for modified files", async () => {
+          // Update file on server
+          const updatedContent = "This file has been updated on the server";
+          await sdk.projects.files.update(
+            project.id,
+            {
+              path: vtFilePath,
+              content: updatedContent,
+              branch_id: branch.id,
+            },
+          );
+
+          // Run pull with dryRun option
+          const fileStateChanges = await pull({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+            dryRun: true,
+          });
+
+          // Verify result contains expected modifications
+          assertEquals(
+            fileStateChanges.modified.length,
+            1,
+            "dry run should detect one file to modify",
+          );
+          assertEquals(
+            fileStateChanges.modified[0].path,
+            vtFilePath,
+            "correct file path should be detected for modification",
+          );
+
+          // Verify file wasn't actually modified
+          const localFilePath = join(tempDir, vtFilePath);
+          const content = await Deno.readTextFile(localFilePath);
+          assertEquals(
+            content,
+            fileContent,
+            "file content should remain unchanged after dry run",
+          );
+        });
+      }, "vt_pull_dryrun_test_");
+    });
+  },
+});

@@ -7,6 +7,29 @@ const sdk = new ValTown({
 });
 
 /**
+ * Checks if a branch with the given name exists in a project.
+ *
+ * @param {string} projectId - The ID of the project to check
+ * @param {string} branchName - The name of the branch to check for
+ * @returns {Promise<boolean>} Promise resolving to true if the branch exists, false otherwise
+ */
+export async function branchExists(
+  projectId: string,
+  branchName: string,
+): Promise<boolean> {
+  try {
+    // Use the existing function to try to find the branch
+    await branchIdToBranch(projectId, branchName);
+    // If we get here, the branch was found
+    return true;
+  } catch (e) {
+    // If the error is NotFound, the branch doesn't exist
+    if (e instanceof Deno.errors.NotFound) return false;
+    else throw e;
+  }
+}
+
+/**
  * Converts a branch name to its corresponding branch ID for a given project.
  *
  * @param {string} projectId - The ID of the project containing the branch

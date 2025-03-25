@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk from "~/sdk.ts";
+import sdk, { branchExists } from "~/sdk.ts";
 import { checkout } from "~/vt/lib/checkout.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -327,4 +327,108 @@ Deno.test("file not in target branch should be deleted", async (t) => {
       }, "vt_checkout_main_branch_test_");
     }, "vt_checkout_feature_branch_test_");
   });
+});
+
+Deno.test({
+  name: "test checkout with dryRun",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn(t) {
+    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+      const testFileName = "main.txt";
+
+      // Create a file on main branch
+      await sdk.projects.files.create(project.id, {
+        path: testFileName,
+        content: "file on main branch",
+        branch_id: mainBranch.id,
+        type: "file",
+      });
+
+      await t.step("test dry run for new branch creation", async () => {
+        await doWithTempDir(async (tempDir) => {
+          // Try to create new branch with dryRun
+          const result = await checkout({
+            targetDir: tempDir,
+            projectId: project.id,
+            forkedFromId: mainBranch.id,
+            name: "dry-run-branch",
+            dryRun: true,
+          });
+
+          // Verify result properties for dry run
+          assert(result.createdNew, "new branch should have been created");
+          assertEquals(
+            result.toBranch,
+            null,
+            "toBranch should be null for dryRuns", // (since no branch should actually be created)
+          );
+          assertEquals(result.fromBranch.id, mainBranch.id);
+
+          // Verify fileStateChanges is populated (and we know we lack main.txt)
+          assertEquals(result.fileStateChanges.created.length, 1);
+          assertEquals(result.fileStateChanges.created[0].path, testFileName);
+
+          // Verify branch wasn't actually created on server
+          assertEquals(
+            await branchExists(project.id, "dry-run-branch"),
+            false,
+            "branch should not be created during dry run",
+          );
+
+          // Checkout a second time, and expect no changes
+          await checkout({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: mainBranch.id,
+            fromBranchId: mainBranch.id,
+          });
+
+          assertEquals(result.fileStateChanges.created.length, 1);
+          assertEquals(result.fileStateChanges.created[0].path, testFileName);
+        }, "vt_checkout_dryrun_fork_test_");
+      });
+
+      await t.step("test dry run for file modification", async () => {
+        await doWithTempDir(async (tempDir) => {
+          // Checkout main branch to temp dir first (actual checkout, not dry run)
+          await checkout({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: mainBranch.id,
+            fromBranchId: mainBranch.id,
+          });
+
+          // Modify the file locally
+          const localFilePath = join(tempDir, "main.txt");
+          const modifiedContent = "locally modified content";
+          await Deno.writeTextFile(localFilePath, modifiedContent);
+
+          // Run checkout with dryRun
+          const result = await checkout({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: mainBranch.id,
+            fromBranchId: mainBranch.id,
+            dryRun: true,
+          });
+
+          // Verify fileStateChanges contains the modified file
+          assertEquals(result.fileStateChanges.modified.length, 1);
+          assertEquals(result.fileStateChanges.modified[0].path, "main.txt");
+
+          // Verify the file still has the local modification (wasn't actually changed)
+          const fileContent = await Deno.readTextFile(localFilePath);
+          assertEquals(
+            fileContent,
+            modifiedContent,
+            "File should still have local modifications after dryRun",
+          );
+        }, "vt_checkout_dryrun_modification_test_");
+      });
+    });
+  },
 });

@@ -232,3 +232,50 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "test push with dryRun",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a file
+        const vtFilePath = "test.txt";
+        const localFilePath = join(tempDir, vtFilePath);
+        await Deno.writeTextFile(localFilePath, "test content");
+
+        // Push with dryRun enabled
+        const result = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          gitignoreRules: [],
+          dryRun: true,
+        });
+
+        // Verify that FileState reports correct changes
+        assertEquals(result.created.length, 1);
+        assertEquals(result.created[0].path, vtFilePath);
+        assertEquals(result.created[0].status, "created");
+        assertEquals(result.created[0].type, "file");
+
+        // Assert that the file was NOT actually pushed to the server
+        await assertRejects(
+          async () => {
+            await sdk.projects.files.getContent(project.id, {
+              path: vtFilePath,
+              branch_id: branch.id,
+            });
+          },
+          ValTown.APIError,
+          "404",
+          "File should not exist on server after dry run",
+        );
+      }, "vt_push_dryrun_test_");
+    });
+  },
+});
