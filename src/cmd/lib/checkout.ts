@@ -44,7 +44,7 @@ export const checkoutCmd = new Command()
     ) => {
       doWithSpinner("Checking out branch...", async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-        const state = await vt.getMeta().loadState();
+        const config = await vt.getMeta().loadState();
 
         const statusResult = await vt.status();
 
@@ -55,7 +55,7 @@ export const checkoutCmd = new Command()
               await vt.isDirty({
                 statusResult: await vt.status({
                   branchId: (await branchIdToBranch(
-                    state.project.id,
+                    config.project.id,
                     existingBranchName,
                   )).id,
                 }),
@@ -71,7 +71,7 @@ export const checkoutCmd = new Command()
           try {
             checkoutResult = await vt
               .checkout(branch, {
-                forkedFrom: state.branch.id,
+                forkedFrom: config.branch.id,
                 statusResult,
               });
 

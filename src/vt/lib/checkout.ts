@@ -113,6 +113,7 @@ export function checkout(
           path: "",
           branch_id: fromBranch.id,
           version: fromBranch.version,
+          recursive: true,
         }).then((resp) => resp.map((file) => file.path)),
       );
 
@@ -122,6 +123,7 @@ export function checkout(
           path: "",
           branch_id: checkoutBranchId,
           version: checkoutVersion,
+          recursive: true,
         }).then((resp) => resp.map((file) => file.path)),
       );
 
@@ -141,7 +143,7 @@ export function checkout(
         const relativePath = relative(args.targetDir, entry.path);
 
         // Skip files that match gitignore rules
-        if (await shouldIgnore(relativePath, args.gitignoreRules)) continue;
+        if (shouldIgnore(relativePath, args.gitignoreRules)) continue;
 
         // Skip root directory
         if (relativePath === "" || entry.path === args.targetDir) continue;

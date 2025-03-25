@@ -50,10 +50,12 @@ export const ProjectItems = [
   "directory",
 ] as const;
 
+export const JSON_INDENT_SPACES = 4;
+
 export const VAL_TOWN_PROJECT_URL_REGEX =
   /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
 export type ProjectItemType = typeof ProjectItems[number];
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
 
-export const JSON_INDENT_SPACES = 4;
+export const RECENT_VERSION_COUNT = 5;

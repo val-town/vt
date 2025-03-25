@@ -35,29 +35,30 @@ export function clone({
         version,
         branch_id: branchId,
         path: "",
+        recursive: true,
       });
 
-      await Promise.all(projectItems
-        .map(async (file) => {
-          // Skip ignored files
-          if (shouldIgnore(file.path, gitignoreRules)) return;
-
-          if (file.type === "directory") {
-            // Create directories, even if they would otherwise get created during
-            // the createFile call later, so that we get empty directories
-            await ensureDir(path.join(tmpDir, file.path));
-          } else {
-            // Start a create file task in the background
-            const fullPath = path.join(tmpDir, file.path);
-            await createFile(
-              fullPath,
-              projectId,
-              branchId,
-              version,
-              file,
-            );
-          }
-        }));
+      await Promise.all(
+        projectItems
+          .filter((file) => !shouldIgnore(file.path, gitignoreRules))
+          .map(async (file) => {
+            if (file.type === "directory") {
+              // Create directories, even if they would otherwise get created during
+              // the createFile call later, so that we get empty directories
+              await ensureDir(path.join(tmpDir, file.path));
+            } else {
+              // Start a create file task in the background
+              const fullPath = path.join(tmpDir, file.path);
+              await createFile(
+                fullPath,
+                projectId,
+                branchId,
+                version,
+                file,
+              );
+            }
+          }),
+      );
     },
     targetDir,
     "vt_clone_",

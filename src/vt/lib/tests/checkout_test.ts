@@ -8,7 +8,12 @@ import { exists } from "@std/fs";
 
 Deno.test({
   name: "test branch checkout",
-  permissions: { read: true, write: true, net: true },
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+  },
   async fn() {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a file on main branch

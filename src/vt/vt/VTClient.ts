@@ -10,7 +10,6 @@ import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
-import VTConfig from "~/vt/config.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -35,16 +34,6 @@ export default class VTClient {
    */
   public getMeta(): VTMeta {
     return this.#meta;
-  }
-
-  /**
-   * Gets the configuration for vt, relative to root path.
-   *
-   * @returns {Promise<Record<string, unknown>>} A promise that resolves with the project configuration.
-   */
-  public async getConfig(): Promise<Record<string, unknown>> {
-    const vtConfig = new VTConfig(this.rootPath);
-    return await vtConfig.loadConfig();
   }
 
   /**
@@ -155,7 +144,7 @@ export default class VTClient {
    * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
    */
   public async *watch(
-    debounceDelay: number = 300,
+    debounceDelay: number = 600,
   ): AsyncGenerator<StatusResult> {
     // Do an initial push
     yield await this.push();
