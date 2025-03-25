@@ -17,8 +17,8 @@ function welcomeToVt(): void {
 
   // Introduction
   console.log(wrap(
-    colors.bold("Val Town") +
-      " is a social coding platform and serverless functions environment.",
+    colors.bold("VT") +
+      " is a companion CLI to interface with Val Town projects.",
     { width: 80 },
   ));
   console.log();
