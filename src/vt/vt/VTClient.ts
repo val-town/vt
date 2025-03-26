@@ -155,7 +155,8 @@ export default class VTClient {
     debounceDelay: number = 300,
   ): AsyncGenerator<FileState> {
     // Do an initial push
-    yield await this.push();
+    const firstPush = await this.push();
+    if (firstPush.changes() > 0) yield firstPush;
 
     // Set the lock file at the start
     await this.getMeta().setLockFile();
