@@ -107,7 +107,7 @@ export const checkoutCmd = new Command()
               // Ask for confirmation to proceed despite dirty state
               const shouldProceed = await Confirm.prompt({
                 message: colors.yellow(
-                  "Project has unpulled changes. " +
+                  "Project has unpushed changes. " +
                     "Do you want to proceed with checkout anyway?",
                 ),
                 default: false,
