@@ -28,19 +28,24 @@ export function sanitizeErrors(error: unknown): string {
  * @param spinnerText - Initial spinner text
  * @param callback - Function to execute with the spinner
  * @param options - Optional configuration for spinner behavior
+ * @param options.autostart - Whether to start the spinner automatically (default: true)
+ * @param options.cleanError - Function to clean error messages (default: sanitizeErrors)
+ * @param options.exitOnError - Whether to exit on error (default: true)
  * @returns The result of the callback function
  */
-export async function doWithSpinner<T>(
+export async function doWithSpinner(
   spinnerText: string,
-  callback: (spinner: Kia) => Promise<T> | T,
+  callback: (spinner: Kia) => Promise<void>,
   options: {
     autostart?: boolean;
     cleanError?: (error: unknown) => string;
+    exitOnError?: boolean;
   } = {},
-): Promise<T> {
+): Promise<void> {
   const {
     autostart = true,
     cleanError = sanitizeErrors,
+    exitOnError = true,
   } = options;
 
   let spinner: Kia | undefined;
@@ -48,25 +53,19 @@ export async function doWithSpinner<T>(
   try {
     spinner = new Kia(spinnerText);
 
-    if (autostart) {
-      spinner.start();
-    }
+    if (autostart) spinner.start();
 
-    const result = await callback(spinner);
-
-    // Optionally stop the spinner on successful completion
-    spinner.succeed("Operation completed");
-
-    return result;
-  } catch (error) {
+    return await callback(spinner);
+  } catch (e) {
     // Use the provided or default error cleaning function
-    const cleanedErrorMessage = cleanError(error);
+    const cleanedErrorMessage = cleanError(e);
 
     // Fail the spinner with the cleaned error message
     spinner?.fail(cleanedErrorMessage);
 
-    // Re-throw the original error
-    throw error;
+    if (exitOnError) {
+      throw e;
+    }
   } finally {
     // Ensure spinner is stopped in all scenarios
     if (spinner?.isSpinning()) {

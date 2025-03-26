@@ -21,9 +21,7 @@ export const browseCmd = new Command()
     if (browser) {
       await doWithSpinner("Opening project url...", async (spinner) => {
         await open(branch.links.html);
-        spinner.succeed(
-          `Project url opened in browser:\n${branch.links.html}`,
-        );
+        spinner.succeed(`Project url opened in browser:\n${branch.links.html}`);
       });
     } else console.log(`${branch.links.html}`);
   });
