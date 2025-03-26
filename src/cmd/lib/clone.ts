@@ -29,7 +29,7 @@ export const cloneCmd = new Command()
     `vt clone username/projectName new-directory`,
   )
   .action((_, projectUri: string, rootPath?: string, branchName?: string) => {
-    doWithSpinner("Cloning project...", async (spinner) => {
+    doWithSpinner("Cloning project...", async ({ succeed }) => {
       let targetDir = rootPath || Deno.cwd();
 
       const { ownerName, projectName } = parseProjectUri(
@@ -59,7 +59,7 @@ export const cloneCmd = new Command()
       await vt.clone(targetDir);
       await vt.addEditorFiles();
 
-      spinner.succeed(
+      succeed(
         `Project ${ownerName}/${projectName} cloned to "./${
           relative(Deno.cwd(), targetDir)
         }"`,

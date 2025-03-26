@@ -107,19 +107,19 @@ export function formatStatus(
 export function displayFileStateChanges(
   fileStateChanges: FileState,
   options: {
+    headerText: string;
+    summaryPrefix: string;
+    emptyMessage: string;
     showEmpty?: boolean;
-    headerText?: string;
-    summaryPrefix?: string;
-    emptyMessage?: string;
     includeSummary?: boolean;
     includeTypes?: boolean;
-  } = {},
+  },
 ): void {
   const {
-    showEmpty = true,
     headerText,
-    summaryPrefix = "Local Changes:",
-    emptyMessage = "No local changes. Local working tree clean.",
+    summaryPrefix,
+    emptyMessage,
+    showEmpty = true,
     includeSummary = true,
     includeTypes = true,
   } = options;

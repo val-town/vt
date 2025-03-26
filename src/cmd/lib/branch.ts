@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import sdk from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import ValTown from "@valtown/sdk";
+import type ValTown from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -12,7 +12,7 @@ export const branchCmd = new Command()
   .description("List all project branches")
   .example("List all branches", "vt branch")
   .action(() => {
-    doWithSpinner("Loading branches...", async (spinner) => {
+    doWithSpinner("Loading branches...", async ({ spinner }) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
       const meta = await vt.getMeta().loadConfig();
 

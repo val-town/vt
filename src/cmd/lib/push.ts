@@ -20,32 +20,27 @@ export const pushCmd = new Command()
       dryRun
         ? "Checking for local changes that would be pushed..."
         : "Pushing local changes...",
-      async (spinner) => {
+      async ({ spinner, succeed }) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-        // Get changes that would be pushed using the dry run option
-        const fileStateChanges = await vt.status();
-
+        // Note that we must wait until we have retrieved the status before
+        // stopping the spinner
         if (dryRun) {
+          // Perform a dry push to get what would be pushed.
+          const statusResult = await vt.push({ dryRun: true });
           spinner.stop();
-          displayFileStateChanges(fileStateChanges, {
+
+          displayFileStateChanges(statusResult, {
             headerText: "Changes that would be pushed:",
             summaryPrefix: "Would push:",
             emptyMessage: "No changes to push",
             includeSummary: true,
           });
-          console.log();
 
-          if (await vt.isDirty({ fileStateChanges })) {
-            spinner.info(
-              " Note that pushing is a forceful operation." +
-                "\n   All remote changes will be made to match the local state.",
-            );
-            console.log();
-          }
-          spinner.succeed(noChangesDryRunMsg);
+          console.log();
+          succeed(noChangesDryRunMsg);
         } else {
-          // Perform the actual push
+          // Perform the actual push, store the status, and then report it.
           const statusResult = await vt.push();
           spinner.stop();
 
@@ -56,9 +51,9 @@ export const pushCmd = new Command()
             emptyMessage: "Nothing new to push, everything is up to date.",
             includeSummary: true,
           });
-          console.log();
 
-          spinner.succeed("Successfully pushed local changes");
+          console.log();
+          succeed("Successfully pushed local changes");
         }
       },
     );

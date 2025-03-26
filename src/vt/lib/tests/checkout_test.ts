@@ -1,4 +1,3 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk, { branchExists } from "~/sdk.ts";
 import { checkout } from "~/vt/lib/checkout.ts";
@@ -6,6 +5,7 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
 
 Deno.test({
   name: "test branch checkout",
@@ -394,7 +394,8 @@ Deno.test({
 
       await t.step("test dry run for file modification", async () => {
         await doWithTempDir(async (tempDir) => {
-          // Checkout main branch to temp dir first (actual checkout, not dry run)
+          // Checkout main branch to temp dir first (actual checkout, not dry
+          // run)
           await checkout({
             targetDir: tempDir,
             projectId: project.id,
@@ -422,7 +423,8 @@ Deno.test({
           assertEquals(result.fileStateChanges.modified.length, 1);
           assertEquals(result.fileStateChanges.modified[0].path, "main.txt");
 
-          // Verify the file still has the local modification (wasn't actually changed)
+          // Verify the file still has the local modification (wasn't actually
+          // changed)
           const fileContent = await Deno.readTextFile(localFilePath);
           assertEquals(
             fileContent,

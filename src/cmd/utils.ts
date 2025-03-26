@@ -1,33 +1,43 @@
-import ValTown from "@valtown/sdk";
 import Kia from "kia";
-import { sentenceCase } from "~/utils.ts";
 
 /**
- * Get a spinner and make sure it stops before exiting.
+ * Execute a function with a spinner, providing progress feedback.
  *
- * @param spinnerText - Initial spinner text
- * @param callback - Function to execute with the spinner
- * @param options - Optional configuration
- * @param options.autostart - Whether to auto-start the spinner (defaults to true)
+ * @param spinnerText - Initial text to display on the spinner
+ * @param callback - Function to execute with spinner controls
+ * @param options - Optional configuration for spinner behavior
+ * @returns The result of the callback function
  */
-export async function doWithSpinner(
+export async function doWithSpinner<T>(
   spinnerText: string,
-  callback: (spinner: Kia) => Promise<unknown> | unknown,
-  options?: { autostart?: boolean },
-) {
+  callback: (context: {
+    spinner: Kia;
+    error: (msg: string, status?: number) => void;
+    succeed: (msg: string) => void;
+  }) => Promise<T> | T,
+  options: { autostart?: boolean } = {},
+): Promise<T> {
+  const { autostart = true } = options;
   let spinner: Kia | undefined;
-  let status = 0;
+
   try {
     spinner = new Kia(spinnerText);
-    if (options?.autostart !== false) spinner.start();
-    return await callback(spinner);
-  } catch (e) {
-    if (e instanceof ValTown.APIError) {
-      spinner?.fail(sentenceCase(e.message.replace(/^\d+\s+/, "")));
-    } else if (e instanceof Error) spinner?.fail(e.message);
-    status = 1;
+
+    if (autostart) {
+      spinner.start();
+    }
+
+    const error = (msg: string, statusCode = 1) => {
+      spinner?.fail(msg);
+      Deno.exit(statusCode);
+    };
+
+    const succeed = (msg: string) => {
+      spinner?.succeed(msg);
+    };
+
+    return await callback({ spinner, error, succeed });
   } finally {
-    if (spinner && spinner.isSpinning()) spinner.stop();
-    Deno.exit(status);
+    if (spinner?.isSpinning()) spinner.stop();
   }
 }

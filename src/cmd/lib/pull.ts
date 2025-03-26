@@ -8,6 +8,7 @@ import {
   noChangesDryRunMsg,
 } from "~/cmd/lib/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
+import { Confirm } from "@cliffy/prompt";
 
 export const pullCmd = new Command()
   .name("pull")
@@ -23,55 +24,69 @@ export const pullCmd = new Command()
       dryRun
         ? "Checking for remote changes that would be pulled..."
         : "Pulling latest changes...",
-      async (spinner) => {
+      async ({ spinner, succeed }) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-        // Get the status manually so we don't need to re-fetch it for the pull
-        const statusResult = await vt.status();
-        if (!force && await vt.isDirty({ fileStateChanges: statusResult })) {
-          if (!dryRun) {
-            throw new Error(dirtyErrorMsg("pull"));
-          } else {
+        // Always get changes that would be pulled using dry run
+        const fileStateChanges = await vt.pull({ dryRun: true });
+
+        // Helper function to display file state changes and add a newline
+        const displayChanges = (isDone: boolean) => {
+          const headerText = isDone
+            ? "Changes pulled:"
+            : "Changes that would be pulled:";
+          const summaryPrefix = isDone ? "Pulled:" : "Would pull:";
+
+          displayFileStateChanges(fileStateChanges, {
+            headerText,
+            summaryPrefix,
+            emptyMessage: isDone
+              ? "No changes were pulled"
+              : "No changes to pull",
+            includeTypes: !dryRun,
+            includeSummary: true,
+          });
+          console.log();
+        };
+
+        // Check if dirty
+        const isDirty = await vt.isDirty({ fileStateChanges });
+
+        if (isDirty && !force) {
+          spinner.stop();
+
+          // Display what would be pulled when dirty
+          displayChanges(false);
+
+          if (dryRun) {
             spinner.warn(
               colors.red("Current local state is dirty.") +
                 " A " + colors.yellow(colors.bold("`pull -f`")) +
                 " is needed to pull.",
             );
             console.log();
+            succeed(noChangesDryRunMsg);
+            return;
           }
+
+          // Ask for confirmation to proceed despite dirty state
+          const shouldProceed = await Confirm.prompt({
+            message: dirtyErrorMsg("pull"),
+            default: false,
+          });
+          if (!shouldProceed) Deno.exit(0); // This is what they wanted
         }
 
-        // Get changes that would be pulled using the dry run option
-        const fileStateChanges = await vt.pull({ dryRun: true });
-
-        // Display the file changes
         if (dryRun) {
           spinner.stop();
-          displayFileStateChanges(fileStateChanges, {
-            headerText: "Changes that would be pulled:",
-            summaryPrefix: "Would pull:",
-            emptyMessage: "No changes to pull",
-            includeTypes: false,
-            includeSummary: true,
-          });
-          console.log();
-
-          spinner.succeed(noChangesDryRunMsg);
+          displayChanges(false);
+          succeed(noChangesDryRunMsg);
         } else {
           // Perform the actual pull
           await vt.pull();
           spinner.stop();
-
-          // Display the changes that were pulled
-          displayFileStateChanges(fileStateChanges, {
-            headerText: "Changes pulled:",
-            summaryPrefix: "Pulled:",
-            emptyMessage: "No changes were pulled",
-            includeSummary: true,
-          });
-          console.log();
-
-          spinner.succeed("Successfully pulled the latest changes");
+          displayChanges(true);
+          succeed("Successfully pulled the latest changes");
         }
       },
     );

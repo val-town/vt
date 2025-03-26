@@ -17,16 +17,10 @@ export async function branchExists(
   projectId: string,
   branchName: string,
 ): Promise<boolean> {
-  try {
-    // Use the existing function to try to find the branch
-    await branchIdToBranch(projectId, branchName);
-    // If we get here, the branch was found
-    return true;
-  } catch (e) {
-    // If the error is NotFound, the branch doesn't exist
-    if (e instanceof Deno.errors.NotFound) return false;
-    else throw e;
+  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+    if (branch.name == branchName) return true;
   }
+  return false;
 }
 
 /**
