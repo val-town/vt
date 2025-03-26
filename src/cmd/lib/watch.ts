@@ -123,7 +123,7 @@ export const watchCmd = new Command()
                 displayFileStateChanges(fileStateChanges, {
                   emptyMessage: "No changes detected. Continuing to watch...",
                   headerText: "New changes detected",
-                  summaryPrefix: "Pushed:",
+                  summaryText: "Pushed:",
                 });
                 console.log();
                 console.log(watchingForChangesLine());

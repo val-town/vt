@@ -38,8 +38,8 @@ export const pullCmd = new Command()
           const summaryPrefix = isDone ? "Pulled:" : "Would pull:";
 
           displayFileStateChanges(fileStateChanges, {
-            headerText,
-            summaryPrefix,
+            headerText: headerText,
+            summaryText: summaryPrefix,
             emptyMessage: isDone
               ? "No changes were pulled, local state is up to date"
               : "No changes to pull, local state is up to date",

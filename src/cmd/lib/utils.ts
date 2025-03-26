@@ -108,7 +108,7 @@ export function displayFileStateChanges(
   fileStateChanges: FileState,
   options: {
     headerText: string;
-    summaryPrefix: string;
+    summaryText?: string;
     emptyMessage: string;
     showEmpty?: boolean;
     includeSummary?: boolean;
@@ -116,8 +116,8 @@ export function displayFileStateChanges(
   },
 ): void {
   const {
-    headerText,
-    summaryPrefix,
+    headerText: headerText,
+    summaryText: summaryPrefix = "Summary:",
     emptyMessage,
     showEmpty = true,
     includeSummary = true,

@@ -35,7 +35,7 @@ export const pushCmd = new Command()
 
           displayFileStateChanges(statusResult, {
             headerText: "Changes that would be pushed:",
-            summaryPrefix: "Would push:",
+            summaryText: "Would push:",
             emptyMessage: nothingNewToPushMsg,
             includeSummary: true,
           });
@@ -49,8 +49,7 @@ export const pushCmd = new Command()
 
           // Display the changes that were pushed
           displayFileStateChanges(statusResult, {
-            headerText: "Changes pushed:",
-            summaryPrefix: "Changes pushed:",
+            headerText: "Pushed:",
             emptyMessage: nothingNewToPushMsg,
             includeSummary: true,
           });

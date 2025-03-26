@@ -98,7 +98,7 @@ export const checkoutCmd = new Command()
                     ? `creating branch "${targetBranch}"`
                     : `checking out "${targetBranch}"`
                 }:`,
-                summaryPrefix: "Would change:",
+                summaryText: "Would change:",
                 emptyMessage: "No changes would be made to local state",
                 includeSummary: true,
               });
@@ -138,7 +138,7 @@ export const checkoutCmd = new Command()
                     ? `creating branch "${targetBranch}"`
                     : `checking out "${targetBranch}"`
                 }:`,
-                summaryPrefix: "Would change:",
+                summaryText: "Would change:",
                 emptyMessage: "No changes would be made to local state",
                 includeSummary: true,
               });
@@ -158,7 +158,7 @@ export const checkoutCmd = new Command()
             // Inline display of actual checkout changes
             displayFileStateChanges(checkoutResult.fileStateChanges, {
               headerText: "Changes made to local state during checkout:",
-              summaryPrefix: "Changed:",
+              summaryText: "Changed:",
               emptyMessage: "No changes were made to local state",
               includeSummary: true,
             });

@@ -43,7 +43,7 @@ export const statusCmd = new Command()
       displayFileStateChanges(await vt.status(), {
         headerText: "Local Changes:",
         emptyMessage: "No changes locally to push.",
-        summaryPrefix: "Changes to be pushed:",
+        summaryText: "Changes to be pushed:",
       });
     });
   });
