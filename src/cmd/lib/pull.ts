@@ -24,7 +24,7 @@ export const pullCmd = new Command()
       dryRun
         ? "Checking for remote changes that would be pulled..."
         : "Pulling latest changes...",
-      async ({ spinner, succeed }) => {
+      async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
         // Always get changes that would be pulled using dry run
@@ -41,15 +41,16 @@ export const pullCmd = new Command()
             headerText,
             summaryPrefix,
             emptyMessage: isDone
-              ? "No changes were pulled"
-              : "No changes to pull",
+              ? "No changes were pulled, local state is up to date"
+              : "No changes to pull, local state is up to date",
             includeTypes: !dryRun,
             includeSummary: true,
           });
           console.log();
         };
 
-        // Check if dirty
+        // Check if dirty, then early exit if it's dirty and they don't
+        // want to proceed. If in force mode don't do this check.
         const isDirty = await vt.isDirty({ fileStateChanges });
 
         if (isDirty && !force) {
@@ -65,7 +66,7 @@ export const pullCmd = new Command()
                 " is needed to pull.",
             );
             console.log();
-            succeed(noChangesDryRunMsg);
+            spinner.succeed(noChangesDryRunMsg);
             return;
           }
 
@@ -80,13 +81,13 @@ export const pullCmd = new Command()
         if (dryRun) {
           spinner.stop();
           displayChanges(false);
-          succeed(noChangesDryRunMsg);
+          spinner.succeed(noChangesDryRunMsg);
         } else {
           // Perform the actual pull
           await vt.pull();
           spinner.stop();
           displayChanges(true);
-          succeed("Successfully pulled the latest changes");
+          spinner.succeed("Successfully pulled the latest changes");
         }
       },
     );

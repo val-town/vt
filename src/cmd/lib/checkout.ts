@@ -61,7 +61,7 @@ export const checkoutCmd = new Command()
         dryRun
           ? "Checking for changes that would occur..."
           : "Checking out branch...",
-        async ({ spinner, succeed }) => {
+        async (spinner) => {
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
           const config = await vt.getMeta().loadConfig();
 
@@ -166,7 +166,7 @@ export const checkoutCmd = new Command()
 
             // Report the success, which is either a successful switch or a
             // successful fork
-            succeed(
+            spinner.succeed(
               isNewBranch
                 ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
                 : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,

@@ -12,7 +12,7 @@ export const branchCmd = new Command()
   .description("List all project branches")
   .example("List all branches", "vt branch")
   .action(() => {
-    doWithSpinner("Loading branches...", async ({ spinner }) => {
+    doWithSpinner("Loading branches...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
       const meta = await vt.getMeta().loadConfig();
 

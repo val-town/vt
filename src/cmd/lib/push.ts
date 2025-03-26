@@ -7,6 +7,9 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 
+const nothingNewToPushMsg =
+  "No local changes to push, remote state is up to date";
+
 export const pushCmd = new Command()
   .name("push")
   .description("Push local changes to a val town project")
@@ -20,7 +23,7 @@ export const pushCmd = new Command()
       dryRun
         ? "Checking for local changes that would be pushed..."
         : "Pushing local changes...",
-      async ({ spinner, succeed }) => {
+      async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
         // Note that we must wait until we have retrieved the status before
@@ -33,12 +36,12 @@ export const pushCmd = new Command()
           displayFileStateChanges(statusResult, {
             headerText: "Changes that would be pushed:",
             summaryPrefix: "Would push:",
-            emptyMessage: "No changes to push",
+            emptyMessage: nothingNewToPushMsg,
             includeSummary: true,
           });
 
           console.log();
-          succeed(noChangesDryRunMsg);
+          spinner.succeed(noChangesDryRunMsg);
         } else {
           // Perform the actual push, store the status, and then report it.
           const statusResult = await vt.push();
@@ -48,12 +51,12 @@ export const pushCmd = new Command()
           displayFileStateChanges(statusResult, {
             headerText: "Changes pushed:",
             summaryPrefix: "Changes pushed:",
-            emptyMessage: "Nothing new to push, everything is up to date.",
+            emptyMessage: nothingNewToPushMsg,
             includeSummary: true,
           });
 
           console.log();
-          succeed("Successfully pushed local changes");
+          spinner.succeed("Successfully pushed local changes");
         }
       },
     );

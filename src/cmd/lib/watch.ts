@@ -47,14 +47,14 @@ export const watchStopCmd = new Command()
     const vt = VTClient.from(cwd);
     doWithSpinner(
       "Stopping the watch process...",
-      async ({ succeed }) => {
+      async (spinner) => {
         try {
           const pidStr = await vt.getMeta().getLockFile();
           if (pidStr) {
             const pid = parseInt(pidStr, 10);
             if (!isNaN(pid)) {
               Deno.kill(pid);
-              succeed(`Stopped watch process with PID: ${pid}`);
+              spinner.succeed(`Stopped watch process with PID: ${pid}`);
             } else {
               throw new Error("Invalid PID in lockfile.");
             }
@@ -77,7 +77,7 @@ export const watchCmd = new Command()
     { default: 300 },
   )
   .action((options) => {
-    doWithSpinner("Starting watch...", async ({ spinner }) => {
+    doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display

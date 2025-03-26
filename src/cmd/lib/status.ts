@@ -14,7 +14,7 @@ export const statusCmd = new Command()
   .name("status")
   .description("Show the working tree status")
   .action(() => {
-    doWithSpinner("Checking status...", async ({ spinner }) => {
+    doWithSpinner("Checking status...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       const {
