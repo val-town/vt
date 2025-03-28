@@ -422,8 +422,10 @@ export default class VTClient {
         result = await checkout(forkParams);
 
         if (!baseParams.dryRun) {
-          config.currentBranch = result.toBranch!.id;
-          config.version = result.toBranch!.version;
+          if (result.toBranch) {
+            config.currentBranch = result.toBranch.id;
+            config.version = result.toBranch.version;
+          }
         }
       } else {
         // Checking out an existing branch
@@ -446,9 +448,14 @@ export default class VTClient {
 
         result = await checkout(branchParams);
 
+        // Don't touch the config if it's  a dry run
         if (!baseParams.dryRun) {
-          config.currentBranch = result.toBranch!.id;
-          config.version = branchParams.version!;
+          if (result.toBranch) {
+            config.currentBranch = result.toBranch.id;
+          }
+          if (branchParams.version) {
+            config.version = branchParams.version;
+          }
         }
       }
 

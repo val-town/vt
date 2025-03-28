@@ -81,15 +81,17 @@ export const checkoutCmd = new Command()
             // Always do a dry checkout first to check for changes
             const dryCheckoutResult = await vt.checkout(
               branch || existingBranchName!,
-              { forkedFromId: config.currentBranch, dryRun: true },
+              {
+                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                dryRun: true,
+              },
             );
 
             // Check if dirty, then early exit if it's dirty and they don't
             // want to proceed. If in force mode don't do this check.
-            const isDirty = await vt.isDirty({
-              fileStateChanges: dryCheckoutResult.fileStateChanges,
-            });
-            if (isDirty && !force) {
+            const isDirty = await vt.isDirty();
+
+            if (isDirty && !force && !dryRun) {
               spinner.stop();
 
               // Inline display of what would be changed when dirty
@@ -121,16 +123,6 @@ export const checkoutCmd = new Command()
             // If this is a dry run then report the changes and exit early.
             if (dryRun) {
               spinner.stop();
-              if (isDirty) {
-                spinner.warn(
-                  colors.red("Current local state is dirty.") +
-                    " A " + colors.yellow(colors.bold("`checkout -f`")) +
-                    " is needed to checkout.",
-                );
-                console.log();
-                spinner.succeed(noChangesDryRunMsg);
-                return;
-              }
 
               // Inline display of dry run changes
               displayFileStateChanges(dryCheckoutResult.fileStateChanges, {
@@ -143,6 +135,7 @@ export const checkoutCmd = new Command()
                 emptyMessage: noChangesToStateMsg,
                 includeSummary: true,
               });
+              console.log();
 
               spinner.succeed(noChangesDryRunMsg);
               return;
@@ -151,7 +144,10 @@ export const checkoutCmd = new Command()
             // Perform the actual checkout
             const checkoutResult = await vt.checkout(
               targetBranch,
-              { forkedFromId: config.currentBranch, dryRun: false },
+              {
+                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                dryRun: false,
+              },
             );
 
             spinner.stop();
@@ -163,7 +159,8 @@ export const checkoutCmd = new Command()
               showEmpty: false,
               includeSummary: true,
             });
-            console.log();
+            // If no changes nothing was printed, so we don't need to log state info
+            if (checkoutResult.fileStateChanges.changes() > 0) console.log();
 
             // Report the success, which is either a successful switch or a
             // successful fork
