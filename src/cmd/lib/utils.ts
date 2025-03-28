@@ -96,20 +96,20 @@ export function formatStatus(
  *
  * @param fileStateChanges - The file state changes, containing modified, created, and deleted files
  * @param options - Display options
- * @param options.showEmpty - Whether to show output when there are no changes (default: true)
- * @param options.headerText - Custom header text to display before file changes (optional)
- * @param options.summaryPrefix - Text to show before the summary (default: "Changes:")
- * @param options.emptyMessage - Message to show when there are no changes (default: "No changes")
- * @param options.includeSummary - Whether to display the summary (default: true)
- * @param options.includeTypes - Whether to display the (detected) types of the files (default: true)
- * @returns The total number of changes
+ * @param options.headerText - Custom header text to display before file changes
+ * @param [options.summaryText="Summary:"] - Text to show before the summary
+ * @param options.emptyMessage - Message to show when there are no changes
+ * @param [options.showEmpty=true] - Whether to show output when there are no changes
+ * @param [options.includeSummary=true] - Whether to display the summary
+ * @param [options.includeTypes=true] - Whether to display the (detected) types of the files
+ * @returns void
  */
 export function displayFileStateChanges(
   fileStateChanges: FileState,
   options: {
     headerText: string;
     summaryText?: string;
-    emptyMessage: string;
+    emptyMessage?: string;
     showEmpty?: boolean;
     includeSummary?: boolean;
     includeTypes?: boolean;

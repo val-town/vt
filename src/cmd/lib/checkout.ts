@@ -11,6 +11,7 @@ import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 
 const toListBranchesCmd = "Use `vt branch` to list branches.";
+const noChangesToStateMsg = "No changes were made to local state";
 
 export const checkoutCmd = new Command()
   .name("checkout")
@@ -99,7 +100,7 @@ export const checkoutCmd = new Command()
                     : `checking out "${targetBranch}"`
                 }:`,
                 summaryText: "Would change:",
-                emptyMessage: "No changes would be made to local state",
+                emptyMessage: noChangesToStateMsg,
                 includeSummary: true,
               });
               console.log();
@@ -139,7 +140,7 @@ export const checkoutCmd = new Command()
                     : `checking out "${targetBranch}"`
                 }:`,
                 summaryText: "Would change:",
-                emptyMessage: "No changes would be made to local state",
+                emptyMessage: noChangesToStateMsg,
                 includeSummary: true,
               });
 
@@ -159,7 +160,7 @@ export const checkoutCmd = new Command()
             displayFileStateChanges(checkoutResult.fileStateChanges, {
               headerText: "Changes made to local state during checkout:",
               summaryText: "Changed:",
-              emptyMessage: "No changes were made to local state",
+              showEmpty: false,
               includeSummary: true,
             });
             console.log();
