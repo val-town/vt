@@ -63,9 +63,7 @@ export async function doWithSpinner(
     // Fail the spinner with the cleaned error message
     spinner?.fail(cleanedErrorMessage);
 
-    if (exitOnError) {
-      throw e;
-    }
+    if (exitOnError) Deno.exit(1);
   } finally {
     // Ensure spinner is stopped in all scenarios
     if (spinner?.isSpinning()) {
