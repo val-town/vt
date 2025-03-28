@@ -3,10 +3,45 @@ import { user } from "~/sdk.ts";
 import { ALWAYS_IGNORE_PATTERNS, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { checkDirectory } from "~/utils.ts";
 import { relative } from "@std/path";
 import * as join from "@std/path/join";
 import { doWithSpinner } from "~/cmd/utils.ts";
+import { shouldIgnore } from "~/vt/lib/paths.ts";
+
+async function checkDirectory(
+  rootPath: string,
+  options: { gitignoreRules?: string[] } = {},
+): Promise<boolean> {
+  const { gitignoreRules = [] } = options;
+
+  try {
+    const stat = await Deno.lstat(rootPath);
+
+    if (!stat.isDirectory) {
+      throw new Deno.errors.NotADirectory(
+        `"${rootPath}" exists but is not a directory.`,
+      );
+    }
+  } catch (e) {
+    // If directory doesn't exist, create it
+    if (e instanceof Deno.errors.NotFound) {
+      await Deno.mkdir(rootPath, { recursive: true });
+      return true; // Directory is newly created so we know it's empty
+    }
+    throw e; // Re-throw any other errors
+  }
+
+  // Check if existing directory is empty (considering ignored patterns)
+  for await (const entry of Deno.readDir(rootPath)) {
+    if (!shouldIgnore(entry.name, gitignoreRules)) {
+      throw new Deno.errors.AlreadyExists(
+        `"${rootPath}" already exists and is not empty.`,
+      );
+    }
+  }
+
+  return true; // Directory exists and is empty (after applying ignore rules)
+}
 
 export const cloneCmd = new Command()
   .name("clone")

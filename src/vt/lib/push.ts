@@ -107,8 +107,8 @@ export async function push({
           },
         );
       }
-    } catch (error) {
-      assertAllowedUploadError(error);
+    } catch (e) {
+      assertAllowedUploadError(e);
     }
   }
 
@@ -149,8 +149,8 @@ async function ensureValtownDir(
         projectId,
         { path: currentPath, type: "directory", branch_id: branchId },
       );
-    } catch (error) {
-      assertAllowedUploadError(error);
+    } catch (e) {
+      assertAllowedUploadError(e);
     }
   }
 }

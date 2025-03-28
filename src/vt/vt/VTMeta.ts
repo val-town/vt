@@ -7,7 +7,7 @@ import {
   META_LOCK_FILE_NAME,
 } from "~/consts.ts";
 import * as path from "@std/path";
-import { ensureDir } from "@std/fs";
+import { ensureDir, exists } from "@std/fs";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -139,18 +139,15 @@ export default class VTMeta {
   }
 
   /**
-   * Create a lock file with a PID of the VT process watching the cloned active
-   * directory.
+   * Create a lock file with a PID of the running vt process
    *
-   * @return {Promise<string|null>} A promise resolving to the PID of the running watcher, or null if no watchers are running
+   * @return {Promise<string|null>} A promise resolving to the PID of the running vt, or null if vt is not running
    */
   public async getLockFile(): Promise<string | null> {
-    try {
-      return await Deno.readTextFile(this.lockFilePath());
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) return null;
-      else throw error;
-    }
+    const fileExists = await exists(this.lockFilePath());
+    if (!fileExists) return null;
+
+    return await Deno.readTextFile(this.lockFilePath());
   }
 
   /**
@@ -170,6 +167,7 @@ export default class VTMeta {
       } else throw e;
     }
 
+    // Update the lock with ourself
     await Deno.writeTextFile(this.lockFilePath(), Deno.pid.toString());
   }
 

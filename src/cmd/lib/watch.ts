@@ -2,42 +2,13 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
-import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayFileStateChanges } from "~/cmd/lib/utils.ts";
+import { FIRST_VERSION_NUMBER } from "~/consts.ts";
+import {
+  displayFileStateChanges,
+  getVersionRangeStr,
+} from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
-
-// Formats a version range string based on the first, current, and latest
-// versions.
-function getVersionRangeStr(
-  firstVersion: number,
-  currentVersion: number,
-  latestVersion: number,
-): string {
-  if (currentVersion === latestVersion) {
-    return colors.cyan(currentVersion.toString());
-  }
-
-  const versions = [firstVersion.toString(), currentVersion.toString()];
-  if (latestVersion && currentVersion !== latestVersion) {
-    versions.push(latestVersion.toString());
-  }
-
-  const formattedVersions = versions
-    .map((v) => v === currentVersion.toString() ? colors.cyan(v) : v);
-
-  return formattedVersions.join("..");
-}
-
-// Formats a file path with a colored status prefix for display.
-export function formatStatus(
-  path: string,
-  status: keyof FileState,
-): string {
-  const config = STATUS_STYLES[status] || { prefix: " ", color: colors.blue };
-  return `${config.color(config.prefix)} ${path}`;
-}
 
 export const watchStopCmd = new Command()
   .name("watch stop")

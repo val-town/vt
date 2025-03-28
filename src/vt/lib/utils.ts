@@ -155,14 +155,10 @@ export async function ensureValtownDir(
           content: null,
         },
       );
-    } catch (error) {
-      if (error instanceof ValTown.APIError) {
-        if (error.status != 409) {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
+    } catch (e) {
+      if (e instanceof ValTown.APIError) {
+        if (e.status != 409) throw e;
+      } else throw e;
     }
   }
 }

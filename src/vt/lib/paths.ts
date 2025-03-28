@@ -1,5 +1,6 @@
 import {
   DEFAULT_VAL_TYPE,
+  FIRST_VERSION_NUMBER,
   type ProjectItemType,
   RECENT_VERSION_COUNT,
 } from "~/consts.ts";
@@ -37,7 +38,11 @@ async function getProjectItemType(
   filePath: string,
 ): Promise<ProjectItemType> {
   // Preserve the type if the file was deleted recently and then recreated
-  for (let i = version || 1; i > (version || 1) - RECENT_VERSION_COUNT; i--) {
+  for (
+    let i = version || FIRST_VERSION_NUMBER;
+    i > (version || FIRST_VERSION_NUMBER) - RECENT_VERSION_COUNT;
+    i--
+  ) {
     try {
       return await filePathToFile(projectId, branchId, version, filePath)
         .then((resp) => resp.type);

@@ -17,6 +17,7 @@ import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
+import { exists } from "@std/fs";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -105,22 +106,20 @@ export default class VTClient {
 
     const branch = await branchIdToBranch(projectId, branchName);
 
-    version = version ||
+    version = version ??
       (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
 
     const vt = new VTClient(rootPath);
 
-    try {
-      await Deno.stat(vt.getMeta().configFilePath);
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        await vt.getMeta().saveConfig({
-          projectId,
-          currentBranch: branch.id,
-          version: version,
-        });
-      } else throw error;
+    if ((await exists(vt.getMeta().configFilePath))) {
+      throw new Error("VT project already initialized in this directory");
     }
+
+    await vt.getMeta().saveConfig({
+      projectId,
+      currentBranch: branch.id,
+      version: version,
+    });
 
     return vt;
   }
@@ -174,6 +173,8 @@ export default class VTClient {
 
     // Process events and yield results
     for await (const event of watcher) {
+      if (event.kind === "access") return; // Nothing to do
+
       try {
         // Debounce - only push if enough time has elapsed since last push
         const now = Date.now();
@@ -182,8 +183,6 @@ export default class VTClient {
         lastPushed = now; // update debouce counter
         yield await this.push(); // yields the status retreived
       } catch (e) {
-        if (event.kind === "access") return; // Nothing to do
-
         // Handle case where the file was deleted before we could push it
         if (e instanceof Deno.errors.NotFound) {
           // The file no longer exists at the time of uploading. It could've
@@ -458,11 +457,11 @@ export default class VTClient {
   }
 
   /**
-   * Check if the working directory has uncommitted changes.
+   * Check if the working directory is dirty relative to remote.
    *
    * @param {Object} options - Optional parameters
    * @param {FileStateChanges} options.fileStateChanges - Optional pre-fetched file state changes to use
-   * @returns {Promise<boolean>} True if there are uncommitted changes
+   * @returns {Promise<boolean>} True if local state is dirty
    */
   public async isDirty(
     options?: { fileStateChanges?: FileState },

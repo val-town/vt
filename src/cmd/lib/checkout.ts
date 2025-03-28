@@ -10,7 +10,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 
-const toListBranches = "Use `vt branch` to list branches.";
+const toListBranchesCmd = "Use `vt branch` to list branches.";
 
 export const checkoutCmd = new Command()
   .name("checkout")
@@ -69,7 +69,7 @@ export const checkoutCmd = new Command()
           if (!branch && !existingBranchName) {
             throw new Error(
               "Branch name is required. Use -b to create a new branch " +
-                toListBranches,
+                toListBranchesCmd,
             );
           }
 
@@ -175,14 +175,14 @@ export const checkoutCmd = new Command()
             if (e instanceof ValTown.APIError && e.status === 409 && branch) {
               throw new Error(
                 `Branch "${branch}" already exists. Choose a new branch name. ` +
-                  toListBranches,
+                  toListBranchesCmd,
               );
             } else if (
               e instanceof Deno.errors.NotFound && existingBranchName
             ) {
               throw new Error(
                 `Branch "${existingBranchName}" does not exist in project. ` +
-                  toListBranches,
+                  toListBranchesCmd,
               );
             } else throw e;
           }

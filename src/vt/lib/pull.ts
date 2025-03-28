@@ -94,17 +94,17 @@ export function pull({
           const relativePath = relative(targetDir, entry.path);
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
           if (relativePath === "" || entry.path === targetDir) continue;
-          if (!files.has(relativePath)) {
-            await Deno.stat(entry.path)
-              .then((stat) =>
-                changes.insert({
-                  path: relativePath,
-                  status: "deleted",
-                  type: stat.isDirectory ? "directory" : "file",
-                  mtime: stat.mtime?.getTime()!,
-                })
-              );
-          }
+          if (files.has(relativePath)) continue;
+
+          await Deno.stat(entry.path)
+            .then((stat) =>
+              changes.insert({
+                path: relativePath,
+                status: "deleted",
+                type: stat.isDirectory ? "directory" : "file",
+                mtime: stat.mtime?.getTime()!,
+              })
+            );
         }
       } else {
         // In actual run mode, we scan the temp directory
@@ -112,21 +112,21 @@ export function pull({
           const relativePath = relative(tmpDir, entry.path);
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
           if (relativePath === "" || entry.path === tmpDir) continue;
-          if (!files.has(relativePath)) {
-            const stat = await Deno.stat(entry.path);
-            const fileStatus: FileStatus = {
-              path: relativePath,
-              status: "deleted",
-              type: stat.isDirectory ? "directory" : "file",
-              mtime: stat.mtime?.getTime()!,
-            };
-            changes.insert(fileStatus);
+          if (files.has(relativePath)) continue;
 
-            await Deno.remove(join(targetDir, relativePath), {
-              recursive: true,
-            });
-            await Deno.remove(join(tmpDir, relativePath), { recursive: true });
-          }
+          const stat = await Deno.stat(entry.path);
+          const fileStatus: FileStatus = {
+            path: relativePath,
+            status: "deleted",
+            type: stat.isDirectory ? "directory" : "file",
+            mtime: stat.mtime?.getTime()!,
+          };
+          changes.insert(fileStatus);
+
+          await Deno.remove(join(targetDir, relativePath), {
+            recursive: true,
+          });
+          await Deno.remove(join(tmpDir, relativePath), { recursive: true });
         }
       }
 

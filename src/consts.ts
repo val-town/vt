@@ -10,12 +10,6 @@ export const ALWAYS_IGNORE_PATTERNS: string[] = [
   ".env",
 ];
 
-export const DEFAULT_IGNORE_PATTERNS: string[] = [
-  "*~",
-  "*.swp",
-  ".env",
-];
-
 export const CONFIG_FILE_NAME = "vt.json";
 export const META_FOLDER_NAME = ".vt";
 export const META_IGNORE_FILE_NAME = ".vtignore";
