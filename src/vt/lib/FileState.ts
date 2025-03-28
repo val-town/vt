@@ -160,6 +160,66 @@ export class FileState {
   }
 
   /**
+   * Creates a new FileState with reversed creation and deletion states.
+   * Files that were created become deleted, and files that were deleted become created.
+   * Modified and not_modified files remain unchanged.
+   *
+   * @returns A new FileState with reversed creation and deletion states
+   */
+  public reversed(): FileState {
+    const reversedState = new FileState({
+      // Swap created and deleted
+      created: this.deleted.map((file) => ({ ...file, status: "created" })),
+      deleted: this.created.map((file) => ({ ...file, status: "deleted" })),
+      // Keep modified and not_modified as they are
+      modified: this.modified,
+      not_modified: this.not_modified,
+    });
+
+    return reversedState;
+  }
+
+  /**
+   * Creates a new FileState with only the specified status types included.
+   * If a status type is set to true, files with that status are included in the result.
+   * If a status type is set to false or omitted, files with that status are excluded.
+   *
+   * @param options - Object specifying which status types to include
+   * @returns A new FileState containing only the requested status types
+   */
+  public filtered(
+    options: Partial<Record<FileStatusType, boolean>>,
+  ): FileState {
+    const result = new FileState();
+
+    if (options.created) {
+      for (const file of this.created) {
+        result.insert(file);
+      }
+    }
+
+    if (options.deleted) {
+      for (const file of this.deleted) {
+        result.insert(file);
+      }
+    }
+
+    if (options.modified) {
+      for (const file of this.modified) {
+        result.insert(file);
+      }
+    }
+
+    if (options.not_modified) {
+      for (const file of this.not_modified) {
+        result.insert(file);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Checks if a file with the specified path exists in any status category.
    *
    * @param path - The file path to check

@@ -202,6 +202,14 @@ Deno.test({
         { branchId: mainBranch.id, name: "feature" },
       );
 
+      // Add a file to feature branch
+      await sdk.projects.files.create(project.id, {
+        path: "feature-only.txt",
+        content: "file on feature branch only",
+        branch_id: featureBranch.id,
+        type: "file",
+      });
+
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
         await checkout({
@@ -212,19 +220,26 @@ Deno.test({
           version: 1,
         });
 
-        // Create a file that's not tracked in any branch
+        // Create a file that's not tracked in any branch (should be preserved)
         const untrackedFile = "untracked.txt";
         await Deno.writeTextFile(
           join(tempDir, untrackedFile),
           "untracked content",
         );
 
-        // Create a file that's not in main branch but will be manually added to disk
-        // This simulates a file that exists locally but isn't in the "from" branch
-        const notInMainFile = "not-in-main.txt";
+        // Create a file that exists in feature branch but not main
+        // This simulates a file that exists locally but will be overwritten
+        const inFeatureOnlyFile = "feature-only.txt";
         await Deno.writeTextFile(
-          join(tempDir, notInMainFile),
-          "not in main branch",
+          join(tempDir, inFeatureOnlyFile),
+          "local version of feature file",
+        );
+
+        // Create a completely local file that's not in either branch
+        const notInEitherBranch = "not-in-either.txt";
+        await Deno.writeTextFile(
+          join(tempDir, notInEitherBranch),
+          "not in any branch",
         );
 
         // Checkout feature branch
@@ -236,22 +251,39 @@ Deno.test({
           version: 2,
         });
 
-        // Verify untracked file is preserved
+        // Verify untracked file is preserved (not in either branch)
         assert(
           await exists(join(tempDir, untrackedFile)),
           "untracked file should be preserved",
         );
 
-        // Verify file not in main branch is carried over
+        // Verify file that exists in target branch is overwritten
         assert(
-          await exists(join(tempDir, notInMainFile)),
-          "file not in 'from' branch should be carried over to destination branch",
+          await exists(join(tempDir, inFeatureOnlyFile)),
+          "feature branch file should exist",
         );
 
-        const content = await Deno.readTextFile(join(tempDir, notInMainFile));
+        const featureFileContent = await Deno.readTextFile(
+          join(tempDir, inFeatureOnlyFile),
+        );
         assertEquals(
-          content,
-          "not in main branch",
+          featureFileContent,
+          "file on feature branch only",
+          "local version should be overwritten by branch version",
+        );
+
+        // Verify file not in either branch is preserved
+        assert(
+          await exists(join(tempDir, notInEitherBranch)),
+          "file not in either branch should be preserved",
+        );
+
+        const localContent = await Deno.readTextFile(
+          join(tempDir, notInEitherBranch),
+        );
+        assertEquals(
+          localContent,
+          "not in any branch",
           "content should be preserved",
         );
       }, "vt_checkout_untracked_test_");

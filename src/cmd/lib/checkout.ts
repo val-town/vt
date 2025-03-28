@@ -87,24 +87,38 @@ export const checkoutCmd = new Command()
               },
             );
 
+            if (
+              dryCheckoutResult.toBranch &&
+              config.currentBranch === dryCheckoutResult.toBranch.id
+            ) {
+              spinner.warn(
+                `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,
+              );
+              return;
+            }
+
             // Check if dirty, then early exit if it's dirty and they don't
             // want to proceed. If in force mode don't do this check.
-            const isDirty = await vt.isDirty();
-
-            if (isDirty && !force && !dryRun) {
+            if (await vt.isDirty() && !force && !dryRun) {
               spinner.stop();
 
               // Inline display of what would be changed when dirty
-              displayFileStateChanges(dryCheckoutResult.fileStateChanges, {
-                headerText: `Changes that would occur when ${
-                  isNewBranch
-                    ? `creating branch "${targetBranch}"`
-                    : `checking out "${targetBranch}"`
-                }:`,
-                summaryText: "Would change:",
-                emptyMessage: noChangesToStateMsg,
-                includeSummary: true,
-              });
+              displayFileStateChanges(
+                dryCheckoutResult.fileStateChanges.filtered({
+                  deleted: true,
+                  modified: true,
+                }),
+                {
+                  headerText: `Dangerous changes that would occur when ${
+                    isNewBranch
+                      ? `creating branch "${targetBranch}"`
+                      : `checking out "${targetBranch}"`
+                  }:`,
+                  summaryText: "Would change:",
+                  emptyMessage: noChangesToStateMsg,
+                  includeSummary: true,
+                },
+              );
               console.log();
 
               // Ask for confirmation to proceed despite dirty state
@@ -118,6 +132,7 @@ export const checkoutCmd = new Command()
 
               // Exit if user doesn't want to proceed
               if (!shouldProceed) Deno.exit(0);
+              else console.log(); // Newline
             }
 
             // If this is a dry run then report the changes and exit early.

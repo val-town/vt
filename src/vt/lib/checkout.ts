@@ -175,7 +175,7 @@ export function checkout(
 
         // If the file was in the source branch but not in the target branch,
         // delete it. This preserves untracked files (files not in fromFiles)
-        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+        if (fromFiles.has(relativePath) || toFiles.has(relativePath)) {
           fileStateChanges.insert({
             path: relativePath,
             mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
@@ -191,32 +191,6 @@ export function checkout(
             await Deno.remove(entry.path, { recursive: true });
           }
         }
-        //
-        // const isModified = await isFileModified({
-        //   path: relativePath,
-        //   projectId: args.projectId,
-        //   branchId: checkoutBranchId || fromBranch.id,
-        //   version: checkoutVersion || fromBranch.version,
-        //   targetDir: args.targetDir,
-        //   projectMtime: await Deno.stat(entry.path)
-        //     .then((s) => s.mtime?.getTime()!),
-        //   localMtime: await Deno.stat(entry.path)
-        //     .then((s) => s.mtime?.getTime()!),
-        //   originalPath: entry.path,
-        // });
-        // if (isModified) {
-        //   fileStateChanges.insert({
-        //     path: relativePath,
-        //     mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
-        //     status: "modified",
-        //     type: await getProjectItemType(
-        //       args.projectId,
-        //       checkoutBranchId || fromBranch.id,
-        //       checkoutVersion || fromBranch.version,
-        //       relativePath,
-        //     ),
-        //   });
-        // }
       }
 
       // Return checkout result with branch information
