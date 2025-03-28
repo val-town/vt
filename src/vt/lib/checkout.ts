@@ -175,7 +175,7 @@ export function checkout(
 
         // If the file was in the source branch but not in the target branch,
         // delete it. This preserves untracked files (files not in fromFiles)
-        if (fromFiles.has(relativePath) || toFiles.has(relativePath)) {
+        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
           fileStateChanges.insert({
             path: relativePath,
             mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
