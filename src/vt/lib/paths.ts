@@ -12,6 +12,8 @@ import { compile as compileGitignore } from "gitignore-parser";
  * This function attempts to determine the type of a file within a project
  * based on its existing state on the server or its filename. The process...
  * 1. Check if the file already exists in the project at the specified path.
+ *    Check at the current version, or at a few versions back, in case the file
+ *    was deleted but then recreated, so we preserve the type.
  * 2. If the file does not exist, determine its type based on its file extension:
  *    - Files ending in .ts, .tsx, .js, or .jsx are considered "val" files.
  *    - Check the filename for keywords like "cron", "http", or "email" to
@@ -34,6 +36,7 @@ async function getProjectItemType(
   version: number | undefined = undefined,
   filePath: string,
 ): Promise<ProjectItemType> {
+  // Preserve the type if the file was deleted recently and then recreated
   for (let i = version || 1; i > (version || 1) - RECENT_VERSION_COUNT; i--) {
     try {
       return await filePathToFile(projectId, branchId, version, filePath)
