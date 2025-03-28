@@ -6,19 +6,32 @@ import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
+ * Parameters for pushing latest changes from a vt folder into a Val Town project.
+ *
+ * @param {string} targetDir The vt project root directory.
+ * @param {string} projectId The id of the project to upload to.
+ * @param {string} branchId The branch ID to upload file content to.
+ * @param {number} [version] The version to compute the file state changes against. Defaults to latest version.
+ * @param {string[]} [gitignoreRules] A list of gitignore rules.
+ * @param {FileState} [fileState] The current file state. If not provided, it will be computed.
+ * @param {boolean} [dryRun] If true, don't actually modify files on server, just report what would change.
+ */
+export interface PushParams {
+  targetDir: string;
+  projectId: string;
+  branchId: string;
+  version?: number;
+  fileState?: FileState;
+  gitignoreRules?: string[];
+  dryRun?: boolean;
+}
+
+/**
  * Pushes latest changes from a vt folder into a Val Town project. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
- * @param args Options for pull operation.
- * @param {string} args.targetDir The vt project root directory.
- * @param {string} args.projectId The id of the project to upload to.
- * @param {string} args.branchId The branch ID to upload file content to.
- * @param {number} [args.version] The version to compute the file state changes against. Defaults to latest version.
- * @param {string[]} args.gitignoreRules A list of gitignore rules.
- * @param {FileState} args.fileState The current file state. If not provided, it will be computed.
- * @param {boolean} [args.dryRun] If true, don't actually modify files on server, just report what would change.
- *
- * @returns Promise that resolves when the push operation is complete.
+ * @param {PushParams} args Options for push operation.
+ * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export async function push({
   targetDir,
@@ -28,15 +41,7 @@ export async function push({
   fileState,
   gitignoreRules,
   dryRun = false,
-}: {
-  targetDir: string;
-  projectId: string;
-  branchId: string;
-  version?: number;
-  fileState?: FileState;
-  gitignoreRules?: string[];
-  dryRun?: boolean;
-}): Promise<FileState> {
+}: PushParams): Promise<FileState> {
   version = version || await getLatestVersion(projectId, branchId);
 
   // Use provided status, or retrieve the status

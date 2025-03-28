@@ -2,9 +2,7 @@ import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
 import { API_KEY_KEY } from "~/consts.ts";
 
-const sdk = new ValTown({
-  bearerToken: Deno.env.get(API_KEY_KEY)!,
-});
+const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
 
 /**
  * Checks if a branch with the given name exists in a project.

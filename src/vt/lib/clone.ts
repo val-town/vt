@@ -9,16 +9,31 @@ import { join } from "@std/path";
 import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
 
 /**
+ * Parameters for cloning a project by downloading its files and directories to the specified
+ * target directory.
+ *
+ * @param {string} targetDir - The directory where the project will be cloned
+ * @param {string} projectId - The uuid of the project to be cloned
+ * @param {string} branchId - The branch ID to clone.
+ * @param {number} [version] - The version of the project to clone. Defaults to latest.
+ * @param {string[]} [gitignoreRules] - List of glob patterns for files to ignore
+ * @param {boolean} [dryRun] - If true, don't actually write files, just report what would change
+ */
+export interface CloneParams {
+  targetDir: string;
+  projectId: string;
+  branchId: string;
+  version?: number;
+  gitignoreRules?: string[];
+  dryRun?: boolean;
+}
+
+/**
  * Clones a project by downloading its files and directories to the specified
  * target directory.
  *
- * @param {object} args
- * @param {string} args.targetDir - The directory where the project will be cloned
- * @param {string} args.projectId - The uuid of the project to be cloned
- * @param {string} [args.branchId] - The branch ID to clone.
- * @param {number} [args.version] - The version of the project to clone. Defaults to latest.
- * @param {string[]} [args.gitignoreRules] - List of glob patterns for files to ignore
- * @param {boolean} [args.dryRun] - If true, don't actually write files, just report what would change
+ * @param {CloneParams} args - Options for the clone operation
+ * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export function clone({
   targetDir,
@@ -27,14 +42,7 @@ export function clone({
   version,
   gitignoreRules,
   dryRun = false,
-}: {
-  targetDir: string;
-  projectId: string;
-  branchId: string;
-  version?: number;
-  gitignoreRules?: string[];
-  dryRun?: boolean;
-}): Promise<FileState> {
+}: CloneParams): Promise<FileState> {
   return doAtomically(
     async (tmpDir) => {
       const changes = FileState.empty();
