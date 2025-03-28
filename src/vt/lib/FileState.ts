@@ -180,6 +180,45 @@ export class FileState {
   }
 
   /**
+   * Creates a new FileState with only the entries that pass the given predicate function.
+   *
+   * @param predicate - Function that tests each entry. Takes a FileStateEntry and returns a boolean.
+   * @returns A new FileState containing only entries that pass the predicate test
+   */
+  public filter(
+    predicate: (entry: FileStatus) => boolean,
+  ): FileState {
+    const result = new FileState();
+
+    // Check all categories and apply the predicate
+    for (const file of this.created) {
+      if (predicate(file)) {
+        result.insert(file);
+      }
+    }
+
+    for (const file of this.deleted) {
+      if (predicate(file)) {
+        result.insert(file);
+      }
+    }
+
+    for (const file of this.modified) {
+      if (predicate(file)) {
+        result.insert(file);
+      }
+    }
+
+    for (const file of this.not_modified) {
+      if (predicate(file)) {
+        result.insert(file);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Creates a new FileState with only the specified status types included.
    * If a status type is set to true, files with that status are included in the result.
    * If a status type is set to false or omitted, files with that status are excluded.

@@ -9,6 +9,8 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
+import { join } from "@std/path";
+import { existsSync } from "@std/fs";
 
 const toListBranchesCmd = "Use `vt branch` to list branches.";
 const noChangesToStateMsg = "No changes were made to local state";
@@ -99,40 +101,52 @@ export const checkoutCmd = new Command()
 
             // Check if dirty, then early exit if it's dirty and they don't
             // want to proceed. If in force mode don't do this check.
-            if (await vt.isDirty() && !force && !dryRun) {
-              spinner.stop();
+            if (!isNewBranch) {
+              if (await vt.isDirty() && !force && !dryRun) {
+                spinner.stop();
 
-              // Inline display of what would be changed when dirty
-              displayFileStateChanges(
-                dryCheckoutResult.fileStateChanges.filtered({
-                  deleted: true,
-                  modified: true,
-                }),
-                {
-                  headerText: `Dangerous changes that would occur when ${
-                    isNewBranch
-                      ? `creating branch "${targetBranch}"`
-                      : `checking out "${targetBranch}"`
-                  }:`,
-                  summaryText: "Would change:",
-                  emptyMessage: noChangesToStateMsg,
-                  includeSummary: true,
-                },
-              );
-              console.log();
+                // Inline display of what would be changed when dirty. Only
+                // note the changes that are not recoverable because they are
+                // local.
+                const localChanges = await vt.status({
+                  branchId: dryCheckoutResult.toBranch?.id,
+                }).then((changes) => {
+                  return changes.filtered({
+                    deleted: true,
+                    modified: true,
+                  }).filter((fileStatus) => {
+                    return existsSync(join(vt.rootPath, fileStatus.path));
+                  });
+                });
 
-              // Ask for confirmation to proceed despite dirty state
-              const shouldProceed = await Confirm.prompt({
-                message: colors.yellow(
-                  "Project has unpushed changes. " +
-                    "Do you want to proceed with checkout anyway?",
-                ),
-                default: false,
-              });
+                displayFileStateChanges(
+                  localChanges,
+                  {
+                    headerText: `Dangerous changes that would occur when ${
+                      isNewBranch
+                        ? `creating branch "${targetBranch}"`
+                        : `checking out "${targetBranch}"`
+                    }:`,
+                    summaryText: "Would change:",
+                    emptyMessage: noChangesToStateMsg,
+                    includeSummary: true,
+                  },
+                );
+                console.log();
 
-              // Exit if user doesn't want to proceed
-              if (!shouldProceed) Deno.exit(0);
-              else console.log(); // Newline
+                // Ask for confirmation to proceed despite dirty state
+                const shouldProceed = await Confirm.prompt({
+                  message: colors.yellow(
+                    "Project has unpushed changes. " +
+                      "Do you want to proceed with checkout anyway?",
+                  ),
+                  default: false,
+                });
+
+                // Exit if user doesn't want to proceed
+                if (!shouldProceed) Deno.exit(0);
+                else console.log(); // Newline
+              }
             }
 
             // If this is a dry run then report the changes and exit early.
