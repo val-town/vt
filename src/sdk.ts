@@ -49,7 +49,7 @@ export async function branchIdToBranch(
  * @param {string} branchId The ID of the project branch to reference
  * @param {number} version The version of the project for the file being found
  * @param {string} filePath The file path to locate
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse.Data>} Promise resolving to the file data
+ * @returns {Promise<ValTown.Projects.FileRetrieveResponse>} Promise resolving to the file data
  * @throws {Error} if the file is not found or if the API request fails
  */
 export async function filePathToFile(
@@ -57,7 +57,7 @@ export async function filePathToFile(
   branchId: string,
   version: number | undefined = undefined,
   filePath: string,
-): Promise<ValTown.Projects.FileRetrieveResponse.Data> {
+): Promise<ValTown.Projects.FileRetrieveResponse> {
   // Get all files in the project
   const filePaths = await listProjectItems(
     projectId,
@@ -76,17 +76,15 @@ export async function filePathToFile(
 }
 
 /**
- * Lists all file paths in a project with pagination support
+ * Lists all file paths in a project with pagination support.
  *
- * @param {string} projectId The ID of the project
- * @param {Object} params The parameters for listing project items
- * @param {string} params.path The root path to start listing from
+ * @param {string} projectId The ID of the project.
+ * @param {Object} params The parameters for listing project items.
+ * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for root.
  * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
  * @param {number} [params.version] - The version of the project. Defaults to latest.
- * @param {Object} [params.options] Additional options for filtering
- * @param {boolean} [params.options.recursive=true] Whether to recursively list files in subdirectories
- * @returns {Promise<Set<string>>} Promise resolving to a Set of file paths
- * @throws {Error} if the API request fails
+ * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
+ * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
  */
 export async function listProjectItems(
   projectId: string,
@@ -101,30 +99,17 @@ export async function listProjectItems(
     version?: number;
     recursive?: boolean;
   },
-): Promise<ValTown.Projects.FileRetrieveResponse.Data[]> {
-  const files: ValTown.Projects.FileRetrieveResponse.Data[] = [];
-  let cursor = 0;
-  const batchSize = 100; // Single, reasonable batch size
+): Promise<ValTown.Projects.FileRetrieveResponse[]> {
+  const files: ValTown.Projects.FileRetrieveResponse[] = [];
 
-  while (true) {
-    const resp = await sdk.projects.files.retrieve(projectId, {
+  for await (
+    const file of sdk.projects.files.retrieve(projectId, {
       path,
-      offset: cursor,
-      limit: batchSize,
       branch_id,
       version,
       recursive,
-    });
-
-    // Add the files to our result array
-    files.push(...resp.data);
-
-    // If we got fewer items than the batch size, we've reached the end
-    if (!resp.links.next) break;
-
-    // Move to next batch
-    cursor += batchSize;
-  }
+    })
+  ) files.push(file);
 
   return files;
 }

@@ -85,7 +85,7 @@ export default class VTClient {
     rootPath,
     username,
     projectName,
-    version = -1,
+    version,
     branchName = DEFAULT_BRANCH_NAME,
   }: {
     rootPath: string;
@@ -105,11 +105,8 @@ export default class VTClient {
 
     const branch = await branchIdToBranch(projectId, branchName);
 
-    // If they choose -1 as the version then change to use the most recent
-    // version
-    version = version === -1
-      ? (await sdk.projects.branches.retrieve(projectId, branch.id)).version
-      : version;
+    version = version ||
+      (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
 
     const vt = new VTClient(rootPath);
 
@@ -239,6 +236,7 @@ export default class VTClient {
 
     // Get the project branch
     const branch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
+    if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
     // Then clone it to the target directory
     await clone({
@@ -435,16 +433,16 @@ export default class VTClient {
           branchName,
         );
 
-        const latestVersion = await getLatestVersion(
-          config.projectId,
-          checkoutBranch.id,
-        );
+        // Ensure that the branch existed
+        if (!checkoutBranch) {
+          throw new Error(`Branch "${branchName}" not found`);
+        }
 
         const branchParams: BranchCheckoutParams = {
           ...baseParams,
           branchId: checkoutBranch.id,
           fromBranchId: currentBranchId,
-          version: options?.version || latestVersion,
+          version: options?.version, // Uses latest version by default
         };
 
         result = await checkout(branchParams);

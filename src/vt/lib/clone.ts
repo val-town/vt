@@ -95,7 +95,7 @@ async function createFile(
   projectId: string,
   branchId: string,
   version: number | undefined = undefined,
-  file: Valtown.Projects.FileRetrieveResponse.Data,
+  file: Valtown.Projects.FileRetrieveResponse,
   changes: FileState,
   dryRun: boolean,
 ): Promise<void> {
