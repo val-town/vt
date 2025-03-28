@@ -31,7 +31,7 @@ export async function branchExists(
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
  */
-async function branchIdToBranch(
+export async function branchIdToBranch(
   projectId: string,
   branchName: string,
 ): Promise<ValTown.Projects.Branches.BranchListResponse> {
@@ -52,7 +52,7 @@ async function branchIdToBranch(
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse.Data>} Promise resolving to the file data
  * @throws {Error} if the file is not found or if the API request fails
  */
-async function filePathToFile(
+export async function filePathToFile(
   projectId: string,
   branchId: string,
   version: number | undefined = undefined,
@@ -146,7 +146,6 @@ export function randomProjectName(label = "") {
 /**
  * The owner of the API key used to auth the current ValTown instance.
  */
-const user = await sdk.me.profile.retrieve();
+export const user = await sdk.me.profile.retrieve();
 
-export { branchIdToBranch, filePathToFile, user };
 export default sdk;
