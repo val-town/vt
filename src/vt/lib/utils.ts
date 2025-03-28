@@ -110,7 +110,8 @@ export async function cleanDirectory(
  * @param {FileStateChanges} fileStateChanges - The current file state changes
  */
 export function isDirty(fileStateChanges: FileState): boolean {
-  return fileStateChanges.modified.length > 0;
+  return fileStateChanges.modified.length > 0 ||
+    fileStateChanges.deleted.length > 0;
 }
 
 /**
