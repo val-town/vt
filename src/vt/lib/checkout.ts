@@ -165,19 +165,10 @@ export function checkout(
         projectId: params.projectId,
         branchId: checkoutBranchId || fromBranch.id,
         version: checkoutVersion || fromBranch.version,
-        gitignoreRules: params.gitignoreRules || [],
+        gitignoreRules: params.gitignoreRules,
         dryRun: params.dryRun,
       });
-
-      // Convert pull result to FileState and merge it
-      const pullFileState = new FileState({
-        modified: pullResult.modified,
-        not_modified: pullResult.not_modified,
-        deleted: pullResult.deleted,
-        created: pullResult.created,
-      });
-
-      fileStateChanges.merge(pullFileState);
+      fileStateChanges.merge(pullResult);
 
       // Walk through the target directory to find files
       for await (const entry of walk(params.targetDir)) {

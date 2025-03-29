@@ -123,8 +123,7 @@ export const checkoutCmd = new Command()
             if (!isNewBranch) {
               if (
                 await vt.isDirty({ fileStateChanges: dangerousLocalChanges }) &&
-                !force &&
-                !dryRun
+                !force && !dryRun
               ) {
                 spinner.stop();
 
