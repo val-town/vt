@@ -39,10 +39,10 @@ export const ProjectItems = [
 
 export const ProjectItemColors: Record<ProjectItemType, (s: string) => string> =
   {
-    "script": (s: string) => colors.rgb24(s, 0xCA5E9),
-    "http": (s: string) => colors.rgb24(s, 0x21C55D),
-    "interval": (s: string) => colors.rgb24(s, 0xD946EF),
-    "email": (s: string) => colors.rgb24(s, 0x8B5CF7),
+    "script": (s: string) => colors.rgb24(s, 0x4287f5),
+    "http": (s: string) => colors.rgb24(s, 0x22c55e),
+    "interval": (s: string) => colors.rgb24(s, 0xd946ef),
+    "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
     "file": (s: string) => colors.dim(s),
     "directory": (s: string) => colors.dim(s),
   };
