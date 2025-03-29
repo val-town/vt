@@ -103,6 +103,7 @@ export function pull(params: PullParams): Promise<FileState> {
                 status: "deleted",
                 type: stat.isDirectory ? "directory" : "file",
                 mtime: stat.mtime?.getTime()!,
+                where: "local",
               })
             );
         }
@@ -120,6 +121,7 @@ export function pull(params: PullParams): Promise<FileState> {
             status: "deleted",
             type: stat.isDirectory ? "directory" : "file",
             mtime: stat.mtime?.getTime()!,
+            where: "local",
           };
           changes.insert(fileStatus);
 

@@ -71,6 +71,7 @@ export function clone(params: CloneParams): Promise<FileState> {
                 type: "directory" as ProjectItemType,
                 path: file.path,
                 status: "created",
+                where: "local",
               });
             }
           } else {
@@ -113,6 +114,7 @@ async function createFile(
     type: file.type as ProjectItemType,
     path: file.path,
     status: "created", // Default status
+    where: "local",
   };
 
   // Check for existing file and determine status
@@ -135,7 +137,18 @@ async function createFile(
       projectMtime,
     });
 
-    fileStatus.status = modified ? "modified" : "not_modified";
+    if (modified) {
+      // Determine if modified locally or remotely
+      if (localMtime > projectMtime) {
+        fileStatus.status = "modified";
+        fileStatus.where = "local";
+      } else {
+        fileStatus.status = "modified";
+        fileStatus.where = "remote";
+      }
+    } else {
+      fileStatus.status = "not_modified";
+    }
   }
 
   // Track file status

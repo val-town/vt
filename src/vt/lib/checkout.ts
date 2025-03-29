@@ -200,6 +200,7 @@ export function checkout(
               fromBranch.version,
               relativePath,
             ),
+            where: "local",
           });
           if (!params.dryRun) {
             await Deno.remove(entry.path, { recursive: true });

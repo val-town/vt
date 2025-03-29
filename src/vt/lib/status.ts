@@ -63,6 +63,7 @@ export async function status(params: StatusParams): Promise<FileState> {
         path: filePath,
         mtime: localFileInfo.mtime,
         status: "created",
+        where: "local",
       });
     } else {
       if (localFileInfo.type !== "directory") {
@@ -84,6 +85,7 @@ export async function status(params: StatusParams): Promise<FileState> {
             path: filePath,
             mtime: localFileInfo.mtime,
             status: "modified",
+            where: "local",
           };
           result.insert(fileStatus);
         } else {
@@ -92,6 +94,7 @@ export async function status(params: StatusParams): Promise<FileState> {
             path: filePath,
             mtime: localFileInfo.mtime,
             status: "not_modified",
+            where: "local",
           };
           result.insert(fileStatus);
         }
@@ -101,6 +104,7 @@ export async function status(params: StatusParams): Promise<FileState> {
           path: filePath,
           mtime: localFileInfo.mtime,
           status: "not_modified",
+          where: "local",
         };
         result.insert(fileStatus);
       }
@@ -115,6 +119,7 @@ export async function status(params: StatusParams): Promise<FileState> {
         path: projectPath,
         mtime: projectFileInfo.mtime,
         status: "deleted",
+        where: "local",
       });
     }
   }
@@ -144,7 +149,11 @@ async function getProjectFiles({
     .filter((file) => !shouldIgnore(file.path, gitignoreRules))
     .map((file): [string, FileInfo] => [
       file.path,
-      { mtime: new Date(file.updatedAt).getTime(), type: file.type },
+      {
+        mtime: new Date(file.updatedAt).getTime(),
+        type: file.type,
+        where: "local",
+      },
     ]);
 
   return new Map<string, FileInfo>(projectItems);
@@ -186,6 +195,7 @@ async function getLocalFiles({
         relativePath,
       ),
       mtime: stat.mtime!.getTime(),
+      where: "local",
     });
   };
 

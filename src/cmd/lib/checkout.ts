@@ -9,8 +9,6 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
-import { join } from "@std/path";
-import { existsSync } from "@std/fs";
 
 const toListBranchesCmd = "Use `vt branch` to list branches.";
 const noChangesToStateMsg = "No changes were made to local state";
@@ -101,26 +99,37 @@ export const checkoutCmd = new Command()
 
             // Check if dirty, then early exit if it's dirty and they don't
             // want to proceed. If in force mode don't do this check.
+            //
+            // We cannot safely check out if the result of the checkout would
+            // cause any local files to get modified or deleted, unless that file
+            // has already been safely pushed. To check if it's already been
+            // pushed, we do a .merge on the file state with  the result of
+            // vt.status(), which says that the file is not modified. .merge is a
+            // right intersection so we overwrite all the previously detected to
+            // be dangerous state changes as safe if it's not modified according
+            // to vt.status().
+            const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
+              .filter((fileStatus) =>
+                (fileStatus.status == "deleted" ||
+                  fileStatus.status == "modified") &&
+                fileStatus.where === "local"
+              );
+            dangerousLocalChanges.merge(
+              (await vt.status()).filter((fileStatus) =>
+                fileStatus.status === "not_modified"
+              ),
+            );
+
             if (!isNewBranch) {
-              if (await vt.isDirty() && !force && !dryRun) {
+              if (
+                await vt.isDirty({ fileStateChanges: dangerousLocalChanges }) &&
+                !force &&
+                !dryRun
+              ) {
                 spinner.stop();
 
-                // Inline display of what would be changed when dirty. Only
-                // note the changes that are not recoverable because they are
-                // local.
-                const localChanges = await vt.status({
-                  branchId: dryCheckoutResult.toBranch?.id,
-                }).then((changes) => {
-                  return changes.filtered({
-                    deleted: true,
-                    modified: true,
-                  }).filter((fileStatus) => {
-                    return existsSync(join(vt.rootPath, fileStatus.path));
-                  });
-                });
-
                 displayFileStateChanges(
-                  localChanges,
+                  dangerousLocalChanges,
                   {
                     headerText: `Dangerous changes that would occur when ${
                       isNewBranch

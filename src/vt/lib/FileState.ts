@@ -3,6 +3,7 @@ import type { ProjectItemType } from "~/consts.ts";
 export interface FileInfo {
   mtime: number;
   type: ProjectItemType;
+  where: "local" | "remote";
 }
 
 export type FileStatusType =
@@ -132,9 +133,30 @@ export class FileState {
 
   /**
    * Merges a source FileState object into the current instance.
+   * Files in the source take precedence over existing files with the same path.
+   * This acts like a right intersection where source values override existing ones.
+   *
    * @param source - The FileState object to merge from
+   * @returns this - The current FileState instance for chaining
    */
   public merge(source: FileState): this {
+    // Collect all paths from the source
+    const sourcePaths = new Set<string>();
+
+    for (const file of source.modified) sourcePaths.add(file.path);
+    for (const file of source.not_modified) sourcePaths.add(file.path);
+    for (const file of source.deleted) sourcePaths.add(file.path);
+    for (const file of source.created) sourcePaths.add(file.path);
+
+    // Remove any existing files with paths in the source
+    for (const path of sourcePaths) {
+      this.#modified.delete(path);
+      this.#not_modified.delete(path);
+      this.#deleted.delete(path);
+      this.#created.delete(path);
+    }
+
+    // Now insert all files from the source
     for (const file of source.modified) this.insert(file);
     for (const file of source.not_modified) this.insert(file);
     for (const file of source.deleted) this.insert(file);
@@ -190,69 +212,20 @@ export class FileState {
   ): FileState {
     const result = new FileState();
 
-    // Check all categories and apply the predicate
     for (const file of this.created) {
-      if (predicate(file)) {
-        result.insert(file);
-      }
+      if (predicate(file)) result.insert(file);
     }
 
     for (const file of this.deleted) {
-      if (predicate(file)) {
-        result.insert(file);
-      }
+      if (predicate(file)) result.insert(file);
     }
 
     for (const file of this.modified) {
-      if (predicate(file)) {
-        result.insert(file);
-      }
+      if (predicate(file)) result.insert(file);
     }
 
     for (const file of this.not_modified) {
-      if (predicate(file)) {
-        result.insert(file);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Creates a new FileState with only the specified status types included.
-   * If a status type is set to true, files with that status are included in the result.
-   * If a status type is set to false or omitted, files with that status are excluded.
-   *
-   * @param options - Object specifying which status types to include
-   * @returns A new FileState containing only the requested status types
-   */
-  public filtered(
-    options: Partial<Record<FileStatusType, boolean>>,
-  ): FileState {
-    const result = new FileState();
-
-    if (options.created) {
-      for (const file of this.created) {
-        result.insert(file);
-      }
-    }
-
-    if (options.deleted) {
-      for (const file of this.deleted) {
-        result.insert(file);
-      }
-    }
-
-    if (options.modified) {
-      for (const file of this.modified) {
-        result.insert(file);
-      }
-    }
-
-    if (options.not_modified) {
-      for (const file of this.not_modified) {
-        result.insert(file);
-      }
+      if (predicate(file)) result.insert(file);
     }
 
     return result;
