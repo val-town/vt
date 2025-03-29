@@ -85,6 +85,7 @@ export class FileState {
    * 1. Path segment count (longest paths first)
    * 2. Type (created, deleted, modified, etc.)
    * 3. Basename length
+   * 4. Alphabetical order of the type if all else is equal
    *
    * @param options - Optional configuration {sorted: boolean}
    * @returns An array of entries from the JSON representation
@@ -123,6 +124,11 @@ export class FileState {
       const basenameB = segmentsB.length > 0
         ? segmentsB[segmentsB.length - 1]
         : "";
+
+      if (basenameA === basenameB) {
+        // 4. If basenames are equal, compare alphabetically by type
+        return typeA.localeCompare(typeB);
+      }
 
       return basenameA.length - basenameB.length;
     });
