@@ -7,22 +7,21 @@ import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town project.
- *
- * @param {string} targetDir The vt project root directory.
- * @param {string} projectId The id of the project to upload to.
- * @param {string} branchId The branch ID to upload file content to.
- * @param {number} [version] The version to compute the file state changes against. Defaults to latest version.
- * @param {string[]} [gitignoreRules] A list of gitignore rules.
- * @param {FileState} [fileState] The current file state. If not provided, it will be computed.
- * @param {boolean} [dryRun] If true, don't actually modify files on server, just report what would change.
  */
 export interface PushParams {
+  /** The vt project root directory. */
   targetDir: string;
+  /** The id of the project to upload to. */
   projectId: string;
+  /** The branch ID to upload to. */
   branchId: string;
+  /** The version to compute the file state changes against. Defaults to latest version. */
   version?: number;
+  /** The current file state. If not provided, it will be computed. */
   fileState?: FileState;
+  /** A list of gitignore rules. */
   gitignoreRules?: string[];
+  /** If true, don't actually modify files on server, just report what would change. */
   dryRun?: boolean;
 }
 
@@ -30,18 +29,19 @@ export interface PushParams {
  * Pushes latest changes from a vt folder into a Val Town project. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
- * @param {PushParams} args Options for push operation.
+ * @param {PushParams} params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export async function push({
-  targetDir,
-  projectId,
-  branchId,
-  version,
-  fileState,
-  gitignoreRules,
-  dryRun = false,
-}: PushParams): Promise<FileState> {
+export async function push(params: PushParams): Promise<FileState> {
+  let {
+    targetDir,
+    projectId,
+    branchId,
+    version,
+    fileState,
+    gitignoreRules,
+    dryRun = false,
+  } = params;
   version = version || await getLatestVersion(projectId, branchId);
 
   // Use provided status, or retrieve the status

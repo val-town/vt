@@ -10,48 +10,47 @@ import {
 } from "~/vt/lib/FileState.ts";
 
 /**
+ * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
+ */
+export interface StatusParams {
+  /** The directory to scan for changes. */
+  targetDir: string;
+  /** The Val Town project ID. */
+  projectId: string;
+  /** Branch ID to check against. */
+  branchId: string;
+  /** The version to check the status against. Defaults to the latest version. */
+  version?: number;
+  /** Gitignore rules */
+  gitignoreRules?: string[];
+}
+
+/**
  * Scans a directory and determines the status of all files compared to the Val
  * Town project on the website. Reports status for files as modified, not
  * modified, deleted, or created.
  *
- * @param args Options for status operation.
- * @param {string} args.targetDir - The directory to scan for changes.
- * @param {string} args.projectId - The Val Town project ID.
- * @param {string} args.branchId - Optional branch ID to check against.
- * @param [string] args.version - The version to check the status against. Defaults to the latest version.
- * @param [string] args.gitignoreRules - Gitignore rules
- *
+ * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status({
-  targetDir,
-  projectId,
-  branchId,
-  version,
-  gitignoreRules,
-}: {
-  targetDir: string;
-  projectId: string;
-  branchId: string;
-  version?: number;
-  gitignoreRules?: string[];
-}): Promise<FileState> {
+export async function status(params: StatusParams): Promise<FileState> {
+  const { targetDir, projectId, branchId, version, gitignoreRules } = params;
   const result = FileState.empty();
 
   // Get all files
-  const localFiles = await getLocalFiles(
+  const localFiles = await getLocalFiles({
     projectId,
     branchId,
     version,
     targetDir,
     gitignoreRules,
-  );
-  const projectFiles = await getProjectFiles(
+  });
+  const projectFiles = await getProjectFiles({
     projectId,
     branchId,
     version,
     gitignoreRules,
-  );
+  });
 
   // Compare local files against project files
   for (const [filePath, localFileInfo] of localFiles.entries()) {
@@ -123,12 +122,19 @@ export async function status({
   return result;
 }
 
-async function getProjectFiles(
-  projectId: string,
-  branchId: string,
-  version: number | undefined = undefined,
-  gitignoreRules?: string[],
-): Promise<Map<string, FileInfo>> {
+interface GetProjectFilesParams {
+  projectId: string;
+  branchId: string;
+  version?: number;
+  gitignoreRules?: string[];
+}
+
+async function getProjectFiles({
+  projectId,
+  branchId,
+  version = undefined,
+  gitignoreRules,
+}: GetProjectFilesParams): Promise<Map<string, FileInfo>> {
   const projectItems = (await listProjectItems(projectId, {
     path: "",
     branch_id: branchId,
@@ -144,13 +150,21 @@ async function getProjectFiles(
   return new Map<string, FileInfo>(projectItems);
 }
 
-async function getLocalFiles(
-  projectId: string,
-  branchId: string,
-  version: number | undefined = undefined,
-  targetDir: string,
-  gitignoreRules?: string[],
-): Promise<Map<string, FileInfo>> {
+interface GetLocalFilesParams {
+  projectId: string;
+  branchId: string;
+  version?: number;
+  targetDir: string;
+  gitignoreRules?: string[];
+}
+
+async function getLocalFiles({
+  projectId,
+  branchId,
+  version = undefined,
+  targetDir,
+  gitignoreRules,
+}: GetLocalFilesParams): Promise<Map<string, FileInfo>> {
   const files = new Map<string, FileInfo>();
   const statPromises: Promise<void>[] = [];
 

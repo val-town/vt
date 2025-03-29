@@ -286,7 +286,7 @@ export default class VTClient {
    */
   public async status(
     { branchId }: { branchId?: string } = {},
-  ): Promise<FileState> {
+  ): ReturnType<typeof status> {
     return await this.getMeta().doWithConfig(async (config) => {
       // Use provided branchId or fall back to the current branch from config
       const targetBranchId = branchId || config.currentBranch;
@@ -309,7 +309,7 @@ export default class VTClient {
    */
   public async pull(
     options?: Partial<Parameters<typeof pull>[0]>,
-  ): Promise<ReturnType<typeof pull>> {
+  ): ReturnType<typeof pull> {
     return await this.getMeta().doWithConfig(async (config) => {
       if (options?.dryRun === false) {
         config.version = await getLatestVersion(
@@ -341,7 +341,7 @@ export default class VTClient {
    */
   public async push(
     options?: Partial<Parameters<typeof push>[0]>,
-  ): Promise<ReturnType<typeof push>> {
+  ): ReturnType<typeof push> {
     return await this.getMeta().doWithConfig(async (config) => {
       const fileStateChanges = await push({
         ...{

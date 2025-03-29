@@ -8,27 +8,26 @@ import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.
- *
- * @param {string} targetDir The vt project root directory.
- * @param {string} projectId The id of the project to download from.
- * @param {string} branchId The branch ID to download file content from.
- * @param {number} [version] The version to pull. Defaults to latest version.
- * @param {string[]} [gitignoreRules] A list of gitignore rules.
- * @param {boolean} [dryRun] If true, don't actually modify files, just report what would change.
  */
 export interface PullParams {
+  /** The vt project root directory. */
   targetDir: string;
+  /** The id of the project to download from. */
   projectId: string;
+  /** The branch ID to download file content from. */
   branchId: string;
+  /** The version to pull. Defaults to latest version. */
   version?: number;
+  /** A list of gitignore rules. */
   gitignoreRules?: string[];
+  /** If true, don't actually modify files, just report what would change. */
   dryRun?: boolean;
 }
 
 /**
  * Pulls latest changes from a Val Town project into a vt folder.
  *
- * @param {PullParams} args Options for pull operation.
+ * @param {PullParams} params Options for pull operation.
  *
  * @description
  * After a pull:
@@ -41,14 +40,15 @@ export interface PullParams {
  *
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull({
-  targetDir,
-  projectId,
-  branchId,
-  version,
-  gitignoreRules = [],
-  dryRun = false,
-}: PullParams): Promise<FileState> {
+export function pull(params: PullParams): Promise<FileState> {
+  const {
+    targetDir,
+    projectId,
+    branchId,
+    version,
+    gitignoreRules = [],
+    dryRun = false,
+  } = params;
   return doAtomically(
     async (tmpDir) => {
       const changes = FileState.empty();

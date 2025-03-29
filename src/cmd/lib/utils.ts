@@ -157,7 +157,9 @@ export function displayFileStateChanges(
   // Provide a summary if requested
   if (includeSummary) {
     if (totalChanges === 0) {
-      console.log(colors.green(emptyMessage));
+      if (emptyMessage) {
+        console.log(colors.green(emptyMessage));
+      }
     } else {
       console.log("\n" + summaryPrefix);
       for (const [type, files] of fileStateChanges.entries()) {

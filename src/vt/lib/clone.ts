@@ -11,20 +11,19 @@ import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
 /**
  * Parameters for cloning a project by downloading its files and directories to the specified
  * target directory.
- *
- * @param {string} targetDir - The directory where the project will be cloned
- * @param {string} projectId - The uuid of the project to be cloned
- * @param {string} branchId - The branch ID to clone.
- * @param {number} [version] - The version of the project to clone. Defaults to latest.
- * @param {string[]} [gitignoreRules] - List of glob patterns for files to ignore
- * @param {boolean} [dryRun] - If true, don't actually write files, just report what would change
  */
 export interface CloneParams {
+  /** The directory where the project will be cloned */
   targetDir: string;
+  /** The id of the project to be cloned */
   projectId: string;
+  /** The branch ID of the project to clone */
   branchId: string;
+  /** The version to clone. Defaults to latest */
   version?: number;
+  /** A list of gitignore rules. */
   gitignoreRules?: string[];
+  /** If true, don't actually write files, just report what would change */
   dryRun?: boolean;
 }
 
@@ -32,17 +31,18 @@ export interface CloneParams {
  * Clones a project by downloading its files and directories to the specified
  * target directory.
  *
- * @param {CloneParams} args - Options for the clone operation
+ * @param params Options for the clone operation
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone({
-  targetDir,
-  projectId,
-  branchId,
-  version,
-  gitignoreRules,
-  dryRun = false,
-}: CloneParams): Promise<FileState> {
+export function clone(params: CloneParams): Promise<FileState> {
+  const {
+    targetDir,
+    projectId,
+    branchId,
+    version,
+    gitignoreRules,
+    dryRun = false,
+  } = params;
   return doAtomically(
     async (tmpDir) => {
       const changes = FileState.empty();
