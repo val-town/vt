@@ -181,10 +181,7 @@ export const checkoutCmd = new Command()
             // Perform the actual checkout
             const checkoutResult = await vt.checkout(
               targetBranch,
-              {
-                forkedFromId: isNewBranch ? config.currentBranch : undefined,
-                dryRun: false,
-              },
+              { dryRun: false },
             );
 
             spinner.stop();

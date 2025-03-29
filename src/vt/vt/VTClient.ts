@@ -14,7 +14,11 @@ import {
 import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
+import {
+  DEFAULT_BRANCH_NAME,
+  FIRST_VERSION_NUMBER,
+  META_IGNORE_FILE_NAME,
+} from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
@@ -365,12 +369,13 @@ export default class VTClient {
   }
 
   /**
-   * Check out a different branch of the project.
-   *
-   * @param {string} branchName The name of the branch to check out to
-   * @param {Partial<BranchCheckoutParams | ForkCheckoutParams> & { fileStateChanges?: FileStateChanges }} options - Optional parameters
-   * @returns {Promise<CheckoutResult>}
-   */
+  * Check out a different branch of the project.
+  *
+  * @param {string} branchName The name of the branch to check out to
+  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams> & { fileStateChanges?: FileStateChanges }} options -
+ Optional parameters
+  * @returns {Promise<CheckoutResult>}
+  */
   public async checkout(
     branchName: string,
     options?: Partial<BranchCheckoutParams | ForkCheckoutParams> & {
@@ -406,17 +411,11 @@ export default class VTClient {
         options && "forkedFromId" in options &&
         typeof options.forkedFromId === "string"
       ) {
-        // Creating a new branch from a specified source
-        const sourceVersion = await getLatestVersion(
-          config.projectId,
-          options.forkedFromId,
-        );
-
         const forkParams: ForkCheckoutParams = {
           ...baseParams,
           forkedFromId: options.forkedFromId,
           name: branchName,
-          version: options.version || sourceVersion,
+          version: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
         };
 
         result = await checkout(forkParams);
@@ -424,7 +423,7 @@ export default class VTClient {
         if (!baseParams.dryRun) {
           if (result.toBranch) {
             config.currentBranch = result.toBranch.id;
-            config.version = result.toBranch.version;
+            config.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
           }
         }
       } else {
@@ -443,18 +442,16 @@ export default class VTClient {
           ...baseParams,
           branchId: checkoutBranch.id,
           fromBranchId: currentBranchId,
-          version: options?.version, // Uses latest version by default
+          version: options?.version || checkoutBranch.version, // Use specified version or the branch's version
         };
 
         result = await checkout(branchParams);
 
-        // Don't touch the config if it's  a dry run
+        // Don't touch the config if it's a dry run
         if (!baseParams.dryRun) {
           if (result.toBranch) {
             config.currentBranch = result.toBranch.id;
-          }
-          if (branchParams.version) {
-            config.version = branchParams.version;
+            config.version = result.toBranch.version; // Use the target branch's version
           }
         }
       }
