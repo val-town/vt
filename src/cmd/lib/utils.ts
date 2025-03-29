@@ -1,6 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
 import { basename, dirname, join } from "@std/path";
-import { ProjectItemColors, type ProjectItemType, STATUS_STYLES, TypeToTypeStr } from "~/consts.ts";
+import {
+  ProjectItemColors,
+  type ProjectItemType,
+  STATUS_STYLES,
+  TypeToTypeStr,
+} from "~/consts.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
