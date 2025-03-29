@@ -10,10 +10,8 @@ import { shouldIgnore } from "~/vt/lib/paths.ts";
 
 async function checkDirectory(
   rootPath: string,
-  options: { gitignoreRules?: string[] } = {},
+  gitignoreRules: string[],
 ): Promise<boolean> {
-  const { gitignoreRules = [] } = options;
-
   try {
     const stat = await Deno.lstat(rootPath);
 
@@ -89,7 +87,7 @@ export const cloneCmd = new Command()
 
       // Make sure that the directory is safe to clone into (exists, or gets
       // created and then exists, and wasn't nonempty) deno-fmt-ignore
-      await checkDirectory(targetDir, { gitignoreRules: ALWAYS_IGNORE_PATTERNS, });
+      await checkDirectory(targetDir, ALWAYS_IGNORE_PATTERNS);
 
       await vt.clone(targetDir);
       await vt.addEditorFiles();
