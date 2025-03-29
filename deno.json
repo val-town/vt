@@ -1,7 +1,7 @@
 {
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "exports": "./vt.ts",
   "license": "MIT",
   "tasks": {
@@ -23,7 +23,7 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.7",
     "@std/fs": "jsr:@std/fs@^1.0.13",
     "@std/path": "jsr:@std/path@^1.0.8",
-    "@valtown/sdk": "jsr:@valtown/sdk@^0.37.0",
+    "@valtown/sdk": "jsr:@valtown/sdk@^0.38.0",
     "~/": "./src/",
     "emphasize": "npm:emphasize@^7.0.0",
     "highlight.js": "npm:highlight.js@^11.11.1",

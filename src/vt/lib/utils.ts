@@ -1,9 +1,9 @@
-import type { StatusResult } from "~/vt/lib/status.ts";
-import * as path from "@std/path";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
 import { copy, ensureDir } from "@std/fs";
+import { dirname, join } from "@std/path";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -52,10 +52,11 @@ export async function doWithTempDir<T>(
  * Create a directory atomically by first doing logic to create it in a temp
  * directory, and then moving it to a destination afterwards.
  *
+ * @param op - The function to run with access to the temp dir. Returns a result to be propagated and whether to copy the files over.
  * @param {string} targetDir - The directory to eventually send the output to.
  */
 export async function doAtomically<T>(
-  op: (tmpDir: string) => Promise<T>,
+  op: (tmpDir: string) => Promise<[T, boolean]>,
   targetDir: string,
   tmpLabel?: string,
 ): Promise<T> {
@@ -63,12 +64,16 @@ export async function doAtomically<T>(
 
   let result: T;
   try {
-    result = await op(tempDir);
-    await ensureDir(targetDir);
-    await copy(tempDir, targetDir, {
-      overwrite: true,
-      preserveTimestamps: true,
-    });
+    const [opResult, copyBack] = await op(tempDir);
+    result = opResult;
+
+    if (copyBack) {
+      await ensureDir(targetDir);
+      await copy(tempDir, targetDir, {
+        overwrite: true,
+        preserveTimestamps: true,
+      });
+    }
   } finally {
     cleanup();
   }
@@ -88,7 +93,7 @@ export async function cleanDirectory(
   const filesToRemove = Deno.readDirSync(directory)
     .filter((entry) => !shouldIgnore(entry.name, gitignoreRules))
     .map((entry) => ({
-      path: path.join(directory, entry.name),
+      path: join(directory, entry.name),
       isDirectory: entry.isDirectory,
     }));
 
@@ -102,10 +107,11 @@ export async function cleanDirectory(
 /**
  * Check if the target directory is dirty (has unpushed local changes).
  *
- * @param {StatusResult} statusResult - Result of a status operation.
+ * @param {FileStateChanges} fileStateChanges - The current file state changes
  */
-export function isDirty(statusResult: StatusResult): boolean {
-  return statusResult.modified.length > 0;
+export function isDirty(fileStateChanges: FileState): boolean {
+  return fileStateChanges.modified.length > 0 ||
+    fileStateChanges.deleted.length > 0;
 }
 
 /**
@@ -122,7 +128,7 @@ export async function ensureValtownDir(
   branchId: string,
   filePath: string,
 ): Promise<void> {
-  const dirPath = path.dirname(filePath);
+  const dirPath = dirname(filePath);
 
   // If path is "." (current directory) or empty, no directories need to be created
   if (dirPath === "." || dirPath === "") {
@@ -150,25 +156,71 @@ export async function ensureValtownDir(
           content: null,
         },
       );
-    } catch (error) {
-      if (error instanceof ValTown.APIError) {
-        if (error.status != 409) {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
+    } catch (e) {
+      if (e instanceof ValTown.APIError) {
+        if (e.status != 409) throw e;
+      } else throw e;
     }
   }
 }
 
 /**
- * Determines the total number of changes, not including not modified files,
- * from a StatusResult.
+ * Determines if a local file has been modified compared to its project version.
+ *
+ * This function uses a two-step approach to check for modifications:
+ * 1. First, it compares modification timestamps as a quick heuristic
+ * 2. If timestamps suggest a change, it performs a full content comparison
+ *
+ * @param {object} params - The parameters object
+ * @param {string} params.path - The file path in the project
+ * @param {string} params.targetDir - The local target directory
+ * @param {string} params.originalPath - The original file path
+ * @param {string} params.projectId - The ID of the project
+ * @param {string} params.branchId - The ID of the branch
+ * @param {number} [params.version] - Optional version number
+ * @param {number} params.localMtime - Modification time of the local file
+ * @param {number} params.projectMtime - Modification time of the project file
+ *
+ * @returns {Promise<boolean>} True if the file has been modified, false otherwise
  */
-export function getTotalChanges(status: StatusResult): number {
-  return Object
-    .entries(status)
-    .filter(([type]) => type !== "not_modified")
-    .reduce((sum, [, files]) => sum + files.length, 0);
+export async function isFileModified(
+  {
+    path,
+    targetDir,
+    originalPath,
+    projectId,
+    branchId,
+    version,
+    localMtime,
+    projectMtime,
+  }: {
+    path: string;
+    targetDir: string;
+    originalPath: string;
+    projectId: string;
+    branchId: string;
+    version?: number;
+    localMtime: number;
+    projectMtime: number;
+  },
+): Promise<boolean> {
+  // First use the mtime as a heuristic to avoid unnecessary content checks
+  if (projectMtime == localMtime) return false;
+
+  // If mtime indicates a possible change, check content
+  const projectFileContent = await sdk.projects.files.getContent(
+    projectId,
+    {
+      path,
+      branch_id: branchId,
+      version,
+    },
+  ).then((resp) => resp.text());
+
+  // For some reason the local paths seem to have an extra newline
+  const localFileContent = await Deno.readTextFile(
+    join(targetDir, originalPath),
+  );
+
+  return projectFileContent !== localFileContent;
 }

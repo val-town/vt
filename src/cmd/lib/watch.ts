@@ -3,8 +3,10 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
-import { displayStatusChanges, getVersionRangeStr } from "~/cmd/lib/utils.ts";
-import { getTotalChanges } from "~/vt/lib/utils.ts";
+import {
+  displayFileStateChanges,
+  getVersionRangeStr,
+} from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 
@@ -14,24 +16,27 @@ export const watchStopCmd = new Command()
   .action(() => {
     const cwd = Deno.cwd();
     const vt = VTClient.from(cwd);
-    doWithSpinner("Stopping the watch process...", async (spinner) => {
-      try {
-        const pidStr = await vt.getMeta().getLockFile();
-        if (pidStr) {
-          const pid = parseInt(pidStr, 10);
-          if (!isNaN(pid)) {
-            Deno.kill(pid);
-            spinner.succeed(`Stopped watch process with PID: ${pid}`);
+    doWithSpinner(
+      "Stopping the watch process...",
+      async (spinner) => {
+        try {
+          const pidStr = await vt.getMeta().getLockFile();
+          if (pidStr) {
+            const pid = parseInt(pidStr, 10);
+            if (!isNaN(pid)) {
+              Deno.kill(pid);
+              spinner.succeed(`Stopped watch process with PID: ${pid}`);
+            } else {
+              throw new Error("Invalid PID in lockfile.");
+            }
           } else {
-            throw new Error("Invalid PID in lockfile.");
+            throw new Error("No running watch process found.");
           }
-        } else {
-          throw new Error("No running watch process found.");
+        } catch {
+          throw new Error("Failed to stop the watch process.");
         }
-      } catch {
-        throw new Error("Failed to stop the watch process.");
-      }
-    });
+      },
+    );
   });
 
 export const watchCmd = new Command()
@@ -80,13 +85,16 @@ export const watchCmd = new Command()
 
       while (true) {
         try {
-          for await (const status of vt.watch(options.debounceDelay)) {
+          for await (
+            const fileStateChanges of vt.watch(options.debounceDelay)
+          ) {
             try {
-              if (getTotalChanges(status) > 0) {
+              if (fileStateChanges.size() > 0) {
                 console.log();
-                displayStatusChanges(status, {
+                displayFileStateChanges(fileStateChanges, {
+                  emptyMessage: "No changes detected. Continuing to watch...",
                   headerText: "New changes detected",
-                  summaryPrefix: "Pushed:",
+                  summaryText: "Pushed:",
                 });
                 console.log();
                 console.log(watchingForChangesLine());

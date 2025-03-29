@@ -7,7 +7,7 @@ import {
   META_LOCK_FILE_NAME,
 } from "~/consts.ts";
 import * as path from "@std/path";
-import { ensureDir } from "@std/fs";
+import { ensureDir, exists } from "@std/fs";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -90,6 +90,24 @@ export default class VTMeta {
   }
 
   /**
+   * Performs operations on the configuration and automatically saves it.
+   *
+   * @param callback - A function that receives the current config and can modify it
+   * @returns {Promise<T>} A promise that resolves to the return value of the callback
+   * @throws {Error} Will throw an error if the config cannot be loaded or saved
+   */
+  public async doWithConfig<T>(
+    callback: (
+      config: z.infer<typeof VTMetaConfigJsonSchema>,
+    ) => T | Promise<T>,
+  ): Promise<T> {
+    const config = await this.loadConfig();
+    const result = await Promise.resolve(callback(config));
+    await this.saveConfig(config);
+    return result;
+  }
+
+  /**
    * Loads the ignore list of globs from ignore files.
    *
    * @returns {Promise} A promise that resolves with a list of glob strings.
@@ -121,18 +139,15 @@ export default class VTMeta {
   }
 
   /**
-   * Create a lock file with a PID of the VT process watching the cloned active
-   * directory.
+   * Create a lock file with a PID of the running vt process
    *
-   * @return {Promise<string|null>} A promise resolving to the PID of the running watcher, or null if no watchers are running
+   * @return {Promise<string|null>} A promise resolving to the PID of the running vt, or null if vt is not running
    */
   public async getLockFile(): Promise<string | null> {
-    try {
-      return await Deno.readTextFile(this.lockFilePath());
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) return null;
-      else throw error;
-    }
+    const fileExists = await exists(this.lockFilePath());
+    if (!fileExists) return null;
+
+    return await Deno.readTextFile(this.lockFilePath());
   }
 
   /**
@@ -152,6 +167,7 @@ export default class VTMeta {
       } else throw e;
     }
 
+    // Update the lock with ourself
     await Deno.writeTextFile(this.lockFilePath(), Deno.pid.toString());
   }
 
