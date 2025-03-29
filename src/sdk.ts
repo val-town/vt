@@ -2,9 +2,24 @@ import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
 import { API_KEY_KEY } from "~/consts.ts";
 
-const sdk = new ValTown({
-  bearerToken: Deno.env.get(API_KEY_KEY)!,
-});
+const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
+
+/**
+ * Checks if a branch with the given name exists in a project.
+ *
+ * @param {string} projectId - The ID of the project to check
+ * @param {string} branchName - The name of the branch to check for
+ * @returns {Promise<boolean>} Promise resolving to true if the branch exists, false otherwise
+ */
+export async function branchExists(
+  projectId: string,
+  branchName: string,
+): Promise<boolean> {
+  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+    if (branch.name == branchName) return true;
+  }
+  return false;
+}
 
 /**
  * Converts a branch name to its corresponding branch ID for a given project.
@@ -14,7 +29,7 @@ const sdk = new ValTown({
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
  */
-async function branchIdToBranch(
+export async function branchIdToBranch(
   projectId: string,
   branchName: string,
 ): Promise<ValTown.Projects.Branches.BranchListResponse> {
@@ -32,15 +47,15 @@ async function branchIdToBranch(
  * @param {string} branchId The ID of the project branch to reference
  * @param {number} version The version of the project for the file being found
  * @param {string} filePath The file path to locate
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse.Data>} Promise resolving to the file data
+ * @returns {Promise<ValTown.Projects.FileRetrieveResponse>} Promise resolving to the file data
  * @throws {Error} if the file is not found or if the API request fails
  */
-async function filePathToFile(
+export async function filePathToFile(
   projectId: string,
   branchId: string,
-  version: number,
+  version: number | undefined = undefined,
   filePath: string,
-): Promise<ValTown.Projects.FileRetrieveResponse.Data> {
+): Promise<ValTown.Projects.FileRetrieveResponse> {
   // Get all files in the project
   const filePaths = await listProjectItems(
     projectId,
@@ -59,17 +74,15 @@ async function filePathToFile(
 }
 
 /**
- * Lists all file paths in a project with pagination support
+ * Lists all file paths in a project with pagination support.
  *
- * @param {string} projectId The ID of the project
- * @param {Object} params The parameters for listing project items
- * @param {string} params.path The root path to start listing from
+ * @param {string} projectId The ID of the project.
+ * @param {Object} params The parameters for listing project items.
+ * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for root.
  * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
  * @param {number} [params.version] - The version of the project. Defaults to latest.
- * @param {Object} [params.options] Additional options for filtering
- * @param {boolean} [params.options.recursive=true] Whether to recursively list files in subdirectories
- * @returns {Promise<Set<string>>} Promise resolving to a Set of file paths
- * @throws {Error} if the API request fails
+ * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
+ * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
  */
 export async function listProjectItems(
   projectId: string,
@@ -84,30 +97,17 @@ export async function listProjectItems(
     version?: number;
     recursive?: boolean;
   },
-): Promise<ValTown.Projects.FileRetrieveResponse.Data[]> {
-  const files: ValTown.Projects.FileRetrieveResponse.Data[] = [];
-  let cursor = 0;
-  const batchSize = 100; // Single, reasonable batch size
+): Promise<ValTown.Projects.FileRetrieveResponse[]> {
+  const files: ValTown.Projects.FileRetrieveResponse[] = [];
 
-  while (true) {
-    const resp = await sdk.projects.files.retrieve(projectId, {
+  for await (
+    const file of sdk.projects.files.retrieve(projectId, {
       path,
-      offset: cursor,
-      limit: batchSize,
       branch_id,
       version,
       recursive,
-    });
-
-    // Add the files to our result array
-    files.push(...resp.data);
-
-    // If we got fewer items than the batch size, we've reached the end
-    if (!resp.links.next) break;
-
-    // Move to next batch
-    cursor += batchSize;
-  }
+    })
+  ) files.push(file);
 
   return files;
 }
@@ -129,7 +129,6 @@ export function randomProjectName(label = "") {
 /**
  * The owner of the API key used to auth the current ValTown instance.
  */
-const user = await sdk.me.profile.retrieve();
+export const user = await sdk.me.profile.retrieve();
 
-export { branchIdToBranch, filePathToFile, user };
 export default sdk;

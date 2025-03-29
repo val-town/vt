@@ -54,7 +54,7 @@ vt checkout main`,
     projectName: string,
     targetDir?: string,
   ) => {
-    doWithSpinner("Creating project...", async (spinner) => {
+    doWithSpinner("Creating new project...", async (spinner) => {
       let rootPath: string;
       if (!targetDir) {
         rootPath = join(Deno.cwd(), projectName);

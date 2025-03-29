@@ -1,13 +1,17 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
-import type { CheckoutResult } from "~/vt/lib/checkout.ts";
-import { dirtyErrorMsg } from "~/cmd/lib/utils.ts";
+import {
+  displayFileStateChanges,
+  noChangesDryRunMsg,
+} from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { branchIdToBranch } from "~/sdk.ts";
+import { colors } from "@cliffy/ansi/colors";
+import { Confirm } from "@cliffy/prompt";
 
-const toListBranches = "Use \`vt branch\` to list branches.";
+const toListBranchesCmd = "Use `vt branch` to list branches.";
+const noChangesToStateMsg = "No changes were made to local state";
 
 export const checkoutCmd = new Command()
   .name("checkout")
@@ -16,6 +20,10 @@ export const checkoutCmd = new Command()
   .option(
     "-b, --branch <newBranchName:string>",
     "Create a new branch with the specified name",
+  )
+  .option(
+    "-d, --dry-run",
+    "Show what would be changed during checkout without making any changes",
   )
   .option(
     "-f, --force",
@@ -37,78 +45,180 @@ export const checkoutCmd = new Command()
     "Create a new branch and force checkout",
     `vt checkout -b bugfix -f`,
   )
+  .example(
+    "Preview changes without checking out",
+    `vt checkout main --dry-run`,
+  )
   .action(
     (
-      { branch, force }: { branch?: string; force?: boolean },
+      { branch, force, dryRun }: {
+        branch?: string;
+        force?: boolean;
+        dryRun?: boolean;
+      },
       existingBranchName?: string,
     ) => {
-      doWithSpinner("Checking out branch...", async (spinner) => {
-        const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-        const config = await vt.getMeta().loadConfig();
+      doWithSpinner(
+        dryRun
+          ? "Checking for changes that would occur..."
+          : "Checking out branch...",
+        async (spinner) => {
+          const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+          const config = await vt.getMeta().loadConfig();
 
-        const statusResult = await vt.status();
+          // Validate input parameters
+          if (!branch && !existingBranchName) {
+            throw new Error(
+              "Branch name is required. Use -b to create a new branch " +
+                toListBranchesCmd,
+            );
+          }
 
-        if (
-          !force &&
-          (!branch && existingBranchName &&
-            (await vt.isDirty({ statusResult }) ||
-              await vt.isDirty({
-                statusResult: await vt.status({
-                  branchId: (await branchIdToBranch(
-                    config.projectId,
-                    existingBranchName,
-                  )).id,
-                }),
-              })))
-        ) {
-          throw new Error(dirtyErrorMsg("checkout"));
-        }
-
-        let checkoutResult: CheckoutResult;
-
-        if (branch) {
-          // -b flag was used, create new branch from source
           try {
-            checkoutResult = await vt
-              .checkout(branch, {
-                forkedFrom: config.currentBranch,
-                statusResult,
-              });
+            const targetBranch = branch || existingBranchName!;
+            const isNewBranch = Boolean(branch);
 
+            // Always do a dry checkout first to check for changes
+            const dryCheckoutResult = await vt.checkout(
+              branch || existingBranchName!,
+              {
+                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                dryRun: true,
+              },
+            );
+
+            if (
+              dryCheckoutResult.toBranch &&
+              config.currentBranch === dryCheckoutResult.toBranch.id
+            ) {
+              spinner.warn(
+                `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,
+              );
+              return;
+            }
+
+            // Check if dirty, then early exit if it's dirty and they don't
+            // want to proceed. If in force mode don't do this check.
+            //
+            // We cannot safely check out if the result of the checkout would
+            // cause any local files to get modified or deleted, unless that file
+            // has already been safely pushed. To check if it's already been
+            // pushed, we do a .merge on the file state with  the result of
+            // vt.status(), which says that the file is not modified. .merge is a
+            // right intersection so we overwrite all the previously detected to
+            // be dangerous state changes as safe if it's not modified according
+            // to vt.status().
+            const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
+              .filter((fileStatus) =>
+                (fileStatus.status == "deleted" ||
+                  fileStatus.status == "modified") &&
+                fileStatus.where === "local"
+              );
+            dangerousLocalChanges.merge(
+              (await vt.status()).filter((fileStatus) =>
+                fileStatus.status === "not_modified"
+              ),
+            );
+
+            if (!isNewBranch) {
+              if (
+                await vt.isDirty({ fileStateChanges: dangerousLocalChanges }) &&
+                !force && !dryRun
+              ) {
+                spinner.stop();
+
+                displayFileStateChanges(
+                  dangerousLocalChanges,
+                  {
+                    headerText: `Dangerous changes that would occur when ${
+                      isNewBranch
+                        ? `creating branch "${targetBranch}"`
+                        : `checking out "${targetBranch}"`
+                    }:`,
+                    summaryText: "Would change:",
+                    emptyMessage: noChangesToStateMsg,
+                    includeSummary: true,
+                  },
+                );
+                console.log();
+
+                // Ask for confirmation to proceed despite dirty state
+                const shouldProceed = await Confirm.prompt({
+                  message: colors.yellow(
+                    "Project has unpushed changes. " +
+                      "Do you want to proceed with checkout anyway?",
+                  ),
+                  default: false,
+                });
+
+                // Exit if user doesn't want to proceed
+                if (!shouldProceed) Deno.exit(0);
+                else console.log(); // Newline
+              }
+            }
+
+            // If this is a dry run then report the changes and exit early.
+            if (dryRun) {
+              spinner.stop();
+
+              // Inline display of dry run changes
+              displayFileStateChanges(dryCheckoutResult.fileStateChanges, {
+                headerText: `Changes that would occur when ${
+                  isNewBranch
+                    ? `creating branch "${targetBranch}"`
+                    : `checking out "${targetBranch}"`
+                }:`,
+                summaryText: "Would change:",
+                emptyMessage: noChangesToStateMsg,
+                includeSummary: true,
+              });
+              console.log();
+
+              spinner.succeed(noChangesDryRunMsg);
+              return;
+            }
+
+            // Perform the actual checkout
+            const checkoutResult = await vt.checkout(
+              targetBranch,
+              { dryRun: false },
+            );
+
+            spinner.stop();
+
+            // Inline display of actual checkout changes
+            displayFileStateChanges(checkoutResult.fileStateChanges, {
+              headerText: "Changes made to local state during checkout:",
+              summaryText: "Changed:",
+              showEmpty: false,
+              includeSummary: true,
+            });
+            // If no changes nothing was printed, so we don't need to log state info
+            if (checkoutResult.fileStateChanges.changes() > 0) console.log();
+
+            // Report the success, which is either a successful switch or a
+            // successful fork
             spinner.succeed(
-              `Created and switched to new branch "${branch}" from "${checkoutResult.fromBranch.name}"`,
+              isNewBranch
+                ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
+                : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
             );
           } catch (e) {
-            if (e instanceof ValTown.APIError && e.status === 409) {
+            if (e instanceof ValTown.APIError && e.status === 409 && branch) {
               throw new Error(
                 `Branch "${branch}" already exists. Choose a new branch name. ` +
-                  toListBranches,
+                  toListBranchesCmd,
               );
-            } else throw e; // Re-throw error if it's not a 409
-          }
-        } else if (existingBranchName) {
-          try {
-            checkoutResult = await vt.checkout(existingBranchName, {
-              statusResult,
-            });
-
-            spinner.succeed(
-              `Switched to branch "${existingBranchName}" from "${checkoutResult.fromBranch.name}"`,
-            );
-          } catch (e) {
-            if (e instanceof Deno.errors.NotFound) {
+            } else if (
+              e instanceof Deno.errors.NotFound && existingBranchName
+            ) {
               throw new Error(
                 `Branch "${existingBranchName}" does not exist in project. ` +
-                  toListBranches,
+                  toListBranchesCmd,
               );
-            } else throw e; // Re-throw other errors
+            } else throw e;
           }
-        } else {
-          throw new Error(
-            "Branch name is required. Use -b to create a new branch " +
-              toListBranches,
-          );
-        }
-      });
+        },
+      );
     },
   );

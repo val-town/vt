@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import sdk from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import ValTown from "@valtown/sdk";
+import type ValTown from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";

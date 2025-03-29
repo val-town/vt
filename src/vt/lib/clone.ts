@@ -1,64 +1,96 @@
 import sdk, { listProjectItems } from "~/sdk.ts";
 import type Valtown from "@valtown/sdk";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
-import * as path from "@std/path";
-import { ensureDir } from "@std/fs";
-import { doAtomically } from "~/vt/lib/utils.ts";
+import { ensureDir, exists } from "@std/fs";
+import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
+import type { ProjectItemType } from "~/consts.ts";
+import { dirname } from "@std/path/dirname";
+import { join } from "@std/path";
+import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
+
+/**
+ * Parameters for cloning a project by downloading its files and directories to the specified
+ * target directory.
+ */
+export interface CloneParams {
+  /** The directory where the project will be cloned */
+  targetDir: string;
+  /** The id of the project to be cloned */
+  projectId: string;
+  /** The branch ID of the project to clone */
+  branchId: string;
+  /** The version to clone. Defaults to latest */
+  version?: number;
+  /** A list of gitignore rules. */
+  gitignoreRules?: string[];
+  /** If true, don't actually write files, just report what would change */
+  dryRun?: boolean;
+}
 
 /**
  * Clones a project by downloading its files and directories to the specified
  * target directory.
  *
- * @param {object} args
- * @param {string} args.targetDir - The directory where the project will be cloned
- * @param {string} args.projectId - The uuid of the project to be cloned
- * @param {string} [args.branchId] - The branch ID to clone.
- * @param {number} [args.version] - The version of the project to clone.
- * @param {string[]} [args.gitignoreRules] - List of glob patterns for files to ignore
+ * @param params Options for the clone operation
+ * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone({
-  targetDir,
-  projectId,
-  branchId,
-  version,
-  gitignoreRules,
-}: {
-  targetDir: string;
-  projectId: string;
-  branchId: string;
-  version: number;
-  gitignoreRules?: string[];
-}): Promise<void> {
+export function clone(params: CloneParams): Promise<FileState> {
+  const {
+    targetDir,
+    projectId,
+    branchId,
+    version,
+    gitignoreRules,
+    dryRun = false,
+  } = params;
   return doAtomically(
     async (tmpDir) => {
+      const changes = FileState.empty();
       const projectItems = await listProjectItems(projectId, {
-        version,
         branch_id: branchId,
+        version,
         path: "",
         recursive: true,
       });
 
-      await Promise.all(
-        projectItems
-          .filter((file) => !shouldIgnore(file.path, gitignoreRules))
-          .map(async (file) => {
-            if (file.type === "directory") {
-              // Create directories, even if they would otherwise get created during
-              // the createFile call later, so that we get empty directories
-              await ensureDir(path.join(tmpDir, file.path));
-            } else {
-              // Start a create file task in the background
-              const fullPath = path.join(tmpDir, file.path);
-              await createFile(
-                fullPath,
-                projectId,
-                branchId,
-                version,
-                file,
-              );
+      await Promise.all(projectItems
+        .map(async (file) => {
+          // Skip ignored files
+          if (shouldIgnore(file.path, gitignoreRules)) return;
+
+          if (file.type === "directory") {
+            // Create directories, even if they would otherwise get created
+            // during the createFile call later, so that we get empty
+            // directories
+            if (dryRun === false) await ensureDir(join(tmpDir, file.path));
+
+            // If the directory is new mark it as created
+            if (!(await exists(join(targetDir, file.path)))) {
+              changes.insert({
+                mtime: Date.now(),
+                type: "directory" as ProjectItemType,
+                path: file.path,
+                status: "created",
+                where: "local",
+              });
             }
-          }),
-      );
+          } else {
+            // Start a create file task in the background
+            await createFile(
+              file.path,
+              targetDir,
+              tmpDir,
+              projectId,
+              branchId,
+              version,
+              file,
+              changes,
+              dryRun,
+            );
+          }
+        }));
+
+      return [changes, !dryRun];
     },
     targetDir,
     "vt_clone_",
@@ -66,35 +98,80 @@ export function clone({
 }
 
 async function createFile(
-  rootPath: string,
+  path: string,
+  originalRoot: string,
+  targetRoot: string,
   projectId: string,
   branchId: string,
-  version: number,
-  file: Valtown.Projects.FileRetrieveResponse.Data,
+  version: number | undefined = undefined,
+  file: Valtown.Projects.FileRetrieveResponse,
+  changes: FileState,
+  dryRun: boolean,
 ): Promise<void> {
-  const fullPath = path.join(path.dirname(rootPath), file.name);
-
-  // Add all needed parents for creating the file
-  await ensureDir(path.dirname(fullPath));
-
   const updatedAt = new Date(file.updatedAt);
+  const fileStatus: FileStatus = {
+    mtime: updatedAt.getTime(),
+    type: file.type as ProjectItemType,
+    path: file.path,
+    status: "created", // Default status
+    where: "local",
+  };
 
-  // Check if file exists and has the same mtime as file.updatedAt
-  const fileInfo = await Deno.stat(fullPath).catch(() => null);
-  if (fileInfo) {
-    if (fileInfo.mtime && fileInfo.mtime.getTime() === updatedAt.getTime()) {
-      return; // If mtime matches updatedAt, no need to update
+  // Check for existing file and determine status
+  const fileInfo = await Deno
+    .stat(join(originalRoot, path))
+    .catch(() => null);
+
+  if (fileInfo !== null) {
+    const localMtime = fileInfo.mtime!.getTime();
+    const projectMtime = updatedAt.getTime();
+
+    const modified = await isFileModified({
+      path: file.path,
+      targetDir: originalRoot,
+      originalPath: path,
+      projectId,
+      branchId,
+      version,
+      localMtime,
+      projectMtime,
+    });
+
+    if (modified) {
+      // Determine if modified locally or remotely
+      if (localMtime > projectMtime) {
+        fileStatus.status = "modified";
+        fileStatus.where = "local";
+      } else {
+        fileStatus.status = "modified";
+        fileStatus.where = "remote";
+      }
+    } else {
+      fileStatus.status = "not_modified";
     }
   }
 
-  // Get and write the file content
-  await sdk.projects.files.getContent(
-    projectId,
-    { path: file.path, branch_id: branchId, version },
-  )
-    .then((resp) => resp.text())
-    .then((content) => Deno.writeTextFile(fullPath, content));
+  // Track file status
+  changes.insert(fileStatus);
 
-  // Set the file's mtime right after creating it
-  await Deno.utime(fullPath, updatedAt, updatedAt);
+  // Stop here for dry runs
+  if (dryRun) return;
+
+  // Ensure target directory exists
+  await ensureDir(join(targetRoot, dirname(path)));
+
+  // Copy unmodified files directly, otherwise fetch and write content
+  if (fileStatus.status === "not_modified") {
+    await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
+  } else {
+    const content = await sdk.projects.files.getContent(
+      projectId,
+      { path: file.path, branch_id: branchId, version },
+    ).then((resp) => resp.text());
+
+    await Deno.writeTextFile(join(targetRoot, path), content);
+  }
+
+  // Set the file's mtime to match the source
+  await Deno.utime(join(targetRoot, path), updatedAt, updatedAt);
 }

@@ -2,14 +2,26 @@ import { clone } from "~/vt/lib/clone.ts";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
-import { status, type StatusResult } from "~/vt/lib/status.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join } from "@std/path";
-import { checkout, type CheckoutResult } from "~/vt/lib/checkout.ts";
+import {
+  type BaseCheckoutParams,
+  type BranchCheckoutParams,
+  checkout,
+  type CheckoutResult,
+  type ForkCheckoutParams,
+} from "~/vt/lib/checkout.ts";
 import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
 import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME, META_IGNORE_FILE_NAME } from "~/consts.ts";
+import {
+  DEFAULT_BRANCH_NAME,
+  FIRST_VERSION_NUMBER,
+  META_IGNORE_FILE_NAME,
+} from "~/consts.ts";
+import { status } from "~/vt/lib/status.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
+import { exists } from "@std/fs";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -78,7 +90,7 @@ export default class VTClient {
     rootPath,
     username,
     projectName,
-    version = -1,
+    version,
     branchName = DEFAULT_BRANCH_NAME,
   }: {
     rootPath: string;
@@ -98,25 +110,20 @@ export default class VTClient {
 
     const branch = await branchIdToBranch(projectId, branchName);
 
-    // If they choose -1 as the version then change to use the most recent
-    // version
-    version = version === -1
-      ? (await sdk.projects.branches.retrieve(projectId, branch.id)).version
-      : version;
+    version = version ??
+      (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
 
     const vt = new VTClient(rootPath);
 
-    try {
-      await Deno.stat(vt.getMeta().configFilePath);
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        await vt.getMeta().saveConfig({
-          projectId,
-          currentBranch: branch.id,
-          version: version,
-        });
-      } else throw error;
+    if ((await exists(vt.getMeta().configFilePath))) {
+      throw new Error("VT project already initialized in this directory");
     }
+
+    await vt.getMeta().saveConfig({
+      projectId,
+      currentBranch: branch.id,
+      version: version,
+    });
 
     return vt;
   }
@@ -142,13 +149,14 @@ export default class VTClient {
    * that this cannot run with multiple instances.
    *
    * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
-   * @returns {AsyncGenerator<StatusResult>} An async generator that yields `StatusResult` objects for each change.
+   * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
   public async *watch(
-    debounceDelay: number = 600,
-  ): AsyncGenerator<StatusResult> {
+    debounceDelay: number = 300,
+  ): AsyncGenerator<FileState> {
     // Do an initial push
-    yield await this.push();
+    const firstPush = await this.push();
+    if (firstPush.changes() > 0) yield firstPush;
 
     // Set the lock file at the start
     await this.getMeta().setLockFile();
@@ -169,6 +177,8 @@ export default class VTClient {
 
     // Process events and yield results
     for await (const event of watcher) {
+      if (event.kind === "access") return; // Nothing to do
+
       try {
         // Debounce - only push if enough time has elapsed since last push
         const now = Date.now();
@@ -177,8 +187,6 @@ export default class VTClient {
         lastPushed = now; // update debouce counter
         yield await this.push(); // yields the status retreived
       } catch (e) {
-        if (event.kind === "access") return; // Nothing to do
-
         // Handle case where the file was deleted before we could push it
         if (e instanceof Deno.errors.NotFound) {
           // The file no longer exists at the time of uploading. It could've
@@ -231,6 +239,7 @@ export default class VTClient {
 
     // Get the project branch
     const branch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
+    if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
     // Then clone it to the target directory
     await clone({
@@ -259,17 +268,15 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async clone(targetDir: string): Promise<void> {
-    const { projectId, currentBranch, version } = await this
-      .getMeta()
-      .loadConfig();
-
-    // Do the clone using the configuration
-    await clone({
-      targetDir,
-      projectId,
-      branchId: currentBranch,
-      version,
-      gitignoreRules: await this.getMeta().loadGitignoreRules(),
+    await this.getMeta().doWithConfig(async (config) => {
+      // Do the clone using the configuration
+      await clone({
+        targetDir,
+        projectId: config.projectId,
+        branchId: config.currentBranch,
+        version: config.version,
+        gitignoreRules: await this.getMeta().loadGitignoreRules(),
+      });
     });
   }
 
@@ -279,25 +286,21 @@ export default class VTClient {
    *
    * @param {Object} options - Options for status check
    * @param {string} [options.branchId] - Optional branch ID to check against. Defaults to current branch.
-   * @returns {Promise<StatusResult>} A StatusResult object containing categorized files.
+   * @returns {Promise<FileStateChanges>} A StatusResult object containing categorized files.
    */
   public async status(
     { branchId }: { branchId?: string } = {},
-  ): Promise<StatusResult> {
-    const {
-      projectId,
-      currentBranch: configBranchId,
-    } = await this.getMeta().loadConfig();
+  ): ReturnType<typeof status> {
+    return await this.getMeta().doWithConfig(async (config) => {
+      // Use provided branchId or fall back to the current branch from config
+      const targetBranchId = branchId || config.currentBranch;
 
-    // Use provided branchId or fall back to the current branch from config
-    const targetBranchId = branchId || configBranchId;
-
-    return status({
-      targetDir: this.rootPath,
-      projectId,
-      branchId: targetBranchId,
-      version: await getLatestVersion(projectId, targetBranchId),
-      gitignoreRules: await this.getMeta().loadGitignoreRules(),
+      return status({
+        targetDir: this.rootPath,
+        projectId: config.projectId,
+        branchId: targetBranchId,
+        gitignoreRules: await this.getMeta().loadGitignoreRules(),
+      });
     });
   }
 
@@ -306,147 +309,168 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @returns {Promise<void>} Resolves once pull complete
+   * @param {Partial<Parameters<typeof pull>[0]>} options - Optional parameters for pull
    */
-  public async pull(): Promise<void> {
-    const config = await this.getMeta().loadConfig();
+  public async pull(
+    options?: Partial<Parameters<typeof pull>[0]>,
+  ): ReturnType<typeof pull> {
+    return await this.getMeta().doWithConfig(async (config) => {
+      if (options?.dryRun === false) {
+        config.version = await getLatestVersion(
+          config.projectId,
+          config.currentBranch,
+        );
+      }
 
-    config.version = await getLatestVersion(
-      config.projectId,
-      config.currentBranch,
-    );
+      const result = await pull({
+        ...{
+          targetDir: this.rootPath,
+          projectId: config.projectId,
+          branchId: config.currentBranch,
+          version: config.version,
+          gitignoreRules: await this.getMeta().loadGitignoreRules(),
+        },
+        ...options,
+      });
 
-    await pull({
-      targetDir: this.rootPath,
-      projectId: config.projectId,
-      branchId: config.currentBranch,
-      version: config.version,
-      gitignoreRules: await this.getMeta().loadGitignoreRules(),
+      return result;
     });
-
-    await this.getMeta().saveConfig(config);
   }
 
   /**
    * Push changes from the local directory to the Val Town project.
    *
-   * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
-   * @returns {Promise<StatusResult>} The StatusResult after pushing
+   * @param {Partial<Parameters<typeof pull>[0]>} options - Optional parameters for push
+   * @returns {Promise<FileStateChanges>} The StatusResult after pushing
    */
   public async push(
-    options?: { statusResult?: StatusResult },
-  ): Promise<StatusResult> {
-    const { projectId, currentBranch } = await this
-      .getMeta()
-      .loadConfig();
+    options?: Partial<Parameters<typeof push>[0]>,
+  ): ReturnType<typeof push> {
+    return await this.getMeta().doWithConfig(async (config) => {
+      const fileStateChanges = await push({
+        ...{
+          targetDir: this.rootPath,
+          projectId: config.projectId,
+          branchId: config.currentBranch,
+          gitignoreRules: await this.getMeta().loadGitignoreRules(),
+        },
+        ...options,
+      });
 
-    const statusResult = await push({
-      targetDir: this.rootPath,
-      projectId,
-      branchId: currentBranch,
-      gitignoreRules: await this.getMeta().loadGitignoreRules(),
-      statusResult: options?.statusResult,
+      if (!options || options.dryRun === false) {
+        config.version = await getLatestVersion(
+          config.projectId,
+          config.currentBranch,
+        );
+      }
+
+      return fileStateChanges;
     });
-
-    await this.getMeta().saveConfig({
-      projectId,
-      currentBranch,
-      version: await getLatestVersion(projectId, currentBranch),
-    });
-
-    return statusResult;
   }
 
   /**
-   * Check out a different branch of the project.
-   *
-   * @param {string} branchName The name of the branch to check out to
-   * @param {Object} options - Optional parameters
-   * @param {string} options.forkedFrom If provided, create a new branch with branchName, forking from this branch
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
-   * @returns {Promise<CheckoutResult>}
-   */
+  * Check out a different branch of the project.
+  *
+  * @param {string} branchName The name of the branch to check out to
+  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams> & { fileStateChanges?: FileStateChanges }} options -
+ Optional parameters
+  * @returns {Promise<CheckoutResult>}
+  */
   public async checkout(
     branchName: string,
-    options?: { forkedFrom?: string; statusResult?: StatusResult },
+    options?: Partial<BranchCheckoutParams | ForkCheckoutParams> & {
+      fileStateChanges?: FileState;
+    },
   ): Promise<CheckoutResult> {
-    const config = await this.getMeta().loadConfig();
-    const currentBranchId = config.currentBranch;
+    return await this.getMeta().doWithConfig(async (config) => {
+      const currentBranchId = config.currentBranch;
 
-    // Get files that were newly created but not yet committed
-    const statusResult = options?.statusResult || await this.status();
-    const created = statusResult.created.map((file) => file.path);
+      // Get files that were newly created but not yet committed
+      const fileStateChanges = options?.fileStateChanges || await this.status();
+      const created = fileStateChanges.created.map((file) => file.path);
 
-    // We want to ignore newly created files. Adding them to the gitignore
-    // rules list is a nice way to do that.
-    const gitignoreRules = [
-      ...(await this.getMeta().loadGitignoreRules()),
-      ...created,
-    ];
+      // We want to ignore newly created files. Adding them to the gitignore
+      // rules list is a nice way to do that.
+      const gitignoreRules = [
+        ...(await this.getMeta().loadGitignoreRules()),
+        ...created,
+      ];
 
-    let result: CheckoutResult;
-
-    if (options?.forkedFrom) {
-      // Create a new branch from the specified source
-      const sourceVersion = await getLatestVersion(
-        config.projectId,
-        options.forkedFrom,
-      );
-
-      result = await checkout({
+      // Common checkout parameters
+      const baseParams: BaseCheckoutParams = {
         targetDir: this.rootPath,
         projectId: config.projectId,
-        forkedFromId: options.forkedFrom,
-        name: branchName,
+        dryRun: options?.dryRun || false,
         gitignoreRules,
-        version: sourceVersion,
-      });
+      };
 
-      config.currentBranch = result.toBranch.id;
-      config.version = result.toBranch.version;
-    } else {
-      // Check out existing branch
-      const checkoutBranch = await branchIdToBranch(
-        config.projectId,
-        branchName,
-      );
+      let result: CheckoutResult;
 
-      const latestVersion = await getLatestVersion(
-        config.projectId,
-        checkoutBranch.id,
-      );
+      // Check if we're forking from another branch
+      if (
+        options && "forkedFromId" in options &&
+        typeof options.forkedFromId === "string"
+      ) {
+        const forkParams: ForkCheckoutParams = {
+          ...baseParams,
+          forkedFromId: options.forkedFromId,
+          name: branchName,
+          version: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
+        };
 
-      result = await checkout({
-        targetDir: this.rootPath,
-        projectId: config.projectId,
-        branchId: checkoutBranch.id,
-        fromBranchId: currentBranchId,
-        gitignoreRules: gitignoreRules,
-        version: latestVersion,
-      });
+        result = await checkout(forkParams);
 
-      config.currentBranch = result.toBranch.id;
-      config.version = latestVersion;
-    }
+        if (!baseParams.dryRun) {
+          if (result.toBranch) {
+            config.currentBranch = result.toBranch.id;
+            config.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
+          }
+        }
+      } else {
+        // Checking out an existing branch
+        const checkoutBranch = await branchIdToBranch(
+          config.projectId,
+          branchName,
+        );
 
-    // Update the config with the new branch
-    await this.getMeta().saveConfig(config);
+        // Ensure that the branch existed
+        if (!checkoutBranch) {
+          throw new Error(`Branch "${branchName}" not found`);
+        }
 
-    return result;
+        const branchParams: BranchCheckoutParams = {
+          ...baseParams,
+          branchId: checkoutBranch.id,
+          fromBranchId: currentBranchId,
+          version: options?.version || checkoutBranch.version, // Use specified version or the branch's version
+        };
+
+        result = await checkout(branchParams);
+
+        // Don't touch the config if it's a dry run
+        if (!baseParams.dryRun) {
+          if (result.toBranch) {
+            config.currentBranch = result.toBranch.id;
+            config.version = result.toBranch.version; // Use the target branch's version
+          }
+        }
+      }
+
+      return result;
+    });
   }
 
   /**
-   * Check if the working directory has uncommitted changes.
+   * Check if the working directory is dirty relative to remote.
    *
    * @param {Object} options - Optional parameters
-   * @param {StatusResult} options.statusResult - Optional pre-fetched StatusResult to use
-   * @returns {Promise<boolean>} True if there are uncommitted changes
+   * @param {FileStateChanges} options.fileStateChanges - Optional pre-fetched file state changes to use
+   * @returns {Promise<boolean>} True if local state is dirty
    */
   public async isDirty(
-    options?: { statusResult?: StatusResult },
+    options?: { fileStateChanges?: FileState },
   ): Promise<boolean> {
-    const statusResult = options?.statusResult || await this.status();
-    return isDirty(statusResult);
+    const fileStateChanges = options?.fileStateChanges || await this.status();
+    return isDirty(fileStateChanges);
   }
 }
