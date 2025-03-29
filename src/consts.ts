@@ -37,6 +37,25 @@ export const ProjectItems = [
   "directory",
 ] as const;
 
+export const ProjectItemColors: Record<ProjectItemType, (s: string) => string> =
+  {
+    "script": (s: string) => colors.rgb24(s, 0x4287f5),
+    "http": (s: string) => colors.rgb24(s, 0x22c55e),
+    "interval": (s: string) => colors.rgb24(s, 0xd946ef),
+    "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
+    "file": (s: string) => colors.dim(s),
+    "directory": (s: string) => colors.dim(s),
+  };
+
+export const TypeToTypeStr: Record<ProjectItemType, string> = {
+  "script": "script",
+  "http": "http",
+  "email": "email",
+  "interval": "cron",
+  "file": "file",
+  "directory": "directory",
+};
+
 export const VAL_TOWN_PROJECT_URL_REGEX = /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
 export type ProjectItemType = typeof ProjectItems[number];

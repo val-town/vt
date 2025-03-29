@@ -1,5 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
-import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
+import { basename, dirname, join } from "@std/path";
+import {
+  ProjectItemColors,
+  type ProjectItemType,
+  STATUS_STYLES,
+  TypeToTypeStr,
+} from "~/consts.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
@@ -56,10 +62,6 @@ export function getVersionRangeStr(
  * @param type - The type of the file object (e.g., 'script', 'http', 'file')
  * @param maxTypeLength - The maximum present file type object literal length (script=6)
  * @returns A formatted string with colored status prefix, file type, and path
- *
- * @example
- * // Returns something like "✓ (js   ) src/index.js" with appropriate colors
- * formatStatus('src/index.js', 'success', 'js', 5);
  */
 export function formatStatus(
   path: string,
@@ -67,28 +69,20 @@ export function formatStatus(
   type?: ProjectItemType,
   maxTypeLength: number = 0,
 ): string {
-  // Get color configuration for the status or use default
-  const config = STATUS_STYLES[status];
+  const styleConfig = STATUS_STYLES[status];
+  const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
 
-  // Get the base status text
-  const baseStatusText = config.color(config.prefix) + " ";
+  // Format type indicator with consistent padding and colors
+  const typeStr = TypeToTypeStr[type!].padEnd(maxTypeLength);
+  const typeIndicator = //
+    colors.gray("(") +
+    ProjectItemColors[type!](typeStr) +
+    colors.gray(")");
 
-  // If type is empty or undefined, don't include type indicator
-  if (!type) {
-    return baseStatusText + path;
-  }
-
-  // Extract file type with consistent padding
-  const paddedFileType = type.padEnd(maxTypeLength);
-
-  // Create formatted type indicator with colors
-  const typeStart = colors.gray("(");
-  const typeContent = colors.dim(paddedFileType);
-  const typeEnd = colors.gray(")");
-  const typeIndicator = typeStart + typeContent + typeEnd;
-
-  // Combine the status prefix, type indicator, and path
-  return baseStatusText + typeIndicator + " " + path;
+  // Construct the final formatted string
+  return `${
+    styleConfig.color(styleConfig.prefix)
+  } ${typeIndicator} ${coloredPath}`;
 }
 
 /**
