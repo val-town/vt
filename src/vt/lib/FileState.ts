@@ -1,3 +1,4 @@
+import { basename } from "@std/path";
 import type { ProjectItemType } from "~/consts.ts";
 
 export interface FileInfo {
@@ -81,10 +82,53 @@ export class FileState {
 
   /**
    * Returns the file state as an array of key-value pairs.
+   * When sorted=true, entries are sorted by:
+   * 1. Path segment count (longest paths first)
+   * 2. Type (created, deleted, modified, etc.)
+   * 3. Basename length
+   * 4. Alphabetical order of the type if all else is equal
+   *
+   * @param options - Optional configuration {sorted: boolean}
    * @returns An array of entries from the JSON representation
    */
-  public entries(): [string, FileStatus[]][] {
-    return Object.entries(this.toJSON());
+  public entries(options?: { sorted?: boolean }): [string, FileStatus[]][] {
+    const entries = Object.entries(this.toJSON());
+
+    if (!options?.sorted) {
+      return entries;
+    }
+
+    return entries.sort(([typeA, filesA], [typeB, filesB]) => {
+      const pathA = filesA.length > 0 ? filesA[0].path : "";
+      const pathB = filesB.length > 0 ? filesB[0].path : "";
+
+      // Get segment counts for comparison
+      const segmentsA = pathA.split("/").filter(Boolean);
+      const segmentsB = pathB.split("/").filter(Boolean);
+
+      // 1. First compare by segment count (descending order)
+      const segmentCountDiff = segmentsB.length - segmentsA.length;
+      if (segmentCountDiff !== 0) {
+        return segmentCountDiff;
+      }
+
+      // 2. If segment counts are equal, compare by type
+      const typeComparison = typeA.localeCompare(typeB);
+      if (typeComparison !== 0) {
+        return typeComparison;
+      }
+
+      // 3. If types are equal, compare by basename length
+      const basenameA = basename(pathA);
+      const basenameB = basename(pathB);
+
+      if (basenameA === basenameB) {
+        // 4. If basenames are equal, compare alphabetically by type
+        return typeA.localeCompare(typeB);
+      }
+
+      return basenameA.length - basenameB.length;
+    });
   }
 
   /**
