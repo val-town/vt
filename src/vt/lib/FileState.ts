@@ -1,3 +1,4 @@
+import { basename } from "@std/path";
 import type { ProjectItemType } from "~/consts.ts";
 
 export interface FileInfo {
@@ -118,12 +119,8 @@ export class FileState {
       }
 
       // 3. If types are equal, compare by basename length
-      const basenameA = segmentsA.length > 0
-        ? segmentsA[segmentsA.length - 1]
-        : "";
-      const basenameB = segmentsB.length > 0
-        ? segmentsB[segmentsB.length - 1]
-        : "";
+      const basenameA = basename(pathA);
+      const basenameB = basename(pathB);
 
       if (basenameA === basenameB) {
         // 4. If basenames are equal, compare alphabetically by type
