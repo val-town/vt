@@ -1,5 +1,5 @@
 import { join, relative } from "@std/path";
-import { copy, walk } from "@std/fs";
+import { copy, exists, walk } from "@std/fs";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
@@ -92,6 +92,7 @@ export function pull(params: PullParams): Promise<FileState> {
         // In dry run mode, we need to scan the target directory directly
         for await (const entry of walk(targetDir)) {
           const relativePath = relative(targetDir, entry.path);
+
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
           if (relativePath === "" || entry.path === targetDir) continue;
           if (files.has(relativePath)) continue;
@@ -111,6 +112,7 @@ export function pull(params: PullParams): Promise<FileState> {
         // In actual run mode, we scan the temp directory
         for await (const entry of walk(tmpDir)) {
           const relativePath = relative(tmpDir, entry.path);
+
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
           if (relativePath === "" || entry.path === tmpDir) continue;
           if (files.has(relativePath)) continue;
@@ -125,10 +127,15 @@ export function pull(params: PullParams): Promise<FileState> {
           };
           changes.insert(fileStatus);
 
-          await Deno.remove(join(targetDir, relativePath), {
-            recursive: true,
-          });
-          await Deno.remove(join(tmpDir, relativePath), { recursive: true });
+          // Need to delete it from both places to prevent it from getting
+          // copied back
+          const deletionTarget = join(targetDir, relativePath);
+          if (await exists(deletionTarget)) {
+            await Deno.remove(deletionTarget, { recursive: true });
+          }
+          if (await exists(entry.path)) {
+            await Deno.remove(entry.path, { recursive: true });
+          }
         }
       }
 
