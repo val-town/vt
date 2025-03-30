@@ -1,6 +1,6 @@
 import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
@@ -98,37 +98,55 @@ export function pull(params: PullParams): Promise<FileState> {
           if (projectItemsSet.has(relativePath)) continue;
 
           await Deno.stat(entry.path)
-            .then((stat) =>
+            .then(async (stat) =>
               changes.insert({
                 path: relativePath,
                 status: "deleted",
-                type: stat.isDirectory ? "directory" : "file",
+                type: stat.isDirectory
+                  ? "directory"
+                  : await getProjectItemType(projectId, {
+                    branchId,
+                    version,
+                    filePath: relativePath,
+                  }),
                 mtime: stat.mtime?.getTime()!,
                 where: "local",
               })
             );
         }
       } else {
-        // In actual run mode, we scan the temp directory
+        // In actual run mode, we make a reference directory for items that we
+        // are going to delete, and then iterate through those contents and
+        // delete out of the temp dir. That way we aren't deleting contents of
+        // the directories while they still are being itereated through.
         await doAtomically(async (deletionTmpDir) => {
-          // Copy the contents of the temp directory to a deletion temp directory
+          // Copy files to the deletion temp dir
           await copy(tmpDir, deletionTmpDir, {
             preserveTimestamps: true,
             overwrite: true,
           });
 
-          for await (const entry of walk(tmpDir)) {
-            const relativePath = relative(tmpDir, entry.path);
+          // Scan the deletion temp directory
+          for await (const entry of walk(deletionTmpDir)) {
+            const relativePath = relative(deletionTmpDir, entry.path);
+            const targetDirPath = join(targetDir, relativePath);
+            const tmpDirPath = join(tmpDir, relativePath);
 
             if (shouldIgnore(relativePath, gitignoreRules)) continue;
-            if (relativePath === "" || entry.path === tmpDir) continue;
+            if (relativePath === "" || entry.path === deletionTmpDir) continue;
             if (projectItemsSet.has(relativePath)) continue;
 
-            const stat = await Deno.stat(join(deletionTmpDir, relativePath));
+            const stat = await Deno.stat(entry.path);
             const fileStatus: FileStatus = {
               path: relativePath,
               status: "deleted",
-              type: stat.isDirectory ? "directory" : "file",
+              type: stat.isDirectory
+                ? "directory"
+                : await getProjectItemType(projectId, {
+                  branchId,
+                  version,
+                  filePath: relativePath,
+                }),
               mtime: stat.mtime?.getTime()!,
               where: "local",
             };
@@ -136,15 +154,15 @@ export function pull(params: PullParams): Promise<FileState> {
 
             // Need to delete it from both places to prevent it from getting
             // copied back
-            const deletionTarget = join(targetDir, relativePath);
-            if (await exists(deletionTarget)) {
-              await Deno.remove(deletionTarget, { recursive: true });
+            if (await exists(targetDirPath)) {
+              await Deno.remove(targetDirPath, { recursive: true });
             }
-            if (await exists(entry.path)) {
-              await Deno.remove(entry.path, { recursive: true });
+            if (await exists(tmpDirPath)) {
+              await Deno.remove(tmpDirPath, { recursive: true });
             }
           }
 
+          // Return changes but don't copy back (false)
           return [null, false];
         }, "_vt_pull_delete_");
       }
