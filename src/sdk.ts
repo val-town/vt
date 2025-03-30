@@ -41,16 +41,15 @@ export async function branchNameToBranch(
 }
 
 /**
-   * Converts a file path to its corresponding project item for a given project.
-   *
-   * @param {string} projectId - The ID of the project containing the file
-   * @param {object} options - The options object
-   * @param {string} options.branchId - The ID of the project branch to reference
-   * @param {number} [options.version] - The version of the project for the file being found (optional)
-   * @param {string} options.filePath - The file path to locate
-   * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefin
-  if not found
-   */
+ * Converts a file path to its corresponding project item for a given project.
+ *
+ * @param {string} projectId - The ID of the project containing the file
+ * @param {object} options - The options object
+ * @param {string} options.branchId - The ID of the project branch to reference
+ * @param {number} [options.version] - The version of the project for the file being found (optional)
+ * @param {string} options.filePath - The file path to locate
+ * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
+ */
 export async function getProjectItem(
   projectId: string,
   { branchId, version, filePath }: {
@@ -59,14 +58,18 @@ export async function getProjectItem(
     filePath: string;
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
+  branchId = (branchId ||
+    await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
+      resp.id
+    ))!;
+  version = version || (await getLatestVersion(projectId, branchId));
+
   for await (
     const filepath of await sdk.projects.files.retrieve(
       projectId,
       { path: "", branch_id: branchId, version, recursive: true },
     )
-  ) {
-    if (filepath.path === filePath) return filepath;
-  }
+  ) if (filepath.path === filePath) return filepath;
 }
 
 /**

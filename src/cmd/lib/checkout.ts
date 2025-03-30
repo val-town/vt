@@ -217,7 +217,8 @@ export const checkoutCmd = new Command()
                     toListBranchesCmd,
                 );
               }
-            } else throw e;
+            }
+            throw e;
           }
         },
       );
