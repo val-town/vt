@@ -188,12 +188,13 @@ async function getLocalFiles({
 
     // Store the path and its modification time
     files.set(path.relative(targetDir, entry.path), {
-      type: entry.isDirectory ? "directory" : await getProjectItemType(
-        projectId,
-        branchId,
-        version,
-        relativePath,
-      ),
+      type: entry.isDirectory
+        ? "directory"
+        : await getProjectItemType(projectId, {
+          branchId: branchId,
+          version,
+          filePath: relativePath,
+        }),
       mtime: stat.mtime!.getTime(),
       where: "local",
     });

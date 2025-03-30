@@ -4,7 +4,7 @@ import {
   type ProjectItemType,
   RECENT_VERSION_COUNT,
 } from "~/consts.ts";
-import { filePathToFile } from "~/sdk.ts";
+import { getProjectItem } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
 /**
@@ -25,17 +25,20 @@ import { compile as compileGitignore } from "gitignore-parser";
  * 3. If the file does not match the val extension criteria (.ts + optional
  *    identifier), return "file".
  *
- * @param projectId - The ID of the project
- * @param branchId - The ID of the branch
- * @param version - The version of the project (optional, defaults to latest)
- * @param {string} filePath - The path of the val or file to get the type of
- * @returns The val file type
+ * @param {string} projectId - The ID of the project
+ * @param {Object} options - Options for determining the file type
+ * @param {string} options.branchId - The ID of the branch
+ * @param {number} [options.version] - The version of the project (optional, defaults to latest)
+ * @param {string} options.filePath - The path of the val or file to get the type of
+ * @returns {Promise<ProjectItemType>} The val file type
  */
 async function getProjectItemType(
   projectId: string,
-  branchId: string,
-  version: number | undefined = undefined,
-  filePath: string,
+  { branchId, version = undefined, filePath }: {
+    branchId: string;
+    version: number | undefined;
+    filePath: string;
+  },
 ): Promise<ProjectItemType> {
   // Preserve the type if the file was deleted recently and then recreated
   for (
@@ -43,14 +46,15 @@ async function getProjectItemType(
     i > (version || FIRST_VERSION_NUMBER) - RECENT_VERSION_COUNT;
     i--
   ) {
-    try {
-      return await filePathToFile(projectId, branchId, version, filePath)
-        .then((resp) => resp.type);
-    } catch (e) {
-      if (e instanceof Deno.errors.NotFound) {
-        continue;
-      } else throw e;
-    }
+    const type = await getProjectItem(projectId, {
+      branchId,
+      version,
+      filePath,
+    })
+      .then((resp) => resp?.type);
+
+    if (type === undefined) continue;
+    else return type;
   }
 
   // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val

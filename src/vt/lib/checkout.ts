@@ -183,12 +183,11 @@ export function checkout(
             path: relativePath,
             mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
             status: "deleted",
-            type: await getProjectItemType(
-              params.projectId,
-              fromBranch.id,
-              fromBranch.version,
-              relativePath,
-            ),
+            type: await getProjectItemType(params.projectId, {
+              branchId: fromBranch.id,
+              version: fromBranch.version,
+              filePath: relativePath,
+            }),
             where: "local",
           });
           if (!params.dryRun) {
