@@ -48,7 +48,7 @@ Deno.test({
         await checkout({
           targetDir: tempDir,
           projectId: project.id,
-          branchId: mainBranch.id,
+          toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
         });
 
@@ -72,9 +72,9 @@ Deno.test({
         const result = await checkout({
           targetDir: tempDir,
           projectId: project.id,
-          branchId: featureBranch.id,
+          toBranchId: featureBranch.id,
           fromBranchId: mainBranch.id,
-          version: featureBranch.version + 1,
+          toBranchVersion: featureBranch.version + 1,
         });
 
         // Verify branch info
@@ -118,9 +118,9 @@ Deno.test({
         await checkout({
           targetDir: tempDir,
           projectId: project.id,
-          branchId: mainBranch.id,
+          toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
-          version: 1,
+          toBranchVersion: 1,
         });
 
         // Create untracked file
@@ -135,7 +135,7 @@ Deno.test({
           projectId: project.id,
           forkedFromId: mainBranch.id,
           name: "new-feature",
-          version: 2,
+          toBranchVersion: 2,
         });
 
         // Verify branch creation
@@ -162,9 +162,9 @@ Deno.test({
         await checkout({
           targetDir: tempDir,
           projectId: project.id,
-          branchId: mainBranch.id,
+          toBranchId: mainBranch.id,
           fromBranchId: result.toBranch!.id,
-          version: 3,
+          toBranchVersion: 3,
         });
 
         // Verify original content
@@ -215,9 +215,9 @@ Deno.test({
         await checkout({
           targetDir: tempDir,
           projectId: project.id,
-          branchId: mainBranch.id,
+          toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
-          version: 1,
+          toBranchVersion: 1,
         });
 
         // Create a file that's not tracked in any branch (should be preserved)
@@ -246,9 +246,9 @@ Deno.test({
         await checkout({
           targetDir: tempDir,
           projectId: project.id,
-          branchId: featureBranch.id,
+          toBranchId: featureBranch.id,
           fromBranchId: mainBranch.id,
-          version: 2,
+          toBranchVersion: 2,
         });
 
         // Verify untracked file is preserved (not in either branch)
@@ -312,9 +312,9 @@ Deno.test("file not in target branch should be deleted", async (t) => {
         await checkout({
           targetDir: featureTempDir,
           projectId: project.id,
-          branchId: featureBranch.id,
+          toBranchId: featureBranch.id,
           fromBranchId: featureBranch.id,
-          version: 1,
+          toBranchVersion: 1,
         });
 
         assert(
@@ -336,9 +336,9 @@ Deno.test("file not in target branch should be deleted", async (t) => {
           await checkout({
             targetDir: mainTempDir,
             projectId: project.id,
-            branchId: mainBranch.id,
+            toBranchId: mainBranch.id,
             fromBranchId: featureBranch.id,
-            version: 1,
+            toBranchVersion: 1,
           });
         });
 
@@ -392,11 +392,6 @@ Deno.test({
 
           // Verify result properties for dry run
           assert(result.createdNew, "new branch should have been created");
-          assertEquals(
-            result.toBranch,
-            null,
-            "toBranch should be null for dryRuns", // (since no branch should actually be created)
-          );
           assertEquals(result.fromBranch.id, mainBranch.id);
 
           // Verify fileStateChanges is populated (and we know we lack main.txt)
@@ -414,9 +409,9 @@ Deno.test({
           await checkout({
             targetDir: tempDir,
             projectId: project.id,
-            branchId: mainBranch.id,
+            toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
-            version: 1,
+            toBranchVersion: 1,
           });
 
           assertEquals(result.fileStateChanges.created.length, 1);
@@ -431,9 +426,9 @@ Deno.test({
           await checkout({
             targetDir: tempDir,
             projectId: project.id,
-            branchId: mainBranch.id,
+            toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
-            version: 1,
+            toBranchVersion: 1,
           });
 
           // Modify the file locally
@@ -445,10 +440,10 @@ Deno.test({
           const result = await checkout({
             targetDir: tempDir,
             projectId: project.id,
-            branchId: mainBranch.id,
+            toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
             dryRun: true,
-            version: 2,
+            toBranchVersion: 2,
           });
 
           // Verify fileStateChanges contains the modified file

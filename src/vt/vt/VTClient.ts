@@ -415,7 +415,7 @@ export default class VTClient {
           ...baseParams,
           forkedFromId: options.forkedFromId,
           name: branchName,
-          version: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
+          toBranchVersion: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
         };
 
         result = await checkout(forkParams);
@@ -440,9 +440,9 @@ export default class VTClient {
 
         const branchParams: BranchCheckoutParams = {
           ...baseParams,
-          branchId: checkoutBranch.id,
+          toBranchId: checkoutBranch.id,
           fromBranchId: currentBranchId,
-          version: options?.version || checkoutBranch.version, // Use specified version or the branch's version
+          toBranchVersion: options?.toBranchVersion || checkoutBranch.version, // Use specified version or the branch's version
         };
 
         result = await checkout(branchParams);

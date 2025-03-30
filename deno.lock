@@ -17,6 +17,7 @@
     "jsr:@std/async@*": "1.0.11",
     "jsr:@std/async@^1.0.11": "1.0.11",
     "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/cache@0.2": "0.2.0",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
@@ -132,6 +133,9 @@
     },
     "@std/bytes@1.0.5": {
       "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/cache@0.2.0": {
+      "integrity": "63a2ccd5a9e7c03e430f7d34dfcfd0d0cfc90731a1eaf8208f4c66e418fc3035"
     },
     "@std/dotenv@0.225.3": {
       "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
@@ -938,6 +942,8 @@
     "https://esm.sh/preact/jsx-runtime": "https://esm.sh/preact@10.26.4/jsx-runtime"
   },
   "remote": {
+    "https://cdn.skypack.dev/-/@types/lodash@v4.17.16-ZoQyn4yRPyyvaHlFqaCl/dist=es2019,mode=imports/optimized/@types/lodash.js": "5d71afac9a0636b438aff7daa03026bc53a42b37fb59459792dee56119b9ae05",
+    "https://cdn.skypack.dev/@types/lodash?dts": "06c8e578fb91e13d74acbe08ffb5afcdd56c76c9d231fce32bb532a6587e67bf",
     "https://deno.land/std@0.122.0/_util/assert.ts": "2f868145a042a11d5ad0a3c748dcf580add8a0dbc0e876eaa0026303a5488f58",
     "https://deno.land/std@0.122.0/bytes/bytes_list.ts": "3bff6a09c72b2e0b1e92e29bd3b135053894196cca07a2bba842901073efe5cb",
     "https://deno.land/std@0.122.0/bytes/equals.ts": "69f55fdbd45c71f920c1a621e6c0865dc780cd8ae34e0f5e55a9497b70c31c1b",
@@ -1005,6 +1011,7 @@
       "jsr:@jonasschiano/kia@0.0.120",
       "jsr:@std/assert@1",
       "jsr:@std/async@^1.0.11",
+      "jsr:@std/cache@0.2",
       "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fs@^1.0.13",

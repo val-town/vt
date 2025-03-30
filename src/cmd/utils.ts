@@ -57,7 +57,6 @@ export async function doWithSpinner(
 
     return await callback(spinner);
   } catch (e) {
-    console.log(e)
     // Use the provided or default error cleaning function
     const cleanedErrorMessage = cleanError(e);
 

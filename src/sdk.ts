@@ -1,5 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
+import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
@@ -84,7 +85,7 @@ export async function filePathToFile(
  * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
  */
-export async function listProjectItems(
+export const listProjectItems = memoize(async function (
   projectId: string,
   {
     path,
@@ -115,7 +116,7 @@ export async function listProjectItems(
   ) files.push(file);
 
   return files;
-}
+})
 
 /**
  * Get the latest version of a branch.

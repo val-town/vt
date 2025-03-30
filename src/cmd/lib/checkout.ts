@@ -82,7 +82,7 @@ export const checkoutCmd = new Command()
             const dryCheckoutResult = await vt.checkout(
               branch || existingBranchName!,
               {
-                version: config.version,
+                toBranchVersion: config.version,
                 forkedFromId: isNewBranch ? config.currentBranch : undefined,
                 dryRun: true,
               },

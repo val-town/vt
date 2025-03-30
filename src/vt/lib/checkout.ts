@@ -40,7 +40,7 @@ export type BaseCheckoutParams = {
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** Specific version to checkout. Defaults to latest */
-  version?: number;
+  toBranchVersion?: number;
 };
 
 /**
@@ -48,7 +48,7 @@ export type BaseCheckoutParams = {
  */
 export type BranchCheckoutParams = BaseCheckoutParams & {
   /** The ID of the branch to checkout */
-  branchId: string;
+  toBranchId: string;
   /** The ID of the branch we're switching from */
   fromBranchId: string;
 };
@@ -71,10 +71,11 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
- * Creates a new branch from a project's branch and checks it out.
- * @param params Options for the checkout operation.
- * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch details).
- */
+  * Creates a new branch from a project's branch and checks it out.
+  * @param params Options for the checkout operation.
+  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
+ details).
+  */
 export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
 export function checkout(
   params: BranchCheckoutParams | ForkCheckoutParams,
@@ -96,12 +97,13 @@ export function checkout(
       let fromBranch: ValTown.Projects.BranchCreateResponse;
       let createdNew = false;
 
-      if ("branchId" in params) {
+      if ("toBranchId" in params) {
         // Get the target branch info
         toBranch = await sdk.projects.branches.retrieve(
           params.projectId,
-          params.branchId,
+          params.toBranchId,
         );
+        toBranch.version = params.toBranchVersion || toBranch.version;
 
         // Get the source branch info if provided, otherwise use the target branch
         fromBranch = await sdk.projects.branches.retrieve(
@@ -131,6 +133,7 @@ export function checkout(
           );
         }
       }
+      console.log(fromBranch, toBranch);
 
       // Get files from the source branch
       const fromFiles = new Set(
@@ -195,7 +198,7 @@ export function checkout(
         }
       }
 
-      // Return checkout result with branch information
+      // Return checkout result with branch information and whether changes should be applied
       return [{
         fromBranch,
         toBranch,
