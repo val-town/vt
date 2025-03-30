@@ -177,7 +177,7 @@ export default class VTClient {
 
     // Process events and yield results
     for await (const event of watcher) {
-      if (event.kind === "access") return; // Nothing to do
+      if (event.kind === "access") continue; // Nothing to do
 
       try {
         // Debounce - only push if enough time has elapsed since last push
