@@ -315,11 +315,13 @@ export default class VTClient {
     options?: Partial<Parameters<typeof pull>[0]>,
   ): ReturnType<typeof pull> {
     return await this.getMeta().doWithConfig(async (config) => {
+      const latestVersion = await getLatestVersion(
+        config.projectId,
+        config.currentBranch,
+      );
+
       if (options?.dryRun === false) {
-        config.version = await getLatestVersion(
-          config.projectId,
-          config.currentBranch,
-        );
+        config.version = latestVersion;
       }
 
       const result = await pull({
@@ -327,7 +329,7 @@ export default class VTClient {
           targetDir: this.rootPath,
           projectId: config.projectId,
           branchId: config.currentBranch,
-          version: config.version,
+          version: latestVersion,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
         },
         ...options,
@@ -446,13 +448,13 @@ export default class VTClient {
         };
 
         result = await checkout(branchParams);
+      }
 
-        // Don't touch the config if it's a dry run
-        if (!baseParams.dryRun) {
-          if (result.toBranch) {
-            config.currentBranch = result.toBranch.id;
-            config.version = result.toBranch.version; // Use the target branch's version
-          }
+      // Don't touch the config if it's a dry run
+      if (!baseParams.dryRun) {
+        if (result.toBranch) {
+          config.currentBranch = result.toBranch.id;
+          config.version = result.toBranch.version; // Use the target branch's version
         }
       }
 
