@@ -1,20 +1,8 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
-
-// Helper function to create memoization keys that ensures version is included
-function getVersionedCacheKey(
-  projectId: string,
-  branchId: string | undefined,
-  version: number | undefined,
-  filePath: string,
-): string | null {
-  if (version === undefined) return null; // Skip caching when version is undefined
-  return `${projectId}:${branchId || ""}:${version}:${filePath}`;
-}
 
 /**
  * Checks if a branch with the given name exists in a project.
@@ -63,7 +51,7 @@ export async function branchNameToBranch(
    * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefin
   if not found
    */
-export const getProjectItem = memoize(async function getProjectItem(
+export async function getProjectItem(
   projectId: string,
   { branchId, version, filePath }: {
     branchId?: string;
@@ -79,11 +67,7 @@ export const getProjectItem = memoize(async function getProjectItem(
   ) {
     if (filepath.path === filePath) return filepath;
   }
-}, {
-  getKey: (projectId, { branchId, version, filePath }) => {
-    return getVersionedCacheKey(projectId, branchId, version, filePath);
-  },
-});
+}
 
 /**
   * Lists all file paths in a project with pagination support.
@@ -97,7 +81,7 @@ export const getProjectItem = memoize(async function getProjectItem(
   * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
   * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
   */
-export const listProjectItems = memoize(async function (
+export async function listProjectItems(
   projectId: string,
   {
     path,
@@ -128,16 +112,7 @@ export const listProjectItems = memoize(async function (
   ) files.push(file);
 
   return files;
-}, {
-  getKey: (projectId, { path, branch_id, version, recursive }) => {
-    return getVersionedCacheKey(
-      projectId,
-      branch_id,
-      version,
-      path + (recursive ? ":recursive" : ""),
-    );
-  },
-});
+}
 
 /**
  * Get the latest version of a branch.
