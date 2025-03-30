@@ -133,7 +133,6 @@ export function checkout(
           );
         }
       }
-      console.log(fromBranch, toBranch);
 
       // Get files from the source branch
       const fromFiles = new Set(
@@ -160,7 +159,7 @@ export function checkout(
 
       // Clone the target branch into the temporary directory
       const pullResult = await pull({
-        targetDir: params.targetDir,
+        targetDir: tmpDir,
         projectId: params.projectId,
         branchId: toBranch.id,
         version: toBranch.version,

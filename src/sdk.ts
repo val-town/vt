@@ -60,12 +60,7 @@ export async function filePathToFile(
   // Get all files in the project
   const filePaths = await listProjectItems(
     projectId,
-    {
-      path: "",
-      branch_id: branchId,
-      version,
-      recursive: true,
-    },
+    { path: filePath, branch_id: branchId, version },
   );
 
   const result = filePaths.find((file) => file.path === filePath);
@@ -116,7 +111,7 @@ export const listProjectItems = memoize(async function (
   ) files.push(file);
 
   return files;
-})
+});
 
 /**
  * Get the latest version of a branch.

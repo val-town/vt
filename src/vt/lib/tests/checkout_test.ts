@@ -248,7 +248,6 @@ Deno.test({
           projectId: project.id,
           toBranchId: featureBranch.id,
           fromBranchId: mainBranch.id,
-          toBranchVersion: 2,
         });
 
         // Verify untracked file is preserved (not in either branch)
