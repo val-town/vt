@@ -78,7 +78,7 @@ export function pull(params: PullParams): Promise<FileState> {
       changes.merge(cloneChanges);
 
       // Get list of files from the server
-      const files = new Set(
+      const projectItemsSet = new Set(
         await listProjectItems(projectId, {
           path: "",
           branch_id: branchId,
@@ -95,7 +95,7 @@ export function pull(params: PullParams): Promise<FileState> {
 
           if (shouldIgnore(relativePath, gitignoreRules)) continue;
           if (relativePath === "" || entry.path === targetDir) continue;
-          if (files.has(relativePath)) continue;
+          if (projectItemsSet.has(relativePath)) continue;
 
           await Deno.stat(entry.path)
             .then((stat) =>
@@ -110,33 +110,43 @@ export function pull(params: PullParams): Promise<FileState> {
         }
       } else {
         // In actual run mode, we scan the temp directory
-        for await (const entry of walk(tmpDir)) {
-          const relativePath = relative(tmpDir, entry.path);
+        await doAtomically(async (deletionTmpDir) => {
+          // Copy the contents of the temp directory to a deletion temp directory
+          await copy(tmpDir, deletionTmpDir, {
+            preserveTimestamps: true,
+            overwrite: true,
+          });
 
-          if (shouldIgnore(relativePath, gitignoreRules)) continue;
-          if (relativePath === "" || entry.path === tmpDir) continue;
-          if (files.has(relativePath)) continue;
+          for await (const entry of walk(tmpDir)) {
+            const relativePath = relative(tmpDir, entry.path);
 
-          const stat = await Deno.stat(entry.path);
-          const fileStatus: FileStatus = {
-            path: relativePath,
-            status: "deleted",
-            type: stat.isDirectory ? "directory" : "file",
-            mtime: stat.mtime?.getTime()!,
-            where: "local",
-          };
-          changes.insert(fileStatus);
+            if (shouldIgnore(relativePath, gitignoreRules)) continue;
+            if (relativePath === "" || entry.path === tmpDir) continue;
+            if (projectItemsSet.has(relativePath)) continue;
 
-          // Need to delete it from both places to prevent it from getting
-          // copied back
-          const deletionTarget = join(targetDir, relativePath);
-          if (await exists(deletionTarget)) {
-            await Deno.remove(deletionTarget, { recursive: true });
+            const stat = await Deno.stat(join(deletionTmpDir, relativePath));
+            const fileStatus: FileStatus = {
+              path: relativePath,
+              status: "deleted",
+              type: stat.isDirectory ? "directory" : "file",
+              mtime: stat.mtime?.getTime()!,
+              where: "local",
+            };
+            changes.insert(fileStatus);
+
+            // Need to delete it from both places to prevent it from getting
+            // copied back
+            const deletionTarget = join(targetDir, relativePath);
+            if (await exists(deletionTarget)) {
+              await Deno.remove(deletionTarget, { recursive: true });
+            }
+            if (await exists(entry.path)) {
+              await Deno.remove(entry.path, { recursive: true });
+            }
           }
-          if (await exists(entry.path)) {
-            await Deno.remove(entry.path, { recursive: true });
-          }
-        }
+
+          return [null, false];
+        }, "_vt_pull_delete_");
       }
 
       return [changes, !dryRun];
