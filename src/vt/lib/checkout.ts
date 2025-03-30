@@ -2,8 +2,8 @@ import { doAtomically } from "~/vt/lib/utils.ts";
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
-import { relative } from "@std/path";
-import { copy, walk } from "@std/fs";
+import { join, relative } from "@std/path";
+import { copy, exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { FileState } from "~/vt/lib/FileState.ts";
@@ -71,11 +71,10 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
-  * Creates a new branch from a project's branch and checks it out.
-  * @param params Options for the checkout operation.
-  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
- details).
-  */
+   * Creates a new branch from a project's branch and checks it out.
+   * @param params Options for the checkout operation.
+   * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch details).
+   */
 export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
 export function checkout(
   params: BranchCheckoutParams | ForkCheckoutParams,
@@ -168,33 +167,60 @@ export function checkout(
       });
       fileStateChanges.merge(pullResult);
 
-      // Walk through the target directory to find files
-      for await (const entry of walk(params.targetDir)) {
-        const relativePath = relative(params.targetDir, entry.path);
+      // In actual run mode, we make a reference directory for items that we
+      // are going to delete, and then iterate through those contents and
+      // delete out of the temp dir. That way we aren't deleting contents of
+      // the directories while they still are being itereated through.
+      await doAtomically(async (deletionTmpDir) => {
+        // Copy files to the deletion temp dir
+        await copy(params.targetDir, deletionTmpDir, {
+          preserveTimestamps: true,
+          overwrite: true,
+        });
 
-        // Skip files that match gitignore rules, and root dir
-        if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
-        if (relativePath === "" || entry.path === params.targetDir) continue;
+        // Scan the deletion temp directory
+        for await (const entry of walk(deletionTmpDir)) {
+          const relativePath = relative(deletionTmpDir, entry.path);
+          const targetDirPath = join(params.targetDir, relativePath);
+          const tmpDirPath = join(tmpDir, relativePath);
 
-        // If the file was in the source branch but not in the target branch,
-        // delete it. This preserves untracked files (files not in fromFiles)
-        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
-          fileStateChanges.insert({
-            path: relativePath,
-            mtime: await Deno.stat(entry.path).then((s) => s.mtime?.getTime()!),
-            status: "deleted",
-            type: await getProjectItemType(params.projectId, {
-              branchId: fromBranch.id,
-              version: fromBranch.version,
-              filePath: relativePath,
-            }),
-            where: "local",
-          });
-          if (!params.dryRun) {
-            await Deno.remove(entry.path, { recursive: true });
+          if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
+          if (relativePath === "" || entry.path === deletionTmpDir) continue;
+
+          // If the file was in the source branch but not in the target branch,
+          // delete it. This preserves untracked files (files not in fromFiles)
+          if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+            const stat = await Deno.stat(entry.path);
+            fileStateChanges.insert({
+              path: relativePath,
+              status: "deleted",
+              type: stat.isDirectory
+                ? "directory"
+                : await getProjectItemType(params.projectId, {
+                  branchId: fromBranch.id,
+                  version: fromBranch.version,
+                  filePath: relativePath,
+                }),
+              mtime: stat.mtime?.getTime()!,
+              where: "local",
+            });
+
+            // Need to delete it from both places to prevent it from getting
+            // copied back
+            if (!params.dryRun) {
+              if (await exists(targetDirPath)) {
+                await Deno.remove(targetDirPath, { recursive: true });
+              }
+              if (await exists(tmpDirPath)) {
+                await Deno.remove(tmpDirPath, { recursive: true });
+              }
+            }
           }
         }
-      }
+
+        // Return changes but don't copy back (false)
+        return [null, false];
+      }, "_vt_checkout_delete_");
 
       // Return checkout result with branch information and whether changes should be applied
       return [{
