@@ -152,7 +152,7 @@ export default class VTClient {
    * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
   public async *watch(
-    debounceDelay: number = 300,
+    debounceDelay: number = 700,
   ): AsyncGenerator<FileState> {
     // Do an initial push
     const firstPush = await this.push();
@@ -162,7 +162,7 @@ export default class VTClient {
     await this.getMeta().setLockFile();
 
     // Track the last time we pushed
-    let lastPushed = 0;
+    let lastPushed = new Date().getTime();
 
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -185,7 +185,8 @@ export default class VTClient {
         if (now - lastPushed < debounceDelay) continue;
 
         lastPushed = now; // update debouce counter
-        yield await this.push(); // yields the status retreived
+        const newPush = await this.push(); // yields the status retreived
+        if (newPush.changes() > 0) yield newPush;
       } catch (e) {
         // Handle case where the file was deleted before we could push it
         if (e instanceof Deno.errors.NotFound) {
