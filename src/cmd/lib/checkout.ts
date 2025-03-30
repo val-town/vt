@@ -82,6 +82,7 @@ export const checkoutCmd = new Command()
             const dryCheckoutResult = await vt.checkout(
               branch || existingBranchName!,
               {
+                version: config.version,
                 forkedFromId: isNewBranch ? config.currentBranch : undefined,
                 dryRun: true,
               },
@@ -204,18 +205,18 @@ export const checkoutCmd = new Command()
                 : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
             );
           } catch (e) {
-            if (e instanceof ValTown.APIError && e.status === 409 && branch) {
-              throw new Error(
-                `Branch "${branch}" already exists. Choose a new branch name. ` +
-                  toListBranchesCmd,
-              );
-            } else if (
-              e instanceof Deno.errors.NotFound && existingBranchName
-            ) {
-              throw new Error(
-                `Branch "${existingBranchName}" does not exist in project. ` +
-                  toListBranchesCmd,
-              );
+            if (e instanceof ValTown.APIError) {
+              if (e.status === 409 && branch) {
+                throw new Error(
+                  `Branch "${branch}" already exists. Choose a new branch name. ` +
+                    toListBranchesCmd,
+                );
+              } else if (e.status === 404 && existingBranchName) {
+                throw new Error(
+                  `Branch "${existingBranchName}" does not exist in project. ` +
+                    toListBranchesCmd,
+                );
+              }
             } else throw e;
           }
         },

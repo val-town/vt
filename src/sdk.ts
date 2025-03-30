@@ -1,6 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { API_KEY_KEY } from "~/consts.ts";
+import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
 
@@ -99,6 +99,11 @@ export async function listProjectItems(
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse[]> {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
+
+  branch_id = branch_id ||
+    (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
+      .then((resp) => resp.id))!;
+  version = version || (await getLatestVersion(projectId, branch_id));
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {

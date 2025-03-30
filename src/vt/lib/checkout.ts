@@ -7,6 +7,7 @@ import { copy, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { FileState } from "~/vt/lib/FileState.ts";
+import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -91,21 +92,15 @@ export function checkout(
 
       const fileStateChanges = FileState.empty();
 
-      let checkoutBranchId: string | null = null;
-      let checkoutVersion: number | undefined = undefined;
       let toBranch: ValTown.Projects.BranchCreateResponse | null = null;
       let fromBranch: ValTown.Projects.BranchCreateResponse;
       let createdNew = false;
 
       if ("branchId" in params) {
-        // Checking out existing branch
-        checkoutBranchId = params.branchId;
-        checkoutVersion = params.version;
-
         // Get the target branch info
         toBranch = await sdk.projects.branches.retrieve(
           params.projectId,
-          checkoutBranchId,
+          params.branchId,
         );
 
         // Get the source branch info if provided, otherwise use the target branch
@@ -122,6 +117,11 @@ export function checkout(
           params.projectId,
           params.forkedFromId,
         );
+        // In this case to branch is just the from branch effectively, since
+        // they will have the same state
+        toBranch = fromBranch;
+        // Except that it is at its now first version
+        toBranch.version = FIRST_VERSION_NUMBER;
 
         // Create the new branch
         if (!params.dryRun) {
@@ -129,9 +129,6 @@ export function checkout(
             params.projectId,
             { branchId: params.forkedFromId, name: params.name },
           );
-
-          checkoutBranchId = toBranch.id;
-          checkoutVersion = toBranch.version;
         }
       }
 
@@ -146,25 +143,24 @@ export function checkout(
       );
 
       // Get files from the target branch. Note that the target branch is
-      // effectively the same as the source branch if
-      // checkoutBranchId/checkoutVersionId are undefined, since in that case
-      // we are forking, and when we are forking we are copying the from
-      // branch.
+      // effectively the same as the source branch if checkout branch
+      // id/checkout version id are undefined, since in that case we are
+      // forking, and when we are forking we are copying the from branch.
       const toFiles = new Set(
         await listProjectItems(params.projectId, {
           path: "",
-          branch_id: checkoutBranchId || fromBranch.id,
-          version: checkoutVersion || fromBranch.version,
+          branch_id: toBranch.id,
+          version: toBranch.version,
           recursive: true,
         }).then((resp) => resp.map((file) => file.path)),
       );
 
       // Clone the target branch into the temporary directory
       const pullResult = await pull({
-        targetDir: tmpDir,
+        targetDir: params.targetDir,
         projectId: params.projectId,
-        branchId: checkoutBranchId || fromBranch.id,
-        version: checkoutVersion || fromBranch.version,
+        branchId: toBranch.id,
+        version: toBranch.version,
         gitignoreRules: params.gitignoreRules,
         dryRun: params.dryRun,
       });
