@@ -29,7 +29,7 @@ export async function branchExists(
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
  */
-export async function branchIdToBranch(
+export async function branchNameToBranch(
   projectId: string,
   branchName: string,
 ): Promise<ValTown.Projects.Branches.BranchListResponse> {

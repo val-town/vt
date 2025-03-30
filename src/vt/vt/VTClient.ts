@@ -13,7 +13,7 @@ import {
 } from "~/vt/lib/checkout.ts";
 import { isDirty } from "~/vt/lib/utils.ts";
 import ValTown from "@valtown/sdk";
-import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   FIRST_VERSION_NUMBER,
@@ -108,7 +108,7 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branch = await branchIdToBranch(projectId, branchName);
+    const branch = await branchNameToBranch(projectId, branchName);
 
     version = version ??
       (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
@@ -238,7 +238,7 @@ export default class VTClient {
     });
 
     // Get the project branch
-    const branch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
+    const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
     // Then clone it to the target directory
@@ -428,7 +428,7 @@ export default class VTClient {
         }
       } else {
         // Checking out an existing branch
-        const checkoutBranch = await branchIdToBranch(
+        const checkoutBranch = await branchNameToBranch(
           config.projectId,
           branchName,
         );
