@@ -7,7 +7,7 @@
   "tasks": {
     "run": "./vt.ts",
     "test": "env DENO_NO_PROMPT=1 deno test -A",
-    "check": "env DENO_NO_PROMPT=1 deno check . --allow-import",
+    "check": "env DENO_NO_PROMPT=1 deno check .",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },
   "imports": {
