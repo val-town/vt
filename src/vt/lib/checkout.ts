@@ -120,7 +120,7 @@ export function checkout(
               name: (params as ForkCheckoutParams).name,
             },
           );
-        }
+        } // otherwise we will make toBranch null later
       } else {
         // Get the target branch info
         toBranch = await sdk.projects.branches.retrieve(
@@ -207,7 +207,11 @@ export function checkout(
         }
       }
 
-      // Return checkout result with branch information and whether changes should be applied
+      // If it is a dry run then the toBranch was only for use temporarily
+      if (params.dryRun) toBranch = null;
+
+      // Return checkout result with branch information and whether changes
+      // should be applied
       return [{
         fromBranch,
         toBranch,
