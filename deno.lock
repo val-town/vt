@@ -17,6 +17,7 @@
     "jsr:@std/async@*": "1.0.11",
     "jsr:@std/async@^1.0.11": "1.0.11",
     "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/cache@0.2": "0.2.0",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
@@ -132,6 +133,9 @@
     },
     "@std/bytes@1.0.5": {
       "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/cache@0.2.0": {
+      "integrity": "63a2ccd5a9e7c03e430f7d34dfcfd0d0cfc90731a1eaf8208f4c66e418fc3035"
     },
     "@std/dotenv@0.225.3": {
       "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
@@ -1007,6 +1011,7 @@
       "jsr:@jonasschiano/kia@0.0.120",
       "jsr:@std/assert@1",
       "jsr:@std/async@^1.0.11",
+      "jsr:@std/cache@0.2",
       "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fs@^1.0.13",

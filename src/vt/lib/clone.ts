@@ -67,11 +67,9 @@ export function clone(params: CloneParams): Promise<FileState> {
             // If the directory is new mark it as created
             if (!(await exists(join(targetDir, file.path)))) {
               changes.insert({
-                mtime: Date.now(),
                 type: "directory" as ProjectItemType,
                 path: file.path,
                 status: "created",
-                where: "local",
               });
             }
           } else {
@@ -110,11 +108,9 @@ async function createFile(
 ): Promise<void> {
   const updatedAt = new Date(file.updatedAt);
   const fileStatus: FileStatus = {
-    mtime: updatedAt.getTime(),
     type: file.type as ProjectItemType,
     path: file.path,
     status: "created", // Default status
-    where: "local",
   };
 
   // Check for existing file and determine status
@@ -123,7 +119,8 @@ async function createFile(
     .catch(() => null);
 
   if (fileInfo !== null) {
-    const localMtime = fileInfo.mtime!.getTime();
+    const localMtime = (await Deno.stat(join(originalRoot, path)))
+      .mtime!.getTime();
     const projectMtime = updatedAt.getTime();
 
     const modified = await isFileModified({
@@ -137,18 +134,8 @@ async function createFile(
       projectMtime,
     });
 
-    if (modified) {
-      // Determine if modified locally or remotely
-      if (localMtime > projectMtime) {
-        fileStatus.status = "modified";
-        fileStatus.where = "local";
-      } else {
-        fileStatus.status = "modified";
-        fileStatus.where = "remote";
-      }
-    } else {
-      fileStatus.status = "not_modified";
-    }
+    if (modified) fileStatus.status = "modified";
+    else fileStatus.status = "not_modified";
   }
 
   // Track file status

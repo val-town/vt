@@ -92,31 +92,31 @@ export function checkout(
 
       const fileStateChanges = FileState.empty();
 
+      // Determine if we're creating a new branch or checking out an existing one
+      const createdNew = !("toBranchId" in params);
+
       let toBranch: ValTown.Projects.BranchCreateResponse | null = null;
       let fromBranch: ValTown.Projects.BranchCreateResponse;
-      let createdNew = false;
 
-      if ("toBranchId" in params) {
+      if (!createdNew) {
         // Get the target branch info
         toBranch = await sdk.projects.branches.retrieve(
           params.projectId,
-          params.toBranchId,
+          (params as BranchCheckoutParams).toBranchId,
         );
         toBranch.version = params.toBranchVersion || toBranch.version;
 
         // Get the source branch info if provided, otherwise use the target branch
         fromBranch = await sdk.projects.branches.retrieve(
           params.projectId,
-          params.fromBranchId,
+          (params as BranchCheckoutParams).fromBranchId,
         );
       } else {
         // Creating a new fork
-        createdNew = true;
-
         // Get the source branch info
         fromBranch = await sdk.projects.branches.retrieve(
           params.projectId,
-          params.forkedFromId,
+          (params as ForkCheckoutParams).forkedFromId,
         );
         // In this case to branch is just the from branch effectively, since
         // they will have the same state
@@ -128,7 +128,10 @@ export function checkout(
         if (!params.dryRun) {
           toBranch = await sdk.projects.branches.create(
             params.projectId,
-            { branchId: params.forkedFromId, name: params.name },
+            {
+              branchId: (params as ForkCheckoutParams).forkedFromId,
+              name: (params as ForkCheckoutParams).name,
+            },
           );
         }
       }
@@ -167,60 +170,42 @@ export function checkout(
       });
       fileStateChanges.merge(pullResult);
 
-      // In actual run mode, we make a reference directory for items that we
-      // are going to delete, and then iterate through those contents and
-      // delete out of the temp dir. That way we aren't deleting contents of
-      // the directories while they still are being itereated through.
-      await doAtomically(async (deletionTmpDir) => {
-        // Copy files to the deletion temp dir
-        await copy(params.targetDir, deletionTmpDir, {
-          preserveTimestamps: true,
-          overwrite: true,
-        });
+      // Scan the target directory to identify files that need to be deleted
+      for await (const entry of walk(params.targetDir)) {
+        const relativePath = relative(params.targetDir, entry.path);
+        const targetDirPath = entry.path;
+        const tmpDirPath = join(tmpDir, relativePath);
 
-        // Scan the deletion temp directory
-        for await (const entry of walk(deletionTmpDir)) {
-          const relativePath = relative(deletionTmpDir, entry.path);
-          const targetDirPath = join(params.targetDir, relativePath);
-          const tmpDirPath = join(tmpDir, relativePath);
+        if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
+        if (relativePath === "" || entry.path === params.targetDir) continue;
 
-          if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
-          if (relativePath === "" || entry.path === deletionTmpDir) continue;
+        // If the file was in the source branch but not in the target branch,
+        // delete it. This preserves untracked files (files not in fromFiles)
+        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+          const stat = await Deno.stat(entry.path);
+          fileStateChanges.insert({
+            path: relativePath,
+            status: "deleted",
+            type: stat.isDirectory
+              ? "directory"
+              : await getProjectItemType(params.projectId, {
+                branchId: fromBranch.id,
+                version: fromBranch.version,
+                filePath: relativePath,
+              }),
+          });
 
-          // If the file was in the source branch but not in the target branch,
-          // delete it. This preserves untracked files (files not in fromFiles)
-          if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
-            const stat = await Deno.stat(entry.path);
-            fileStateChanges.insert({
-              path: relativePath,
-              status: "deleted",
-              type: stat.isDirectory
-                ? "directory"
-                : await getProjectItemType(params.projectId, {
-                  branchId: fromBranch.id,
-                  version: fromBranch.version,
-                  filePath: relativePath,
-                }),
-              mtime: stat.mtime?.getTime()!,
-              where: "local",
-            });
-
-            // Need to delete it from both places to prevent it from getting
-            // copied back
-            if (!params.dryRun) {
-              if (await exists(targetDirPath)) {
-                await Deno.remove(targetDirPath, { recursive: true });
-              }
-              if (await exists(tmpDirPath)) {
-                await Deno.remove(tmpDirPath, { recursive: true });
-              }
+          // Delete the file from both directories if not in dry run mode
+          if (!params.dryRun) {
+            if (await exists(targetDirPath)) {
+              await Deno.remove(targetDirPath, { recursive: true });
+            }
+            if (await exists(tmpDirPath)) {
+              await Deno.remove(tmpDirPath, { recursive: true });
             }
           }
         }
-
-        // Return changes but don't copy back (false)
-        return [null, false];
-      }, "_vt_checkout_delete_");
+      }
 
       // Return checkout result with branch information and whether changes should be applied
       return [{

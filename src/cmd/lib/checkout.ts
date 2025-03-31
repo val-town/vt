@@ -110,10 +110,8 @@ export const checkoutCmd = new Command()
             // be dangerous state changes as safe if it's not modified according
             // to vt.status().
             const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
-              .filter((fileStatus) =>
-                (fileStatus.status == "deleted" ||
-                  fileStatus.status == "modified") &&
-                fileStatus.where === "local"
+              .filter((fileStatus) => (fileStatus.status == "deleted" ||
+                fileStatus.status == "modified")
               );
             dangerousLocalChanges.merge(
               (await vt.status()).filter((fileStatus) =>

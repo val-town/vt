@@ -87,84 +87,39 @@ export function pull(params: PullParams): Promise<FileState> {
         }).then((resp) => resp.map((file) => file.path)),
       );
 
-      // Identify files that should be deleted
-      if (dryRun) {
-        // In dry run mode, we need to scan the target directory directly
-        for await (const entry of walk(targetDir)) {
-          const relativePath = relative(targetDir, entry.path);
+      // Scan the temp directory to identify files that should be deleted
+      for await (const entry of walk(tmpDir)) {
+        const relativePath = relative(tmpDir, entry.path);
+        const targetDirPath = join(targetDir, relativePath);
+        const tmpDirPath = entry.path;
 
-          if (shouldIgnore(relativePath, gitignoreRules)) continue;
-          if (relativePath === "" || entry.path === targetDir) continue;
-          if (projectItemsSet.has(relativePath)) continue;
+        if (shouldIgnore(relativePath, gitignoreRules)) continue;
+        if (relativePath === "" || entry.path === tmpDir) continue;
+        if (projectItemsSet.has(relativePath)) continue;
 
-          await Deno.stat(entry.path)
-            .then(async (stat) =>
-              changes.insert({
-                path: relativePath,
-                status: "deleted",
-                type: stat.isDirectory
-                  ? "directory"
-                  : await getProjectItemType(projectId, {
-                    branchId,
-                    version,
-                    filePath: relativePath,
-                  }),
-                mtime: stat.mtime?.getTime()!,
-                where: "local",
-              })
-            );
-        }
-      } else {
-        // In actual run mode, we make a reference directory for items that we
-        // are going to delete, and then iterate through those contents and
-        // delete out of the temp dir. That way we aren't deleting contents of
-        // the directories while they still are being itereated through.
-        await doAtomically(async (deletionTmpDir) => {
-          // Copy files to the deletion temp dir
-          await copy(tmpDir, deletionTmpDir, {
-            preserveTimestamps: true,
-            overwrite: true,
-          });
+        const stat = await Deno.stat(entry.path);
+        const fileStatus: FileStatus = {
+          path: relativePath,
+          status: "deleted",
+          type: stat.isDirectory
+            ? "directory"
+            : await getProjectItemType(projectId, {
+              branchId,
+              version,
+              filePath: relativePath,
+            }),
+        };
+        changes.insert(fileStatus);
 
-          // Scan the deletion temp directory
-          for await (const entry of walk(deletionTmpDir)) {
-            const relativePath = relative(deletionTmpDir, entry.path);
-            const targetDirPath = join(targetDir, relativePath);
-            const tmpDirPath = join(tmpDir, relativePath);
-
-            if (shouldIgnore(relativePath, gitignoreRules)) continue;
-            if (relativePath === "" || entry.path === deletionTmpDir) continue;
-            if (projectItemsSet.has(relativePath)) continue;
-
-            const stat = await Deno.stat(entry.path);
-            const fileStatus: FileStatus = {
-              path: relativePath,
-              status: "deleted",
-              type: stat.isDirectory
-                ? "directory"
-                : await getProjectItemType(projectId, {
-                  branchId,
-                  version,
-                  filePath: relativePath,
-                }),
-              mtime: stat.mtime?.getTime()!,
-              where: "local",
-            };
-            changes.insert(fileStatus);
-
-            // Need to delete it from both places to prevent it from getting
-            // copied back
-            if (await exists(targetDirPath)) {
-              await Deno.remove(targetDirPath, { recursive: true });
-            }
-            if (await exists(tmpDirPath)) {
-              await Deno.remove(tmpDirPath, { recursive: true });
-            }
+        // Delete the file from both directories if not in dry run mode
+        if (!dryRun) {
+          if (await exists(targetDirPath)) {
+            await Deno.remove(targetDirPath, { recursive: true });
           }
-
-          // Return changes but don't copy back (false)
-          return [null, false];
-        }, "_vt_pull_delete_");
+          if (await exists(tmpDirPath)) {
+            await Deno.remove(tmpDirPath, { recursive: true });
+          }
+        }
       }
 
       return [changes, !dryRun];

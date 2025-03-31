@@ -1,9 +1,7 @@
 import type { ProjectItemType } from "~/consts.ts";
 
 export interface FileInfo {
-  mtime: number;
   type: ProjectItemType;
-  where: "local" | "remote";
 }
 
 export type FileStatusType =
