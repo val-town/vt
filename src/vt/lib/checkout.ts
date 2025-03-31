@@ -98,20 +98,7 @@ export function checkout(
       let toBranch: ValTown.Projects.BranchCreateResponse | null = null;
       let fromBranch: ValTown.Projects.BranchCreateResponse;
 
-      if (!createdNew) {
-        // Get the target branch info
-        toBranch = await sdk.projects.branches.retrieve(
-          params.projectId,
-          (params as BranchCheckoutParams).toBranchId,
-        );
-        toBranch.version = params.toBranchVersion || toBranch.version;
-
-        // Get the source branch info if provided, otherwise use the target branch
-        fromBranch = await sdk.projects.branches.retrieve(
-          params.projectId,
-          (params as BranchCheckoutParams).fromBranchId,
-        );
-      } else {
+      if (createdNew) {
         // Creating a new fork
         // Get the source branch info
         fromBranch = await sdk.projects.branches.retrieve(
@@ -134,6 +121,19 @@ export function checkout(
             },
           );
         }
+      } else {
+        // Get the target branch info
+        toBranch = await sdk.projects.branches.retrieve(
+          params.projectId,
+          (params as BranchCheckoutParams).toBranchId,
+        );
+        toBranch.version = params.toBranchVersion || toBranch.version;
+
+        // Get the source branch info if provided, otherwise use the target branch
+        fromBranch = await sdk.projects.branches.retrieve(
+          params.projectId,
+          (params as BranchCheckoutParams).fromBranchId,
+        );
       }
 
       // Get files from the source branch
