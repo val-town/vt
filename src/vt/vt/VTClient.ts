@@ -193,6 +193,7 @@ export default class VTClient {
           // The file no longer exists at the time of uploading. It could've
           // just been a temporary file, but since it no longer exists it
           // isn't our problem.
+          console.warn("File not found. Skipping...");
           continue;
         }
 
@@ -205,10 +206,12 @@ export default class VTClient {
           // TODO: We should keep a global queue of outgoing requests and
           // intelligently notice that we have duplicate idempotent (in this
           // case deletions are) requests in the queue.
+          console.warn("File not found on server. Skipping...");
           continue;
         }
 
         // Re-throw any other errors
+        console.error("Error during push:", e);
         throw e;
       }
     }
@@ -316,25 +319,24 @@ export default class VTClient {
     options?: Partial<Parameters<typeof pull>[0]>,
   ): ReturnType<typeof pull> {
     return await this.getMeta().doWithConfig(async (config) => {
-      const latestVersion = await getLatestVersion(
-        config.projectId,
-        config.currentBranch,
-      );
-
-      if (options?.dryRun === false) {
-        config.version = latestVersion;
-      }
-
       const result = await pull({
         ...{
           targetDir: this.rootPath,
           projectId: config.projectId,
           branchId: config.currentBranch,
-          version: latestVersion,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
         },
         ...options,
       });
+
+      if (options?.dryRun === false) {
+        const latestVersion = await getLatestVersion(
+          config.projectId,
+          config.currentBranch,
+        );
+
+        config.version = latestVersion;
+      }
 
       return result;
     });
