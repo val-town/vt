@@ -1,4 +1,5 @@
 import { clone } from "~/vt/lib/clone.ts";
+import { debounce } from "@std/async/debounce";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
@@ -151,18 +152,18 @@ export default class VTClient {
    * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
    * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
-  public async *watch(
-    debounceDelay: number = 700,
-  ): AsyncGenerator<FileState> {
+  public async watch(
+    callback: (fileState: FileState) => void | Promise<void>,
+    debounceDelay: number = 1000,
+  ): Promise<void> {
     // Do an initial push
     const firstPush = await this.push();
-    if (firstPush.changes() > 0) yield firstPush;
+    if (firstPush.changes() > 0) {
+      await callback(firstPush);
+    }
 
     // Set the lock file at the start
     await this.getMeta().setLockFile();
-
-    // Track the last time we pushed
-    let lastPushed = new Date().getTime();
 
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -175,45 +176,55 @@ export default class VTClient {
 
     const watcher = Deno.watchFs(this.rootPath);
 
-    // Process events and yield results
+    // Track the debounce timeout
+    let debounceTimeout: number | null = null;
+    let inGracePeriod = false;
+
+    // Process events and debounce changes
     for await (const event of watcher) {
       if (event.kind === "access") continue; // Nothing to do
 
-      try {
-        // Debounce - only push if enough time has elapsed since last push
-        const now = Date.now();
-        if (now - lastPushed < debounceDelay) continue;
+      // If we're in a grace period, ignore the event
+      if (inGracePeriod) continue;
 
-        lastPushed = now; // update debouce counter
-        const newPush = await this.push(); // yields the status retreived
-        if (newPush.changes() > 0) yield newPush;
-      } catch (e) {
-        // Handle case where the file was deleted before we could push it
-        if (e instanceof Deno.errors.NotFound) {
-          // The file no longer exists at the time of uploading. It could've
-          // just been a temporary file, but since it no longer exists it
-          // isn't our problem.
-          console.warn("File not found. Skipping...");
-          continue;
-        }
-
-        // Handle case where the API returns a 404 Not Found error
-        if (e instanceof ValTown.APIError && e.status === 404) {
-          // The val we're trying to update doesn't exist on the server. This
-          // is usually a result of starting a deletion and then trying to
-          // delete a second time because of duplicate file system events.
-          //
-          // TODO: We should keep a global queue of outgoing requests and
-          // intelligently notice that we have duplicate idempotent (in this
-          // case deletions are) requests in the queue.
-          console.warn("File not found on server. Skipping...");
-          continue;
-        }
-
-        // Re-throw any other errors
-        console.error("Error during push:", e);
-        throw e;
+      // Clear existing timeout if there is one
+      if (debounceTimeout !== null) {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = null;
       }
+
+      // Set a new timeout
+      debounceTimeout = setTimeout(async () => {
+        debounceTimeout = null;
+
+        // Skip if we're already in a grace period
+        if (inGracePeriod) return;
+
+        // Set grace period flag to prevent multiple executions
+        inGracePeriod = true;
+
+        try {
+          const fileState = await this.push();
+          if (fileState.changes() > 0) {
+            await callback(fileState);
+          }
+        } catch (e) {
+          if (e instanceof Deno.errors.NotFound) {
+            // The file no longer exists at the time of uploading. It could've
+            // just been a temporary file, but since it no longer exists it
+            // isn't our problem.
+          } else if (e instanceof ValTown.APIError && e.status === 404) {
+            // The val we're trying to update doesn't exist on the server. This
+            // is usually a result of starting a deletion and then trying to
+            // delete a second time because of duplicate file system events.
+          } else throw e;
+        }
+
+        // After execution, set a timeout to clear the grace period
+        setTimeout(() => {
+          inGracePeriod = false;
+        }, debounceDelay);
+      }, debounceDelay);
     }
   }
 
