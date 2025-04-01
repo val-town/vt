@@ -1,5 +1,5 @@
 import { clone } from "~/vt/lib/clone.ts";
-import { debounce } from "@std/async/debounce";
+import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
@@ -149,12 +149,14 @@ export default class VTClient {
    * lock file with the running program's PID is maintained automatically so
    * that this cannot run with multiple instances.
    *
-   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
+   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 1000ms)
+   * @param {number} gracePeriod - Time in milliseconds to wait after a push before processing new events (default: 250ms)
    * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
   public async watch(
     callback: (fileState: FileState) => void | Promise<void>,
     debounceDelay: number = 1000,
+    gracePeriod: number = 250,
   ): Promise<void> {
     // Do an initial push
     const firstPush = await this.push();
@@ -176,7 +178,7 @@ export default class VTClient {
 
     const watcher = Deno.watchFs(this.rootPath);
 
-    // Track the debounce timeout
+    // Track if we're currently processing changes
     let inGracePeriod = false;
     const debouncedCallback = debounce(async () => {
       // Skip if we're already in a grace period
@@ -202,10 +204,9 @@ export default class VTClient {
         } else throw e;
       }
 
-      // After execution, set a timeout to clear the grace period
-      setTimeout(() => {
-        inGracePeriod = false;
-      }, debounceDelay);
+      // Use delay to implement the grace period
+      await delay(gracePeriod);
+      inGracePeriod = false;
     }, debounceDelay);
 
     // Process events and debounce changes
