@@ -110,19 +110,18 @@ export const checkoutCmd = new Command()
             // be dangerous state changes as safe if it's not modified according
             // to vt.status().
             const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
-              .filter((fileStatus) => (fileStatus.status == "deleted" ||
-                fileStatus.status == "modified")
+              .filter(
+                (fileStatus) => (fileStatus.status == "deleted" ||
+                  fileStatus.status == "modified"),
+              )
+              .merge(
+                (await vt.status())
+                  .filter((fileStatus) => fileStatus.status === "not_modified"),
               );
-            dangerousLocalChanges.merge(
-              (await vt.status()).filter((fileStatus) =>
-                fileStatus.status === "not_modified"
-              ),
-            );
 
             if (!isNewBranch) {
               if (
-                await vt.isDirty({ fileStateChanges: dangerousLocalChanges }) &&
-                !force && !dryRun
+                await vt.isDirty() && !force && !dryRun
               ) {
                 spinner.stop();
 
@@ -180,7 +179,11 @@ export const checkoutCmd = new Command()
             // Perform the actual checkout
             const checkoutResult = await vt.checkout(
               targetBranch,
-              { dryRun: false },
+              {
+                dryRun: false,
+                // Undefined --> use current branch
+                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+              },
             );
 
             spinner.stop();

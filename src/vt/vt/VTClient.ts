@@ -381,21 +381,19 @@ export default class VTClient {
   * Check out a different branch of the project.
   *
   * @param {string} branchName The name of the branch to check out to
-  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams> & { fileStateChanges?: FileStateChanges }} options -
+  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams>} options -
  Optional parameters
   * @returns {Promise<CheckoutResult>}
   */
   public async checkout(
     branchName: string,
-    options?: Partial<BranchCheckoutParams | ForkCheckoutParams> & {
-      fileStateChanges?: FileState;
-    },
+    options?: Partial<ForkCheckoutParams>,
   ): Promise<CheckoutResult> {
     return await this.getMeta().doWithConfig(async (config) => {
       const currentBranchId = config.currentBranch;
 
       // Get files that were newly created but not yet committed
-      const fileStateChanges = options?.fileStateChanges || await this.status();
+      const fileStateChanges = await this.status();
       const created = fileStateChanges.created.map((file) => file.path);
 
       // We want to ignore newly created files. Adding them to the gitignore
@@ -416,10 +414,7 @@ export default class VTClient {
       let result: CheckoutResult;
 
       // Check if we're forking from another branch
-      if (
-        options && "forkedFromId" in options &&
-        typeof options.forkedFromId === "string"
-      ) {
+      if (options && options.forkedFromId) {
         const forkParams: ForkCheckoutParams = {
           ...baseParams,
           forkedFromId: options.forkedFromId,
@@ -472,14 +467,10 @@ export default class VTClient {
   /**
    * Check if the working directory is dirty relative to remote.
    *
-   * @param {Object} options - Optional parameters
-   * @param {FileStateChanges} options.fileStateChanges - Optional pre-fetched file state changes to use
    * @returns {Promise<boolean>} True if local state is dirty
    */
-  public async isDirty(
-    options?: { fileStateChanges?: FileState },
-  ): Promise<boolean> {
-    const fileStateChanges = options?.fileStateChanges || await this.status();
+  public async isDirty(): Promise<boolean> {
+    const fileStateChanges = await this.status();
     return isDirty(fileStateChanges);
   }
 }

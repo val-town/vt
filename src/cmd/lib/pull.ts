@@ -28,7 +28,7 @@ export const pullCmd = new Command()
         // Check if dirty, then early exit if it's dirty and they don't
         // want to proceed. If in force mode don't do this check.
         const fileStateChanges = await vt.pull({ dryRun: true });
-        if ((await vt.isDirty({ fileStateChanges })) && !force) {
+        if ((await vt.isDirty()) && !force) {
           spinner.stop();
 
           // Display what would be pulled when dirty
