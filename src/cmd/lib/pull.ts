@@ -3,11 +3,9 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import {
-  dirtyErrorMsg,
   displayFileStateChanges,
   noChangesDryRunMsg,
 } from "~/cmd/lib/utils.ts";
-import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 
 export const pullCmd = new Command()
@@ -27,66 +25,59 @@ export const pullCmd = new Command()
       async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-        // Always get changes that would be pulled using dry run
+        // Check if dirty, then early exit if it's dirty and they don't
+        // want to proceed. If in force mode don't do this check.
         const fileStateChanges = await vt.pull({ dryRun: true });
+        if ((await vt.isDirty({ fileStateChanges })) && !force) {
+          spinner.stop();
 
-        // Helper function to display file state changes and add a newline
-        const displayChanges = (isDone: boolean) => {
-          const headerText = isDone
-            ? "Changes pulled:"
-            : "Changes that would be pulled:";
-          const summaryPrefix = isDone ? "Pulled:" : "Would pull:";
-
+          // Display what would be pulled when dirty
           displayFileStateChanges(fileStateChanges, {
-            headerText: headerText,
-            summaryText: summaryPrefix,
-            emptyMessage: isDone
-              ? "No changes were pulled, local state is up to date"
-              : "No changes to pull, local state is up to date",
+            headerText: "Changes that would be pulled:",
+            summaryText: "Would pull:",
+            emptyMessage: "No changes to pull, local state is up to date",
             includeTypes: !dryRun,
             includeSummary: true,
           });
           console.log();
-        };
 
-        // Check if dirty, then early exit if it's dirty and they don't
-        // want to proceed. If in force mode don't do this check.
-        const isDirty = await vt.isDirty({ fileStateChanges });
-
-        if (isDirty && !force) {
-          spinner.stop();
-
-          // Display what would be pulled when dirty
-          displayChanges(false);
-
-          if (dryRun) {
-            spinner.warn(
-              colors.red("Current local state is dirty.") +
-                " A " + colors.yellow(colors.bold("`pull -f`")) +
-                " is needed to pull.",
-            );
-            console.log();
-            spinner.succeed(noChangesDryRunMsg);
-            return;
-          }
+          // No need to confirm since they are just doing a dry run
+          if (dryRun) return;
 
           // Ask for confirmation to proceed despite dirty state
           const shouldProceed = await Confirm.prompt({
-            message: dirtyErrorMsg("pull"),
+            message:
+              "There are changes being pulled that would overwrite the local state." +
+              " Are you sure you want to proceed?",
             default: false,
           });
           if (!shouldProceed) Deno.exit(0); // This is what they wanted
+          console.log();
         }
 
         if (dryRun) {
           spinner.stop();
-          displayChanges(false);
+          displayFileStateChanges(fileStateChanges, {
+            headerText: "Changes that would be pulled:",
+            summaryText: "Would pull:",
+            emptyMessage: "No changes to pull, local state is up to date",
+            includeTypes: !dryRun,
+            includeSummary: true,
+          });
+          console.log();
           spinner.succeed(noChangesDryRunMsg);
         } else {
           // Perform the actual pull
-          await vt.pull();
+          const realPullChanges = await vt.pull();
           spinner.stop();
-          displayChanges(true);
+          displayFileStateChanges(realPullChanges, {
+            headerText: "Changes pulled:",
+            summaryText: "Pulled:",
+            emptyMessage: "No changes were pulled, local state is up to date",
+            includeTypes: !dryRun,
+            includeSummary: true,
+          });
+          console.log();
           spinner.succeed("Successfully pulled the latest changes");
         }
       },
