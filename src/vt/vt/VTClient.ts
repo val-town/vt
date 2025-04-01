@@ -177,8 +177,36 @@ export default class VTClient {
     const watcher = Deno.watchFs(this.rootPath);
 
     // Track the debounce timeout
-    let debounceTimeout: number | null = null;
     let inGracePeriod = false;
+    const debouncedCallback = debounce(async () => {
+      // Skip if we're already in a grace period
+      if (inGracePeriod) return;
+
+      // Set grace period flag to prevent multiple executions
+      inGracePeriod = true;
+
+      try {
+        const fileState = await this.push();
+        if (fileState.changes() > 0) {
+          await callback(fileState);
+        }
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) {
+          // The file no longer exists at the time of uploading. It could've
+          // just been a temporary file, but since it no longer exists it
+          // isn't our problem.
+        } else if (e instanceof ValTown.APIError && e.status === 404) {
+          // The val we're trying to update doesn't exist on the server. This
+          // is usually a result of starting a deletion and then trying to
+          // delete a second time because of duplicate file system events.
+        } else throw e;
+      }
+
+      // After execution, set a timeout to clear the grace period
+      setTimeout(() => {
+        inGracePeriod = false;
+      }, debounceDelay);
+    }, debounceDelay);
 
     // Process events and debounce changes
     for await (const event of watcher) {
@@ -187,44 +215,8 @@ export default class VTClient {
       // If we're in a grace period, ignore the event
       if (inGracePeriod) continue;
 
-      // Clear existing timeout if there is one
-      if (debounceTimeout !== null) {
-        clearTimeout(debounceTimeout);
-        debounceTimeout = null;
-      }
-
-      // Set a new timeout
-      debounceTimeout = setTimeout(async () => {
-        debounceTimeout = null;
-
-        // Skip if we're already in a grace period
-        if (inGracePeriod) return;
-
-        // Set grace period flag to prevent multiple executions
-        inGracePeriod = true;
-
-        try {
-          const fileState = await this.push();
-          if (fileState.changes() > 0) {
-            await callback(fileState);
-          }
-        } catch (e) {
-          if (e instanceof Deno.errors.NotFound) {
-            // The file no longer exists at the time of uploading. It could've
-            // just been a temporary file, but since it no longer exists it
-            // isn't our problem.
-          } else if (e instanceof ValTown.APIError && e.status === 404) {
-            // The val we're trying to update doesn't exist on the server. This
-            // is usually a result of starting a deletion and then trying to
-            // delete a second time because of duplicate file system events.
-          } else throw e;
-        }
-
-        // After execution, set a timeout to clear the grace period
-        setTimeout(() => {
-          inGracePeriod = false;
-        }, debounceDelay);
-      }, debounceDelay);
+      // Trigger the debounced callback when a file change is detected
+      debouncedCallback();
     }
   }
 
