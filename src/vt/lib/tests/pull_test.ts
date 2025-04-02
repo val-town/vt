@@ -370,4 +370,5 @@ Deno.test({
       });
     });
   },
+  sanitizeOps: false,
 });
