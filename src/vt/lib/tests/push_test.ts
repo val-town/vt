@@ -79,7 +79,7 @@ Deno.test({
             "404",
           );
         });
-      }, "vt_push_test_");
+      });
     });
   },
 });
@@ -171,7 +171,7 @@ Deno.test({
           "content",
           "file content should match after rename",
         );
-      }, "vt_rename_test_");
+      });
     });
   },
   sanitizeResources: false,
@@ -224,7 +224,7 @@ Deno.test({
           true,
           "Empty directory should exist on server",
         );
-      }, "vt_push_empty_dir_test_");
+      });
     });
   },
 });
@@ -270,7 +270,7 @@ Deno.test({
           "404",
           "File should not exist on server after dry run",
         );
-      }, "vt_push_dryrun_test_");
+      });
     });
   },
 });
@@ -311,7 +311,7 @@ Deno.test({
         // Should be no changes on the second push
         assertEquals(secondResult.not_modified.length, 1);
         assertEquals(secondResult.size(), 1);
-      }, "vt_push_nochange_test_");
+      });
     });
   },
 });

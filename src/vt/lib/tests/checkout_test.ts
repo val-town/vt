@@ -95,7 +95,7 @@ Deno.test({
           await exists(join(tempDir, "untracked.txt")),
           "untracked file should be preserved",
         );
-      }, "vt_checkout_test_");
+      });
     });
   },
 });
@@ -178,7 +178,7 @@ Deno.test({
           await exists(join(tempDir, "untracked.txt")),
           "untracked file should be preserved",
         );
-      }, "vt_checkout_create_test_");
+      });
     });
   },
 });
@@ -285,7 +285,7 @@ Deno.test({
           "not in any branch",
           "content should be preserved",
         );
-      }, "vt_checkout_untracked_test_");
+      });
     });
   },
 });
@@ -354,8 +354,8 @@ Deno.test("file not in target branch should be deleted", async (t) => {
             "local file should not exist in main branch directory",
           );
         });
-      }, "vt_checkout_main_branch_test_");
-    }, "vt_checkout_feature_branch_test_");
+      });
+    });
   });
 });
 
@@ -415,7 +415,7 @@ Deno.test({
 
           assertEquals(result.fileStateChanges.created.length, 1);
           assertEquals(result.fileStateChanges.created[0].path, testFileName);
-        }, "vt_checkout_dryrun_fork_test_");
+        });
       });
 
       await t.step("test dry run for file modification", async () => {
@@ -457,7 +457,7 @@ Deno.test({
             modifiedContent,
             "File should still have local modifications after dryRun",
           );
-        }, "vt_checkout_dryrun_modification_test_");
+        });
       });
     });
   },

@@ -117,7 +117,7 @@ Deno.test({
               "File should be deleted locally after pulling deletion from server",
             );
           });
-        }, "vt_pull_test_");
+        });
       });
     });
   },
@@ -184,7 +184,7 @@ Deno.test({
           "Ignored local file",
           "Ignored file content should remain unchanged",
         );
-      }, "vt_pull_gitignore_test_");
+      });
     });
   },
 });
@@ -297,7 +297,7 @@ Deno.test({
             "file content should remain unchanged after dry run",
           );
         });
-      }, "vt_pull_dryrun_test_");
+      });
     });
   },
 });
@@ -367,7 +367,7 @@ Deno.test({
           assertEquals(secondPullChanges.modified.length, 0);
           assertEquals(secondPullChanges.deleted.length, 0);
         });
-      }, "vt_pull_nested_dirs_test_");
+      });
     });
   },
 });
