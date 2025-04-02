@@ -124,4 +124,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

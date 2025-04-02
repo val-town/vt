@@ -137,71 +137,87 @@ export function checkout(
       }
 
       // Get files from the source branch
-      const fromFiles = new Set(
-        await listProjectItems(params.projectId, {
+      if (createdNew) {
+        const projectItems = await listProjectItems(params.projectId, {
           path: "",
           branch_id: fromBranch.id,
           version: fromBranch.version,
           recursive: true,
-        }).then((resp) => resp.map((file) => file.path)),
-      );
-
-      // Get files from the target branch. Note that the target branch is
-      // effectively the same as the source branch if checkout branch
-      // id/checkout version id are undefined, since in that case we are
-      // forking, and when we are forking we are copying the from branch.
-      const toFiles = new Set(
-        await listProjectItems(params.projectId, {
-          path: "",
-          branch_id: toBranch.id,
-          version: toBranch.version,
-          recursive: true,
-        }).then((resp) => resp.map((file) => file.path)),
-      );
-
-      // Clone the target branch into the temporary directory
-      const pullResult = await pull({
-        targetDir: tmpDir,
-        projectId: params.projectId,
-        branchId: toBranch.id,
-        version: toBranch.version,
-        gitignoreRules: params.gitignoreRules,
-        dryRun: params.dryRun,
-      });
-      fileStateChanges.merge(pullResult);
-
-      // Scan the target directory to identify files that need to be deleted
-      for await (const entry of walk(params.targetDir)) {
-        const relativePath = relative(params.targetDir, entry.path);
-        const targetDirPath = entry.path;
-        const tmpDirPath = join(tmpDir, relativePath);
-
-        if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
-        if (relativePath === "" || entry.path === params.targetDir) continue;
-
-        // If the file was in the source branch but not in the target branch,
-        // delete it. This preserves untracked files (files not in fromFiles)
-        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
-          const stat = await Deno.stat(entry.path);
+        });
+        projectItems.forEach((projectItem) => {
           fileStateChanges.insert({
-            path: relativePath,
-            status: "deleted",
-            type: stat.isDirectory
-              ? "directory"
-              : await getProjectItemType(params.projectId, {
-                branchId: fromBranch.id,
-                version: fromBranch.version,
-                filePath: relativePath,
-              }),
+            path: projectItem.path,
+            status: "not_modified",
+            type: projectItem.type,
           });
+        });
+      } else {
+        const fromFiles = new Set(
+          await listProjectItems(params.projectId, {
+            path: "",
+            branch_id: fromBranch.id,
+            version: fromBranch.version,
+            recursive: true,
+          }).then((resp) => resp.map((file) => file.path)),
+        );
 
-          // Delete the file from both directories if not in dry run mode
-          if (!params.dryRun) {
-            if (await exists(targetDirPath)) {
-              await Deno.remove(targetDirPath, { recursive: true });
-            }
-            if (await exists(tmpDirPath)) {
-              await Deno.remove(tmpDirPath, { recursive: true });
+        // Get files from the target branch. Note that the target branch is
+        // effectively the same as the source branch if checkout branch
+        // id/checkout version id are undefined, since in that case we are
+        // forking, and when we are forking we are copying the from branch.
+        const toFiles = new Set(
+          await listProjectItems(params.projectId, {
+            path: "",
+            branch_id: toBranch.id,
+            version: toBranch.version,
+            recursive: true,
+          }).then((resp) => resp.map((file) => file.path)),
+        );
+
+        // Clone the target branch into the temporary directory
+        const pullResult = await pull({
+          targetDir: tmpDir,
+          projectId: params.projectId,
+          branchId: toBranch.id,
+          version: toBranch.version,
+          gitignoreRules: params.gitignoreRules,
+          dryRun: params.dryRun,
+        });
+        fileStateChanges.merge(pullResult);
+
+        // Scan the target directory to identify files that need to be deleted
+        for await (const entry of walk(params.targetDir)) {
+          const relativePath = relative(params.targetDir, entry.path);
+          const targetDirPath = entry.path;
+          const tmpDirPath = join(tmpDir, relativePath);
+
+          if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
+          if (relativePath === "" || entry.path === params.targetDir) continue;
+
+          // If the file was in the source branch but not in the target branch,
+          // delete it. This preserves untracked files (files not in fromFiles)
+          if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+            const stat = await Deno.stat(entry.path);
+            fileStateChanges.insert({
+              path: relativePath,
+              status: "deleted",
+              type: stat.isDirectory
+                ? "directory"
+                : await getProjectItemType(params.projectId, {
+                  branchId: fromBranch.id,
+                  version: fromBranch.version,
+                  filePath: relativePath,
+                }),
+            });
+
+            // Delete the file from both directories if not in dry run mode
+            if (!params.dryRun) {
+              if (await exists(targetDirPath)) {
+                await Deno.remove(targetDirPath, { recursive: true });
+              }
+              if (await exists(tmpDirPath)) {
+                await Deno.remove(tmpDirPath, { recursive: true });
+              }
             }
           }
         }

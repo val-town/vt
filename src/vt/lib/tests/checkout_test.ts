@@ -8,7 +8,7 @@ import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 
 Deno.test({
-  name: "test branch checkout",
+  name: "test cross branch checkout",
   permissions: {
     read: true,
     write: true,
@@ -368,11 +368,9 @@ Deno.test({
   },
   async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
-      const testFileName = "main.txt";
-
       // Create a file on main branch
       await sdk.projects.files.create(project.id, {
-        path: testFileName,
+        path: "main.txt",
         content: "file on main branch",
         branch_id: mainBranch.id,
         type: "file",
@@ -392,11 +390,11 @@ Deno.test({
           // Verify result properties for dry run
           assert(result.createdNew, "new branch should have been created");
           assertEquals(result.fromBranch.id, mainBranch.id);
-
-          // Verify fileStateChanges is populated (and we know we lack main.txt)
-          assertEquals(result.fileStateChanges.created.length, 1);
-          assertEquals(result.fileStateChanges.created[0].path, testFileName);
-
+          assertEquals(
+            result.fileStateChanges.not_modified.length,
+            1,
+            "modifications after forking to new branch",
+          );
           // Verify branch wasn't actually created on server
           assertEquals(
             await branchExists(project.id, "dry-run-branch"),
@@ -413,8 +411,7 @@ Deno.test({
             toBranchVersion: 1,
           });
 
-          assertEquals(result.fileStateChanges.created.length, 1);
-          assertEquals(result.fileStateChanges.created[0].path, testFileName);
+          assertEquals(result.fileStateChanges.not_modified.length, 1);
         });
       });
 
@@ -456,6 +453,124 @@ Deno.test({
             fileContent,
             modifiedContent,
             "File should still have local modifications after dryRun",
+          );
+        });
+      });
+    });
+  },
+});
+
+Deno.test({
+  name: "test checkout -b preserves local unpushed changes",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn(t) {
+    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+      // Create a file on main branch
+      await sdk.projects.files.create(project.id, {
+        path: "original.txt",
+        content: "original content",
+        branch_id: mainBranch.id,
+        type: "file",
+      });
+
+      await doWithTempDir(async (tempDir) => {
+        // Checkout main branch
+        await checkout({
+          targetDir: tempDir,
+          projectId: project.id,
+          toBranchId: mainBranch.id,
+          fromBranchId: mainBranch.id,
+          toBranchVersion: 1,
+        });
+
+        // Verify the original file exists
+        assert(
+          await exists(join(tempDir, "original.txt")),
+          "original file should exist after checkout",
+        );
+
+        // Create a new file locally (unpushed change)
+        const newFilePath = join(tempDir, "new-file.txt");
+        await Deno.writeTextFile(newFilePath, "new file content");
+
+        // Modify the existing file locally (unpushed change)
+        const originalFilePath = join(tempDir, "original.txt");
+        await Deno.writeTextFile(originalFilePath, "modified content");
+
+        // Create and checkout a new branch (equivalent to checkout -b)
+        const result = await checkout({
+          targetDir: tempDir,
+          projectId: project.id,
+          forkedFromId: mainBranch.id,
+          name: "feature-with-changes",
+          toBranchVersion: 2,
+        });
+
+        // Verify branch creation
+        assertEquals(result.createdNew, true);
+        assertEquals(result.toBranch!.name, "feature-with-changes");
+
+        // Verify the local changes still exist
+        assert(
+          await exists(join(tempDir, "new-file.txt")),
+          "new file should still exist after branch creation",
+        );
+
+        const newFileContent = await Deno.readTextFile(newFilePath);
+        assertEquals(
+          newFileContent,
+          "new file content",
+          "new file content should be preserved",
+        );
+
+        const modifiedFileContent = await Deno.readTextFile(originalFilePath);
+        assertEquals(
+          modifiedFileContent,
+          "modified content",
+          "modified file content should be preserved",
+        );
+
+        // Verify we can push the changes to the new branch
+        await t.step("push changes to new branch", async () => {
+          // Push changes to the new branch (this would be a separate operation in real usage)
+          await sdk.projects.files.create(project.id, {
+            path: "new-file.txt",
+            content: "new file content",
+            branch_id: result.toBranch!.id,
+            type: "file",
+          });
+
+          await sdk.projects.files.update(project.id, {
+            path: "original.txt",
+            content: "modified content",
+            branch_id: result.toBranch!.id,
+            type: "file",
+          });
+
+          // Checkout main branch again to verify changes aren't there
+          await checkout({
+            targetDir: tempDir,
+            projectId: project.id,
+            toBranchId: mainBranch.id,
+            fromBranchId: result.toBranch!.id,
+            toBranchVersion: 3,
+          });
+
+          // Verify original content on main branch
+          const mainBranchContent = await Deno.readTextFile(originalFilePath);
+          assertEquals(
+            mainBranchContent,
+            "original content",
+            "original file should have original content on main branch",
+          );
+
+          assert(
+            !await exists(join(tempDir, "new-file.txt")),
+            "new file should not exist on main branch",
           );
         });
       });
