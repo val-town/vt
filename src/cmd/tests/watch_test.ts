@@ -63,7 +63,8 @@ Deno.test({
                   path: `rapid-file-${i}.js`,
                   time: Date.now(),
                 });
-                // Add minimal delay between file creations to ensure they're distinct events
+                // Add minimal delay between file creations to ensure they're
+                // distinct events
                 await delay(20);
               }
 
@@ -80,21 +81,20 @@ Deno.test({
               recursive: true,
             });
 
+            // Get status to verify all files are synced
+            const statusAfterBatch = await vt!.status();
+
             // Check that all rapid files exist
             for (let i = 0; i <= 20; i++) {
+              // The file should exist
               const fileExists = projectItemsAfterBatch
                 .some((item) => item.path === `rapid-file-${i}.js`);
               assert(
                 fileExists,
                 `rapid-file-${i}.js should exist in the project`,
               );
-            }
 
-            // Get status to verify all files are synced
-            const statusAfterBatch = await vt!.status();
-
-            // All rapid files should have "not_modified" status
-            for (let i = 0; i <= 20; i++) {
+              // All rapid files should have "not_modified" status
               const fileStatus = statusAfterBatch.filter(
                 (file) =>
                   file.path === `rapid-file-${i}.js` &&
