@@ -94,7 +94,7 @@ Deno.test({
 
         const [output] = await runVtCommand(["status"], fullPath);
 
-        assertStringIncludes(output, "On branch main@1..2");
+        assertStringIncludes(output, "On branch main@0..1..2");
       });
     });
   },
