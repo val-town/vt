@@ -124,7 +124,7 @@ Deno.test({
               "Nested directories should be created",
             );
           });
-        }, "vt_clone_test_files_");
+        });
       });
     });
   },
@@ -170,7 +170,7 @@ Deno.test({
               "empty directory should be created explicitly",
             );
           });
-        }, "vt_clone_test_empty_dir_");
+        });
       });
     });
   },

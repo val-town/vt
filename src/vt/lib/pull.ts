@@ -1,6 +1,6 @@
 import { join, relative } from "@std/path";
-import { copy, walk } from "@std/fs";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
+import { copy, exists, walk } from "@std/fs";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
@@ -78,63 +78,51 @@ export function pull(params: PullParams): Promise<FileState> {
       changes.merge(cloneChanges);
 
       // Get list of files from the server
-      const files = new Set(
-        await listProjectItems(projectId, {
-          path: "",
-          branch_id: branchId,
-          version,
-          recursive: true,
-        }).then((resp) => resp.map((file) => file.path)),
-      );
+      const projectItems = await listProjectItems(projectId, {
+        path: "",
+        branch_id: branchId,
+        version,
+        recursive: true,
+      });
+      const projectItemsSet = new Set(projectItems.map((file) => file.path));
 
-      // Identify files that should be deleted
-      if (dryRun) {
-        // In dry run mode, we need to scan the target directory directly
-        for await (const entry of walk(targetDir)) {
-          const relativePath = relative(targetDir, entry.path);
-          if (shouldIgnore(relativePath, gitignoreRules)) continue;
-          if (relativePath === "" || entry.path === targetDir) continue;
-          if (files.has(relativePath)) continue;
+      // Scan the temp directory to identify files that should be deleted
+      for await (const entry of walk(tmpDir)) {
+        const relativePath = relative(tmpDir, entry.path);
+        const targetDirPath = join(targetDir, relativePath);
+        const tmpDirPath = entry.path;
 
-          await Deno.stat(entry.path)
-            .then((stat) =>
-              changes.insert({
-                path: relativePath,
-                status: "deleted",
-                type: stat.isDirectory ? "directory" : "file",
-                mtime: stat.mtime?.getTime()!,
-                where: "local",
-              })
-            );
-        }
-      } else {
-        // In actual run mode, we scan the temp directory
-        for await (const entry of walk(tmpDir)) {
-          const relativePath = relative(tmpDir, entry.path);
-          if (shouldIgnore(relativePath, gitignoreRules)) continue;
-          if (relativePath === "" || entry.path === tmpDir) continue;
-          if (files.has(relativePath)) continue;
+        if (shouldIgnore(relativePath, gitignoreRules)) continue;
+        if (relativePath === "" || entry.path === tmpDir) continue;
+        if (projectItemsSet.has(relativePath)) continue;
 
-          const stat = await Deno.stat(entry.path);
-          const fileStatus: FileStatus = {
-            path: relativePath,
-            status: "deleted",
-            type: stat.isDirectory ? "directory" : "file",
-            mtime: stat.mtime?.getTime()!,
-            where: "local",
-          };
-          changes.insert(fileStatus);
+        const stat = await Deno.stat(entry.path);
+        const fileStatus: FileStatus = {
+          path: relativePath,
+          status: "deleted",
+          type: stat.isDirectory
+            ? "directory"
+            : await getProjectItemType(projectId, {
+              branchId,
+              version,
+              filePath: relativePath,
+            }),
+        };
+        changes.insert(fileStatus);
 
-          await Deno.remove(join(targetDir, relativePath), {
-            recursive: true,
-          });
-          await Deno.remove(join(tmpDir, relativePath), { recursive: true });
+        // Delete the file from both directories if not in dry run mode
+        if (!dryRun) {
+          if (await exists(targetDirPath)) {
+            await Deno.remove(targetDirPath, { recursive: true });
+          }
+          if (await exists(tmpDirPath)) {
+            await Deno.remove(tmpDirPath, { recursive: true });
+          }
         }
       }
 
       return [changes, !dryRun];
     },
-    targetDir,
-    "vt_pull_",
+    { targetDir, prefix: "vt_pull_" },
   );
 }

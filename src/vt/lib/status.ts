@@ -8,6 +8,7 @@ import {
   FileState,
   type FileStatus,
 } from "~/vt/lib/FileState.ts";
+import type ValTown from "@valtown/sdk";
 
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
@@ -61,9 +62,7 @@ export async function status(params: StatusParams): Promise<FileState> {
       result.insert({
         type: localFileInfo.type,
         path: filePath,
-        mtime: localFileInfo.mtime,
         status: "created",
-        where: "local",
       });
     } else {
       if (localFileInfo.type !== "directory") {
@@ -75,26 +74,23 @@ export async function status(params: StatusParams): Promise<FileState> {
           projectId,
           branchId,
           version,
-          localMtime: localFileInfo.mtime,
-          projectMtime: projectFileInfo.mtime,
+          localMtime: (await Deno.stat(path.join(targetDir, filePath))).mtime!
+            .getTime(),
+          projectMtime: new Date(projectFileInfo.updatedAt).getTime(),
         });
 
         if (isModified) {
           const fileStatus: FileStatus = {
             type: localFileInfo.type,
             path: filePath,
-            mtime: localFileInfo.mtime,
             status: "modified",
-            where: "local",
           };
           result.insert(fileStatus);
         } else {
           const fileStatus: FileStatus = {
             type: localFileInfo.type,
             path: filePath,
-            mtime: localFileInfo.mtime,
             status: "not_modified",
-            where: "local",
           };
           result.insert(fileStatus);
         }
@@ -102,9 +98,7 @@ export async function status(params: StatusParams): Promise<FileState> {
         const fileStatus: FileStatus = {
           type: localFileInfo.type,
           path: filePath,
-          mtime: localFileInfo.mtime,
           status: "not_modified",
-          where: "local",
         };
         result.insert(fileStatus);
       }
@@ -117,9 +111,7 @@ export async function status(params: StatusParams): Promise<FileState> {
       result.insert({
         type: projectFileInfo.type,
         path: projectPath,
-        mtime: projectFileInfo.mtime,
         status: "deleted",
-        where: "local",
       });
     }
   }
@@ -139,7 +131,9 @@ async function getProjectFiles({
   branchId,
   version = undefined,
   gitignoreRules,
-}: GetProjectFilesParams): Promise<Map<string, FileInfo>> {
+}: GetProjectFilesParams): Promise<
+  Map<string, ValTown.Projects.FileRetrieveResponse>
+> {
   const projectItems = (await listProjectItems(projectId, {
     path: "",
     branch_id: branchId,
@@ -147,16 +141,14 @@ async function getProjectFiles({
     recursive: true,
   }))
     .filter((file) => !shouldIgnore(file.path, gitignoreRules))
-    .map((file): [string, FileInfo] => [
+    .map((
+      file,
+    ): [string, ValTown.Projects.FileRetrieveResponse] => [
       file.path,
-      {
-        mtime: new Date(file.updatedAt).getTime(),
-        type: file.type,
-        where: "local",
-      },
+      file,
     ]);
 
-  return new Map<string, FileInfo>(projectItems);
+  return new Map<string, ValTown.Projects.FileRetrieveResponse>(projectItems);
 }
 
 interface GetLocalFilesParams {
@@ -183,19 +175,15 @@ async function getLocalFiles({
     if (shouldIgnore(relativePath, gitignoreRules)) return;
     if (entry.path === targetDir) return;
 
-    // Stat the file to get the modification time
-    const stat = await Deno.stat(entry.path);
-
     // Store the path and its modification time
     files.set(path.relative(targetDir, entry.path), {
-      type: entry.isDirectory ? "directory" : await getProjectItemType(
-        projectId,
-        branchId,
-        version,
-        relativePath,
-      ),
-      mtime: stat.mtime!.getTime(),
-      where: "local",
+      type: entry.isDirectory
+        ? "directory"
+        : await getProjectItemType(projectId, {
+          branchId: branchId,
+          version,
+          filePath: relativePath,
+        }),
     });
   };
 

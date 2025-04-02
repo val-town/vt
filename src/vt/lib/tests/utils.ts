@@ -1,4 +1,4 @@
-import sdk, { branchIdToBranch, randomProjectName } from "~/sdk.ts";
+import sdk, { branchNameToBranch, randomProjectName } from "~/sdk.ts";
 
 export interface ExpectedProjectInode {
   path: string;
@@ -29,7 +29,7 @@ export async function doWithNewProject<T>(
   });
 
   // Get the main branch ID
-  const branch = await branchIdToBranch(project.id, "main");
+  const branch = await branchNameToBranch(project.id, "main");
 
   try {
     // Execute the provided operation with project info

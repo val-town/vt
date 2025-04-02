@@ -117,7 +117,7 @@ Deno.test({
               "File should be deleted locally after pulling deletion from server",
             );
           });
-        }, "vt_pull_test_");
+        });
       });
     });
   },
@@ -184,7 +184,7 @@ Deno.test({
           "Ignored local file",
           "Ignored file content should remain unchanged",
         );
-      }, "vt_pull_gitignore_test_");
+      });
     });
   },
 });
@@ -297,7 +297,7 @@ Deno.test({
             "file content should remain unchanged after dry run",
           );
         });
-      }, "vt_pull_dryrun_test_");
+      });
     });
   },
 });
@@ -327,7 +327,7 @@ Deno.test({
           );
         });
 
-        await t.step("first pull - should create directories", async () => {
+        await t.step("pull that creates directories", async () => {
           // Pull the project to the temp directory
           const firstPullChanges = await pull({
             targetDir: tempDir,
@@ -353,7 +353,7 @@ Deno.test({
           );
         });
 
-        await t.step("second pull - should not detect changes", async () => {
+        await t.step("pull that should not detect changes", async () => {
           // Pull again - should not detect changes
           const secondPullChanges = await pull({
             targetDir: tempDir,
@@ -367,7 +367,8 @@ Deno.test({
           assertEquals(secondPullChanges.modified.length, 0);
           assertEquals(secondPullChanges.deleted.length, 0);
         });
-      }, "vt_pull_nested_dirs_test_");
+      });
     });
   },
+  sanitizeOps: false,
 });

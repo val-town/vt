@@ -82,6 +82,7 @@ export const checkoutCmd = new Command()
             const dryCheckoutResult = await vt.checkout(
               branch || existingBranchName!,
               {
+                toBranchVersion: config.version,
                 forkedFromId: isNewBranch ? config.currentBranch : undefined,
                 dryRun: true,
               },
@@ -109,21 +110,18 @@ export const checkoutCmd = new Command()
             // be dangerous state changes as safe if it's not modified according
             // to vt.status().
             const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
-              .filter((fileStatus) =>
-                (fileStatus.status == "deleted" ||
-                  fileStatus.status == "modified") &&
-                fileStatus.where === "local"
+              .filter(
+                (fileStatus) => (fileStatus.status == "deleted" ||
+                  fileStatus.status == "modified"),
+              )
+              .merge(
+                (await vt.status())
+                  .filter((fileStatus) => fileStatus.status === "not_modified"),
               );
-            dangerousLocalChanges.merge(
-              (await vt.status()).filter((fileStatus) =>
-                fileStatus.status === "not_modified"
-              ),
-            );
 
             if (!isNewBranch) {
               if (
-                await vt.isDirty({ fileStateChanges: dangerousLocalChanges }) &&
-                !force && !dryRun
+                await vt.isDirty() && !force && !dryRun
               ) {
                 spinner.stop();
 
@@ -181,7 +179,11 @@ export const checkoutCmd = new Command()
             // Perform the actual checkout
             const checkoutResult = await vt.checkout(
               targetBranch,
-              { dryRun: false },
+              {
+                dryRun: false,
+                // Undefined --> use current branch
+                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+              },
             );
 
             spinner.stop();
@@ -204,19 +206,20 @@ export const checkoutCmd = new Command()
                 : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
             );
           } catch (e) {
-            if (e instanceof ValTown.APIError && e.status === 409 && branch) {
-              throw new Error(
-                `Branch "${branch}" already exists. Choose a new branch name. ` +
-                  toListBranchesCmd,
-              );
-            } else if (
-              e instanceof Deno.errors.NotFound && existingBranchName
-            ) {
-              throw new Error(
-                `Branch "${existingBranchName}" does not exist in project. ` +
-                  toListBranchesCmd,
-              );
-            } else throw e;
+            if (e instanceof ValTown.APIError) {
+              if (e.status === 409 && branch) {
+                throw new Error(
+                  `Branch "${branch}" already exists. Choose a new branch name. ` +
+                    toListBranchesCmd,
+                );
+              } else if (e.status === 404 && existingBranchName) {
+                throw new Error(
+                  `Branch "${existingBranchName}" does not exist in project. ` +
+                    toListBranchesCmd,
+                );
+              }
+            }
+            throw e;
           }
         },
       );

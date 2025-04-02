@@ -1,14 +1,16 @@
 {
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
-  "version": "0.0.8",
+  "version": "0.0.10",
   "exports": "./vt.ts",
   "license": "MIT",
   "tasks": {
     "run": "./vt.ts",
-    "test": "deno test -A",
-    "check": "deno check .",
-    "fmt:check": "deno fmt --check"
+    "test": "deno task test:cmd --parallel && sleep 10 && deno task test:lib --parallel",
+    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
+    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/vt",
+    "check": "env DENO_NO_PROMPT=1 deno check .",
+    "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },
   "imports": {
     "gitignore-parser": "jsr:@cfa/gitignore-parser@^0.1.4",
@@ -24,6 +26,7 @@
     "@std/fs": "jsr:@std/fs@^1.0.13",
     "@std/path": "jsr:@std/path@^1.0.8",
     "@valtown/sdk": "jsr:@valtown/sdk@^0.38.0",
+    "strip-ansi": "npm:strip-ansi@^7.1.0",
     "~/": "./src/",
     "emphasize": "npm:emphasize@^7.0.0",
     "highlight.js": "npm:highlight.js@^11.11.1",

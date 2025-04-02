@@ -12,12 +12,13 @@ export const ALWAYS_IGNORE_PATTERNS: string[] = [
 
 export const CONFIG_FILE_NAME = "vt.json";
 export const META_FOLDER_NAME = ".vt";
+export const ENTRYPOINT_NAME = "vt.ts"
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const META_LOCK_FILE_NAME = "lock";
 
 export const MAX_WALK_UP_LEVELS = 100;
 
-export const FIRST_VERSION_NUMBER = 1;
+export const FIRST_VERSION_NUMBER = 0;
 
 export const STATUS_STYLES: Record< string, { prefix: string; color: (key: string) => string } > = {
   modified: { prefix: "M", color: colors.yellow },
