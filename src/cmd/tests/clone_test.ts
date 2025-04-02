@@ -109,8 +109,9 @@ Deno.test({
           `Project ${user.username!}/${projectName} cloned to`,
         );
       } finally {
-        sdk.alias.username.projectName.retrieve(user.username!, projectName)
-          .then((result) => sdk.projects.delete(result.id));
+        // Make sure the promise is properly awaited
+        const result = await sdk.alias.username.projectName.retrieve(user.username!, projectName);
+        await sdk.projects.delete(result.id);
       }
     });
   },
@@ -135,5 +136,4 @@ Deno.test({
       assertStringIncludes(out, "Project not found");
     });
   },
-  sanitizeResources: false,
 });
