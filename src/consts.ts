@@ -62,3 +62,12 @@ export type ProjectItemType = typeof ProjectItems[number];
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
 
 export const RECENT_VERSION_COUNT = 5;
+
+export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
+  "script": 0,
+  "email": 1,
+  "http": 2,
+  "directory": 3,
+  "file": 4,
+  "interval": 5,
+};

@@ -1,5 +1,5 @@
 import { basename } from "@std/path";
-import type { ProjectItemType } from "~/consts.ts";
+import { type ProjectItemType, TYPE_PRIORITY } from "~/consts.ts";
 
 export interface FileInfo {
   mtime: number;
@@ -98,37 +98,70 @@ export class FileState {
       return entries;
     }
 
-    return entries.sort(([typeA, filesA], [typeB, filesB]) => {
-      const pathA = filesA.length > 0 ? filesA[0].path : "";
-      const pathB = filesB.length > 0 ? filesB[0].path : "";
+    // Flatten all files with their categories (a category being, created,
+    // deleted, etc)
+    const allFiles = entries
+      .flatMap(
+        // Transform each category to be more "verbose", like [created, FileStatus]
+        ([category, files]) =>
+          files.map((file) => [category, file] as [string, FileStatus]),
+      );
 
-      // Get segment counts for comparison
-      const segmentsA = pathA.split("/").filter(Boolean);
-      const segmentsB = pathB.split("/").filter(Boolean);
+    // Sort all files by our criteria
+    allFiles.sort((a, b) => {
+      const [aCategory, aFile] = a;
+      const [bCategory, bFile] = b;
 
-      // 1. First compare by segment count (descending order)
-      const segmentCountDiff = segmentsB.length - segmentsA.length;
-      if (segmentCountDiff !== 0) {
-        return segmentCountDiff;
+      // 1. Path segment count (longest paths first)
+      const aSegments = aFile.path.split("/").length;
+      const bSegments = bFile.path.split("/").length;
+      if (aSegments !== bSegments) {
+        return bSegments - aSegments; // Longest paths first
       }
 
-      // 2. If segment counts are equal, compare by type
-      const typeComparison = typeA.localeCompare(typeB);
-      if (typeComparison !== 0) {
-        return typeComparison;
+      // 2. Sort by file type
+      if (aFile.type !== bFile.type) {
+        return (
+          (TYPE_PRIORITY[aFile.type] || Number.MAX_SAFE_INTEGER) -
+          (TYPE_PRIORITY[bFile.type] || Number.MAX_SAFE_INTEGER)
+        );
       }
 
-      // 3. If types are equal, compare by basename length
-      const basenameA = basename(pathA);
-      const basenameB = basename(pathB);
-
-      if (basenameA === basenameB) {
-        // 4. If basenames are equal, compare alphabetically by type
-        return typeA.localeCompare(typeB);
+      // 3. Status type priority
+      const statusPriority: Record<string, number> = {
+        "created": 0,
+        "deleted": 1,
+        "modified": 2,
+        "not_modified": 3,
+      };
+      const aPriority = statusPriority[aCategory];
+      const bPriority = statusPriority[bCategory];
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
       }
 
-      return basenameA.length - basenameB.length;
+      // 4. Basename length
+      const aBasename = basename(aFile.path);
+      const bBasename = basename(bFile.path);
+      if (aBasename.length !== bBasename.length) {
+        return aBasename.length - bBasename.length;
+      }
+
+      // 5. Alphabetical order of path
+      return aFile.path.localeCompare(bFile.path);
     });
+
+    // Regroup files into categories
+    const result = new Map<string, FileStatus[]>();
+    for (const [category, file] of allFiles) {
+      if (!result.has(category)) {
+        result.set(category, []);
+      }
+      result.get(category)!.push(file);
+    }
+
+    // Convert to array entries
+    return Array.from(result.entries());
   }
 
   /**
