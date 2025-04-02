@@ -37,7 +37,6 @@ export async function branchNameToBranch(
     if (branch.name == branchName) return branch;
   }
 
-  console.trace("TEST");
   throw new Deno.errors.NotFound(`Branch "${branchName}" not found in project`);
 }
 
