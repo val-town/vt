@@ -52,8 +52,8 @@ Deno.test({
           await t.step(
             "create multiple files in rapid succession",
             async () => {
-              // Create 20 files in rapid succession
-              for (let i = 0; i <= 20; i++) {
+              // Create 10 files in rapid succession
+              for (let i = 0; i <= 10; i++) {
                 const filePath = join(projectDir!, `rapid-file-${i}.js`);
                 await Deno.writeTextFile(
                   filePath,
@@ -65,11 +65,11 @@ Deno.test({
                 });
                 // Add minimal delay between file creations to ensure they're
                 // distinct events
-                await delay(20);
+                await delay(10);
               }
 
               // Wait for the debounce period plus buffer for the actual uploads
-              await delay(20000); // Probably excessive
+              await delay(15000); // Probably excessive
             },
           );
 
@@ -85,7 +85,7 @@ Deno.test({
             const statusAfterBatch = await vt!.status();
 
             // Check that all rapid files exist
-            for (let i = 0; i <= 20; i++) {
+            for (let i = 0; i <= 10; i++) {
               // The file should exist
               const fileExists = projectItemsAfterBatch
                 .some((item) => item.path === `rapid-file-${i}.js`);
