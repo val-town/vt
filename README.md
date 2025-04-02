@@ -5,7 +5,7 @@ platform.
 
 ```
 Usage:   vt
-Version: 0.0.10
+Version: 0.0.11
 
 Options:
 
@@ -54,7 +54,7 @@ Run `vt` to confirm everything is working:
 ```bash
 $ vt --version
 
-vt 0.0.7
+vt 0.0.11
 ```
 
 ## Getting Started
