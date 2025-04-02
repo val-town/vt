@@ -8,6 +8,100 @@ import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 
 Deno.test({
+  name: "checkout -b preserves local unpushed changes",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project, branch: mainBranch }) => {
+        let fullPath: string;
+        let originalFilePath: string;
+        let newFilePath: string;
+
+        await t.step("create file on main branch", async () => {
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: "original.txt",
+              content: "original content",
+              branch_id: mainBranch.id,
+              type: "file" as ProjectFileType,
+            },
+          );
+        });
+
+        await t.step("clone project and make local changes", async () => {
+          await runVtCommand(["clone", project.name], tmpDir);
+          fullPath = join(tmpDir, project.name);
+          originalFilePath = join(fullPath, "original.txt");
+
+          assert(
+            await exists(originalFilePath),
+            "original file should exist after clone",
+          );
+
+          newFilePath = join(fullPath, "new-file.txt");
+          await Deno.writeTextFile(newFilePath, "new file content");
+          await Deno.writeTextFile(originalFilePath, "modified content");
+        });
+
+        await t.step("create and checkout new branch with -b", async () => {
+          const [checkoutOutput] = await runVtCommand([
+            "checkout",
+            "-b",
+            "feature-with-changes",
+          ], fullPath);
+
+          assertStringIncludes(
+            checkoutOutput,
+            'Created and switched to new branch "feature-with-changes"',
+          );
+        });
+
+        await t.step("verify local changes are preserved", async () => {
+          assert(
+            await exists(newFilePath),
+            "new file should still exist after branch creation",
+          );
+
+          const newFileContent = await Deno.readTextFile(newFilePath);
+          assert(
+            newFileContent === "new file content",
+            "new file content should be preserved",
+          );
+
+          const modifiedFileContent = await Deno.readTextFile(originalFilePath);
+          assert(
+            modifiedFileContent === "modified content",
+            "modified file content should be preserved",
+          );
+        });
+
+        await t.step("push changes to new branch", async () => {
+          await runVtCommand(["push"], fullPath);
+        });
+
+        await t.step(
+          "checkout main branch and verify changes aren't there",
+          async () => {
+            await runVtCommand(["checkout", "main"], fullPath);
+
+            const mainBranchContent = await Deno.readTextFile(originalFilePath);
+            assert(
+              mainBranchContent === "original content",
+              "original file should have original content on main branch",
+            );
+
+            assert(
+              !(await exists(newFilePath)),
+              "new file should not exist on main branch",
+            );
+          },
+        );
+      });
+    });
+  },
+});
+
+Deno.test({
   name: "check out to existing branch",
   async fn() {
     await doWithTempDir(async (tmpDir) => {

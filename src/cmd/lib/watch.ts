@@ -47,8 +47,8 @@ export const watchCmd = new Command()
     "Debounce delay in milliseconds",
     { default: 1500 },
   )
-  .action((options) => {
-    doWithSpinner("Starting watch...", async (spinner) => {
+  .action(async (options) => {
+    await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
