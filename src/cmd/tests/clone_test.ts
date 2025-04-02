@@ -110,7 +110,10 @@ Deno.test({
         );
       } finally {
         // Make sure the promise is properly awaited
-        const result = await sdk.alias.username.projectName.retrieve(user.username!, projectName);
+        const result = await sdk.alias.username.projectName.retrieve(
+          user.username!,
+          projectName,
+        );
         await sdk.projects.delete(result.id);
       }
     });
