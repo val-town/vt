@@ -37,7 +37,7 @@ Deno.test({
 
             // Start the watch process with a short debounce
             [outputLines, watchChild] = streamVtCommand(
-              ["watch", "-d", "700"],
+              ["watch", "-d", "750"],
               projectDir,
             );
 
@@ -65,11 +65,11 @@ Deno.test({
                 });
                 // Add minimal delay between file creations to ensure they're
                 // distinct events
-                await delay(10);
+                await delay(500);
               }
 
               // Wait for the debounce period plus buffer for the actual uploads
-              await delay(15000); // Probably excessive
+              await delay(10000); // Probably excessive
             },
           );
 
