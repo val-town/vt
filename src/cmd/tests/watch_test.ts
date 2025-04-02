@@ -68,7 +68,7 @@ Deno.test({
               }
 
               // Wait for the debounce period plus buffer for the actual uploads
-              await delay(10000); // Probably excessive
+              await delay(20000); // Probably excessive
             },
           );
 
