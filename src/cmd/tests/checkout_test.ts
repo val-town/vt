@@ -8,7 +8,7 @@ import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 
 Deno.test({
-  name: "checkout command - check out to existing branch",
+  name: "check out to existing branch",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
@@ -81,7 +81,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "checkout command - create new branch with -b",
+  name: "create new branch with -b",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
@@ -148,7 +148,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "checkout command - warning on modified files",
+  name: "warning on modified files",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {

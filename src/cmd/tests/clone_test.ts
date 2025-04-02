@@ -94,19 +94,24 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       const projectName = randomProjectName("clone_test");
 
-      await runVtCommand(["create", projectName], tmpDir);
+      try {
+        await runVtCommand(["create", projectName], tmpDir);
 
-      const targetDir = join(tmpDir, "test-project-dir");
+        const targetDir = join(tmpDir, "test-project-dir");
 
-      const [output] = await runVtCommand(
-        ["clone", projectName, targetDir],
-        tmpDir,
-      );
+        const [output] = await runVtCommand(
+          ["clone", projectName, targetDir],
+          tmpDir,
+        );
 
-      assertStringIncludes(
-        output,
-        `Project ${user.username!}/${projectName} cloned to`,
-      );
+        assertStringIncludes(
+          output,
+          `Project ${user.username!}/${projectName} cloned to`,
+        );
+      } finally {
+        sdk.alias.username.projectName.retrieve(user.username!, projectName)
+          .then((result) => sdk.projects.delete(result.id));
+      }
     });
   },
 });
