@@ -15,6 +15,7 @@ import { ENTRYPOINT_NAME } from "~/consts.ts";
 export async function runVtCommand(
   args: string[],
   cwd: string,
+  autoConfirm = true,
 ): Promise<[string, number]> {
   // Configure and spawn the process
   const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
@@ -28,11 +29,13 @@ export async function runVtCommand(
 
   const process = command.spawn();
 
-  // Handle stdin: Send "y" to automatically confirm prompts
-  const stdin = process.stdin.getWriter();
-  await stdin.write(new TextEncoder().encode("y\n"));
-  stdin.releaseLock();
-  await process.stdin.close();
+  // Send "y" to automatically confirm prompts
+  if (autoConfirm) {
+    const stdin = process.stdin.getWriter();
+    await stdin.write(new TextEncoder().encode("y\n"));
+    stdin.releaseLock();
+    await process.stdin.close();
+  }
 
   // Collect and process the output
   const { stdout, stderr, code } = await process.output();

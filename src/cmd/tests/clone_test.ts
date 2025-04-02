@@ -56,7 +56,11 @@ Deno.test({
         const cloneDir = join(tmpDir, "cloned");
 
         // Run clone command as a subprocess
-        await runVtCommand(["clone", project.name, cloneDir], tmpDir);
+        await runVtCommand([
+          "clone",
+          project.name,
+          cloneDir,
+        ], tmpDir);
 
         // Verify the files exist
         const testJsExists = await exists(join(cloneDir, "test.js"));
@@ -95,14 +99,18 @@ Deno.test({
       const projectName = randomProjectName("clone_test");
 
       try {
-        await runVtCommand(["create", projectName], tmpDir);
+        await runVtCommand([
+          "create",
+          projectName,
+        ], tmpDir);
 
         const targetDir = join(tmpDir, "test-project-dir");
 
-        const [output] = await runVtCommand(
-          ["clone", projectName, targetDir],
-          tmpDir,
-        );
+        const [output] = await runVtCommand([
+          "clone",
+          projectName,
+          targetDir,
+        ], tmpDir);
 
         assertStringIncludes(
           output,
@@ -131,10 +139,10 @@ Deno.test({
   },
   async fn() {
     await doWithTempDir(async (tmpDir) => {
-      const [out] = await runVtCommand(
-        ["clone", "nonexistentproject123456"],
-        tmpDir,
-      );
+      const [out] = await runVtCommand([
+        "clone",
+        "nonexistentproject123456",
+      ], tmpDir);
 
       assertStringIncludes(out, "Project not found");
     });
