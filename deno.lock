@@ -10,7 +10,6 @@
     "jsr:@cliffy/keycode@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/prompt@^1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
-    "jsr:@cliffy/testing@^1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@deno-library/logger@^1.1.9": "1.1.9",
     "jsr:@jonasschiano/kia@0.0.120": "0.0.120",
     "jsr:@std/assert@1": "1.0.11",
@@ -35,7 +34,6 @@
     "jsr:@std/path@^1.0.2": "1.0.8",
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/path@~1.0.6": "1.0.8",
-    "jsr:@std/testing@1.0.0": "1.0.0",
     "jsr:@std/text@~1.0.7": "1.0.11",
     "jsr:@valtown/sdk@0.38": "0.38.0",
     "npm:@ai-sdk/anthropic@*": "1.2.0_zod@3.24.2",
@@ -117,16 +115,6 @@
         "jsr:@std/fmt@~1.0.2"
       ]
     },
-    "@cliffy/testing@1.0.0-rc.7": {
-      "integrity": "2e46e2a6c206c0aab5688ab759854946d338a214ac3e1b84b6e73b73985ce958",
-      "dependencies": [
-        "jsr:@cliffy/ansi@1.0.0-rc.7",
-        "jsr:@cliffy/internal",
-        "jsr:@std/assert@~1.0.6",
-        "jsr:@std/fmt@~1.0.2",
-        "jsr:@std/testing"
-      ]
-    },
     "@deno-library/logger@1.1.9": {
       "integrity": "f7d7347b3bdf85dd3692b501bb27b11d685c53efd90a07bc6a4d6edd01f8511b",
       "dependencies": [
@@ -188,15 +176,6 @@
     },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
-    },
-    "@std/testing@1.0.0": {
-      "integrity": "27cfc06392c69c2acffe54e6d0bcb5f961cf193f519255372bd4fff1481bfef8",
-      "dependencies": [
-        "jsr:@std/assert@^1.0.2",
-        "jsr:@std/fs@^1.0.1",
-        "jsr:@std/internal@^1.0.1",
-        "jsr:@std/path@^1.0.2"
-      ]
     },
     "@std/text@1.0.11": {
       "integrity": "f191fa22590cac8b1cdba6cc4ab97940e720f7cc67b3084e54405b428bf5843d"
@@ -1041,7 +1020,6 @@
       "jsr:@cliffy/command@^1.0.0-rc.7",
       "jsr:@cliffy/prompt@^1.0.0-rc.7",
       "jsr:@cliffy/table@1.0.0-rc.7",
-      "jsr:@cliffy/testing@^1.0.0-rc.7",
       "jsr:@deno-library/logger@^1.1.9",
       "jsr:@jonasschiano/kia@0.0.120",
       "jsr:@std/assert@1",
