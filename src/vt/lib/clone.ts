@@ -90,8 +90,7 @@ export function clone(params: CloneParams): Promise<FileState> {
 
       return [changes, !dryRun];
     },
-    targetDir,
-    "vt_clone_",
+    { targetDir, prefix: "vt_clone_" },
   );
 }
 

@@ -1,11 +1,11 @@
-import { cmd } from "~/cmd/root.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
+import sdk, { randomProjectName, user } from "~/sdk.ts";
 import type { ProjectFileType } from "~/consts.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
   name: "clone a newly created project",
@@ -14,94 +14,123 @@ Deno.test({
     write: true,
     net: true,
     env: true,
+    run: true,
   },
-  async fn(t) {
+  async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create some basic files", async () => {
-          // Create a few basic files to verify cloning
-          const testFiles = [
-            {
-              path: "readme.md",
-              content: "# Test Project\nThis is a test project",
-              type: "file",
-            },
-            {
-              path: "api/hello.js",
-              content:
-                "export default function() { return new Response('Hello World'); }",
-              type: "http",
-            },
-          ];
+        // Create the directory first
+        await sdk.projects.files.create(
+          project.id,
+          {
+            path: "foo",
+            branch_id: branch.id,
+            type: "directory",
+          },
+        );
 
-          // Create directory structure first
-          await sdk.projects.files.create(
-            project.id,
-            {
-              path: "api",
-              branch_id: branch.id,
-              type: "directory",
-            },
-          );
+        // Create empty test.js file
+        await sdk.projects.files.create(
+          project.id,
+          {
+            path: "test.js",
+            content: "",
+            branch_id: branch.id,
+            type: "file" as ProjectFileType,
+          },
+        );
 
-          // Create the files
-          for (const file of testFiles) {
-            await sdk.projects.files.create(
-              project.id,
-              {
-                path: file.path,
-                content: file.content,
-                branch_id: branch.id,
-                type: file.type as ProjectFileType,
-              },
-            );
-          }
-        });
+        // Create test_inner.js with content
+        await sdk.projects.files.create(
+          project.id,
+          {
+            path: "foo/test_inner.js",
+            content:
+              "export function test() { return 'Hello from test_inner'; }",
+            branch_id: branch.id,
+            type: "file" as ProjectFileType,
+          },
+        );
 
-        await t.step("run the clone command", async () => {
-          // Execute the clone command
-          await cmd.parse(["clone", project.name, tmpDir]);
-        });
+        // Clone the project to a subdirectory of the temp dir
+        const cloneDir = join(tmpDir, "cloned");
 
-        await t.step("verify cloned project structure", async () => {
-          // Check that the project directory exists
-          const projectDirExists = await exists(tmpDir);
-          assertEquals(
-            projectDirExists,
-            true,
-            "Project directory should exist",
-          );
+        // Run clone command as a subprocess
+        await runVtCommand(["clone", project.name, cloneDir], tmpDir);
 
-          // Check that the api directory was created
-          const apiDirExists = await exists(join(tmpDir, "api"));
-          assertEquals(apiDirExists, true, "API directory should exist");
+        // Verify the files exist
+        const testJsExists = await exists(join(cloneDir, "test.js"));
+        assertEquals(testJsExists, true, "test.js should exist");
 
-          // Check that files were cloned with correct content
-          const readmeExists = await exists(join(tmpDir, "readme.md"));
-          assertEquals(readmeExists, true, "README file should exist");
+        const innerFileExists = await exists(
+          join(cloneDir, "foo/test_inner.js"),
+        );
+        assertEquals(innerFileExists, true, "foo/test_inner.js should exist");
 
-          const readmeContent = await Deno.readTextFile(
-            join(tmpDir, "readme.md"),
-          );
-          assertEquals(
-            readmeContent,
-            "# Test Project\nThis is a test project",
-            "README content should match",
-          );
-
-          const apiFileExists = await exists(join(tmpDir, "api/hello.js"));
-          assertEquals(apiFileExists, true, "API file should exist");
-
-          const apiFileContent = await Deno.readTextFile(
-            join(tmpDir, "api/hello.js"),
-          );
-          assertEquals(
-            apiFileContent,
-            "export default function() { return new Response('Hello World'); }",
-            "API file content should match",
-          );
-        });
+        // Verify the content of test_inner.js
+        const innerContent = await Deno.readTextFile(
+          join(cloneDir, "foo/test_inner.js"),
+        );
+        assertEquals(
+          innerContent,
+          "export function test() { return 'Hello from test_inner'; }",
+          "content of test_inner.js should match",
+        );
       });
+    });
+  },
+});
+
+Deno.test({
+  name: "clone command output",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+    run: true,
+  },
+  async fn() {
+    await doWithTempDir(async (tmpDir) => {
+      const projectName = randomProjectName("clone_test");
+
+      await runVtCommand(["create", projectName], tmpDir);
+
+      const targetDir = join(tmpDir, "test-project-dir");
+
+      const [output] = await runVtCommand(
+        ["clone", projectName, targetDir],
+        tmpDir,
+      );
+
+      assertStringIncludes(
+        output,
+        `Project ${user.username!}/${projectName} cloned to`,
+      );
+    });
+  },
+});
+
+Deno.test({
+  name: "clone command with inexistant project",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+    run: true,
+  },
+  async fn() {
+    await doWithTempDir(async (tmpDir) => {
+      const targetDir = join(tmpDir, "some-dir");
+
+      const [out] = await runVtCommand([
+        "clone",
+        "nonexistentproject123456",
+        targetDir,
+      ], tmpDir);
+
+      assertStringIncludes(out, "Project not found");
     });
   },
 });

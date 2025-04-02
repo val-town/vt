@@ -55,6 +55,7 @@
     "npm:open@^10.1.0": "10.1.0",
     "npm:preact-render-to-string@*": "6.5.13_preact@10.26.4",
     "npm:pretty-ms@*": "9.2.0",
+    "npm:strip-ansi@^7.1.0": "7.1.0",
     "npm:zod@*": "3.24.2",
     "npm:zod@^3.24.2": "3.24.2"
   },
@@ -436,6 +437,9 @@
       "dependencies": [
         "char-width-table-consumer"
       ]
+    },
+    "ansi-regex@6.1.0": {
+      "integrity": "sha512-7HSX4QQb4CspciLpVFwyRe79O3xsIZDDLER21kERQ71oaPodF8jL725AgJMFAYbooIqolJoRLuM81SpeUkpkvA=="
     },
     "asynckit@0.4.0": {
       "integrity": "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q=="
@@ -852,6 +856,12 @@
     "secure-json-parse@2.7.0": {
       "integrity": "sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw=="
     },
+    "strip-ansi@7.1.0": {
+      "integrity": "sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ==",
+      "dependencies": [
+        "ansi-regex"
+      ]
+    },
     "swr@2.3.3_react@19.0.0": {
       "integrity": "sha512-dshNvs3ExOqtZ6kJBaAsabhPdHyeY4P2cKwRCniDVifBMoG/SVI7tfLWqPXriVspf2Rg4tPzXJTnwaihIeFw2A==",
       "dependencies": [
@@ -1044,6 +1054,7 @@
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
       "npm:open@^10.1.0",
+      "npm:strip-ansi@^7.1.0",
       "npm:zod@^3.24.2"
     ]
   }

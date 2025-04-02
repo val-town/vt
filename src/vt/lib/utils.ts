@@ -1,28 +1,31 @@
-import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
-import { copy, ensureDir } from "@std/fs";
+import { copy, ensureDir, exists } from "@std/fs";
 import { dirname, join } from "@std/path";
-import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
  *
- * @param {string} [prefix] - Optional prefix for the temporary directory name
+ * @param options - Options for the temporary directory
+ * @param options.prefix - Optional prefix for the temporary directory name (defaults to "vt_")
  * @returns Promise that resolves to temporary directory path and cleanup function
  */
 export async function withTempDir(
-  prefix: string = "vt_",
+  options: {
+    /** Optional prefix for the temporary directory name */
+    prefix?: string;
+  } = {},
 ): Promise<{ tempDir: string; cleanup: () => Promise<void> }> {
+  const { prefix = "vt_" } = options;
+
+  // Use prefix normally with a random suffix
   const tempDir = await Deno.makeTempDir({ prefix });
 
   return {
     tempDir,
     cleanup: async () => {
-      try {
+      if (await exists(tempDir)) {
         await Deno.remove(tempDir, { recursive: true });
-      } catch {
-        // Ignore cleanup errors
       }
     },
   };
@@ -31,15 +34,16 @@ export async function withTempDir(
 /**
  * Executes an operation in a temporary directory and ensures cleanup.
  *
- * @param op Function that takes a temporary directory path and returns a Promise
- * @param tmpLabel Optional prefix for the temporary directory name
+ * @param op - Function that takes a temporary directory path and returns a Promise
+ * @param options - Options for the operation
+ * @param options.prefix - Optional prefix for the temporary directory name (defaults to "vt_")
  * @returns Promise that resolves to the result of the operation
  */
 export async function doWithTempDir<T>(
   op: (tmpDir: string) => Promise<T>,
-  tmpLabel?: string,
+  options: { prefix?: string } = { prefix: "vt_" },
 ): Promise<T> {
-  const { tempDir, cleanup } = await withTempDir(tmpLabel);
+  const { tempDir, cleanup } = await withTempDir(options);
 
   try {
     return await op(tempDir);
@@ -49,18 +53,22 @@ export async function doWithTempDir<T>(
 }
 
 /**
- * Create a directory atomically by first doing logic to create it in a temp
- * directory, and then moving it to a destination afterwards.
- *
- * @param op - The function to run with access to the temp dir. Returns a result to be propagated and whether to copy the files over.
- * @param {string} targetDir - The directory to eventually send the output to.
- */
+  * Create a directory atomically by first doing logic to create it in a temp
+  * directory, and then moving it to a destination afterwards.
+  *
+  * @param op - The function to run with access to the temp dir. Returns a result to be propagated and whether to copy
+ the files over.
+  * @param options - Options for the atomic operation
+  * @param options.targetDir - The directory to eventually send the output to
+  * @param options.prefix - Optional prefix for the temporary directory name
+  * @returns Promise that resolves to the result of the operation
+  */
 export async function doAtomically<T>(
   op: (tmpDir: string) => Promise<[T, boolean]>,
-  targetDir: string,
-  tmpLabel?: string,
+  options: { targetDir: string; prefix?: string },
 ): Promise<T> {
-  const { tempDir, cleanup } = await withTempDir(tmpLabel);
+  const { targetDir, ...tempDirOptions } = options;
+  const { tempDir, cleanup } = await withTempDir(tempDirOptions);
 
   let result: T;
   try {
@@ -78,40 +86,6 @@ export async function doAtomically<T>(
     cleanup();
   }
   return result;
-}
-
-/**
- * Removes contents from a directory while respecting ignore patterns.
- *
- * @param {string} directory - Directory path to clean
- * @param {string[]} gitignoreRules - Gitignore rules
- */
-export async function cleanDirectory(
-  directory: string,
-  gitignoreRules: string[],
-): Promise<void> {
-  const filesToRemove = Deno.readDirSync(directory)
-    .filter((entry) => !shouldIgnore(entry.name, gitignoreRules))
-    .map((entry) => ({
-      path: join(directory, entry.name),
-      isDirectory: entry.isDirectory,
-    }));
-
-  await Promise.all(
-    filesToRemove.map(({ path: entryPath, isDirectory }) =>
-      Deno.remove(entryPath, { recursive: isDirectory })
-    ),
-  );
-}
-
-/**
- * Check if the target directory is dirty (has unpushed local changes).
- *
- * @param {FileStateChanges} fileStateChanges - The current file state changes
- */
-export function isDirty(fileStateChanges: FileState): boolean {
-  return fileStateChanges.modified.length > 0 ||
-    fileStateChanges.deleted.length > 0;
 }
 
 /**

@@ -26,21 +26,25 @@ export function getVersionRangeStr(
   currentVersion: number,
   latestVersion: number,
 ): string {
-  // If current version is the latest, only return the current version in green
-  if (currentVersion === latestVersion) {
+  // If there's only one version (first and latest are the same)
+  if (firstVersion === latestVersion) {
     return colors.cyan(currentVersion.toString());
   }
 
-  // Otherwise, return the full range
-  const versions = [firstVersion.toString(), currentVersion.toString()];
-  if (latestVersion && currentVersion !== latestVersion) {
-    versions.push(latestVersion.toString());
+  // If current version is the latest, show the range from first to current
+  if (currentVersion === latestVersion) {
+    return `${firstVersion}..${colors.cyan(currentVersion.toString())}`;
   }
 
-  const formattedVersions = versions
-    .map((v) => v === currentVersion.toString() ? colors.cyan(v) : v);
+  // If current version is the first, show the range from current to latest
+  if (currentVersion === firstVersion) {
+    return `${colors.cyan(currentVersion.toString())}..${latestVersion}`;
+  }
 
-  return formattedVersions.join("..");
+  // Otherwise, show the full range: first..current..latest
+  return `${firstVersion}..${
+    colors.cyan(currentVersion.toString())
+  }..${latestVersion}`;
 }
 
 /**

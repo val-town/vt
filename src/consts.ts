@@ -12,6 +12,7 @@ export const ALWAYS_IGNORE_PATTERNS: string[] = [
 
 export const CONFIG_FILE_NAME = "vt.json";
 export const META_FOLDER_NAME = ".vt";
+export const ENTRYPOINT_NAME = "vt.ts"
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const META_LOCK_FILE_NAME = "lock";
 

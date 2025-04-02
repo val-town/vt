@@ -12,8 +12,6 @@ import {
   type CheckoutResult,
   type ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import { isDirty } from "~/vt/lib/utils.ts";
-import ValTown from "@valtown/sdk";
 import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
@@ -23,6 +21,7 @@ import {
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
+import ValTown from "@valtown/sdk";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -471,6 +470,7 @@ export default class VTClient {
    */
   public async isDirty(): Promise<boolean> {
     const fileStateChanges = await this.status();
-    return isDirty(fileStateChanges);
+    return fileStateChanges.modified.length > 0 ||
+      fileStateChanges.deleted.length > 0;
   }
 }

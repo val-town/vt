@@ -124,7 +124,6 @@ export function pull(params: PullParams): Promise<FileState> {
 
       return [changes, !dryRun];
     },
-    targetDir,
-    "vt_pull_",
+    { targetDir, prefix: "vt_pull_" },
   );
 }

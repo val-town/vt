@@ -219,7 +219,6 @@ export function checkout(
         fileStateChanges,
       }, !params.dryRun];
     },
-    params.targetDir,
-    "vt_checkout_",
+    { targetDir: params.targetDir, prefix: "vt_checkout_" },
   );
 }
