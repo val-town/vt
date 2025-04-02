@@ -127,15 +127,13 @@ Deno.test({
   },
   async fn() {
     await doWithTempDir(async (tmpDir) => {
-      const targetDir = join(tmpDir, "some-dir");
-
-      const [out] = await runVtCommand([
-        "clone",
-        "nonexistentproject123456",
-        targetDir,
-      ], tmpDir);
+      const [out] = await runVtCommand(
+        ["clone", "nonexistentproject123456"],
+        tmpDir,
+      );
 
       assertStringIncludes(out, "Project not found");
     });
   },
+  sanitizeResources: false,
 });

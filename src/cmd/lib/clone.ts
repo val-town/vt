@@ -63,7 +63,7 @@ export const cloneCmd = new Command()
   )
   .action(
     async (_, projectUri: string, rootPath?: string, branchName?: string) => {
-      await doWithSpinner("Cloning project...", async (spinner) => {
+      return await doWithSpinner("Cloning project...", async (spinner) => {
         let targetDir = rootPath || Deno.cwd();
 
         const { ownerName, projectName } = parseProjectUri(
