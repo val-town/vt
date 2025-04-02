@@ -18,7 +18,7 @@ export const META_LOCK_FILE_NAME = "lock";
 
 export const MAX_WALK_UP_LEVELS = 100;
 
-export const FIRST_VERSION_NUMBER = 1;
+export const FIRST_VERSION_NUMBER = 0;
 
 export const STATUS_STYLES: Record< string, { prefix: string; color: (key: string) => string } > = {
   modified: { prefix: "M", color: colors.yellow },
