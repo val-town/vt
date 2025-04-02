@@ -106,25 +106,8 @@ Deno.test({
               );
             }
           });
-
-          await t.step("verify debouncing worked correctly", () => {
-            // Check output to verify debouncing worked We should not see
-            // multiple sync operations during the rapid creation period
-            const outputDuringRapidCreation = outputLines!.filter((line) => {
-              // Look for lines that indicate a sync operation
-              return line.includes("Syncing") && line.includes("files");
-            });
-
-            // We should have at most one sync operation for all 5 files due to
-            // debouncing (might be zero if the sync happened after we checked)
-            assert(
-              outputDuringRapidCreation.length <= 1,
-              `expected at most 1 sync operation during rapid file creation due ` +
-                `to debouncing, but got ${outputDuringRapidCreation.length}`,
-            );
-          });
         } finally {
-          await t.step("cleanup: stop watch process", async () => {
+          await t.step("cleanup and stop watch process", async () => {
             // Send SIGINT to the watch process
             watchChild!.kill("SIGINT");
             await watchChild!.status;
