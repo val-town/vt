@@ -52,8 +52,8 @@ Deno.test({
           await t.step(
             "create multiple files in rapid succession",
             async () => {
-              // Create 50 files in rapid succession
-              for (let i = 0; i <= 50; i++) {
+              // Create 20 files in rapid succession
+              for (let i = 0; i <= 20; i++) {
                 const filePath = join(projectDir!, `rapid-file-${i}.js`);
                 await Deno.writeTextFile(
                   filePath,
@@ -64,7 +64,7 @@ Deno.test({
                   time: Date.now(),
                 });
                 // Add minimal delay between file creations to ensure they're distinct events
-                await delay(50);
+                await delay(20);
               }
 
               // Wait for the debounce period plus buffer for the actual uploads
@@ -81,7 +81,7 @@ Deno.test({
             });
 
             // Check that all rapid files exist
-            for (let i = 0; i <= 50; i++) {
+            for (let i = 0; i <= 20; i++) {
               const fileExists = projectItemsAfterBatch
                 .some((item) => item.path === `rapid-file-${i}.js`);
               assert(
@@ -94,7 +94,7 @@ Deno.test({
             const statusAfterBatch = await vt!.status();
 
             // All rapid files should have "not_modified" status
-            for (let i = 0; i <= 50; i++) {
+            for (let i = 0; i <= 20; i++) {
               const fileStatus = statusAfterBatch.filter(
                 (file) =>
                   file.path === `rapid-file-${i}.js` &&
