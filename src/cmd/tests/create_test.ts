@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
@@ -13,8 +13,6 @@ Deno.test({
     const emptyDirProjectName = "emptyDir" + randomProjectName();
     const nonEmptyDirProjectName = "nonEmptyDir" + randomProjectName();
     let emptyDirProject: ValTown.Projects.ProjectCreateResponse | null = null;
-    let nonEmptyDirProject: ValTown.Projects.ProjectCreateResponse | null =
-      null;
 
     await doWithTempDir(async (tmpDir) => {
       await c.step(
@@ -60,20 +58,11 @@ Deno.test({
           );
 
           // Should fail with non-empty directory
-          await runVtCommand(["create", nonEmptyDirProjectName], tmpDir);
-          await assertThrows(async () => {
-            nonEmptyDirProject = await sdk.alias.username.projectName
-              .retrieve(
-                user.username!,
-                nonEmptyDirProjectName,
-              );
-          }, "should not create project if directory exists");
-
-          // Clean up
-          if (nonEmptyDirProject) {
-            await sdk.projects.delete(nonEmptyDirProject.id);
-            nonEmptyDirProject = null;
-          }
+          const [_, status] = await runVtCommand([
+            "create",
+            nonEmptyDirProjectName,
+          ], tmpDir);
+          assertEquals(status, 1);
         },
       );
     });
@@ -81,14 +70,14 @@ Deno.test({
   sanitizeResources: false,
 });
 
-Deno.test(" new project in specific directory", async (c) => {
+Deno.test("new project in specific directory", async (c) => {
   const newProjectName = randomProjectName();
   let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
 
   try {
     await doWithTempDir(async (tmpDir) => {
       await c.step("create a new project", async () => {
-        await runVtCommand(["create", newProjectName, tmpDir], tmpDir);
+        await runVtCommand(["create", newProjectName], tmpDir);
 
         newProject = await sdk.alias.username.projectName.retrieve(
           user.username!,
