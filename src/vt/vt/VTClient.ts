@@ -22,6 +22,7 @@ import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
+import { dirIsEmpty } from "~/utils.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -115,8 +116,9 @@ export default class VTClient {
 
     const vt = new VTClient(rootPath);
 
-    if ((await exists(vt.getMeta().configFilePath))) {
-      throw new Error("VT project already initialized in this directory");
+    // If the directory exists, that is only OK if it is empty
+    if (await exists(rootPath) && (await dirIsEmpty(rootPath))) {
+      throw new Error("Directory already exists and is not empty");
     }
 
     await vt.getMeta().saveConfig({
@@ -248,16 +250,9 @@ export default class VTClient {
     const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
-    // Then clone it to the target directory
-    await clone({
-      targetDir: rootPath,
-      projectId: project.id,
-      branchId: branch.id,
-      version: branch.version,
-    });
-
-    // Initialize VT client with the new project
-    return VTClient.init(
+    // Initialize VT client with the new project. Errors if the directory is
+    // already exists or exists and is a vt directory.
+    const vt = VTClient.init(
       {
         rootPath,
         username,
@@ -266,6 +261,16 @@ export default class VTClient {
         branchName: DEFAULT_BRANCH_NAME,
       },
     );
+
+    // Then clone it to the target directory
+    await clone({
+      targetDir: rootPath,
+      projectId: project.id,
+      branchId: branch.id,
+      version: branch.version,
+    });
+
+    return vt;
   }
 
   /**
