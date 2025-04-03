@@ -16,68 +16,67 @@ Deno.test({
     let nonEmptyDirProject: ValTown.Projects.ProjectCreateResponse | null =
       null;
 
-    try {
-      await doWithTempDir(async (tmpDir) => {
-        await c.step(
-          "can create project with name of empty directory",
-          async () => {
-            // Create an empty directory
-            const emptyDirPath = join(tmpDir, emptyDirProjectName);
-            await Deno.mkdir(emptyDirPath);
+    await doWithTempDir(async (tmpDir) => {
+      await c.step(
+        "can create project with name of empty directory",
+        async () => {
+          // Create an empty directory
+          const emptyDirPath = join(tmpDir, emptyDirProjectName);
+          await Deno.mkdir(emptyDirPath);
 
-            // Should succeed with empty directory
-            await runVtCommand(["create", emptyDirProjectName], tmpDir);
-            emptyDirProject = await sdk.alias.username.projectName.retrieve(
-              user.username!,
-              emptyDirProjectName,
-            );
+          // Should succeed with empty directory
+          await runVtCommand(["create", emptyDirProjectName], tmpDir);
+          emptyDirProject = await sdk.alias.username.projectName.retrieve(
+            user.username!,
+            emptyDirProjectName,
+          );
 
-            assertEquals(emptyDirProject.name, emptyDirProjectName);
-          },
-        );
+          assertEquals(emptyDirProject.name, emptyDirProjectName);
 
-        // Clean up first project
-        if (emptyDirProject) {
-          await sdk.projects.delete(emptyDirProject.id);
-        }
+          // Clean up
+          if (emptyDirProject) {
+            await sdk.projects.delete(emptyDirProject.id);
+            emptyDirProject = null;
+          }
+        },
+      );
 
-        await c.step(
-          "cannot create project with name of non-empty directory",
-          async () => {
-            // Create a non-empty directory
-            const nonEmptyDirPath = join(tmpDir, nonEmptyDirProjectName);
-            await Deno.mkdir(nonEmptyDirPath);
-            await Deno.writeTextFile(join(nonEmptyDirPath, "file"), "content");
+      await c.step(
+        "cannot create project with name of non-empty directory",
+        async () => {
+          // Create a non-empty directory
+          const nonEmptyDirPath = join(tmpDir, nonEmptyDirProjectName);
+          await Deno.mkdir(nonEmptyDirPath);
+          await Deno.writeTextFile(join(nonEmptyDirPath, "file"), "content");
 
-            // Verify it exists and is not empty
-            assert(
-              await exists(nonEmptyDirPath),
-              "non-empty directory should exist",
-            );
-            assert(
-              !await dirIsEmpty(nonEmptyDirPath),
-              "directory should not be empty",
-            );
+          // Verify it exists and is not empty
+          assert(
+            await exists(nonEmptyDirPath),
+            "non-empty directory should exist",
+          );
+          assert(
+            !await dirIsEmpty(nonEmptyDirPath),
+            "directory should not be empty",
+          );
 
-            // Should fail with non-empty directory
-            await runVtCommand(["create", nonEmptyDirProjectName], tmpDir);
-            await assertThrows(async () => {
-              nonEmptyDirProject = await sdk.alias.username.projectName
-                .retrieve(
-                  user.username!,
-                  nonEmptyDirProjectName,
-                );
-            }, "cannot create project with name of non-empty directory");
-          },
-        );
-      });
-    } finally {
-      // Clean up any projects that might have been created
-      // @ts-ignore The project will be set
-      if (emptyDirProject) await sdk.projects.delete(emptyDirProject.id);
-      // @ts-ignore The project will be set
-      if (nonEmptyDirProject) await sdk.projects.delete(nonEmptyDirProject.id);
-    }
+          // Should fail with non-empty directory
+          await runVtCommand(["create", nonEmptyDirProjectName], tmpDir);
+          await assertThrows(async () => {
+            nonEmptyDirProject = await sdk.alias.username.projectName
+              .retrieve(
+                user.username!,
+                nonEmptyDirProjectName,
+              );
+          }, "should not create project if directory exists");
+
+          // Clean up
+          if (nonEmptyDirProject) {
+            await sdk.projects.delete(nonEmptyDirProject.id);
+            nonEmptyDirProject = null;
+          }
+        },
+      );
+    });
   },
   sanitizeResources: false,
 });

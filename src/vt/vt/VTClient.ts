@@ -4,7 +4,7 @@ import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
-import { join } from "@std/path";
+import { join, relative } from "@std/path";
 import {
   type BaseCheckoutParams,
   type BranchCheckoutParams,
@@ -100,6 +100,13 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
+    // If the directory exists, that is only OK if it is empty
+    if (await exists(rootPath) && !(await dirIsEmpty(rootPath))) {
+      throw new Error(
+        `"./${relative(Deno.cwd(), rootPath)}" already exists and is not empty`,
+      );
+    }
+
     const projectId = await sdk.alias.username.projectName.retrieve(
       username,
       projectName,
@@ -115,11 +122,6 @@ export default class VTClient {
       (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
 
     const vt = new VTClient(rootPath);
-
-    // If the directory exists, that is only OK if it is empty
-    if (await exists(rootPath) && (await dirIsEmpty(rootPath))) {
-      throw new Error("Directory already exists and is not empty");
-    }
 
     await vt.getMeta().saveConfig({
       projectId,
@@ -250,26 +252,19 @@ export default class VTClient {
     const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
-    // Initialize VT client with the new project. Errors if the directory is
-    // already exists or exists and is a vt directory.
-    const vt = VTClient.init(
-      {
-        rootPath,
-        username,
-        projectName,
-        version: branch.version,
-        branchName: DEFAULT_BRANCH_NAME,
-      },
-    );
-
-    // Then clone it to the target directory
-    await clone({
-      targetDir: rootPath,
-      projectId: project.id,
-      branchId: branch.id,
+    // Clone and return the VTClient
+    const vt = await VTClient.init({
+      rootPath,
+      username,
+      projectName,
       version: branch.version,
+      branchName: DEFAULT_BRANCH_NAME,
     });
-
+    await VTClient.clone({
+      username,
+      projectName,
+      rootPath,
+    });
     return vt;
   }
 
@@ -279,17 +274,50 @@ export default class VTClient {
    * @param {string} targetDir - The directory to clone the project into.
    * @returns {Promise<void>}
    */
-  public async clone(targetDir: string): Promise<void> {
-    await this.getMeta().doWithConfig(async (config) => {
+  /**
+   * Clone a Val Town project into a directory.
+   *
+   * @param {object} params - Clone parameters
+   * @param {string} params.rootPath - The directory to clone the project into
+   * @param {string} params.username - The username of the project owner
+   * @param {string} params.projectName - The name of the project to clone
+   * @param {number} [params.version] - Optional specific version to clone, defaults to latest
+   * @param {string} [params.branchName] - Optional branch name to clone, defaults to main
+   * @returns {Promise<VTClient>} A new VTClient instance for the cloned project
+   */
+  public static async clone({
+    rootPath,
+    username,
+    projectName,
+    version,
+    branchName = DEFAULT_BRANCH_NAME,
+  }: {
+    rootPath: string;
+    username: string;
+    projectName: string;
+    version?: number;
+    branchName?: string;
+  }): Promise<VTClient> {
+    const vt = await VTClient.init({
+      rootPath,
+      username,
+      projectName,
+      version,
+      branchName,
+    });
+
+    await vt.getMeta().doWithConfig(async (config) => {
       // Do the clone using the configuration
       await clone({
-        targetDir,
+        targetDir: rootPath,
         projectId: config.projectId,
         branchId: config.currentBranch,
         version: config.version,
-        gitignoreRules: await this.getMeta().loadGitignoreRules(),
+        gitignoreRules: await vt.getMeta().loadGitignoreRules(),
       });
     });
+
+    return vt;
   }
 
   /**
