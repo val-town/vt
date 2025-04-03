@@ -7,7 +7,7 @@ import { join } from "@std/path";
 import ValTown from "@valtown/sdk";
 
 Deno.test({
-  name: "test pushing",
+  name: "test typical pushing",
   permissions: {
     read: true,
     write: true,
@@ -26,7 +26,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            gitignoreRules: [],
           });
 
           // Pull and assert that the creation worked
@@ -48,7 +47,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            gitignoreRules: [],
           });
 
           // Pull and assert that the modification worked
@@ -67,7 +65,6 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
-            gitignoreRules: [],
           });
 
           // Assert that the file no longer exists on the remote
@@ -82,13 +79,13 @@ Deno.test({
             "404",
           );
         });
-      }, "vt_push_test_");
+      });
     });
   },
 });
 
 Deno.test({
-  name: "test rename file",
+  name: "test renaming file",
   permissions: {
     read: true,
     write: true,
@@ -110,7 +107,6 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          gitignoreRules: [],
         });
 
         // Rename file (delete old, create new)
@@ -123,15 +119,10 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          gitignoreRules: [],
         });
 
         // Check modified array
-        assertEquals(
-          statusResult.modified.length,
-          0,
-          "Should have no modified files",
-        );
+        assertEquals(statusResult.modified.length, 0);
 
         // Check not_modified array
         assertEquals(statusResult.not_modified.length, 1);
@@ -180,7 +171,7 @@ Deno.test({
           "content",
           "file content should match after rename",
         );
-      }, "vt_rename_test_");
+      });
     });
   },
   sanitizeResources: false,
@@ -205,7 +196,6 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          gitignoreRules: [],
         });
 
         // Check that the empty directory was pushed
@@ -234,7 +224,94 @@ Deno.test({
           true,
           "Empty directory should exist on server",
         );
-      }, "vt_push_empty_dir_test_");
+      });
+    });
+  },
+});
+
+Deno.test({
+  name: "test dry run push",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a file
+        const vtFilePath = "test.txt";
+        const localFilePath = join(tempDir, vtFilePath);
+        await Deno.writeTextFile(localFilePath, "test content");
+
+        // Push with dryRun enabled
+        const result = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          dryRun: true,
+        });
+
+        // Verify that FileState reports correct changes
+        assertEquals(result.created.length, 1);
+        assertEquals(result.created[0].path, vtFilePath);
+        assertEquals(result.created[0].status, "created");
+        assertEquals(result.created[0].type, "file");
+
+        // Assert that the file was NOT actually pushed to the server
+        await assertRejects(
+          async () => {
+            await sdk.projects.files.getContent(project.id, {
+              path: vtFilePath,
+              branch_id: branch.id,
+            });
+          },
+          ValTown.APIError,
+          "404",
+          "File should not exist on server after dry run",
+        );
+      });
+    });
+  },
+});
+
+Deno.test({
+  name: "test push with no changes",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a file
+        const vtFilePath = "test.txt";
+        const localFilePath = join(tempDir, vtFilePath);
+        await Deno.writeTextFile(localFilePath, "test content");
+
+        // Do the push
+        const firstResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Verify that FileState reports the file was created. We have better
+        // tests for ensuring this operation with more detail, this is just to
+        // make sure it's idempotent.
+        assertEquals(firstResult.created.length, 1);
+        assertEquals(firstResult.size(), 1);
+
+        const secondResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+        // Should be no changes on the second push
+        assertEquals(secondResult.not_modified.length, 1);
+        assertEquals(secondResult.size(), 1);
+      });
     });
   },
 });

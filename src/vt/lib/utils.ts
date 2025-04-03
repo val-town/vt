@@ -1,28 +1,31 @@
-import type { StatusResult } from "~/vt/lib/status.ts";
-import * as path from "@std/path";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
 import ValTown from "@valtown/sdk";
 import sdk from "~/sdk.ts";
-import { copy, ensureDir } from "@std/fs";
+import { copy, ensureDir, exists } from "@std/fs";
+import { dirname, join } from "@std/path";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
  *
- * @param {string} [prefix] - Optional prefix for the temporary directory name
+ * @param options - Options for the temporary directory
+ * @param options.prefix - Optional prefix for the temporary directory name (defaults to "vt_")
  * @returns Promise that resolves to temporary directory path and cleanup function
  */
 export async function withTempDir(
-  prefix: string = "vt_",
+  options: {
+    /** Optional prefix for the temporary directory name */
+    prefix?: string;
+  } = {},
 ): Promise<{ tempDir: string; cleanup: () => Promise<void> }> {
+  const { prefix = "vt_" } = options;
+
+  // Use prefix normally with a random suffix
   const tempDir = await Deno.makeTempDir({ prefix });
 
   return {
     tempDir,
     cleanup: async () => {
-      try {
+      if (await exists(tempDir)) {
         await Deno.remove(tempDir, { recursive: true });
-      } catch {
-        // Ignore cleanup errors
       }
     },
   };
@@ -31,15 +34,16 @@ export async function withTempDir(
 /**
  * Executes an operation in a temporary directory and ensures cleanup.
  *
- * @param op Function that takes a temporary directory path and returns a Promise
- * @param tmpLabel Optional prefix for the temporary directory name
+ * @param op - Function that takes a temporary directory path and returns a Promise
+ * @param options - Options for the operation
+ * @param options.prefix - Optional prefix for the temporary directory name (defaults to "vt_")
  * @returns Promise that resolves to the result of the operation
  */
 export async function doWithTempDir<T>(
   op: (tmpDir: string) => Promise<T>,
-  tmpLabel?: string,
+  options: { prefix?: string } = { prefix: "vt_" },
 ): Promise<T> {
-  const { tempDir, cleanup } = await withTempDir(tmpLabel);
+  const { tempDir, cleanup } = await withTempDir(options);
 
   try {
     return await op(tempDir);
@@ -49,63 +53,39 @@ export async function doWithTempDir<T>(
 }
 
 /**
- * Create a directory atomically by first doing logic to create it in a temp
- * directory, and then moving it to a destination afterwards.
- *
- * @param {string} targetDir - The directory to eventually send the output to.
- */
+  * Create a directory atomically by first doing logic to create it in a temp
+  * directory, and then moving it to a destination afterwards.
+  *
+  * @param op - The function to run with access to the temp dir. Returns a result to be propagated and whether to copy
+ the files over.
+  * @param options - Options for the atomic operation
+  * @param options.targetDir - The directory to eventually send the output to
+  * @param options.prefix - Optional prefix for the temporary directory name
+  * @returns Promise that resolves to the result of the operation
+  */
 export async function doAtomically<T>(
-  op: (tmpDir: string) => Promise<T>,
-  targetDir: string,
-  tmpLabel?: string,
+  op: (tmpDir: string) => Promise<[T, boolean]>,
+  options: { targetDir: string; prefix?: string },
 ): Promise<T> {
-  const { tempDir, cleanup } = await withTempDir(tmpLabel);
+  const { targetDir, ...tempDirOptions } = options;
+  const { tempDir, cleanup } = await withTempDir(tempDirOptions);
 
   let result: T;
   try {
-    result = await op(tempDir);
-    await ensureDir(targetDir);
-    await copy(tempDir, targetDir, {
-      overwrite: true,
-      preserveTimestamps: true,
-    });
+    const [opResult, copyBack] = await op(tempDir);
+    result = opResult;
+
+    if (copyBack) {
+      await ensureDir(targetDir);
+      await copy(tempDir, targetDir, {
+        overwrite: true,
+        preserveTimestamps: true,
+      });
+    }
   } finally {
     cleanup();
   }
   return result;
-}
-
-/**
- * Removes contents from a directory while respecting ignore patterns.
- *
- * @param {string} directory - Directory path to clean
- * @param {string[]} gitignoreRules - Gitignore rules
- */
-export async function cleanDirectory(
-  directory: string,
-  gitignoreRules: string[],
-): Promise<void> {
-  const filesToRemove = Deno.readDirSync(directory)
-    .filter((entry) => !shouldIgnore(entry.name, gitignoreRules))
-    .map((entry) => ({
-      path: path.join(directory, entry.name),
-      isDirectory: entry.isDirectory,
-    }));
-
-  await Promise.all(
-    filesToRemove.map(({ path: entryPath, isDirectory }) =>
-      Deno.remove(entryPath, { recursive: isDirectory })
-    ),
-  );
-}
-
-/**
- * Check if the target directory is dirty (has unpushed local changes).
- *
- * @param {StatusResult} statusResult - Result of a status operation.
- */
-export function isDirty(statusResult: StatusResult): boolean {
-  return statusResult.modified.length > 0;
 }
 
 /**
@@ -122,7 +102,7 @@ export async function ensureValtownDir(
   branchId: string,
   filePath: string,
 ): Promise<void> {
-  const dirPath = path.dirname(filePath);
+  const dirPath = dirname(filePath);
 
   // If path is "." (current directory) or empty, no directories need to be created
   if (dirPath === "." || dirPath === "") {
@@ -150,25 +130,71 @@ export async function ensureValtownDir(
           content: null,
         },
       );
-    } catch (error) {
-      if (error instanceof ValTown.APIError) {
-        if (error.status != 409) {
-          throw error;
-        }
-      } else {
-        throw error;
-      }
+    } catch (e) {
+      if (e instanceof ValTown.APIError) {
+        if (e.status != 409) throw e;
+      } else throw e;
     }
   }
 }
 
 /**
- * Determines the total number of changes, not including not modified files,
- * from a StatusResult.
+ * Determines if a local file has been modified compared to its project version.
+ *
+ * This function uses a two-step approach to check for modifications:
+ * 1. First, it compares modification timestamps as a quick heuristic
+ * 2. If timestamps suggest a change, it performs a full content comparison
+ *
+ * @param {object} params - The parameters object
+ * @param {string} params.path - The file path in the project
+ * @param {string} params.targetDir - The local target directory
+ * @param {string} params.originalPath - The original file path
+ * @param {string} params.projectId - The ID of the project
+ * @param {string} params.branchId - The ID of the branch
+ * @param {number} [params.version] - Optional version number
+ * @param {number} params.localMtime - Modification time of the local file
+ * @param {number} params.projectMtime - Modification time of the project file
+ *
+ * @returns {Promise<boolean>} True if the file has been modified, false otherwise
  */
-export function getTotalChanges(status: StatusResult): number {
-  return Object
-    .entries(status)
-    .filter(([type]) => type !== "not_modified")
-    .reduce((sum, [, files]) => sum + files.length, 0);
+export async function isFileModified(
+  {
+    path,
+    targetDir,
+    originalPath,
+    projectId,
+    branchId,
+    version,
+    localMtime,
+    projectMtime,
+  }: {
+    path: string;
+    targetDir: string;
+    originalPath: string;
+    projectId: string;
+    branchId: string;
+    version?: number;
+    localMtime: number;
+    projectMtime: number;
+  },
+): Promise<boolean> {
+  // First use the mtime as a heuristic to avoid unnecessary content checks
+  if (projectMtime == localMtime) return false;
+
+  // If mtime indicates a possible change, check content
+  const projectFileContent = await sdk.projects.files.getContent(
+    projectId,
+    {
+      path,
+      branch_id: branchId,
+      version,
+    },
+  ).then((resp) => resp.text());
+
+  // For some reason the local paths seem to have an extra newline
+  const localFileContent = await Deno.readTextFile(
+    join(targetDir, originalPath),
+  );
+
+  return projectFileContent !== localFileContent;
 }

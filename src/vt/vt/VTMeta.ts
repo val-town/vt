@@ -6,9 +6,9 @@ import {
 } from "~/consts.ts";
 import { ALWAYS_IGNORE_PATTERNS } from "~/consts.ts";
 import * as path from "@std/path";
-import { ensureDir, exists, walk } from "@std/fs";
 import { VTStateSchema } from "~/vt/vt/schemas.ts";
 import type { z } from "zod";
+import { ensureDir, exists, walk } from "@std/fs";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
@@ -32,7 +32,7 @@ export default class VTMeta {
    *
    * @returns {string} The full file path as a string.
    */
-  public getMetaFilePath(): string {
+  public getVtStateFileName(): string {
     return path.join(this.#rootPath, META_FOLDER_NAME, META_STATE_FILE_NAME);
   }
 
@@ -66,8 +66,8 @@ export default class VTMeta {
    * @returns {Promise} A promise that resolves with the parsed state data.
    * @throws {Error} Will throw an error if the file cannot be read or parsed.
    */
-  public async loadState(): Promise<z.infer<typeof VTStateSchema>> {
-    const data = await Deno.readTextFile(this.getMetaFilePath());
+  public async loadVtState(): Promise<z.infer<typeof VTStateSchema>> {
+    const data = await Deno.readTextFile(this.getVtStateFileName());
     const parsedData = JSON.parse(data);
     parsedData.lastRunningPid = Deno.pid; // Update the last running PID
 
@@ -86,7 +86,7 @@ export default class VTMeta {
    * @returns Promise that resolves when the state data has been saved
    * @throws Will throw if validation fails or if file operations encounter errors
    */
-  public async saveState(
+  public async saveVtState(
     state: Omit<z.infer<typeof VTStateSchema>, "lastRun">,
   ): Promise<void> {
     // Validate complete state
@@ -103,9 +103,27 @@ export default class VTMeta {
 
     // Write the meta to file
     await Deno.writeTextFile(
-      this.getMetaFilePath(),
+      this.getVtStateFileName(),
       JSON.stringify(validatedState, null, JSON_INDENT_SPACES),
     );
+  }
+
+  /**
+   * Performs operations on the configuration and automatically saves it.
+   *
+   * @param callback - A function that receives the current config and can modify it
+   * @returns {Promise<T>} A promise that resolves to the return value of the callback
+   * @throws {Error} Will throw an error if the config cannot be loaded or saved
+   */
+  public async doWithVtState<T>(
+    callback: (
+      config: z.infer<typeof VTStateSchema>,
+    ) => T | Promise<T>,
+  ): Promise<T> {
+    const vtState = await this.loadVtState();
+    const result = await Promise.resolve(callback(vtState));
+    await this.saveVtState(vtState);
+    return result;
   }
 
   /**

@@ -14,7 +14,7 @@ export const branchCmd = new Command()
   .action(() => {
     doWithSpinner("Loading branches...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-      const meta = await vt.getMeta().loadState();
+      const meta = await vt.getMeta().loadVtState();
 
       const branches: ValTown.Projects.BranchListResponse[] = [];
       // deno-fmt-ignore

@@ -1,9 +1,10 @@
 import {
   DEFAULT_VAL_TYPE,
+  FIRST_VERSION_NUMBER,
+  type ProjectItemType,
   RECENT_VERSION_COUNT,
-  type ProjectItemType
 } from "~/consts.ts";
-import { filePathToFile } from "~/sdk.ts";
+import { getProjectItem } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 
 /**
@@ -12,6 +13,8 @@ import { compile as compileGitignore } from "gitignore-parser";
  * This function attempts to determine the type of a file within a project
  * based on its existing state on the server or its filename. The process...
  * 1. Check if the file already exists in the project at the specified path.
+ *    Check at the current version, or at a few versions back, in case the file
+ *    was deleted but then recreated, so we preserve the type.
  * 2. If the file does not exist, determine its type based on its file extension:
  *    - Files ending in .ts, .tsx, .js, or .jsx are considered "val" files.
  *    - Check the filename for keywords like "cron", "http", or "email" to
@@ -22,24 +25,36 @@ import { compile as compileGitignore } from "gitignore-parser";
  * 3. If the file does not match the val extension criteria (.ts + optional
  *    identifier), return "file".
  *
- * @param filepath - Path or filename to analyze
- * @returns The val file type
+ * @param {string} projectId - The ID of the project
+ * @param {Object} options - Options for determining the file type
+ * @param {string} options.branchId - The ID of the branch
+ * @param {number} [options.version] - The version of the project (optional, defaults to latest)
+ * @param {string} options.filePath - The path of the val or file to get the type of
+ * @returns {Promise<ProjectItemType>} The val file type
  */
 async function getProjectItemType(
   projectId: string,
-  branchId: string,
-  version: number,
-  filePath: string,
+  { branchId, version = undefined, filePath }: {
+    branchId: string;
+    version: number | undefined;
+    filePath: string;
+  },
 ): Promise<ProjectItemType> {
-  for (let i = version; i > version - RECENT_VERSION_COUNT; i--) {
-    try {
-      return await filePathToFile(projectId, branchId, version, filePath)
-        .then((resp) => resp.type);
-    } catch (e) {
-      if (e instanceof Deno.errors.NotFound) {
-        continue;
-      } else throw e;
-    }
+  // Preserve the type if the file was deleted recently and then recreated
+  for (
+    let i = version || FIRST_VERSION_NUMBER;
+    i > (version || FIRST_VERSION_NUMBER) - RECENT_VERSION_COUNT;
+    i--
+  ) {
+    const type = await getProjectItem(projectId, {
+      branchId,
+      version,
+      filePath,
+    })
+      .then((resp) => resp?.type);
+
+    if (type === undefined) continue;
+    else return type;
   }
 
   // Otherwise, if it ends in .ts, .js, .tsx, or .jsx, it is a val

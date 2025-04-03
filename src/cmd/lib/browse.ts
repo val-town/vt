@@ -12,7 +12,7 @@ export const browseCmd = new Command()
   .action(async ({ browser }: { browser?: boolean }) => {
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-    const state = await vt.getMeta().loadState();
+    const state = await vt.getMeta().loadVtState();
     const branch = await sdk.projects.branches.retrieve(
       state.project.id,
       String(state.branch.version),
@@ -21,9 +21,7 @@ export const browseCmd = new Command()
     if (browser) {
       await doWithSpinner("Opening project url...", async (spinner) => {
         await open(branch.links.html);
-        spinner.succeed(
-          `Project url opened in browser: ${branch.links.html}`,
-        );
+        spinner.succeed(`Project url opened in browser:\n${branch.links.html}`);
       });
     } else console.log(`${branch.links.html}`);
   });

@@ -1,18 +1,12 @@
 import { colors } from "@cliffy/ansi/colors";
-import { type ProjectItemType, STATUS_STYLES } from "~/consts.ts";
-import { getTotalChanges } from "~/vt/lib/utils.ts";
-import type { StatusResult } from "~/vt/lib/status.ts";
-
-/**
- * Generates an error message for commands that cannot be executed with unpushed changes
- *
- * @param command - The command that was attempted to be executed
- * @param forceFlag - The flag to force execution despite local changes, defaults to "-f"
- * @returns A formatted error message string indicating how to bypass the restriction
- */
-export function dirtyErrorMsg(command: string, forceFlag: string = "-f") {
-  return `Cannot ${command} with unpushed changes, use \`${command} ${forceFlag}\` to ignore local changes`;
-}
+import { basename, dirname, join } from "@std/path";
+import {
+  ProjectItemColors,
+  type ProjectItemType,
+  STATUS_STYLES,
+  TypeToTypeStr,
+} from "~/consts.ts";
+import type { FileState } from "~/vt/lib/FileState.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -32,21 +26,25 @@ export function getVersionRangeStr(
   currentVersion: number,
   latestVersion: number,
 ): string {
-  // If current version is the latest, only return the current version in green
-  if (currentVersion === latestVersion) {
+  // If there's only one version (first and latest are the same)
+  if (firstVersion === latestVersion) {
     return colors.cyan(currentVersion.toString());
   }
 
-  // Otherwise, return the full range
-  const versions = [firstVersion.toString(), currentVersion.toString()];
-  if (latestVersion && currentVersion !== latestVersion) {
-    versions.push(latestVersion.toString());
+  // If current version is the latest, show the range from first to current
+  if (currentVersion === latestVersion) {
+    return `${firstVersion}..${colors.cyan(currentVersion.toString())}`;
   }
 
-  const formattedVersions = versions
-    .map((v) => v === currentVersion.toString() ? colors.cyan(v) : v);
+  // If current version is the first, show the range from current to latest
+  if (currentVersion === firstVersion) {
+    return `${colors.cyan(currentVersion.toString())}..${latestVersion}`;
+  }
 
-  return formattedVersions.join("..");
+  // Otherwise, show the full range: first..current..latest
+  return `${firstVersion}..${
+    colors.cyan(currentVersion.toString())
+  }..${latestVersion}`;
 }
 
 /**
@@ -57,86 +55,87 @@ export function getVersionRangeStr(
  * @param type - The type of the file object (e.g., 'script', 'http', 'file')
  * @param maxTypeLength - The maximum present file type object literal length (script=6)
  * @returns A formatted string with colored status prefix, file type, and path
- *
- * @example
- * // Returns something like "✓ (js   ) src/index.js" with appropriate colors
- * formatStatus('src/index.js', 'success', 'js', 5);
  */
 export function formatStatus(
   path: string,
-  status: keyof StatusResult,
-  type: ProjectItemType,
-  maxTypeLength: number,
+  status: keyof FileState,
+  type?: ProjectItemType,
+  maxTypeLength: number = 0,
 ): string {
-  // Get color configuration for the status or use default
-  const config = STATUS_STYLES[status];
+  const styleConfig = STATUS_STYLES[status];
+  const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
 
-  // Extract file type with consistent padding
-  const paddedFileType = type.padEnd(maxTypeLength);
+  // Format type indicator with consistent padding and colors
+  const typeStr = TypeToTypeStr[type!].padEnd(maxTypeLength);
+  const typeIndicator = //
+    colors.gray("(") +
+    ProjectItemColors[type!](typeStr) +
+    colors.gray(")");
 
-  // Create formatted type indicator with colors
-  const typeStart = colors.gray("(");
-  const typeContent = colors.dim(paddedFileType);
-  const typeEnd = colors.gray(")");
-  const typeIndicator = typeStart + typeContent + typeEnd;
-
-  // Get the base status text
-  const baseStatusText = config.color(config.prefix) + " ";
-
-  // Combine the status prefix, type indicator, and path
-  return baseStatusText + typeIndicator + " " + path;
+  // Construct the final formatted string
+  return `${
+    styleConfig.color(styleConfig.prefix)
+  } ${typeIndicator} ${coloredPath}`;
 }
 
 /**
- * Displays file changes and summary information from a status result.
+ * Displays file changes and summary information from a FileStateChanges
  *
- * @param status - The status result containing modified, created, and deleted files
+ * @param fileStateChanges - The file state changes, containing modified, created, and deleted files
  * @param options - Display options
- * @param options.showEmpty - Whether to show output when there are no changes (default: true)
- * @param options.headerText - Custom header text to display before file changes (optional)
- * @param options.summaryPrefix - Text to show before the summary (default: "Changes:")
- * @param options.emptyMessage - Message to show when there are no changes (default: "No changes")
- * @param options.includeSummary - Whether to display the summary (default: true)
- * @returns The total number of changes
+ * @param options.headerText - Custom header text to display before file changes
+ * @param [options.summaryText="Summary:"] - Text to show before the summary
+ * @param options.emptyMessage - Message to show when there are no changes
+ * @param [options.showEmpty=true] - Whether to show output when there are no changes
+ * @param [options.includeSummary=true] - Whether to display the summary
+ * @param [options.includeTypes=true] - Whether to display the (detected) types of the files
+ * @returns void
  */
-export function displayStatusChanges(
-  status: StatusResult,
+export function displayFileStateChanges(
+  fileStateChanges: FileState,
   options: {
-    showEmpty?: boolean;
-    headerText?: string;
-    summaryPrefix?: string;
+    headerText: string;
+    summaryText?: string;
     emptyMessage?: string;
+    showEmpty?: boolean;
     includeSummary?: boolean;
-  } = {},
+    includeTypes?: boolean;
+  },
 ): void {
   const {
+    headerText: headerText,
+    summaryText: summaryPrefix = "Summary:",
+    emptyMessage,
     showEmpty = true,
-    headerText,
-    summaryPrefix = "Local Changes:",
-    emptyMessage = "No local changes. Local working tree clean.",
     includeSummary = true,
+    includeTypes = true,
   } = options;
-
-  const totalChanges = getTotalChanges(status);
+  const totalChanges = fileStateChanges.changes();
 
   // Exit early if we do not show empty
   if (totalChanges === 0 && !showEmpty) return;
 
   // Display header if provided
-  if (headerText) console.log(headerText);
+  if (headerText && totalChanges !== 0) console.log(headerText);
 
   // Calculate the longest type length from all files
-  const maxTypeLength = Object.entries(status)
+  const maxTypeLength = fileStateChanges.entries()
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
     .reduce((max, file) => Math.max(max, file.type.length), 0);
 
   // Print all changed files state
-  for (const [type, files] of Object.entries(status)) {
+  for (const [type, files] of fileStateChanges.entries()) {
     if (type !== "not_modified") {
       for (const file of files) {
         console.log(
-          formatStatus(file.path, file.status, file.type, maxTypeLength),
+          "  " +
+            formatStatus(
+              file.path,
+              file.status,
+              includeTypes ? file.type : undefined,
+              maxTypeLength,
+            ),
         );
       }
     }
@@ -145,12 +144,14 @@ export function displayStatusChanges(
   // Provide a summary if requested
   if (includeSummary) {
     if (totalChanges === 0) {
-      console.log(colors.green(emptyMessage));
+      if (emptyMessage) {
+        console.log(colors.green(emptyMessage));
+      }
     } else {
       console.log("\n" + summaryPrefix);
-      for (const [type, files] of Object.entries(status)) {
+      for (const [type, files] of fileStateChanges.entries()) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeColor = STATUS_STYLES[type as keyof StatusResult];
+          const typeColor = STATUS_STYLES[type as keyof FileState];
           const coloredType = typeColor.color(type);
           console.log("  " + files.length + " " + coloredType);
         }
@@ -158,3 +159,6 @@ export function displayStatusChanges(
     }
   }
 }
+
+export const noChangesDryRunMsg = "Dry run completed. " +
+  colors.underline("No changes were made.");

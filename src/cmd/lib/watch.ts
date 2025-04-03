@@ -2,61 +2,13 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
-import { FIRST_VERSION_NUMBER, STATUS_STYLES } from "~/consts.ts";
-import { displayStatusChanges } from "~/cmd/lib/utils.ts";
-import { getTotalChanges } from "~/vt/lib/utils.ts";
+import { FIRST_VERSION_NUMBER } from "~/consts.ts";
+import {
+  displayFileStateChanges,
+  getVersionRangeStr,
+} from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import type { StatusResult } from "~/vt/lib/status.ts";
-
-// Formats a version range string based on the first, current, and latest
-// versions.
-function getVersionRangeStr(
-  firstVersion: number,
-  currentVersion: number,
-  latestVersion: number,
-): string {
-  if (currentVersion === latestVersion) {
-    return colors.cyan(currentVersion.toString());
-  }
-
-  const versions = [firstVersion.toString(), currentVersion.toString()];
-  if (latestVersion && currentVersion !== latestVersion) {
-    versions.push(latestVersion.toString());
-  }
-
-  const formattedVersions = versions
-    .map((v) => v === currentVersion.toString() ? colors.cyan(v) : v);
-
-  return formattedVersions.join("..");
-}
-
-// Formats a file path with a colored status prefix for display.
-export function formatStatus(path: string, status: keyof StatusResult): string {
-  const config = STATUS_STYLES[status] || { prefix: " ", color: colors.blue };
-  return `${config.color(config.prefix)} ${path}`;
-}
-
-export const watchStopCmd = new Command()
-  .name("watch stop")
-  .description("Stop the watch daemon process")
-  .action(() => {
-    const cwd = Deno.cwd();
-    const vt = VTClient.from(cwd);
-    doWithSpinner("Stopping the watch process...", async (spinner) => {
-      try {
-        const { lastRun } = await vt.getMeta().loadState();
-        if (lastRun.pid) {
-          Deno.kill(lastRun.pid);
-          spinner.succeed(`Stopped watch process with PID: ${lastRun.pid}`);
-        } else {
-          throw new Error("No running watch process found.");
-        }
-      } catch {
-        throw new Error("Failed to stop the watch process.");
-      }
-    });
-  });
 
 export const watchCmd = new Command()
   .name("watch")
@@ -64,14 +16,14 @@ export const watchCmd = new Command()
   .option(
     "-d, --debounce-delay <delay:number>",
     "Debounce delay in milliseconds",
-    { default: 300 },
+    { default: 1500 },
   )
-  .action((options) => {
-    doWithSpinner("Starting watch...", async (spinner) => {
+  .action(async (options) => {
+    await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
-      const state = await vt.getMeta().loadState();
+      const state = await vt.getMeta().loadVtState();
       const currentBranch = await sdk.projects.branches.retrieve(
         state.project.id,
         state.branch.id,
@@ -98,27 +50,28 @@ export const watchCmd = new Command()
       console.log();
       console.log(watchingForChangesLine());
 
-      while (true) {
-        try {
-          for await (const status of vt.watch(options.debounceDelay)) {
-            try {
-              if (getTotalChanges(status) > 0) {
-                console.log();
-                displayStatusChanges(status, {
-                  headerText: "New changes detected",
-                  summaryPrefix: "Pushed:",
-                });
-                console.log();
-                console.log(watchingForChangesLine());
-              }
-            } catch (e) {
-              if (e instanceof Error) console.log(colors.red(e.message));
+      try {
+        await vt.watch((fileStateChanges) => {
+          try {
+            if (fileStateChanges.size() > 0) {
+              console.log();
+              displayFileStateChanges(fileStateChanges, {
+                emptyMessage: "No changes detected. Continuing to watch...",
+                headerText: "New changes detected",
+                summaryText: "Pushed:",
+              });
+              console.log();
+              console.log(watchingForChangesLine());
             }
+          } catch (e) {
+            if (e instanceof Error) console.log(colors.red(e.message));
           }
-        } catch (e) {
-          if (e instanceof Error) console.log(colors.red(e.message));
-        }
+        }, options.debounceDelay);
+
+        // This line would only execute if watch() completes normally
+        console.log(colors.yellow("Watch process ended."));
+      } catch (e) {
+        if (e instanceof Error) console.log(colors.red(e.message));
       }
     });
-  })
-  .command("stop", watchStopCmd);
+  });

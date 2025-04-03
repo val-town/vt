@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import sdk from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -90,7 +90,7 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
-              version: await getLatestVersion(project.id, branch.id),
+              version: 7,
             });
 
             // Verify all files were correctly cloned
@@ -124,7 +124,7 @@ Deno.test({
               "Nested directories should be created",
             );
           });
-        }, "vt_clone_test_files_");
+        });
       });
     });
   },
@@ -157,7 +157,7 @@ Deno.test({
               targetDir: tempDir,
               projectId: project.id,
               branchId: branch.id,
-              version: await getLatestVersion(project.id, branch.id),
+              version: 1,
             });
           });
 
@@ -170,7 +170,7 @@ Deno.test({
               "empty directory should be created explicitly",
             );
           });
-        }, "vt_clone_test_empty_dir_");
+        });
       });
     });
   },

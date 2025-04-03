@@ -39,7 +39,7 @@ vim index.tsx
 vt push
 vt checkout main`,
   )
-  .action((
+  .action(async (
     {
       public: isPublic,
       private: isPrivate,
@@ -54,11 +54,11 @@ vt checkout main`,
     projectName: string,
     targetDir?: string,
   ) => {
-    doWithSpinner("Creating project...", async (spinner) => {
+    await doWithSpinner("Creating new project...", async (spinner) => {
       let rootPath: string;
       if (!targetDir) {
         rootPath = join(Deno.cwd(), projectName);
-      } else rootPath = targetDir;
+      } else rootPath = join(targetDir, projectName);
 
       // Check for mutually exclusive privacy flags
       const privacyFlags =

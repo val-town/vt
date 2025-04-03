@@ -1,3 +1,4 @@
+import { deepMerge } from "@std/collections/deep-merge";
 import {
   GLOBAL_VT_CONFIG_PATH,
   JSON_INDENT_SPACES,
@@ -6,11 +7,9 @@ import {
 } from "~/consts.ts";
 import * as path from "@std/path";
 import { ensureDir, exists } from "@std/fs";
-import type { VTConfigSchema } from "~/vt/vt/schemas.ts";
+import { VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
 
-// @deno-types="https://cdn.skypack.dev/@types/lodash?dts"
-import _ from "lodash";
 import type z from "zod";
 
 /**
@@ -63,23 +62,20 @@ export default class VTConfig {
     const configPaths = [];
 
     // Add global config if it exists
-    if (await exists(globalPath)) {
-      configPaths.push(globalPath);
-    }
+    if (await exists(globalPath)) configPaths.push(globalPath);
 
     // Add local config if it exists
-    if (await exists(localPath)) {
-      configPaths.push(localPath);
-    }
+    if (await exists(localPath)) configPaths.push(localPath);
 
     return configPaths;
   }
 
   /**
-   * Loads and merges all configuration files using Lodash's merge.
+   * Loads and merges all configuration files.
    *
    * @returns {Promise<z.infer<typeof VTConfigSchema>>} A promise that resolves with the merged configuration.
    * @throws {Error} Will throw an error if the files cannot be read or parsed.
+   * @throws {z.ZodError} Will throw a validation error if the merged config doesn't match the schema.
    */
   public async loadConfig(): Promise<z.infer<typeof VTConfigSchema>> {
     const configPaths = await this.getConfigFilePaths();
@@ -88,11 +84,9 @@ export default class VTConfig {
     for (const configPath of configPaths) {
       try {
         const data = await Deno.readTextFile(configPath);
-        // Parse the YAML data instead of JSON
-        const parsedData = parseYaml(data);
-
-        // Use lodash merge for deep merging of configuration objects
-        mergedConfig = _.merge({}, mergedConfig, parsedData);
+        const yamlData = parseYaml(data);
+        const yamlConfig = VTConfigSchema.partial().parse(yamlData);
+        mergedConfig = deepMerge(mergedConfig, yamlConfig);
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) continue;
         else if (e instanceof Error) {
@@ -103,7 +97,8 @@ export default class VTConfig {
       }
     }
 
-    return mergedConfig as z.infer<typeof VTConfigSchema>;
+    // Validate the final merged config against the schema
+    return VTConfigSchema.parse(mergedConfig);
   }
 
   /**

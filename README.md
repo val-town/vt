@@ -5,7 +5,7 @@ platform.
 
 ```
 Usage:   vt
-Version: 0.0.3
+Version: 0.0.11
 
 Options:
 
@@ -15,13 +15,13 @@ Options:
 Commands:
 
   clone     <projectUri> [cloneDir] [branchName]  - Clone a val town project
-  pull                                            - Pull the latest changes for a val town project
   push                                            - Push local changes to a val town project
+  pull                                            - Pull the latest changes for a val town project
   status                                          - Show the working tree status
-  branch                                          - List all project branches
-  browse                                          - Open a project in a web browser
-  watch                                           - Watch for changes and automatically sync with Val Town
+  branch                                          - List all project branches 
   checkout  [existingBranchName]                  - Check out a different branch
+  watch                                           - Watch for changes and automatically sync with Val Town
+  browse                                          - Open a project in a web browser
   create    <projectName> [targetDir]             - Create a new Val Town project
 ```
 
@@ -53,7 +53,8 @@ Run `vt` to confirm everything is working:
 
 ```bash
 $ vt --version
-vt 0.0.3
+
+vt 0.0.11
 ```
 
 ## Getting Started
@@ -65,7 +66,9 @@ First, let's create a new project:
 
 ```bash
 $ vt create helloWorld
+
 √ Created public project apricot in ./helloWorld
+
 $ cd helloWorld
 ```
 
@@ -80,21 +83,38 @@ Upload this file to your project with `vt push`
 
 ```bash
 $ vt push
-√ Project pushed successfully from ./helloWorld
+
+Changes pushed:
+  A (file) hello.txt
+
+Changes pushed:
+  1 created
+
+√ Successfully pushed local changes
 ```
 
-Now run `vt open` to see your file in the Val Town UI.
+Now run `vt browse` to see your file in the Val Town website UI.
 
 #### HTTP Val
 
 Now that we've written our text file, let's create an HTTP val. Create new file
 with the `.http.tsx` extension and we'll automatically create it as an HTTP val
-with an endpoint.
+with an endpoint. Any file with "http" in the name is detected to be an http
+val, so `_http.tsx` also would work.
 
 ```bash
-touch index.http.tsx
-vt push
-√ Project pushed successfully from ./hello-world
+$touch index.http.tsx
+$ vt push
+
+Changes pushed:
+  A (http) index.http.tsx
+  M (file) hello.txt
+
+Changes pushed:
+  1 created
+  1 modified
+
+√ Successfully pushed local changes
 ```
 
 Now, if we return to our browser we can see that an http val has been created.
@@ -111,5 +131,6 @@ my http val:
 
 ```bash
 $ curl https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run
+
 Hello GET https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run/
 ```

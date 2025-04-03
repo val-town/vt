@@ -2,167 +2,239 @@ import { doAtomically } from "~/vt/lib/utils.ts";
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
-import { relative } from "@std/path";
-import { walk } from "@std/fs";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
+import { join, relative } from "@std/path";
+import { copy, exists, walk } from "@std/fs";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
+import { FileState } from "~/vt/lib/FileState.ts";
+import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 
+/**
+ * Result of a checkout operation containing branch information and file
+ * changes.
+ */
 export interface CheckoutResult {
+  /** The source branch */
   fromBranch: ValTown.Projects.BranchCreateResponse;
-  toBranch: ValTown.Projects.BranchCreateResponse;
+  /**
+   * The target branch or null if it was a dry run and you were forking to a
+   * new branch, since a dry run won't create a new branch
+   */
+  toBranch: ValTown.Projects.BranchCreateResponse | null;
+  /** Whether a new branch was created during checkout */
   createdNew: boolean;
+  /** Changes made to files during the checkout process */
+  fileStateChanges: FileState;
 }
 
-type BaseCheckoutParams = {
+/**
+ * Base parameters for all checkout operations.
+ */
+export type BaseCheckoutParams = {
+  /** The directory where the branch will be checked out */
   targetDir: string;
+  /** The ID of the project */
   projectId: string;
-  gitignoreRules: string[];
+  /** If true, simulates the checkout without making changes */
+  dryRun?: boolean;
+  /** A list of gitignore rules. */
+  gitignoreRules?: string[];
+  /** Specific version to checkout. Defaults to latest */
+  toBranchVersion?: number;
 };
 
-type BranchCheckoutParams = BaseCheckoutParams & {
-  branchId: string;
-  version: number;
+/**
+ * Parameters for checking out an existing branch.
+ */
+export type BranchCheckoutParams = BaseCheckoutParams & {
+  /** The ID of the branch to checkout */
+  toBranchId: string;
+  /** The ID of the branch we're switching from */
   fromBranchId: string;
 };
 
-type ForkCheckoutParams = BaseCheckoutParams & {
+/**
+ * Parameters for creating and checking out a new branch (fork).
+ */
+export type ForkCheckoutParams = BaseCheckoutParams & {
+  /** The branch ID from which to create the fork */
   forkedFromId: string;
+  /** The name for the new forked branch */
   name: string;
-  version: number;
 };
 
 /**
  * Checks out a specific existing branch of a project.
- *
- * @param {object} args
- * @param {string} args.targetDir - The directory where the branch will be checked out.
- * @param {string} args.projectId - The ID of the project.
- * @param {string} args.branchId - The ID of the branch to checkout.
- * @param {number} args.version - The version of the branch to checkout.
- * @param {string[]} args.gitignoreRules - List of gitignore rules.
- * @param {string} [args.fromBranchId] - The ID of the branch we're switching from.
+ * @param params Options for the checkout operation.
  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information.
  */
-export function checkout(args: BranchCheckoutParams): Promise<CheckoutResult>;
+export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
  * Creates a new branch from a project's branch and checks it out.
- *
- * @param {object} args
- * @param {string} args.targetDir - The directory where the fork will be checked out.
- * @param {string} args.projectId - The ID of the project to fork.
- * @param {string} args.forkedFrom - The branch ID from which to create the fork.
- * @param {string} args.name - The name for the new forked branch.
- * @param {number} args.version - The version of the fork to checkout.
- * @param {string[]} args.gitignoreRules - List of gitignore rules.
+ * @param params Options for the checkout operation.
  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch details).
  */
+export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
 export function checkout(
-  args: ForkCheckoutParams,
-): Promise<CheckoutResult>;
-export function checkout(
-  args: BranchCheckoutParams | ForkCheckoutParams,
+  params: BranchCheckoutParams | ForkCheckoutParams,
 ): Promise<CheckoutResult> {
   return doAtomically(
     async (tmpDir) => {
-      let checkoutBranchId: string;
-      let checkoutVersion: number;
-      let toBranch: ValTown.Projects.BranchCreateResponse;
+      // Copy over the current state. That way we get accurate delta
+      // information when we pull (internally, pull will call clone, and clone
+      // will notice files that it is overwriting and mark them as overwritten
+      // instead of created in such cases.)
+      await copy(params.targetDir, tmpDir, {
+        preserveTimestamps: true,
+        overwrite: true,
+      });
+
+      const fileStateChanges = FileState.empty();
+
+      // Determine if we're creating a new branch or checking out an existing one
+      const createdNew = !("toBranchId" in params);
+
+      let toBranch: ValTown.Projects.BranchCreateResponse | null = null;
       let fromBranch: ValTown.Projects.BranchCreateResponse;
-      let createdNew = false;
 
-      if ("branchId" in args) {
-        // Checking out existing branch
-        checkoutBranchId = args.branchId;
-        checkoutVersion = args.version;
+      if (createdNew) {
+        // Creating a new fork
+        // Get the source branch info
+        fromBranch = await sdk.projects.branches.retrieve(
+          params.projectId,
+          (params as ForkCheckoutParams).forkedFromId,
+        );
+        // In this case to branch is just the from branch effectively, since
+        // they will have the same state
+        toBranch = fromBranch;
+        // Except that it is at its now first version
+        toBranch.version = FIRST_VERSION_NUMBER;
 
+        // Create the new branch
+        if (!params.dryRun) {
+          toBranch = await sdk.projects.branches.create(
+            params.projectId,
+            {
+              branchId: (params as ForkCheckoutParams).forkedFromId,
+              name: (params as ForkCheckoutParams).name,
+            },
+          );
+        } // otherwise we will make toBranch null later
+      } else {
         // Get the target branch info
         toBranch = await sdk.projects.branches.retrieve(
-          args.projectId,
-          checkoutBranchId,
+          params.projectId,
+          (params as BranchCheckoutParams).toBranchId,
         );
+        toBranch.version = params.toBranchVersion || toBranch.version;
 
         // Get the source branch info if provided, otherwise use the target branch
         fromBranch = await sdk.projects.branches.retrieve(
-          args.projectId,
-          args.fromBranchId,
+          params.projectId,
+          (params as BranchCheckoutParams).fromBranchId,
         );
-      } else {
-        // Creating a new fork
-        createdNew = true;
-
-        // Get the source branch info
-        fromBranch = await sdk.projects.branches.retrieve(
-          args.projectId,
-          args.forkedFromId,
-        );
-
-        // Create the new branch
-        toBranch = await sdk.projects.branches.create(
-          args.projectId,
-          { branchId: args.forkedFromId, name: args.name },
-        );
-
-        checkoutBranchId = toBranch.id;
-        checkoutVersion = toBranch.version;
       }
 
       // Get files from the source branch
-      const fromFiles = new Set(
-        await listProjectItems(args.projectId, {
+      if (createdNew) {
+        const projectItems = await listProjectItems(params.projectId, {
           path: "",
           branch_id: fromBranch.id,
           version: fromBranch.version,
           recursive: true,
-        }).then((resp) => resp.map((file) => file.path)),
-      );
+        });
+        projectItems.forEach((projectItem) => {
+          fileStateChanges.insert({
+            path: projectItem.path,
+            status: "not_modified",
+            type: projectItem.type,
+          });
+        });
+      } else {
+        const fromFiles = new Set(
+          await listProjectItems(params.projectId, {
+            path: "",
+            branch_id: fromBranch.id,
+            version: fromBranch.version,
+            recursive: true,
+          }).then((resp) => resp.map((file) => file.path)),
+        );
 
-      // Get files from the target branch
-      const toFiles = new Set(
-        await listProjectItems(args.projectId, {
-          path: "",
-          branch_id: checkoutBranchId,
-          version: checkoutVersion,
-          recursive: true,
-        }).then((resp) => resp.map((file) => file.path)),
-      );
+        // Get files from the target branch. Note that the target branch is
+        // effectively the same as the source branch if checkout branch
+        // id/checkout version id are undefined, since in that case we are
+        // forking, and when we are forking we are copying the from branch.
+        const toFiles = new Set(
+          await listProjectItems(params.projectId, {
+            path: "",
+            branch_id: toBranch.id,
+            version: toBranch.version,
+            recursive: true,
+          }).then((resp) => resp.map((file) => file.path)),
+        );
 
-      // Clone the target branch into the temporary directory
-      await pull({
-        targetDir: tmpDir,
-        projectId: args.projectId,
-        branchId: checkoutBranchId,
-        version: checkoutVersion,
-        gitignoreRules: args.gitignoreRules,
-      });
+        // Clone the target branch into the temporary directory
+        const pullResult = await pull({
+          targetDir: tmpDir,
+          projectId: params.projectId,
+          branchId: toBranch.id,
+          version: toBranch.version,
+          gitignoreRules: params.gitignoreRules,
+          dryRun: params.dryRun,
+        });
+        fileStateChanges.merge(pullResult);
 
-      // Walk through the target directory to find files
-      for await (const entry of walk(args.targetDir)) {
-        if (entry.isDirectory) continue;
+        // Scan the target directory to identify files that need to be deleted
+        for await (const entry of walk(params.targetDir)) {
+          const relativePath = relative(params.targetDir, entry.path);
+          const targetDirPath = entry.path;
+          const tmpDirPath = join(tmpDir, relativePath);
 
-        const relativePath = relative(args.targetDir, entry.path);
+          if (shouldIgnore(relativePath, params.gitignoreRules)) continue;
+          if (relativePath === "" || entry.path === params.targetDir) continue;
 
-        // Skip files that match gitignore rules
-        if (shouldIgnore(relativePath, args.gitignoreRules)) continue;
+          // If the file was in the source branch but not in the target branch,
+          // delete it. This preserves untracked files (files not in fromFiles)
+          if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
+            const stat = await Deno.stat(entry.path);
+            fileStateChanges.insert({
+              path: relativePath,
+              status: "deleted",
+              type: stat.isDirectory
+                ? "directory"
+                : await getProjectItemType(params.projectId, {
+                  branchId: fromBranch.id,
+                  version: fromBranch.version,
+                  filePath: relativePath,
+                }),
+            });
 
-        // Skip root directory
-        if (relativePath === "" || entry.path === args.targetDir) continue;
-
-        // If the file was in the source branch but not in the target branch, delete it
-        // This preserves untracked files (files not in fromFiles)
-        if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
-          await Deno.remove(entry.path, { recursive: true });
+            // Delete the file from both directories if not in dry run mode
+            if (!params.dryRun) {
+              if (await exists(targetDirPath)) {
+                await Deno.remove(targetDirPath, { recursive: true });
+              }
+              if (await exists(tmpDirPath)) {
+                await Deno.remove(tmpDirPath, { recursive: true });
+              }
+            }
+          }
         }
       }
 
-      // Return checkout result with branch information
-      return {
+      // If it is a dry run then the toBranch was only for use temporarily
+      if (params.dryRun) toBranch = null;
+
+      // Return checkout result with branch information and whether changes
+      // should be applied
+      return [{
         fromBranch,
         toBranch,
         createdNew,
-      };
+        fileStateChanges,
+      }, !params.dryRun];
     },
-    args.targetDir,
-    "vt_checkout_",
+    { targetDir: params.targetDir, prefix: "vt_checkout_" },
   );
 }

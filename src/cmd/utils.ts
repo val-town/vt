@@ -1,33 +1,73 @@
 import ValTown from "@valtown/sdk";
 import Kia from "kia";
-import { sentenceCase } from "~/utils.ts";
 
 /**
- * Get a spinner and make sure it stops before exiting.
+ * Clean and transform error messages
+ *
+ * @param error - The error to be processed
+ * @returns A cleaned error message
+ */
+export function sanitizeErrors(error: unknown): string {
+  if (error instanceof ValTown.APIError) {
+    // Remove leading numbers from error message and convert to sentence case
+    const cleanedMessage = error.message.replace(/^\d+\s+/, "");
+    return cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1);
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // For any other type of error, convert to string
+  return String(error);
+}
+
+/**
+ * Execute a function with a spinner, ensuring it stops after execution.
  *
  * @param spinnerText - Initial spinner text
  * @param callback - Function to execute with the spinner
- * @param options - Optional configuration
- * @param options.autostart - Whether to auto-start the spinner (defaults to true)
+ * @param options - Optional configuration for spinner behavior
+ * @param options.autostart - Whether to start the spinner automatically (default: true)
+ * @param options.cleanError - Function to clean error messages (default: sanitizeErrors)
+ * @param options.exitOnError - Whether to exit on error (default: true)
+ * @returns The result of the callback function
  */
 export async function doWithSpinner(
   spinnerText: string,
-  callback: (spinner: Kia) => Promise<unknown> | unknown,
-  options?: { autostart?: boolean },
-) {
+  callback: (spinner: Kia) => Promise<void>,
+  options: {
+    autostart?: boolean;
+    cleanError?: (error: unknown) => string;
+    exitOnError?: boolean;
+  } = {},
+): Promise<void> {
+  const {
+    autostart = true,
+    cleanError = sanitizeErrors,
+    exitOnError = true,
+  } = options;
+
   let spinner: Kia | undefined;
-  let status = 0;
+
   try {
     spinner = new Kia(spinnerText);
-    if (options?.autostart !== false) spinner.start();
+
+    if (autostart) spinner.start();
+
     return await callback(spinner);
   } catch (e) {
-    if (e instanceof ValTown.APIError) {
-      spinner?.fail(sentenceCase(e.message.replace(/^\d+\s+/, "")));
-    } else if (e instanceof Error) spinner?.fail(e.message);
-    status = 1;
+    // Use the provided or default error cleaning function
+    const cleanedErrorMessage = cleanError(e);
+
+    // Fail the spinner with the cleaned error message
+    spinner?.fail(cleanedErrorMessage);
+
+    if (exitOnError) Deno.exit(1);
   } finally {
-    if (spinner && spinner.isSpinning()) spinner.stop();
-    Deno.exit(status);
+    // Ensure spinner is stopped in all scenarios
+    if (spinner?.isSpinning()) {
+      spinner.stop();
+    }
   }
 }
