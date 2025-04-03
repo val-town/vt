@@ -1,9 +1,9 @@
 import { Command } from "@cliffy/command";
-import { basename, join } from "@std/path";
+import { basename } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
-import { doWithSpinner } from "~/cmd/utils.ts";
+import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 
 export const createCmd = new Command()
   .name("create")
@@ -55,10 +55,7 @@ vt checkout main`,
     targetDir?: string,
   ) => {
     await doWithSpinner("Creating new project...", async (spinner) => {
-      let rootPath: string;
-      if (!targetDir) {
-        rootPath = join(Deno.cwd(), projectName);
-      } else rootPath = join(targetDir, projectName);
+      const clonePath = getClonePath(targetDir, projectName);
 
       // Check for mutually exclusive privacy flags
       const privacyFlags =
@@ -73,18 +70,18 @@ vt checkout main`,
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       try {
-        const vt = await VTClient.create(
-          rootPath,
+        const vt = await VTClient.create({
+          rootPath: clonePath,
           projectName,
-          user.username!, // Init the client with authenticated user
+          username: user.username!,
           privacy,
           description,
-        );
+        });
         await vt.addEditorFiles();
 
         spinner.succeed(
           `Created ${privacy} project ${projectName} in ./${
-            basename(rootPath)
+            basename(clonePath)
           }`,
         );
       } catch (error) {

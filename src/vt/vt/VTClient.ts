@@ -227,20 +227,27 @@ export default class VTClient {
   /**
    * Create a new Val Town project and initialize a VT instance for it.
    *
-   * @param {string} rootPath - The root path where the VT instance will be initialized
-   * @param {string} projectName - The name of the project to create
-   * @param {string} username - The username of the project owner
-   * @param {'public' | 'private'} privacy - The privacy setting for the project
-   * @param {string} [description] - Optional description for the project
+   * @param {Object} options - The options for creating a new project
+   * @param {string} options.rootPath - The root path where the VT instance will be initialized
+   * @param {string} options.projectName - The name of the project to create
+   * @param {string} options.username - The username of the project owner
+   * @param {'public' | 'private' | 'unlisted'} options.privacy - The privacy setting for the project
+   * @param {string} [options.description] - Optional description for the project
    * @returns {Promise<VTClient>} A new VTClient instance
    */
-  public static async create(
-    rootPath: string,
-    projectName: string,
-    username: string,
-    privacy: "public" | "private" | "unlisted",
-    description?: string,
-  ): Promise<VTClient> {
+  public static async create({
+    rootPath,
+    projectName,
+    username,
+    privacy,
+    description,
+  }: {
+    rootPath: string;
+    projectName: string;
+    username: string;
+    privacy: "public" | "private" | "unlisted";
+    description?: string;
+  }): Promise<VTClient> {
     // First create the project
     const project = await sdk.projects.create({
       name: projectName,

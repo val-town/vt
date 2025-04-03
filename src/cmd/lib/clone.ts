@@ -4,8 +4,7 @@ import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
-import * as join from "@std/path/join";
-import { doWithSpinner } from "~/cmd/utils.ts";
+import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 
 export const cloneCmd = new Command()
   .name("clone")
@@ -36,26 +35,18 @@ export const cloneCmd = new Command()
         );
 
         branchName = branchName || DEFAULT_BRANCH_NAME;
-
-        let rootPath: string;
-        if (!cloneDir) {
-          rootPath = join.join(Deno.cwd(), projectName);
-        } else if (cloneDir === ".") {
-          rootPath = Deno.cwd();
-        } else {
-          rootPath = join.join(Deno.cwd(), cloneDir);
-        }
+        const clonePath = getClonePath(cloneDir, projectName);
 
         const vt = await VTClient.clone({
-          rootPath,
+          rootPath: clonePath,
           projectName,
           username: ownerName,
         });
         await vt.addEditorFiles();
 
         spinner.succeed(
-          `Project ${ownerName}/${projectName} cloned to "./${
-            relative(Deno.cwd(), rootPath)
+          `Project ${ownerName}/${projectName} cloned to "${
+            relative(Deno.cwd(), clonePath)
           }"`,
         );
       });
