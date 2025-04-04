@@ -115,13 +115,12 @@ export default class VTConfig {
    * Saves configuration to the local configuration file.
    *
    * @param {Record<string, unknown>} config - The configuration to save.
-   * @returns {Promise<void>} A promise that resolves when the configuration has been saved.
    * @throws {Error} Will throw an error if the file cannot be written.
    * @throws {z.ZodError} Will throw a validation error if the config doesn't match the schema.
    */
-  public async saveLocalConfig(config: Record<string, unknown>): Promise<void> {
+  public async saveLocalConfig(config: Record<string, unknown>) {
     // Validate the configuration against the schema
-    const validatedConfig = VTConfigSchema.parse(config);
+    const validatedConfig = VTConfigSchema.strict().parse(config);
 
     // Ensure the metadata directory exists
     await ensureDir(path.join(this.#localConfigPath, META_FOLDER_NAME));
@@ -131,21 +130,22 @@ export default class VTConfig {
       this.getLocalConfigPath(),
       stringifyYaml(validatedConfig, { indent: JSON_INDENT_SPACES }),
     );
+
+    return validatedConfig;
   }
 
   /**
    * Saves configuration to the global configuration file.
    *
    * @param {Record<string, unknown>} config - The configuration to save.
-   * @returns {Promise<void>} A promise that resolves when the configuration has been saved.
    * @throws {Error} Will throw an error if the file cannot be written.
    * @throws {z.ZodError} Will throw a validation error if the config doesn't match the schema.
    */
   public async saveGlobalConfig(
     config: Record<string, unknown>,
-  ): Promise<void> {
+  ) {
     // Validate the configuration against the schema
-    const validatedConfig = VTConfigSchema.parse(config);
+    const validatedConfig = VTConfigSchema.strict().parse(config);
 
     // Ensure the global configuration directory exists
     await ensureDir(GLOBAL_VT_CONFIG_PATH);
@@ -155,6 +155,8 @@ export default class VTConfig {
       this.getGlobalConfigPath(),
       stringifyYaml(validatedConfig, { indent: JSON_INDENT_SPACES }),
     );
+
+    return validatedConfig;
   }
 }
 

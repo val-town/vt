@@ -45,6 +45,10 @@ export const configSetCmd = new Command()
     "Set your valtown API key",
     "vt config set apiKey vtwn_notRealnotRealnotRealnotReal",
   )
+  .example(
+    "Set whether to prompt for dangerous actions",
+    "vt config set dangerousOperations.confirmation false",
+  )
   .action(
     async ({ global }: { global?: boolean }, key: string, value: string) => {
       await doWithSpinner("Updating configuration...", async (spinner) => {
@@ -60,20 +64,35 @@ export const configSetCmd = new Command()
         const config = await vtConfig.loadConfig();
         const updatedConfig = setNestedProperty(config, key, value);
 
+        let validatedConfig: z.infer<typeof VTConfigSchema>;
         try {
           if (useGlobal) {
-            await vtConfig.saveGlobalConfig(updatedConfig);
-            spinner.succeed(`Set "${key}"="${value}" in global configuration`);
+            validatedConfig = await vtConfig.saveGlobalConfig(updatedConfig);
           } else {
-            await vtConfig.saveLocalConfig(updatedConfig);
-            spinner.succeed(`Set "${key}"="${value}" in local configuration`);
+            validatedConfig = await vtConfig.saveLocalConfig(updatedConfig);
+          }
+
+          if (JSON.stringify(config) !== JSON.stringify(validatedConfig)) {
+            spinner.succeed(
+              `Set ${
+                colors.bold(`"${key}"="${value}"`)
+              } in local configuration`,
+            );
+          } else {
+            spinner.fail(
+              `Property ${colors.bold(key)} is not valid.` +
+                `\n  Use \`${
+                  colors.bold("vt config options")
+                }\` to view config options`,
+            );
           }
         } catch (e) {
           if (e instanceof z.ZodError) {
-            console.error(
-              colors.red("Invalid input provided! " + fromError(e)),
+            throw new Error(
+              "Invalid input provided! \n" +
+                colors.red(fromError(e).toString()),
             );
-          }
+          } else throw e;
         }
       });
     },
