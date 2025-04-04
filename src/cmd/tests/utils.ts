@@ -51,7 +51,6 @@ export async function runVtCommand(
     const stdoutText = new TextDecoder().decode(stdout);
     const stderrText = new TextDecoder().decode(stderr);
     const combinedOutput = stdoutText + stderrText;
-    process.stdin.close();
 
     return [stripAnsi(combinedOutput), code];
   });

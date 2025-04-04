@@ -6,6 +6,7 @@ import type { ProjectFileType } from "~/consts.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
+import { deadline } from "@std/async";
 
 Deno.test({
   name: "checkout -b preserves local unpushed changes",
@@ -244,79 +245,86 @@ Deno.test({
 Deno.test({
   name: "warning on modified files",
   async fn() {
-    await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        // Create initial file on main branch
-        await sdk.projects.files.create(
-          project.id,
-          {
-            path: "shared-file.js",
-            content: "console.log('Original content');",
-            branch_id: branch.id,
-            type: "file" as ProjectFileType,
-          },
-        );
+    // Put an 8s deadline, since in the past we had an issue with this stalling
+    // due to waiting for a user interaction
+    await deadline(
+      (async () => {
+        return await doWithTempDir(async (tmpDir) => {
+          await doWithNewProject(async ({ project, branch }) => {
+            // Create initial file on main branch
+            await sdk.projects.files.create(
+              project.id,
+              {
+                path: "shared-file.js",
+                content: "console.log('Original content');",
+                branch_id: branch.id,
+                type: "file" as ProjectFileType,
+              },
+            );
 
-        // Create a feature branch
-        const featureBranch = await sdk.projects.branches.create(
-          project.id,
-          { name: "feature", branchId: branch.id },
-        );
+            // Create a feature branch
+            const featureBranch = await sdk.projects.branches.create(
+              project.id,
+              { name: "feature", branchId: branch.id },
+            );
 
-        // Modify the file on feature branch
-        await sdk.projects.files.update(
-          project.id,
-          {
-            branch_id: featureBranch.id,
-            path: "shared-file.js",
-            content: "console.log('Feature branch content');",
-          },
-        );
+            // Modify the file on feature branch
+            await sdk.projects.files.update(
+              project.id,
+              {
+                branch_id: featureBranch.id,
+                path: "shared-file.js",
+                content: "console.log('Feature branch content');",
+              },
+            );
 
-        // Clone the project (defaults to main branch)
-        await runVtCommand(["clone", project.name], tmpDir);
-        const fullPath = join(tmpDir, project.name);
+            // Clone the project (defaults to main branch)
+            await runVtCommand(["clone", project.name], tmpDir);
+            const fullPath = join(tmpDir, project.name);
 
-        // Modify the shared file locally while on main branch
-        await Deno.writeTextFile(
-          join(fullPath, "shared-file.js"),
-          "console.log('Modified locally on main');",
-        );
+            // Modify the shared file locally while on main branch
+            await Deno.writeTextFile(
+              join(fullPath, "shared-file.js"),
+              "console.log('Modified locally on main');",
+            );
 
-        // Try checking out to feature branch - should see warning about local changes
-        const [checkoutOutput] = await runVtCommand([
-          "checkout",
-          "feature",
-        ], fullPath);
+            // Try checking out to feature branch - should see warning about local changes
+            const [checkoutOutput] = await runVtCommand([
+              "checkout",
+              "feature",
+            ], fullPath);
 
-        // Should see warning about dangerous changes
-        assertStringIncludes(
-          checkoutOutput,
-          "proceed with checkout anyway",
-        );
-        assertStringIncludes(checkoutOutput, "Changed:"); // runVtCommand spams yes
-        assertStringIncludes(checkoutOutput, "shared-file.js");
+            // Should see warning about dangerous changes
+            assertStringIncludes(
+              checkoutOutput,
+              "proceed with checkout anyway",
+            );
+            assertStringIncludes(checkoutOutput, "Changed:"); // runVtCommand spams yes
+            assertStringIncludes(checkoutOutput, "shared-file.js");
 
-        // Try with force option
-        const [forceCheckoutOutput] = await runVtCommand([
-          "checkout",
-          "feature",
-          "-f",
-        ], fullPath);
-        assertStringIncludes(
-          forceCheckoutOutput,
-          'Switched to branch "feature"',
-        );
+            // Try with force option
+            const [forceCheckoutOutput] = await runVtCommand([
+              "checkout",
+              "feature",
+              "-f",
+            ], fullPath);
+            assertStringIncludes(
+              forceCheckoutOutput,
+              'Switched to branch "feature"',
+            );
 
-        // The content should now be the feature branch content
-        const fileContent = await Deno.readTextFile(
-          join(fullPath, "shared-file.js"),
-        );
-        assert(
-          fileContent === "console.log('Feature branch content');",
-          "File content should match feature branch version after force checkout",
-        );
-      });
-    });
+            // The content should now be the feature branch content
+            const fileContent = await Deno.readTextFile(
+              join(fullPath, "shared-file.js"),
+            );
+            assert(
+              fileContent === "console.log('Feature branch content');",
+              "File content should match feature branch version after force checkout",
+            );
+          });
+        });
+      })(),
+      1000 * 8,
+    );
   },
 });
