@@ -7,3 +7,4 @@ export { pullCmd } from "./pull.ts";
 export { pushCmd } from "./push.ts";
 export { statusCmd } from "./status.ts";
 export { watchCmd } from "./watch.ts";
+export { configCmd } from "./config.ts";

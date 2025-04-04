@@ -18,6 +18,7 @@
     "jsr:@std/async@*": "1.0.11",
     "jsr:@std/async@^1.0.11": "1.0.11",
     "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/collections@^1.0.10": "1.0.10",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
@@ -35,6 +36,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/path@~1.0.6": "1.0.8",
     "jsr:@std/text@~1.0.7": "1.0.11",
+    "jsr:@std/yaml@^1.0.5": "1.0.5",
     "jsr:@valtown/sdk@0.38": "0.38.0",
     "npm:@ai-sdk/anthropic@*": "1.2.0_zod@3.24.2",
     "npm:@babel/generator@*": "7.26.9",
@@ -54,6 +56,9 @@
     "npm:preact-render-to-string@*": "6.5.13_preact@10.26.4",
     "npm:pretty-ms@*": "9.2.0",
     "npm:strip-ansi@^7.1.0": "7.1.0",
+    "npm:word-wrap@^1.2.5": "1.2.5",
+    "npm:zod-to-json-schema@^3.24.5": "3.24.5_zod@3.24.2",
+    "npm:zod-validation-error@^3.4.0": "3.4.0_zod@3.24.2",
     "npm:zod@*": "3.24.2",
     "npm:zod@^3.24.2": "3.24.2"
   },
@@ -141,6 +146,9 @@
     "@std/bytes@1.0.5": {
       "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
     },
+    "@std/collections@1.0.10": {
+      "integrity": "903af106a3d92970d74e20f7ebff77d9658af9bef4403f1dc42a7801c0575899"
+    },
     "@std/dotenv@0.225.3": {
       "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
     },
@@ -179,6 +187,9 @@
     },
     "@std/text@1.0.11": {
       "integrity": "f191fa22590cac8b1cdba6cc4ab97940e720f7cc67b3084e54405b428bf5843d"
+    },
+    "@std/yaml@1.0.5": {
+      "integrity": "71ba3d334305ee2149391931508b2c293a8490f94a337eef3a09cade1a2a2742"
     },
     "@valtown/sdk@0.38.0": {
       "integrity": "549a27265cd2e140ef20d647419f5c59c3374cc8a6699e973fbb2449baa7e47a"
@@ -929,6 +940,9 @@
         "webidl-conversions@3.0.1"
       ]
     },
+    "word-wrap@1.2.5": {
+      "integrity": "sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA=="
+    },
     "ws@8.18.1": {
       "integrity": "sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w=="
     },
@@ -944,6 +958,12 @@
         "zod"
       ]
     },
+    "zod-validation-error@3.4.0_zod@3.24.2": {
+      "integrity": "sha512-ZOPR9SVY6Pb2qqO5XHt+MkkTRxGXb4EVtnjc9JpXUOtUB1T9Ru7mZOT361AN3MsetVe7R0a1KZshJDZdgp9miQ==",
+      "dependencies": [
+        "zod"
+      ]
+    },
     "zod@3.24.2": {
       "integrity": "sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ=="
     }
@@ -955,8 +975,6 @@
     "https://esm.sh/preact/jsx-runtime": "https://esm.sh/preact@10.26.4/jsx-runtime"
   },
   "remote": {
-    "https://cdn.skypack.dev/-/@types/lodash@v4.17.16-ZoQyn4yRPyyvaHlFqaCl/dist=es2019,mode=imports/optimized/@types/lodash.js": "5d71afac9a0636b438aff7daa03026bc53a42b37fb59459792dee56119b9ae05",
-    "https://cdn.skypack.dev/@types/lodash?dts": "06c8e578fb91e13d74acbe08ffb5afcdd56c76c9d231fce32bb532a6587e67bf",
     "https://deno.land/std@0.122.0/_util/assert.ts": "2f868145a042a11d5ad0a3c748dcf580add8a0dbc0e876eaa0026303a5488f58",
     "https://deno.land/std@0.122.0/bytes/bytes_list.ts": "3bff6a09c72b2e0b1e92e29bd3b135053894196cca07a2bba842901073efe5cb",
     "https://deno.land/std@0.122.0/bytes/equals.ts": "69f55fdbd45c71f920c1a621e6c0865dc780cd8ae34e0f5e55a9497b70c31c1b",
@@ -993,6 +1011,10 @@
     "https://deno.land/x/os_paths@v7.2.0/src/mod.deno.ts": "5e34d7c1a033665276a1a06e3957a52218bf4711a801f38cf92978aacfad5666",
     "https://deno.land/x/os_paths@v7.2.0/src/platform-adapters/_base.ts": "ca9adf679709824e070631921932620ab4dc2a39fff9706f95592d1620e34dc6",
     "https://deno.land/x/os_paths@v7.2.0/src/platform-adapters/deno.deno.ts": "d184d709522bf2703dc12ff335eb6a10d758a3a5dd4d97524d2aef9d3d448c13",
+    "https://deno.land/x/xdg@v10.6.0/dist/esm/lib/XDG.js": "4c04a45149d66e4ca29ea914aac137e7b0f0b6a8ef431ffc63fef46bc3747064",
+    "https://deno.land/x/xdg@v10.6.0/src/mod.deno.ts": "e478cc109794bfc130ec81711f9a20d594e6fad848f796c68b75dbe510683c39",
+    "https://deno.land/x/xdg@v10.6.0/src/platform-adapters/_base.ts": "c79a7f0e5b1d77e23cbc6c782a02958573338e9dfa644a7aa5a1f7c402ff56ef",
+    "https://deno.land/x/xdg@v10.6.0/src/platform-adapters/deno.deno.ts": "5f5852dc4588c10ad8fd0450421fa728741838cf5839a209d53323ccc9ed4c00",
     "https://deno.land/x/xdg_portable@v10.6.0/dist/esm/lib/XDG.js": "4c04a45149d66e4ca29ea914aac137e7b0f0b6a8ef431ffc63fef46bc3747064",
     "https://deno.land/x/xdg_portable@v10.6.0/src/mod.deno.ts": "e478cc109794bfc130ec81711f9a20d594e6fad848f796c68b75dbe510683c39",
     "https://deno.land/x/xdg_portable@v10.6.0/src/platform-adapters/_base.ts": "c79a7f0e5b1d77e23cbc6c782a02958573338e9dfa644a7aa5a1f7c402ff56ef",
@@ -1024,15 +1046,20 @@
       "jsr:@jonasschiano/kia@0.0.120",
       "jsr:@std/assert@1",
       "jsr:@std/async@^1.0.11",
+      "jsr:@std/collections@^1.0.10",
       "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fs@^1.0.13",
       "jsr:@std/path@^1.0.8",
+      "jsr:@std/yaml@^1.0.5",
       "jsr:@valtown/sdk@0.38",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
       "npm:open@^10.1.0",
       "npm:strip-ansi@^7.1.0",
+      "npm:word-wrap@^1.2.5",
+      "npm:zod-to-json-schema@^3.24.5",
+      "npm:zod-validation-error@^3.4.0",
       "npm:zod@^3.24.2"
     ]
   }

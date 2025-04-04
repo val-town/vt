@@ -22,6 +22,7 @@ import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
+import VTConfig from "~/vt/VTConfig.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -46,6 +47,15 @@ export default class VTClient {
    */
   public getMeta(): VTMeta {
     return this.#meta;
+  }
+
+  /**
+   * Returns a new VTConfig object init-ed at this VTClient's rootPath.
+   *
+   * @returns {VTConfig} The VTConfig instance.
+   */
+  public getConfig(): VTConfig {
+    return new VTConfig(this.rootPath);
   }
 
   /**
@@ -115,14 +125,13 @@ export default class VTClient {
 
     const vt = new VTClient(rootPath);
 
-    if ((await exists(vt.getMeta().configFilePath))) {
+    if ((await exists(vt.getMeta().getVtStateFileName()))) {
       throw new Error("VT project already initialized in this directory");
     }
 
-    await vt.getMeta().saveConfig({
-      projectId,
-      currentBranch: branch.id,
-      version: version,
+    await vt.getMeta().saveVtState({
+      project: { id: projectId },
+      branch: { id: branch.id, version: version },
     });
 
     return vt;
@@ -163,14 +172,10 @@ export default class VTClient {
       await callback(firstPush);
     }
 
-    // Set the lock file at the start
-    await this.getMeta().setLockFile();
-
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
       Deno.addSignalListener(signal as Deno.Signal, () => {
         console.log("Stopping watch process...");
-        this.getMeta().rmLockFile();
         Deno.exit(0);
       });
     }
@@ -275,13 +280,13 @@ export default class VTClient {
    * @returns {Promise<void>}
    */
   public async clone(targetDir: string): Promise<void> {
-    await this.getMeta().doWithConfig(async (config) => {
+    await this.getMeta().doWithVtState(async (vtState) => {
       // Do the clone using the configuration
       await clone({
         targetDir,
-        projectId: config.projectId,
-        branchId: config.currentBranch,
-        version: config.version,
+        projectId: vtState.project.id,
+        branchId: vtState.branch.id,
+        version: vtState.branch.version,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
       });
     });
@@ -298,13 +303,13 @@ export default class VTClient {
   public async status(
     { branchId }: { branchId?: string } = {},
   ): ReturnType<typeof status> {
-    return await this.getMeta().doWithConfig(async (config) => {
+    return await this.getMeta().doWithVtState(async (config) => {
       // Use provided branchId or fall back to the current branch from config
-      const targetBranchId = branchId || config.currentBranch;
+      const targetBranchId = branchId || config.branch.id;
 
       return status({
         targetDir: this.rootPath,
-        projectId: config.projectId,
+        projectId: config.project.id,
         branchId: targetBranchId,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
       });
@@ -321,12 +326,12 @@ export default class VTClient {
   public async pull(
     options?: Partial<Parameters<typeof pull>[0]>,
   ): ReturnType<typeof pull> {
-    return await this.getMeta().doWithConfig(async (config) => {
+    return await this.getMeta().doWithVtState(async (config) => {
       const result = await pull({
         ...{
           targetDir: this.rootPath,
-          projectId: config.projectId,
-          branchId: config.currentBranch,
+          projectId: config.project.id,
+          branchId: config.branch.id,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
         },
         ...options,
@@ -334,11 +339,11 @@ export default class VTClient {
 
       if (options?.dryRun === false) {
         const latestVersion = await getLatestVersion(
-          config.projectId,
-          config.currentBranch,
+          config.project.id,
+          config.branch.id,
         );
 
-        config.version = latestVersion;
+        config.branch.version = latestVersion;
       }
 
       return result;
@@ -354,21 +359,21 @@ export default class VTClient {
   public async push(
     options?: Partial<Parameters<typeof push>[0]>,
   ): ReturnType<typeof push> {
-    return await this.getMeta().doWithConfig(async (config) => {
+    return await this.getMeta().doWithVtState(async (config) => {
       const fileStateChanges = await push({
         ...{
           targetDir: this.rootPath,
-          projectId: config.projectId,
-          branchId: config.currentBranch,
+          projectId: config.project.id,
+          branchId: config.branch.id,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
         },
         ...options,
       });
 
       if (!options || options.dryRun === false) {
-        config.version = await getLatestVersion(
-          config.projectId,
-          config.currentBranch,
+        config.branch.version = await getLatestVersion(
+          config.project.id,
+          config.branch.id,
         );
       }
 
@@ -388,8 +393,8 @@ export default class VTClient {
     branchName: string,
     options?: Partial<ForkCheckoutParams>,
   ): Promise<CheckoutResult> {
-    return await this.getMeta().doWithConfig(async (config) => {
-      const currentBranchId = config.currentBranch;
+    return await this.getMeta().doWithVtState(async (vtState) => {
+      const currentBranchId = vtState.branch.id;
 
       // Get files that were newly created but not yet committed
       const fileStateChanges = await this.status();
@@ -405,7 +410,7 @@ export default class VTClient {
       // Common checkout parameters
       const baseParams: BaseCheckoutParams = {
         targetDir: this.rootPath,
-        projectId: config.projectId,
+        projectId: vtState.project.id,
         dryRun: options?.dryRun || false,
         gitignoreRules,
       };
@@ -425,14 +430,14 @@ export default class VTClient {
 
         if (!baseParams.dryRun) {
           if (result.toBranch) {
-            config.currentBranch = result.toBranch.id;
-            config.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
+            vtState.branch.id = result.toBranch.id;
+            vtState.branch.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
           }
         }
       } else {
         // Checking out an existing branch
         const checkoutBranch = await branchNameToBranch(
-          config.projectId,
+          vtState.project.id,
           branchName,
         );
 
@@ -451,11 +456,11 @@ export default class VTClient {
         result = await checkout(branchParams);
       }
 
-      // Don't touch the config if it's a dry run
+      // Don't touch the state if it's a dry run
       if (!baseParams.dryRun) {
         if (result.toBranch) {
-          config.currentBranch = result.toBranch.id;
-          config.version = result.toBranch.version; // Use the target branch's version
+          vtState.branch.id = result.toBranch.id;
+          vtState.branch.version = result.toBranch.version; // Use the target branch's version
         }
       }
 

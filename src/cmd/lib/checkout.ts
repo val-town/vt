@@ -64,7 +64,8 @@ export const checkoutCmd = new Command()
           : "Checking out branch...",
         async (spinner) => {
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-          const config = await vt.getMeta().loadConfig();
+          const vtState = await vt.getMeta().loadVtState();
+          const vtConfig = await vt.getConfig().loadConfig();
 
           // Validate input parameters
           if (!branch && !existingBranchName) {
@@ -82,76 +83,79 @@ export const checkoutCmd = new Command()
             const dryCheckoutResult = await vt.checkout(
               branch || existingBranchName!,
               {
-                toBranchVersion: config.version,
-                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                toBranchVersion: vtState.branch.version,
+                forkedFromId: isNewBranch ? vtState.branch.id : undefined,
                 dryRun: true,
               },
             );
 
             if (
               dryCheckoutResult.toBranch &&
-              config.currentBranch === dryCheckoutResult.toBranch.id
+              vtState.branch.id === dryCheckoutResult.toBranch.id
             ) {
               spinner.warn(
                 `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,
               );
               return;
             }
-
-            // Check if dirty, then early exit if it's dirty and they don't
-            // want to proceed. If in force mode don't do this check.
-            //
-            // We cannot safely check out if the result of the checkout would
-            // cause any local files to get modified or deleted, unless that file
-            // has already been safely pushed. To check if it's already been
-            // pushed, we do a .merge on the file state with  the result of
-            // vt.status(), which says that the file is not modified. .merge is a
-            // right intersection so we overwrite all the previously detected to
-            // be dangerous state changes as safe if it's not modified according
-            // to vt.status().
-            const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
-              .filter(
-                (fileStatus) => (fileStatus.status == "deleted" ||
-                  fileStatus.status == "modified"),
-              )
-              .merge(
-                (await vt.status())
-                  .filter((fileStatus) => fileStatus.status === "not_modified"),
-              );
-
-            if (!isNewBranch) {
-              if (
-                await vt.isDirty() && !force && !dryRun
-              ) {
-                spinner.stop();
-
-                displayFileStateChanges(
-                  dangerousLocalChanges,
-                  {
-                    headerText: `Dangerous changes that would occur when ${
-                      isNewBranch
-                        ? `creating branch "${targetBranch}"`
-                        : `checking out "${targetBranch}"`
-                    }:`,
-                    summaryText: "Would change:",
-                    emptyMessage: noChangesToStateMsg,
-                    includeSummary: true,
-                  },
+            if (vtConfig.dangerousOperations?.confirmation) {
+              // Check if dirty, then early exit if it's dirty and they don't
+              // want to proceed. If in force mode don't do this check.
+              //
+              // We cannot safely check out if the result of the checkout would
+              // cause any local files to get modified or deleted, unless that file
+              // has already been safely pushed. To check if it's already been
+              // pushed, we do a .merge on the file state with  the result of
+              // vt.status(), which says that the file is not modified. .merge is a
+              // right intersection so we overwrite all the previously detected to
+              // be dangerous state changes as safe if it's not modified according
+              // to vt.status().
+              const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
+                .filter(
+                  (fileStatus) => (fileStatus.status == "deleted" ||
+                    fileStatus.status == "modified"),
+                )
+                .merge(
+                  (await vt.status())
+                    .filter((fileStatus) =>
+                      fileStatus.status === "not_modified"
+                    ),
                 );
-                console.log();
 
-                // Ask for confirmation to proceed despite dirty state
-                const shouldProceed = await Confirm.prompt({
-                  message: colors.yellow(
-                    "Project has unpushed changes. " +
-                      "Do you want to proceed with checkout anyway?",
-                  ),
-                  default: false,
-                });
+              if (!isNewBranch) {
+                if (
+                  await vt.isDirty() && !force && !dryRun
+                ) {
+                  spinner.stop();
 
-                // Exit if user doesn't want to proceed
-                if (!shouldProceed) Deno.exit(0);
-                else console.log(); // Newline
+                  displayFileStateChanges(
+                    dangerousLocalChanges,
+                    {
+                      headerText: `Dangerous changes that would occur when ${
+                        isNewBranch
+                          ? `creating branch "${targetBranch}"`
+                          : `checking out "${targetBranch}"`
+                      }:`,
+                      summaryText: "Would change:",
+                      emptyMessage: noChangesToStateMsg,
+                      includeSummary: true,
+                    },
+                  );
+                  console.log();
+
+                  // Ask for confirmation to proceed despite dirty state
+                  const shouldProceed = await Confirm.prompt({
+                    message: colors.yellow(
+                      "Project has unpushed changes. " +
+                        "Do you want to proceed with checkout anyway?",
+                    ),
+                    default: false,
+                  });
+
+                  // Exit if user doesn't want to proceed
+                  if (!shouldProceed) Deno.exit(0);
+                  else console.log(); // Newline
+                }
               }
             }
 
@@ -182,7 +186,7 @@ export const checkoutCmd = new Command()
               {
                 dryRun: false,
                 // Undefined --> use current branch
-                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                forkedFromId: isNewBranch ? vtState.branch.id : undefined,
               },
             );
 

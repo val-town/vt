@@ -1,6 +1,7 @@
 import { join } from "@std/path";
 import stripAnsi from "strip-ansi";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
 
 /**
  * Runs the vt.ts script with provided arguments.
@@ -10,40 +11,53 @@ import { ENTRYPOINT_NAME } from "~/consts.ts";
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
+ * @param options.autoConfirm - Automatically confirm prompts
  * @returns Tuple containing [merged output (stdout+stderr), exit code]
  */
 export async function runVtCommand(
   args: string[],
   cwd: string,
-  autoConfirm = true,
+  options: {
+    env?: Record<string, string>;
+    autoConfirm?: boolean;
+  } = {},
 ): Promise<[string, number]> {
-  // Configure and spawn the process
-  const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
-  const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "-A", commandPath, ...args],
-    stdout: "piped",
-    stderr: "piped",
-    stdin: "piped",
-    cwd,
-  });
+  options = { autoConfirm: true, ...options };
 
-  const process = command.spawn();
+  return await doWithTempDir(async (tmpDir) => {
+    // Configure and spawn the process
+    const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
+    const command = new Deno.Command(Deno.execPath(), {
+      args: ["run", "-A", commandPath, ...args],
+      stdout: "piped",
+      stderr: "piped",
+      stdin: "piped",
+      cwd,
+      env: { XDG_CONFIG_HOME: join(tmpDir, "config"), ...options.env },
+    });
 
-  // Send "y" to automatically confirm prompts
-  if (autoConfirm) {
-    const stdin = process.stdin.getWriter();
-    await stdin.write(new TextEncoder().encode("y\n"));
-    stdin.releaseLock();
+    const process = command.spawn();
+
+    // Send "y" to automatically confirm prompts
+    if (options.autoConfirm) {
+      const stdin = process.stdin.getWriter();
+      await stdin.write(new TextEncoder().encode("y\n"));
+      stdin.releaseLock();
+    }
+
+    // Close stdin to prevent resource leaks
     await process.stdin.close();
-  }
 
-  // Collect and process the output
-  const { stdout, stderr, code } = await process.output();
-  const stdoutText = new TextDecoder().decode(stdout);
-  const stderrText = new TextDecoder().decode(stderr);
-  const combinedOutput = stdoutText + stderrText;
+    // Collect and process the output
+    const { stdout, stderr, code } = await process.output();
+    const stdoutText = new TextDecoder().decode(stdout);
+    const stderrText = new TextDecoder().decode(stderr);
+    const combinedOutput = stdoutText + stderrText;
 
-  return [stripAnsi(combinedOutput), code];
+    return [stripAnsi(combinedOutput), code];
+  });
 }
 
 /**
