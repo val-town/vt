@@ -1,3 +1,3 @@
 {
-  "text": "deno.json"
+  "text": "deno.json\n.git\n.DS_Store\nnode_modules\nvendor"
 }
