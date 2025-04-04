@@ -24,5 +24,8 @@ export const VTStateSchema = z.object({
  * JSON schema for the config.yaml file for configuration storage.
  */
 export const VTConfigSchema = z.object({
-  apiKey: z.string(),
-}).partial();
+  apiKey: z.string().nullable().default(null),
+  dangerousOperations: z.object({
+    confirmation: z.boolean().default(true),
+  }),
+});

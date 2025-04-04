@@ -22,6 +22,7 @@ import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
+import VTConfig from "~/vt/config.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -46,6 +47,15 @@ export default class VTClient {
    */
   public getMeta(): VTMeta {
     return this.#meta;
+  }
+
+  /**
+   * Returns a new VTConfig object init-ed at this VTClient's rootPath.
+   *
+   * @returns {VTConfig} The VTConfig instance.
+   */
+  public getConfig(): VTConfig {
+    return new VTConfig(this.rootPath);
   }
 
   /**

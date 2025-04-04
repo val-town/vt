@@ -24,6 +24,7 @@ export const pullCmd = new Command()
         : "Pulling latest changes...",
       async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+        const vtConfig = await vt.getConfig().loadConfig();
 
         // Check if dirty, then early exit if it's dirty and they don't
         // want to proceed. If in force mode don't do this check.
@@ -45,14 +46,16 @@ export const pullCmd = new Command()
           if (dryRun) return;
 
           // Ask for confirmation to proceed despite dirty state
-          const shouldProceed = await Confirm.prompt({
-            message:
-              "There are changes being pulled that would overwrite the local state." +
-              " Are you sure you want to proceed?",
-            default: false,
-          });
-          if (!shouldProceed) Deno.exit(0); // This is what they wanted
-          console.log();
+          if (vtConfig.dangerousOperations.confirmation) {
+            const shouldProceed = await Confirm.prompt({
+              message:
+                "There are changes being pulled that would overwrite the local state." +
+                " Are you sure you want to proceed?",
+              default: false,
+            });
+            if (!shouldProceed) Deno.exit(0); // This is what they wanted
+            console.log();
+          }
         }
 
         if (dryRun) {

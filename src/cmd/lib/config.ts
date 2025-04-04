@@ -27,7 +27,7 @@ export const configSetCmd = new Command()
     "vt config set apiKey vtwn_notRealnotRealnotRealnotReal",
   )
   .action(
-    async ({ global }: { global: boolean }, key: string, value: string) => {
+    async ({ global }: { global?: boolean }, key: string, value: string) => {
       await doWithSpinner("Updating configuration...", async (spinner) => {
         // Check if we're in a Val Town project directory
         const vtRoot = await findVtRoot(Deno.cwd()).catch((e) => {

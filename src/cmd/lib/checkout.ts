@@ -65,6 +65,7 @@ export const checkoutCmd = new Command()
         async (spinner) => {
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
           const vtState = await vt.getMeta().loadVtState();
+          const vtConfig = await vt.getConfig().loadConfig();
 
           // Validate input parameters
           if (!branch && !existingBranchName) {
@@ -141,17 +142,19 @@ export const checkoutCmd = new Command()
                 console.log();
 
                 // Ask for confirmation to proceed despite dirty state
-                const shouldProceed = await Confirm.prompt({
-                  message: colors.yellow(
-                    "Project has unpushed changes. " +
-                      "Do you want to proceed with checkout anyway?",
-                  ),
-                  default: false,
-                });
+                if (vtConfig.dangerousOperations.confirmation) {
+                  const shouldProceed = await Confirm.prompt({
+                    message: colors.yellow(
+                      "Project has unpushed changes. " +
+                        "Do you want to proceed with checkout anyway?",
+                    ),
+                    default: false,
+                  });
 
-                // Exit if user doesn't want to proceed
-                if (!shouldProceed) Deno.exit(0);
-                else console.log(); // Newline
+                  // Exit if user doesn't want to proceed
+                  if (!shouldProceed) Deno.exit(0);
+                  else console.log(); // Newline
+                }
               }
             }
 
