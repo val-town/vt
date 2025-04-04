@@ -36,6 +36,9 @@ function welcomeToVt(): void {
   features.forEach((feature) => {
     console.log(`  - ${feature}`);
   });
+
+  console.log();
+  console.log("  To get started, you need to authenticate with Val Town.");
 }
 
 /**
