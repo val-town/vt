@@ -74,9 +74,7 @@ export const configSetCmd = new Command()
 
           if (JSON.stringify(config) !== JSON.stringify(validatedConfig)) {
             spinner.succeed(
-              `Set ${
-                colors.bold(`"${key}"="${value}"`)
-              } in local configuration`,
+              `Set ${colors.bold(`${key}=${value}`)} in local configuration`,
             );
           } else {
             spinner.fail(
