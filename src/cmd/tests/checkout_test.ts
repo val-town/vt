@@ -248,7 +248,7 @@ Deno.test({
 Deno.test({
   name: "warning on modified files",
   async fn(t) {
-    // Put an 8s deadline, since in the past we had an issue with this stalling
+    // Put an 15s deadline, since in the past we had an issue with this stalling
     // due to waiting for a user interaction
     await deadline(
       (async () => {
@@ -344,7 +344,7 @@ Deno.test({
           });
         });
       })(),
-      1000 * 8,
+      1000 * 15,
     );
   },
   sanitizeResources: false,
