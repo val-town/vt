@@ -10,12 +10,18 @@ import { ENTRYPOINT_NAME } from "~/consts.ts";
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
+ * @param options.autoConfirm - Automatically confirm prompts
  * @returns Tuple containing [merged output (stdout+stderr), exit code]
  */
 export async function runVtCommand(
   args: string[],
   cwd: string,
-  autoConfirm = true,
+  options: {
+    env?: Record<string, string>;
+    autoConfirm?: true;
+  } = {},
 ): Promise<[string, number]> {
   // Configure and spawn the process
   const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
@@ -25,12 +31,13 @@ export async function runVtCommand(
     stderr: "piped",
     stdin: "piped",
     cwd,
+    env: options.env,
   });
 
   const process = command.spawn();
 
   // Send "y" to automatically confirm prompts
-  if (autoConfirm) {
+  if (options.autoConfirm) {
     const stdin = process.stdin.getWriter();
     await stdin.write(new TextEncoder().encode("y\n"));
     stdin.releaseLock();
@@ -42,6 +49,7 @@ export async function runVtCommand(
   const stdoutText = new TextDecoder().decode(stdout);
   const stderrText = new TextDecoder().decode(stderr);
   const combinedOutput = stdoutText + stderrText;
+  process.stdin.close();
 
   return [stripAnsi(combinedOutput), code];
 }
