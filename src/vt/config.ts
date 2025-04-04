@@ -1,5 +1,4 @@
 import { deepMerge } from "@std/collections/deep-merge";
-import { init } from "zod-empty";
 import {
   GLOBAL_VT_CONFIG_PATH,
   JSON_INDENT_SPACES,
@@ -8,7 +7,7 @@ import {
 } from "~/consts.ts";
 import * as path from "@std/path";
 import { ensureDir, exists } from "@std/fs";
-import { VTConfigSchema } from "~/vt/vt/schemas.ts";
+import { DefaultVTConfig, VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
 import type z from "zod";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -167,7 +166,7 @@ export default class VTConfig {
 export async function createGlobalVTConfigDirIfNotExists() {
   if (!await exists(GLOBAL_VT_CONFIG_PATH)) {
     await ensureDir(GLOBAL_VT_CONFIG_PATH);
-    const baseConfig = init(VTConfigSchema);
+    const baseConfig = DefaultVTConfig;
     await Deno.writeTextFile(
       path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME),
       stringifyYaml(baseConfig, { indent: JSON_INDENT_SPACES }),
