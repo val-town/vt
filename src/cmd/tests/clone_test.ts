@@ -3,7 +3,6 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
@@ -37,7 +36,7 @@ Deno.test({
               path: "test.js",
               content: "",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
 
@@ -49,7 +48,7 @@ Deno.test({
               content:
                 "export function test() { return 'Hello from test_inner'; }",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
         });

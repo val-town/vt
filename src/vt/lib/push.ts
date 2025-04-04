@@ -1,9 +1,9 @@
 import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
-import type { ProjectItemType } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import type { FilesStatusManager } from "~/vt/lib/FilesStatusManager.ts";
+import { asProjectFileType, asProjectItemType } from "~/types.ts";
 
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town project.
@@ -18,7 +18,7 @@ export interface PushParams {
   /** The version to compute the file state changes against. Defaults to latest version. */
   version?: number;
   /** The current file state. If not provided, it will be computed. */
-  fileState?: FileState;
+  fileState?: FilesStatusManager;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
@@ -32,7 +32,7 @@ export interface PushParams {
  * @param {PushParams} params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export async function push(params: PushParams): Promise<FileState> {
+export async function push(params: PushParams): Promise<FilesStatusManager> {
   let {
     targetDir,
     projectId,
@@ -68,7 +68,7 @@ export async function push(params: PushParams): Promise<FileState> {
           branch_id: branchId,
           content: await Deno.readTextFile(path.join(targetDir, file.path)),
           name: path.basename(file.path),
-          type: file.type as Exclude<ProjectItemType, "directory">,
+          type: asProjectFileType(file.type),
         },
       );
     });
@@ -96,6 +96,10 @@ export async function push(params: PushParams): Promise<FileState> {
         // We want to make sure we get all the empty directories
         await ensureValtownDir(projectId, branchId, file.path, true);
       } else {
+        // The file type is already a ProjectItemType since it comes from fileState
+        // but we'll use asProjectItemType for extra safety
+        const fileType = asProjectItemType(file.type);
+
         // Upload the file
         await sdk.projects.files.create(
           projectId,
@@ -103,7 +107,7 @@ export async function push(params: PushParams): Promise<FileState> {
             path: file.path,
             content: (await Deno.readTextFile(path.join(targetDir, file.path))),
             branch_id: branchId,
-            type: file.type,
+            type: asProjectFileType(fileType),
           },
         );
       }

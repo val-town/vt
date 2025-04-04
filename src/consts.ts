@@ -1,6 +1,5 @@
-//deno-fmt-ignore-file
-
 import { colors } from "@cliffy/ansi/colors";
+import type { ProjectItemType } from "~/types.ts";
 export const DEFAULT_BRANCH_NAME = "main";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
@@ -12,7 +11,7 @@ export const ALWAYS_IGNORE_PATTERNS: string[] = [
 
 export const CONFIG_FILE_NAME = "vt.json";
 export const META_FOLDER_NAME = ".vt";
-export const ENTRYPOINT_NAME = "vt.ts"
+export const ENTRYPOINT_NAME = "vt.ts";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const META_LOCK_FILE_NAME = "lock";
 
@@ -20,7 +19,10 @@ export const MAX_WALK_UP_LEVELS = 100;
 
 export const FIRST_VERSION_NUMBER = 0;
 
-export const STATUS_STYLES: Record< string, { prefix: string; color: (key: string) => string } > = {
+export const STATUS_STYLES: Record<
+  string,
+  { prefix: string; color: (key: string) => string }
+> = {
   modified: { prefix: "M", color: colors.yellow },
   created: { prefix: "A", color: colors.green },
   deleted: { prefix: "D", color: colors.red },
@@ -36,7 +38,7 @@ export const ProjectItems = [
   "interval",
   "file",
   "directory",
-] as const;
+];
 
 export const ProjectItemColors: Record<ProjectItemType, (s: string) => string> =
   {
@@ -57,9 +59,7 @@ export const TypeToTypeStr: Record<ProjectItemType, string> = {
   "directory": "directory",
 };
 
-export const VAL_TOWN_PROJECT_URL_REGEX = /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
-
-export type ProjectItemType = typeof ProjectItems[number];
-export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+export const VAL_TOWN_PROJECT_URL_REGEX =
+  /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
 export const RECENT_VERSION_COUNT = 5;

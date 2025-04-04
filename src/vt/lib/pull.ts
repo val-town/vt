@@ -4,7 +4,10 @@ import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
-import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
+import {
+  FilesStatusManager,
+  type FileStatus,
+} from "~/vt/lib/FilesStatusManager.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.
@@ -40,7 +43,7 @@ export interface PullParams {
  *
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull(params: PullParams): Promise<FileState> {
+export function pull(params: PullParams): Promise<FilesStatusManager> {
   const {
     targetDir,
     projectId,
@@ -51,7 +54,7 @@ export function pull(params: PullParams): Promise<FileState> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = FileState.empty();
+      const changes = FilesStatusManager.empty();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the

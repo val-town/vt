@@ -4,7 +4,7 @@ import sdk from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import type { FilesStatusManager } from "~/vt/lib/FilesStatusManager.ts";
 
 Deno.test({
   name: "test typical file status reporting",
@@ -50,7 +50,7 @@ Deno.test({
 
         await t.step("varify status layout", async () => {
           // Run status check
-          const result: FileState = await status({
+          const result: FilesStatusManager = await status({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,

@@ -1,12 +1,15 @@
 import sdk, { listProjectItems } from "~/sdk.ts";
-import type Valtown from "@valtown/sdk";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir, exists } from "@std/fs";
 import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
-import type { ProjectItemType } from "~/consts.ts";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
-import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
+import { asProjectItemType } from "~/types.ts";
+import type ValTown from "@valtown/sdk";
+import {
+  FilesStatusManager,
+  type FileStatus,
+} from "~/vt/lib/FilesStatusManager.ts";
 
 /**
  * Parameters for cloning a project by downloading its files and directories to the specified
@@ -34,7 +37,7 @@ export interface CloneParams {
  * @param params Options for the clone operation
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone(params: CloneParams): Promise<FileState> {
+export function clone(params: CloneParams): Promise<FilesStatusManager> {
   const {
     targetDir,
     projectId,
@@ -45,7 +48,7 @@ export function clone(params: CloneParams): Promise<FileState> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = FileState.empty();
+      const changes = FilesStatusManager.empty();
       const projectItems = await listProjectItems(projectId, {
         branch_id: branchId,
         version,
@@ -67,7 +70,7 @@ export function clone(params: CloneParams): Promise<FileState> {
             // If the directory is new mark it as created
             if (!(await exists(join(targetDir, file.path)))) {
               changes.insert({
-                type: "directory" as ProjectItemType,
+                type: "directory",
                 path: file.path,
                 status: "created",
               });
@@ -101,25 +104,30 @@ async function createFile(
   projectId: string,
   branchId: string,
   version: number | undefined = undefined,
-  file: Valtown.Projects.FileRetrieveResponse,
-  changes: FileState,
+  file: ValTown.Projects.FileRetrieveResponse,
+  changes: FilesStatusManager,
   dryRun: boolean,
 ): Promise<void> {
   const updatedAt = new Date(file.updatedAt);
-  const fileStatus: FileStatus = {
-    type: file.type as ProjectItemType,
-    path: file.path,
-    status: "created", // Default status
-  };
+  const fileType = asProjectItemType(file.type);
 
   // Check for existing file and determine status
   const fileInfo = await Deno
     .stat(join(originalRoot, path))
     .catch(() => null);
 
-  if (fileInfo !== null) {
-    const localMtime = (await Deno.stat(join(originalRoot, path)))
-      .mtime!.getTime();
+  let fileStatus: FileStatus;
+
+  if (fileInfo === null) {
+    // File doesn't exist locally - it's being created
+    fileStatus = {
+      type: fileType,
+      path: file.path,
+      status: "created",
+    };
+  } else {
+    // File exists - check if it's modified
+    const localMtime = fileInfo.mtime!.getTime();
     const projectMtime = updatedAt.getTime();
 
     const modified = await isFileModified({
@@ -133,8 +141,19 @@ async function createFile(
       projectMtime,
     });
 
-    if (modified) fileStatus.status = "modified";
-    else fileStatus.status = "not_modified";
+    if (modified) {
+      fileStatus = {
+        type: fileType,
+        path: file.path,
+        status: "modified",
+      };
+    } else {
+      fileStatus = {
+        type: fileType,
+        path: file.path,
+        status: "not_modified",
+      };
+    }
   }
 
   // Track file status
