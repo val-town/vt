@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
-import { ensureGlobalVtConfig, globalConfig } from "~/vt/config.ts";
+import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 
 await ensureGlobalVtConfig();
 

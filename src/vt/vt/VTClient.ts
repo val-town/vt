@@ -22,7 +22,7 @@ import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
-import VTConfig from "~/vt/config.ts";
+import VTConfig from "~/vt/VTConfig.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes

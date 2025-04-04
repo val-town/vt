@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import VTConfig from "~/vt/config.ts";
+import VTConfig from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { getNestedProperty, setNestedProperty } from "~/utils.ts";

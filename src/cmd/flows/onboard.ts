@@ -5,7 +5,7 @@ import open from "open";
 import { GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
 import wrap from "word-wrap";
-import { globalConfig } from "~/vt/config.ts";
+import { globalConfig } from "~/vt/VTConfig.ts";
 import { delay } from "@std/async";
 
 /**
