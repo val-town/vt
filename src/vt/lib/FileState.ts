@@ -2,9 +2,7 @@ import { basename } from "@std/path";
 import { type ProjectItemType, TYPE_PRIORITY } from "~/consts.ts";
 
 export interface FileInfo {
-  mtime: number;
   type: ProjectItemType;
-  where: "local" | "remote";
 }
 
 export type FileStatusType =

@@ -45,10 +45,10 @@ export const watchCmd = new Command()
   .option(
     "-d, --debounce-delay <delay:number>",
     "Debounce delay in milliseconds",
-    { default: 300 },
+    { default: 1500 },
   )
-  .action((options) => {
-    doWithSpinner("Starting watch...", async (spinner) => {
+  .action(async (options) => {
+    await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
@@ -83,29 +83,28 @@ export const watchCmd = new Command()
       console.log();
       console.log(watchingForChangesLine());
 
-      while (true) {
-        try {
-          for await (
-            const fileStateChanges of vt.watch(options.debounceDelay)
-          ) {
-            try {
-              if (fileStateChanges.size() > 0) {
-                console.log();
-                displayFileStateChanges(fileStateChanges, {
-                  emptyMessage: "No changes detected. Continuing to watch...",
-                  headerText: "New changes detected",
-                  summaryText: "Pushed:",
-                });
-                console.log();
-                console.log(watchingForChangesLine());
-              }
-            } catch (e) {
-              if (e instanceof Error) console.log(colors.red(e.message));
+      try {
+        await vt.watch((fileStateChanges) => {
+          try {
+            if (fileStateChanges.size() > 0) {
+              console.log();
+              displayFileStateChanges(fileStateChanges, {
+                emptyMessage: "No changes detected. Continuing to watch...",
+                headerText: "New changes detected",
+                summaryText: "Pushed:",
+              });
+              console.log();
+              console.log(watchingForChangesLine());
             }
+          } catch (e) {
+            if (e instanceof Error) console.log(colors.red(e.message));
           }
-        } catch (e) {
-          if (e instanceof Error) console.log(colors.red(e.message));
-        }
+        }, options.debounceDelay);
+
+        // This line would only execute if watch() completes normally
+        console.log(colors.yellow("Watch process ended."));
+      } catch (e) {
+        if (e instanceof Error) console.log(colors.red(e.message));
       }
     });
   })

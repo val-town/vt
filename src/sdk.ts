@@ -1,6 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
-import { API_KEY_KEY } from "~/consts.ts";
+import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
 
@@ -29,7 +29,7 @@ export async function branchExists(
  * @returns {Promise} Promise resolving to the branch ID
  * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
  */
-export async function branchIdToBranch(
+export async function branchNameToBranch(
   projectId: string,
   branchName: string,
 ): Promise<ValTown.Projects.Branches.BranchListResponse> {
@@ -41,49 +41,49 @@ export async function branchIdToBranch(
 }
 
 /**
- * Converts a file path to its corresponding project file for a given project.
+ * Converts a file path to its corresponding project item for a given project.
  *
- * @param {string} projectId The ID of the project containing the file
- * @param {string} branchId The ID of the project branch to reference
- * @param {number} version The version of the project for the file being found
- * @param {string} filePath The file path to locate
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse>} Promise resolving to the file data
- * @throws {Error} if the file is not found or if the API request fails
+ * @param {string} projectId - The ID of the project containing the file
+ * @param {object} options - The options object
+ * @param {string} options.branchId - The ID of the project branch to reference
+ * @param {number} [options.version] - The version of the project for the file being found (optional)
+ * @param {string} options.filePath - The file path to locate
+ * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
-export async function filePathToFile(
+export async function getProjectItem(
   projectId: string,
-  branchId: string,
-  version: number | undefined = undefined,
-  filePath: string,
-): Promise<ValTown.Projects.FileRetrieveResponse> {
-  // Get all files in the project
-  const filePaths = await listProjectItems(
-    projectId,
-    {
-      path: "",
-      branch_id: branchId,
-      version,
-      recursive: true,
-    },
-  );
+  { branchId, version, filePath }: {
+    branchId?: string;
+    version?: number;
+    filePath: string;
+  },
+): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
+  branchId = (branchId ||
+    await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
+      resp.id
+    ))!;
+  version = version || (await getLatestVersion(projectId, branchId));
 
-  const result = filePaths.find((file) => file.path === filePath);
-  if (!result) {
-    throw new Deno.errors.NotFound(`File "${filePath}" not found in project`);
-  } else return result;
+  for await (
+    const filepath of await sdk.projects.files.retrieve(
+      projectId,
+      { path: "", branch_id: branchId, version, recursive: true },
+    )
+  ) if (filepath.path === filePath) return filepath;
 }
 
 /**
- * Lists all file paths in a project with pagination support.
- *
- * @param {string} projectId The ID of the project.
- * @param {Object} params The parameters for listing project items.
- * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for root.
- * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
- * @param {number} [params.version] - The version of the project. Defaults to latest.
- * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
- */
+  * Lists all file paths in a project with pagination support.
+  *
+  * @param {string} projectId The ID of the project.
+  * @param {Object} params The parameters for listing project items.
+  * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for
+ root.
+  * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
+  * @param {number} [params.version] - The version of the project. Defaults to latest.
+  * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
+  * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
+  */
 export async function listProjectItems(
   projectId: string,
   {
@@ -99,6 +99,11 @@ export async function listProjectItems(
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse[]> {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
+
+  branch_id = branch_id ||
+    (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
+      .then((resp) => resp.id))!;
+  version = version || (await getLatestVersion(projectId, branch_id));
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {

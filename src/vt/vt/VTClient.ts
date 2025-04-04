@@ -1,4 +1,5 @@
 import { clone } from "~/vt/lib/clone.ts";
+import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
@@ -11,9 +12,7 @@ import {
   type CheckoutResult,
   type ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import { isDirty } from "~/vt/lib/utils.ts";
-import ValTown from "@valtown/sdk";
-import sdk, { branchIdToBranch, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   FIRST_VERSION_NUMBER,
@@ -22,6 +21,7 @@ import {
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
+import ValTown from "@valtown/sdk";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -108,7 +108,7 @@ export default class VTClient {
         throw new Error("Project not found");
       });
 
-    const branch = await branchIdToBranch(projectId, branchName);
+    const branch = await branchNameToBranch(projectId, branchName);
 
     version = version ??
       (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
@@ -148,21 +148,23 @@ export default class VTClient {
    * lock file with the running program's PID is maintained automatically so
    * that this cannot run with multiple instances.
    *
-   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 300ms)
+   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 1000ms)
+   * @param {number} gracePeriod - Time in milliseconds to wait after a push before processing new events (default: 250ms)
    * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
-  public async *watch(
-    debounceDelay: number = 300,
-  ): AsyncGenerator<FileState> {
+  public async watch(
+    callback: (fileState: FileState) => void | Promise<void>,
+    debounceDelay: number = 1000,
+    gracePeriod: number = 250,
+  ): Promise<void> {
     // Do an initial push
     const firstPush = await this.push();
-    if (firstPush.changes() > 0) yield firstPush;
+    if (firstPush.changes() > 0) {
+      await callback(firstPush);
+    }
 
     // Set the lock file at the start
     await this.getMeta().setLockFile();
-
-    // Track the last time we pushed
-    let lastPushed = 0;
 
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -175,41 +177,46 @@ export default class VTClient {
 
     const watcher = Deno.watchFs(this.rootPath);
 
-    // Process events and yield results
-    for await (const event of watcher) {
-      if (event.kind === "access") return; // Nothing to do
+    // Track if we're currently processing changes
+    let inGracePeriod = false;
+    const debouncedCallback = debounce(async () => {
+      // Skip if we're already in a grace period
+      if (inGracePeriod) return;
+
+      // Set grace period flag to prevent multiple executions
+      inGracePeriod = true;
 
       try {
-        // Debounce - only push if enough time has elapsed since last push
-        const now = Date.now();
-        if (now - lastPushed < debounceDelay) continue;
-
-        lastPushed = now; // update debouce counter
-        yield await this.push(); // yields the status retreived
+        const fileState = await this.push();
+        if (fileState.changes() > 0) {
+          await callback(fileState);
+        }
       } catch (e) {
-        // Handle case where the file was deleted before we could push it
         if (e instanceof Deno.errors.NotFound) {
           // The file no longer exists at the time of uploading. It could've
           // just been a temporary file, but since it no longer exists it
           // isn't our problem.
-          continue;
-        }
-
-        // Handle case where the API returns a 404 Not Found error
-        if (e instanceof ValTown.APIError && e.status === 404) {
+        } else if (e instanceof ValTown.APIError && e.status === 404) {
           // The val we're trying to update doesn't exist on the server. This
           // is usually a result of starting a deletion and then trying to
           // delete a second time because of duplicate file system events.
-          //
-          // TODO: We should keep a global queue of outgoing requests and
-          // intelligently notice that we have duplicate idempotent (in this
-          // case deletions are) requests in the queue.
-          continue;
-        }
-
-        // Re-throw any other errors
-        throw e;
+        } else throw e;
       }
+
+      // Use delay to implement the grace period
+      await delay(gracePeriod);
+      inGracePeriod = false;
+    }, debounceDelay);
+
+    // Process events and debounce changes
+    for await (const event of watcher) {
+      if (event.kind === "access") continue; // Nothing to do
+
+      // If we're in a grace period, ignore the event
+      if (inGracePeriod) continue;
+
+      // Trigger the debounced callback when a file change is detected
+      debouncedCallback();
     }
   }
 
@@ -238,7 +245,7 @@ export default class VTClient {
     });
 
     // Get the project branch
-    const branch = await branchIdToBranch(project.id, DEFAULT_BRANCH_NAME);
+    const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
     // Then clone it to the target directory
@@ -315,23 +322,24 @@ export default class VTClient {
     options?: Partial<Parameters<typeof pull>[0]>,
   ): ReturnType<typeof pull> {
     return await this.getMeta().doWithConfig(async (config) => {
-      if (options?.dryRun === false) {
-        config.version = await getLatestVersion(
-          config.projectId,
-          config.currentBranch,
-        );
-      }
-
       const result = await pull({
         ...{
           targetDir: this.rootPath,
           projectId: config.projectId,
           branchId: config.currentBranch,
-          version: config.version,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
         },
         ...options,
       });
+
+      if (options?.dryRun === false) {
+        const latestVersion = await getLatestVersion(
+          config.projectId,
+          config.currentBranch,
+        );
+
+        config.version = latestVersion;
+      }
 
       return result;
     });
@@ -372,21 +380,19 @@ export default class VTClient {
   * Check out a different branch of the project.
   *
   * @param {string} branchName The name of the branch to check out to
-  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams> & { fileStateChanges?: FileStateChanges }} options -
+  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams>} options -
  Optional parameters
   * @returns {Promise<CheckoutResult>}
   */
   public async checkout(
     branchName: string,
-    options?: Partial<BranchCheckoutParams | ForkCheckoutParams> & {
-      fileStateChanges?: FileState;
-    },
+    options?: Partial<ForkCheckoutParams>,
   ): Promise<CheckoutResult> {
     return await this.getMeta().doWithConfig(async (config) => {
       const currentBranchId = config.currentBranch;
 
       // Get files that were newly created but not yet committed
-      const fileStateChanges = options?.fileStateChanges || await this.status();
+      const fileStateChanges = await this.status();
       const created = fileStateChanges.created.map((file) => file.path);
 
       // We want to ignore newly created files. Adding them to the gitignore
@@ -407,15 +413,12 @@ export default class VTClient {
       let result: CheckoutResult;
 
       // Check if we're forking from another branch
-      if (
-        options && "forkedFromId" in options &&
-        typeof options.forkedFromId === "string"
-      ) {
+      if (options && options.forkedFromId) {
         const forkParams: ForkCheckoutParams = {
           ...baseParams,
           forkedFromId: options.forkedFromId,
           name: branchName,
-          version: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
+          toBranchVersion: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
         };
 
         result = await checkout(forkParams);
@@ -428,7 +431,7 @@ export default class VTClient {
         }
       } else {
         // Checking out an existing branch
-        const checkoutBranch = await branchIdToBranch(
+        const checkoutBranch = await branchNameToBranch(
           config.projectId,
           branchName,
         );
@@ -440,19 +443,19 @@ export default class VTClient {
 
         const branchParams: BranchCheckoutParams = {
           ...baseParams,
-          branchId: checkoutBranch.id,
+          toBranchId: checkoutBranch.id,
           fromBranchId: currentBranchId,
-          version: options?.version || checkoutBranch.version, // Use specified version or the branch's version
+          toBranchVersion: options?.toBranchVersion || checkoutBranch.version, // Use specified version or the branch's version
         };
 
         result = await checkout(branchParams);
+      }
 
-        // Don't touch the config if it's a dry run
-        if (!baseParams.dryRun) {
-          if (result.toBranch) {
-            config.currentBranch = result.toBranch.id;
-            config.version = result.toBranch.version; // Use the target branch's version
-          }
+      // Don't touch the config if it's a dry run
+      if (!baseParams.dryRun) {
+        if (result.toBranch) {
+          config.currentBranch = result.toBranch.id;
+          config.version = result.toBranch.version; // Use the target branch's version
         }
       }
 
@@ -463,14 +466,11 @@ export default class VTClient {
   /**
    * Check if the working directory is dirty relative to remote.
    *
-   * @param {Object} options - Optional parameters
-   * @param {FileStateChanges} options.fileStateChanges - Optional pre-fetched file state changes to use
    * @returns {Promise<boolean>} True if local state is dirty
    */
-  public async isDirty(
-    options?: { fileStateChanges?: FileState },
-  ): Promise<boolean> {
-    const fileStateChanges = options?.fileStateChanges || await this.status();
-    return isDirty(fileStateChanges);
+  public async isDirty(): Promise<boolean> {
+    const fileStateChanges = await this.status();
+    return fileStateChanges.modified.length > 0 ||
+      fileStateChanges.deleted.length > 0;
   }
 }

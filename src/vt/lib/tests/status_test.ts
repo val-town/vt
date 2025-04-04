@@ -68,7 +68,7 @@ Deno.test({
           assertEquals(result.deleted.length, 1);
           assertEquals(result.deleted[0].path, remoteFile2);
         });
-      }, "vt_status_test_");
+      });
     });
   },
 });
@@ -110,7 +110,7 @@ Deno.test({
           true,
           "empty directory should be detected as created",
         );
-      }, "vt_status_empty_dir_test_");
+      });
     });
   },
 });
@@ -175,7 +175,7 @@ Deno.test({
           assertEquals(statusResult.created[0].path, "folder/new.txt");
           assertEquals(statusResult.created[0].status, "created");
         });
-      }, "vt_status_rename_test_");
+      });
     });
   },
 });
