@@ -100,6 +100,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -173,6 +174,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -240,6 +242,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -344,4 +347,5 @@ Deno.test({
       1000 * 8,
     );
   },
+  sanitizeResources: false,
 });
