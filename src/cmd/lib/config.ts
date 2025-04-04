@@ -15,6 +15,25 @@ function showConfigOptions() {
   // deno-lint-ignore no-explicit-any
   const jsonSchema = zodToJsonSchema(VTConfigSchema) as any;
   delete jsonSchema["$schema"];
+
+  // deno-lint-ignore no-explicit-any
+  const removeAdditionalProperties = (obj: any) => {
+    if (obj && typeof obj === "object") {
+      delete obj.additionalProperties;
+
+      // Recursively process nested objects
+      for (const key in obj) {
+        if (typeof obj[key] === "object" && obj[key] !== null) {
+          removeAdditionalProperties(obj[key]);
+        }
+      }
+    }
+  };
+
+  removeAdditionalProperties(jsonSchema);
+
+  console.log(colors.green("All available options:"));
+  console.log();
   printYaml(stringifyYaml(jsonSchema["properties"]));
 }
 
@@ -104,8 +123,8 @@ export const configOptionsCmd = new Command()
 // Add subcommands to the main config command
 export const configCmd = new Command()
   .name("config")
+  .action(showConfigOptions)
   .description("Manage vt configuration")
   .command("set", configSetCmd)
   .command("get", configGetCmd)
-  .command("options", configOptionsCmd)
-  .action(showConfigOptions);
+  .command("options", configOptionsCmd);
