@@ -32,9 +32,7 @@ export const VTConfigSchema = z.object({
   dangerousOperations: z.object({
     confirmation: z.union([
       z.boolean(),
-      z.enum(["true", "false", "0", "1"]).transform((val) =>
-        val === "true" || val === "1" ? true : false
-      ),
+      z.enum(["true", "false"]).transform((val) => val === "true"),
     ]),
   }).optional(),
 });
