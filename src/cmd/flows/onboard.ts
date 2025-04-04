@@ -6,6 +6,7 @@ import { GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
 import wrap from "word-wrap";
 import { globalConfig } from "~/vt/config.ts";
+import { delay } from "@std/async";
 
 /**
  * Displays a welcome message for new Val Town CLI users
@@ -57,6 +58,8 @@ export async function onboardFlow(): Promise<void> {
   });
 
   if (goToWebsite) {
+    console.log("Ensure you select user read & project read+write permissions");
+    await delay(500);
     await open("https://www.val.town/settings/api");
     console.log("Browser opened to https://www.val.town/settings/api");
   } else {
