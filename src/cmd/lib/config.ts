@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import VTConfig from "~/vt/config.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { setNestedProperty } from "~/utils.ts";
+import { getNestedProperty, setNestedProperty } from "~/utils.ts";
 import { stringify as stringifyYaml } from "@std/yaml";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -63,6 +63,17 @@ export const configSetCmd = new Command()
 
         const config = await vtConfig.loadConfig();
         const updatedConfig = setNestedProperty(config, key, value);
+        const oldProperty = getNestedProperty(config, key, value) as
+          | string
+          | undefined;
+
+        if (oldProperty && oldProperty === value) {
+          throw new Error(
+            `Property ${colors.bold(key)} is already set to ${
+              colors.bold(oldProperty)
+            }`,
+          );
+        }
 
         let validatedConfig: z.infer<typeof VTConfigSchema>;
         try {
@@ -77,7 +88,7 @@ export const configSetCmd = new Command()
               `Set ${colors.bold(`${key}=${value}`)} in local configuration`,
             );
           } else {
-            spinner.fail(
+            throw new Error(
               `Property ${colors.bold(key)} is not valid.` +
                 `\n  Use \`${
                   colors.bold("vt config options")
