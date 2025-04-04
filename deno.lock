@@ -57,6 +57,8 @@
     "npm:pretty-ms@*": "9.2.0",
     "npm:strip-ansi@^7.1.0": "7.1.0",
     "npm:word-wrap@^1.2.5": "1.2.5",
+    "npm:zod-to-json-schema@^3.24.5": "3.24.5_zod@3.24.2",
+    "npm:zod-validation-error@^3.4.0": "3.4.0_zod@3.24.2",
     "npm:zod@*": "3.24.2",
     "npm:zod@^3.24.2": "3.24.2"
   },
@@ -956,6 +958,12 @@
         "zod"
       ]
     },
+    "zod-validation-error@3.4.0_zod@3.24.2": {
+      "integrity": "sha512-ZOPR9SVY6Pb2qqO5XHt+MkkTRxGXb4EVtnjc9JpXUOtUB1T9Ru7mZOT361AN3MsetVe7R0a1KZshJDZdgp9miQ==",
+      "dependencies": [
+        "zod"
+      ]
+    },
     "zod@3.24.2": {
       "integrity": "sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ=="
     }
@@ -1050,6 +1058,8 @@
       "npm:open@^10.1.0",
       "npm:strip-ansi@^7.1.0",
       "npm:word-wrap@^1.2.5",
+      "npm:zod-to-json-schema@^3.24.5",
+      "npm:zod-validation-error@^3.4.0",
       "npm:zod@^3.24.2"
     ]
   }
