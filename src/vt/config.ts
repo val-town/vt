@@ -20,12 +20,12 @@ export default class VTConfig {
   /**
    * Creates an instance of VTConfig.
    *
-   * @param {string} rootPath - The root path where the configuration is located.
+   * @param {string} localConfigPath - The path where the local configuration is stored.
    */
-  #rootPath: string;
+  #localConfigPath: string;
 
-  constructor(rootPath: string) {
-    this.#rootPath = rootPath;
+  constructor(localConfigPath?: string) {
+    this.#localConfigPath = localConfigPath || Deno.cwd();
   }
 
   /**
@@ -35,7 +35,7 @@ export default class VTConfig {
    */
   public getLocalConfigPath(): string {
     return path.join(
-      this.#rootPath,
+      this.#localConfigPath,
       META_FOLDER_NAME,
       VT_CONFIG_FILE_NAME,
     );
@@ -107,15 +107,45 @@ export default class VTConfig {
    * @param {Record<string, unknown>} config - The configuration to save.
    * @returns {Promise<void>} A promise that resolves when the configuration has been saved.
    * @throws {Error} Will throw an error if the file cannot be written.
+   * @throws {z.ZodError} Will throw a validation error if the config doesn't match the schema.
    */
   public async saveLocalConfig(config: Record<string, unknown>): Promise<void> {
+    // Validate the configuration against the schema
+    const validatedConfig = VTConfigSchema.parse(config);
+
     // Ensure the metadata directory exists
-    await ensureDir(path.join(this.#rootPath, META_FOLDER_NAME));
+    await ensureDir(path.join(this.#localConfigPath, META_FOLDER_NAME));
 
     // Write the configuration to file as YAML
     await Deno.writeTextFile(
       this.getLocalConfigPath(),
-      stringifyYaml(config, { indent: JSON_INDENT_SPACES }),
+      stringifyYaml(validatedConfig, { indent: JSON_INDENT_SPACES }),
+    );
+  }
+
+  /**
+   * Saves configuration to the global configuration file.
+   *
+   * @param {Record<string, unknown>} config - The configuration to save.
+   * @returns {Promise<void>} A promise that resolves when the configuration has been saved.
+   * @throws {Error} Will throw an error if the file cannot be written.
+   * @throws {z.ZodError} Will throw a validation error if the config doesn't match the schema.
+   */
+  public async saveGlobalConfig(
+    config: Record<string, unknown>,
+  ): Promise<void> {
+    // Validate the configuration against the schema
+    const validatedConfig = VTConfigSchema.parse(config);
+
+    // Ensure the global configuration directory exists
+    await ensureDir(GLOBAL_VT_CONFIG_PATH);
+
+    // Write the configuration to file as YAML
+    await Deno.writeTextFile(
+      this.getGlobalConfigPath(),
+      stringifyYaml(validatedConfig, { indent: JSON_INDENT_SPACES }),
     );
   }
 }
+
+export const globalConfig = new VTConfig();

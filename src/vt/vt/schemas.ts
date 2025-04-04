@@ -25,4 +25,4 @@ export const VTStateSchema = z.object({
  */
 export const VTConfigSchema = z.object({
   apiKey: z.string(),
-});
+}).partial();

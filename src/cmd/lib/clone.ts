@@ -62,7 +62,12 @@ export const cloneCmd = new Command()
     `vt clone username/projectName new-directory`,
   )
   .action(
-    async (_, projectUri: string, rootPath?: string, branchName?: string) => {
+    async (
+      _: unknown,
+      projectUri: string,
+      rootPath?: string,
+      branchName?: string,
+    ) => {
       return await doWithSpinner("Cloning project...", async (spinner) => {
         let targetDir = rootPath || Deno.cwd();
 

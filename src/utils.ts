@@ -1,4 +1,5 @@
 import { dirname } from "@std/path";
+import { deepMerge } from "@std/collections/deep-merge";
 import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
 
 /**
@@ -38,4 +39,33 @@ export async function findRoot(
   }
 
   throw new Deno.errors.NotFound();
+}
+
+/**
+ * Sets a value at a nested property path within an object and returns a new object.
+ * Creates intermediate objects if they don't exist.
+ *
+ * @param obj - The source object (will not be modified)
+ * @param path - A dot-separated string representing the property path (e.g., 'user.address.city')
+ * @param value - The value to set at the specified path
+ * @returns A new object with the value set at the specified path
+ *
+ * @example
+ * const user = {};
+ * const updatedUser = setNestedPropertyImmutable(user, 'profile.address.city', 'New York');
+ * // Result: updatedUser = { profile: { address: { city: 'New York' } } }
+ * // Original user object remains empty: {}
+ */
+export function setNestedProperty(
+  obj: Record<string, unknown | Record<string, unknown>>,
+  path: string,
+  value: unknown,
+): { [x: string]: unknown } {
+  // Convert path like "foo.bar.buzz" to { foo: { bar: { buzz: value } } }
+  const pathParts = path.split(".");
+  const valueObj = pathParts
+    .reduceRight((acc, part) => ({ [part]: acc }), value) as object;
+
+  // Merge the new value object with the original object
+  return deepMerge(obj, valueObj);
 }
