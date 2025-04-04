@@ -1,5 +1,6 @@
 import { deepMerge } from "@std/collections/deep-merge";
 import {
+  API_KEY_KEY,
   GLOBAL_VT_CONFIG_PATH,
   JSON_INDENT_SPACES,
   META_FOLDER_NAME,
@@ -167,6 +168,13 @@ export async function createGlobalVTConfigDirIfNotExists() {
   if (!await exists(GLOBAL_VT_CONFIG_PATH)) {
     await ensureDir(GLOBAL_VT_CONFIG_PATH);
     const baseConfig = DefaultVTConfig;
+
+    // If we can find `VAL_TOWN_API_KEY` in the environment, add it
+    // automatically
+    if (Deno.env.has(API_KEY_KEY)) {
+      baseConfig.apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
+    }
+
     await Deno.writeTextFile(
       path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME),
       stringifyYaml(baseConfig, { indent: JSON_INDENT_SPACES }),

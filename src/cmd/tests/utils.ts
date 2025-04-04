@@ -43,8 +43,10 @@ export async function runVtCommand(
       const stdin = process.stdin.getWriter();
       await stdin.write(new TextEncoder().encode("y\n"));
       stdin.releaseLock();
-      await process.stdin.close();
     }
+
+    // Close stdin to prevent resource leaks
+    await process.stdin.close();
 
     // Collect and process the output
     const { stdout, stderr, code } = await process.output();
