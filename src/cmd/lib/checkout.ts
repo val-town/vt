@@ -116,12 +116,30 @@ export const checkoutCmd = new Command()
               )
               .merge(
                 (await vt.status())
+                  // https://github.com/val-town/vt/pull/71
+                  // If a file is modified more recently remotely during a
+                  // checkout, then we do not need to count it as a dirty state,
+                  // since when we land on the new branch we will not have lost any
+                  // local state, since the newest change from the destination was
+                  // the remote state of the given file. So, we remap all the
+                  // remote modifications to not-modified state, and then do a
+                  // right intesection into the dangerousLocalChanges.
+                  .map((fileStatus) => {
+                    if (
+                      fileStatus.status === "modified" &&
+                      fileStatus.where === "remote"
+                    ) fileStatus.status = "not_modified";
+
+                    return fileStatus;
+                  })
                   .filter((fileStatus) => fileStatus.status === "not_modified"),
               );
 
             if (!isNewBranch) {
               if (
-                await vt.isDirty() && !force && !dryRun
+                (dangerousLocalChanges.modified.length > 0 ||
+                  dangerousLocalChanges.deleted.length > 0) &&
+                !force && !dryRun
               ) {
                 spinner.stop();
 

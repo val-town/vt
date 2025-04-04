@@ -66,6 +66,10 @@ export async function status(params: StatusParams): Promise<FileState> {
       });
     } else {
       if (localFileInfo.type !== "directory") {
+        const localMtime = (await Deno.stat(path.join(targetDir, filePath)))
+          .mtime!.getTime();
+        const projectMtime = new Date(projectFileInfo.updatedAt).getTime();
+
         // File exists in both places, check if modified
         const isModified = await isFileModified({
           path: filePath,
@@ -74,9 +78,8 @@ export async function status(params: StatusParams): Promise<FileState> {
           projectId,
           branchId,
           version,
-          localMtime: (await Deno.stat(path.join(targetDir, filePath))).mtime!
-            .getTime(),
-          projectMtime: new Date(projectFileInfo.updatedAt).getTime(),
+          localMtime,
+          projectMtime,
         });
 
         if (isModified) {
@@ -84,6 +87,7 @@ export async function status(params: StatusParams): Promise<FileState> {
             type: localFileInfo.type,
             path: filePath,
             status: "modified",
+            where: projectMtime > localMtime ? "remote" : "local",
           };
           result.insert(fileStatus);
         } else {

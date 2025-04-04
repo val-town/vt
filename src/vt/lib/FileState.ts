@@ -13,6 +13,7 @@ export type FileStatusType =
 export interface FileStatus extends FileInfo {
   status: FileStatusType;
   path: string;
+  where?: "local" | "remote";
 }
 
 /**
@@ -224,6 +225,36 @@ export class FileState {
 
     for (const file of this.not_modified) {
       if (predicate(file)) result.insert(file);
+    }
+
+    return result;
+  }
+
+  /**
+   * Creates a new FileState with entries transformed by the given mapping function.
+   *
+   * @param mapper - Function that transforms each entry. Takes a FileStatus and returns a new FileStatus.
+   * @returns A new FileState containing the transformed entries
+   */
+  public map(
+    mapper: (entry: FileStatus) => FileStatus,
+  ): FileState {
+    const result = new FileState();
+
+    for (const file of this.created) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.deleted) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.modified) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.not_modified) {
+      result.insert(mapper(file));
     }
 
     return result;
