@@ -9,9 +9,15 @@ export const createCmd = new Command()
   .name("create")
   .description("Create a new Val Town project")
   .arguments("<projectName:string> [targetDir:string]")
-  .option("--public", "Create as public project (default)")
-  .option("--private", "Create as private project")
-  .option("--unlisted", "Create as unlisted project")
+  .option("--public", "Create as public project (default)", {
+    conflicts: ["private", "unlisted"],
+  })
+  .option("--private", "Create as private project", {
+    conflicts: ["public", "unlisted"],
+  })
+  .option("--unlisted", "Create as unlisted project", {
+    conflicts: ["public", "private"],
+  })
   .option("--no-editor-files", "Skip creating editor configuration files")
   .option("-d, --description <desc:string>", "Project description")
   .example(
@@ -41,7 +47,6 @@ vt checkout main`,
   )
   .action(async (
     {
-      public: isPublic,
       private: isPrivate,
       unlisted,
       description,
@@ -59,15 +64,6 @@ vt checkout main`,
       if (!targetDir) {
         rootPath = join(Deno.cwd(), projectName);
       } else rootPath = join(targetDir, projectName);
-
-      // Check for mutually exclusive privacy flags
-      const privacyFlags =
-        [isPublic, isPrivate, unlisted].filter(Boolean).length;
-      if (privacyFlags > 1) {
-        throw new Error(
-          "Can only specify one privacy flag: --public, --private, or --unlisted",
-        );
-      }
 
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
