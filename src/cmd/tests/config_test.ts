@@ -11,7 +11,8 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project }) => {
-        const fakeApiKey = "vtwn_fakeApiKeyForTesting12345678";
+        const localFakeApiKey = crypto.randomUUID().slice(0, 33);
+        const globalFakeApiKey = crypto.randomUUID().slice(0, 33);
 
         await t.step("clone a new project to set the config in", async () => {
           // Clone the project
@@ -26,7 +27,7 @@ Deno.test({
 
         await t.step("set a fake api key locally", async () => {
           const [setOutput] = await runVtCommand(
-            ["config", "set", "apiKey", fakeApiKey],
+            ["config", "set", "apiKey", localFakeApiKey],
             projectDir,
             { env: { "XDG_CONFIG_HOME": tmpDir } },
           );
@@ -34,7 +35,7 @@ Deno.test({
           // Verify set output shows it's set in local configuration
           assertStringIncludes(
             setOutput,
-            `Set "apiKey"="${fakeApiKey}" in local configuration`,
+            `Set apiKey=${localFakeApiKey} in local configuration`,
           );
         });
 
@@ -47,7 +48,7 @@ Deno.test({
           );
 
           // Verify get output
-          assertStringIncludes(getOutput, fakeApiKey);
+          assertStringIncludes(getOutput, localFakeApiKey);
 
           // Verify .vt/config.yaml exists in the project directory
           assert(
@@ -58,7 +59,7 @@ Deno.test({
 
         await t.step("set a fake api key globally", async () => {
           const [setOutput] = await runVtCommand(
-            ["config", "set", "--global", "apiKey", fakeApiKey],
+            ["config", "set", "--global", "apiKey", globalFakeApiKey],
             projectDir,
             { env: { "XDG_CONFIG_HOME": tmpDir } },
           );
@@ -66,7 +67,7 @@ Deno.test({
           // Verify set output shows it's set in local configuration
           assertStringIncludes(
             setOutput,
-            `Set "apiKey"="${fakeApiKey}" in global configuration`,
+            `Set apiKey=${globalFakeApiKey} in global configuration`,
           );
 
           assert(

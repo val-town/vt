@@ -42,19 +42,56 @@ export async function findRoot(
 }
 
 /**
- * Sets a value at a nested property path within an object and returns a new object.
- * Creates intermediate objects if they don't exist.
+ * Gets a value from a nested property path within an object.
  *
- * @param obj - The source object (will not be modified)
+ * @param obj - The source object
  * @param path - A dot-separated string representing the property path (e.g., 'user.address.city')
- * @param value - The value to set at the specified path
- * @returns A new object with the value set at the specified path
+ * @param defaultValue - Value to return if path doesn't exist
+ * @returns The value at the specified path or defaultValue if not found
  *
  * @example
- * const user = {};
- * const updatedUser = setNestedPropertyImmutable(user, 'profile.address.city', 'New York');
- * // Result: updatedUser = { profile: { address: { city: 'New York' } } }
- * // Original user object remains empty: {}
+ * const city = getNestedProperty(user, 'profile.address.city', 'Unknown');
+ */
+export function getNestedProperty(
+  obj: Record<string, unknown>,
+  path: string,
+  defaultValue: unknown = undefined,
+): unknown {
+  const pathParts = path.split(".");
+  const [firstPart, ...restParts] = pathParts;
+
+  // Base case: if no more path parts, return current value
+  if (pathParts.length === 0) return obj;
+
+  // If obj is null or not an object, return default value
+  if (obj == null || typeof obj !== "object") return defaultValue;
+
+  const currentValue = obj[firstPart];
+
+  // If we've reached the end of the path, return the value
+  if (restParts.length === 0) {
+    return currentValue === undefined ? defaultValue : currentValue;
+  }
+
+  // Recurse with the next level and the remaining path
+  return getNestedProperty(
+    currentValue as Record<string, unknown>,
+    restParts.join("."),
+    defaultValue,
+  );
+}
+
+/**
+ * Sets a value at a nested property path and returns a new object.
+ * Creates intermediate objects if needed.
+ *
+ * @param obj - The source object (not modified)
+ * @param path - Dot-separated property path (e.g., 'user.address.city')
+ * @param value - The value to set
+ * @returns A new object with the updated path
+ *
+ * @example
+ * const updatedUser = setNestedProperty(user, 'profile.address.city', 'New York');
  */
 export function setNestedProperty(
   obj: Record<string, unknown | Record<string, unknown>>,

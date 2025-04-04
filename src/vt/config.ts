@@ -172,7 +172,8 @@ export async function ensureGlobalVtConfig() {
     const startingConfig = DefaultVTConfig;
 
     // If we can find `VAL_TOWN_API_KEY` in the environment, add it
-    // automatically
+    // automatically (the config file didn't previously exist so we shouldn't
+    // be overwriting anything)
     if (Deno.env.has(API_KEY_KEY)) {
       startingConfig.apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
     }
