@@ -59,15 +59,19 @@ export default class VTClient {
     options?: { noDenoJson?: boolean },
   ): Promise<void> {
     // Always add the vt ignore file
-    await Deno.writeTextFile(
-      join(this.rootPath, META_IGNORE_FILE_NAME),
-      vtIgnore.text,
-    );
+    const metaIgnoreFile = join(this.rootPath, META_IGNORE_FILE_NAME);
+    if (!await exists(metaIgnoreFile)) {
+      await Deno.writeTextFile(
+        join(this.rootPath, META_IGNORE_FILE_NAME),
+        vtIgnore.text,
+      );
+    }
 
     // Add deno.json unless explicitly disabled
-    if (!options?.noDenoJson) {
+    const denoJsonFile = join(this.rootPath, "deno.json");
+    if (!(options?.noDenoJson) && !await exists(denoJsonFile)) {
       await Deno.writeTextFile(
-        join(this.rootPath, "deno.json"),
+        denoJsonFile,
         JSON.stringify(denoJson, undefined, 2),
       );
     }
