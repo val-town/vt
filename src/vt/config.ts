@@ -1,4 +1,5 @@
 import { deepMerge } from "@std/collections/deep-merge";
+import { init } from "zod-empty";
 import {
   GLOBAL_VT_CONFIG_PATH,
   JSON_INDENT_SPACES,
@@ -9,8 +10,8 @@ import * as path from "@std/path";
 import { ensureDir, exists } from "@std/fs";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
-
 import type z from "zod";
+import { findVtRoot } from "~/vt/vt/utils.ts";
 
 /**
  * The VTConfig class manages configuration files for VT and provides
@@ -39,6 +40,15 @@ export default class VTConfig {
       META_FOLDER_NAME,
       VT_CONFIG_FILE_NAME,
     );
+  }
+
+  /**
+   * Whether a local configuration file exists.
+   *
+   * @raises {Promise<boolean>} A promise that resolves to true if the file exists, false otherwise.
+   */
+  public async localConfigExists(): Promise<boolean> {
+    return await exists(this.getLocalConfigPath());
   }
 
   /**
@@ -148,4 +158,21 @@ export default class VTConfig {
   }
 }
 
-export const globalConfig = new VTConfig();
+/**
+ * Create the global VTConfig file (~/.config/vt/config.yaml) if it doesn't
+ * exist.
+ */
+export async function createGlobalVTConfigDirIfNotExists() {
+  if (!await exists(GLOBAL_VT_CONFIG_PATH)) {
+    await ensureDir(GLOBAL_VT_CONFIG_PATH);
+    const baseConfig = init(VTConfigSchema);
+    await Deno.writeTextFile(
+      path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME),
+      stringifyYaml(baseConfig, { indent: JSON_INDENT_SPACES }),
+    );
+  }
+}
+
+export const globalConfig = new VTConfig(
+  await findVtRoot(Deno.cwd()).catch(() => undefined),
+);

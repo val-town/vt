@@ -27,5 +27,5 @@ export const VTConfigSchema = z.object({
   apiKey: z.string().nullable().default(null),
   dangerousOperations: z.object({
     confirmation: z.boolean().default(true),
-  }),
+  }).optional(),
 });

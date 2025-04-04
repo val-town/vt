@@ -2,10 +2,10 @@ import { Confirm } from "@cliffy/prompt";
 import { Secret } from "@cliffy/prompt/secret";
 import { colors } from "@cliffy/ansi/colors";
 import open from "open";
-import { GLOBAL_VT_CONFIG_PATH, JSON_INDENT_SPACES } from "~/consts.ts";
-import { ensureDir, exists } from "@std/fs";
+import { GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
+import { ensureDir } from "@std/fs";
 import wrap from "word-wrap";
-import VTConfig from "~/vt/config.ts";
+import { globalConfig } from "~/vt/config.ts";
 
 /**
  * Displays a welcome message for new Val Town CLI users
@@ -77,29 +77,11 @@ export async function onboardFlow(): Promise<void> {
   // Set the API key in the environment for the current session
   Deno.env.set("VAL_TOWN_API_KEY", apiKey);
 
-  // Create a config instance using the global path
-  const config = new VTConfig(Deno.cwd());
-
   // Ensure the global config directory exists
   await ensureDir(GLOBAL_VT_CONFIG_PATH);
 
-  // Load existing config or create a new one
-  let configData: Record<string, unknown> = {};
-  const globalConfigPath = config.getGlobalConfigPath();
-
-  if (await exists(globalConfigPath)) {
-    const existingConfig = await Deno.readTextFile(globalConfigPath);
-    configData = JSON.parse(existingConfig);
-  }
-
   // Add the API key to the config
-  configData.apiKey = apiKey;
-
-  // Write the updated config
-  await Deno.writeTextFile(
-    globalConfigPath,
-    JSON.stringify(configData, null, JSON_INDENT_SPACES),
-  );
+  globalConfig.saveGlobalConfig({ apiKey });
 
   console.log(colors.green("API key saved to global config file!"));
   console.log();
