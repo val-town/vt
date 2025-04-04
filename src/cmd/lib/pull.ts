@@ -46,7 +46,10 @@ export const pullCmd = new Command()
           if (dryRun) return;
 
           // Ask for confirmation to proceed despite dirty state
-          if (vtConfig.dangerousOperations.confirmation) {
+          if (
+            vtConfig.dangerousOperations &&
+            vtConfig.dangerousOperations.confirmation
+          ) {
             const shouldProceed = await Confirm.prompt({
               message:
                 "There are changes being pulled that would overwrite the local state." +

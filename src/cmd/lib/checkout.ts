@@ -142,7 +142,10 @@ export const checkoutCmd = new Command()
                 console.log();
 
                 // Ask for confirmation to proceed despite dirty state
-                if (vtConfig.dangerousOperations.confirmation) {
+                if (
+                  vtConfig.dangerousOperations &&
+                  vtConfig.dangerousOperations.confirmation
+                ) {
                   const shouldProceed = await Confirm.prompt({
                     message: colors.yellow(
                       "Project has unpushed changes. " +
