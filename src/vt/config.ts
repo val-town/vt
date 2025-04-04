@@ -164,20 +164,22 @@ export default class VTConfig {
  * Create the global VTConfig file (~/.config/vt/config.yaml) if it doesn't
  * exist.
  */
-export async function createGlobalVTConfigDirIfNotExists() {
-  if (!await exists(GLOBAL_VT_CONFIG_PATH)) {
+export async function ensureGlobalVtConfig() {
+  const configFilePath = path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME);
+
+  if (!await exists(configFilePath)) {
     await ensureDir(GLOBAL_VT_CONFIG_PATH);
-    const baseConfig = DefaultVTConfig;
+    const startingConfig = DefaultVTConfig;
 
     // If we can find `VAL_TOWN_API_KEY` in the environment, add it
     // automatically
     if (Deno.env.has(API_KEY_KEY)) {
-      baseConfig.apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
+      startingConfig.apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
     }
 
     await Deno.writeTextFile(
-      path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME),
-      stringifyYaml(baseConfig, { indent: JSON_INDENT_SPACES }),
+      configFilePath,
+      stringifyYaml(startingConfig, { indent: JSON_INDENT_SPACES }),
     );
   }
 }

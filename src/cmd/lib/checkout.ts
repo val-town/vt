@@ -98,54 +98,52 @@ export const checkoutCmd = new Command()
               );
               return;
             }
-
-            // Check if dirty, then early exit if it's dirty and they don't
-            // want to proceed. If in force mode don't do this check.
-            //
-            // We cannot safely check out if the result of the checkout would
-            // cause any local files to get modified or deleted, unless that file
-            // has already been safely pushed. To check if it's already been
-            // pushed, we do a .merge on the file state with  the result of
-            // vt.status(), which says that the file is not modified. .merge is a
-            // right intersection so we overwrite all the previously detected to
-            // be dangerous state changes as safe if it's not modified according
-            // to vt.status().
-            const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
-              .filter(
-                (fileStatus) => (fileStatus.status == "deleted" ||
-                  fileStatus.status == "modified"),
-              )
-              .merge(
-                (await vt.status())
-                  .filter((fileStatus) => fileStatus.status === "not_modified"),
-              );
-
-            if (!isNewBranch) {
-              if (
-                await vt.isDirty() && !force && !dryRun
-              ) {
-                spinner.stop();
-
-                displayFileStateChanges(
-                  dangerousLocalChanges,
-                  {
-                    headerText: `Dangerous changes that would occur when ${
-                      isNewBranch
-                        ? `creating branch "${targetBranch}"`
-                        : `checking out "${targetBranch}"`
-                    }:`,
-                    summaryText: "Would change:",
-                    emptyMessage: noChangesToStateMsg,
-                    includeSummary: true,
-                  },
+            if (vtConfig.dangerousOperations?.confirmation) {
+              // Check if dirty, then early exit if it's dirty and they don't
+              // want to proceed. If in force mode don't do this check.
+              //
+              // We cannot safely check out if the result of the checkout would
+              // cause any local files to get modified or deleted, unless that file
+              // has already been safely pushed. To check if it's already been
+              // pushed, we do a .merge on the file state with  the result of
+              // vt.status(), which says that the file is not modified. .merge is a
+              // right intersection so we overwrite all the previously detected to
+              // be dangerous state changes as safe if it's not modified according
+              // to vt.status().
+              const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
+                .filter(
+                  (fileStatus) => (fileStatus.status == "deleted" ||
+                    fileStatus.status == "modified"),
+                )
+                .merge(
+                  (await vt.status())
+                    .filter((fileStatus) =>
+                      fileStatus.status === "not_modified"
+                    ),
                 );
-                console.log();
 
-                // Ask for confirmation to proceed despite dirty state
+              if (!isNewBranch) {
                 if (
-                  vtConfig.dangerousOperations &&
-                  vtConfig.dangerousOperations.confirmation
+                  await vt.isDirty() && !force && !dryRun
                 ) {
+                  spinner.stop();
+
+                  displayFileStateChanges(
+                    dangerousLocalChanges,
+                    {
+                      headerText: `Dangerous changes that would occur when ${
+                        isNewBranch
+                          ? `creating branch "${targetBranch}"`
+                          : `checking out "${targetBranch}"`
+                      }:`,
+                      summaryText: "Would change:",
+                      emptyMessage: noChangesToStateMsg,
+                      includeSummary: true,
+                    },
+                  );
+                  console.log();
+
+                  // Ask for confirmation to proceed despite dirty state
                   const shouldProceed = await Confirm.prompt({
                     message: colors.yellow(
                       "Project has unpushed changes. " +

@@ -1,10 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
-import {
-  createGlobalVTConfigDirIfNotExists,
-  globalConfig,
-} from "~/vt/config.ts";
+import { ensureGlobalVtConfig, globalConfig } from "~/vt/config.ts";
 
-await createGlobalVTConfigDirIfNotExists();
+await ensureGlobalVtConfig();
 
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
 import { API_KEY_KEY } from "~/consts.ts";

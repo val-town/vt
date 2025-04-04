@@ -11,7 +11,7 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project }) => {
-        const fakeApiKey = "vtwn_fakeApiKeyForTesting123456";
+        const fakeApiKey = "vtwn_fakeApiKeyForTesting12345678";
 
         await t.step("clone a new project to set the config in", async () => {
           // Clone the project

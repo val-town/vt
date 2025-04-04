@@ -36,7 +36,7 @@ export const VTConfigSchema = z.object({
         val === "true" || val === "1" ? true : false
       ),
     ]),
-  }),
+  }).optional(),
 });
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {

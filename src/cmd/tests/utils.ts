@@ -21,9 +21,11 @@ export async function runVtCommand(
   cwd: string,
   options: {
     env?: Record<string, string>;
-    autoConfirm?: true;
+    autoConfirm?: boolean;
   } = {},
 ): Promise<[string, number]> {
+  options = { autoConfirm: true, ...options };
+
   return await doWithTempDir(async (tmpDir) => {
     // Configure and spawn the process
     const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
@@ -33,7 +35,7 @@ export async function runVtCommand(
       stderr: "piped",
       stdin: "piped",
       cwd,
-      env: { XDG_CACHE_DIR: tmpDir, ...options.env },
+      env: { XDG_CONFIG_HOME: join(tmpDir, "config"), ...options.env },
     });
 
     const process = command.spawn();
