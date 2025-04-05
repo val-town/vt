@@ -291,7 +291,7 @@ export default class VTClient {
   /**
    * Delete the val town project.
    */
-  public async deleteProject(): Promise<void> {
+  public async delete(): Promise<void> {
     // Don't need to use doWithConfig since the config will get distructed
     const config = await this.getMeta().loadConfig();
 

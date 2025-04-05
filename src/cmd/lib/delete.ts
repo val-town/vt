@@ -4,8 +4,6 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 import { Confirm } from "@cliffy/prompt";
 import sdk from "~/sdk.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import { join } from "@std/path";
-import { META_FOLDER_NAME } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
 
 export const deleteCmd = new Command()
@@ -40,7 +38,7 @@ export const deleteCmd = new Command()
       }
 
       await doWithSpinner(`Deleting project ${projectName}...`, async () => {
-      await vt.delete()
+        await vt.delete();
         await sdk.projects.delete(projectId);
       });
 
