@@ -288,6 +288,15 @@ export default class VTClient {
   }
 
   /**
+   * Delete the val town project.
+   */
+  public async deleteProject(): Promise<void> {
+    await this.getMeta().doWithConfig(async (config) => {
+      await sdk.projects.delete(config.projectId);
+    });
+  }
+
+  /**
    * Get the status of files in the project directory compared to the Val Town
    * project.
    *
