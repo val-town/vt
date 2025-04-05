@@ -24,6 +24,7 @@ export const STATUS_STYLES: Record<
   { prefix: string; color: (key: string) => string }
 > = {
   modified: { prefix: "M", color: colors.yellow },
+  renamed: { prefix: "R", color: (str: string) => colors.rgb24(str, 0xff87d6) },
   created: { prefix: "A", color: colors.green },
   deleted: { prefix: "D", color: colors.red },
   not_modified: { prefix: " ", color: colors.gray },
@@ -63,3 +64,7 @@ export const VAL_TOWN_PROJECT_URL_REGEX =
   /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
 
 export const RECENT_VERSION_COUNT = 5;
+
+// https://git-scm.com/docs/git-diff/2.12.5 (see --find-renames, git defaults
+// to 50%)
+export const RENAME_DETECTION_THRESHOLD = 0.5;

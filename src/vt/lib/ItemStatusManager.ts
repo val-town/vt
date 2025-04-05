@@ -5,14 +5,15 @@ interface ItemInfo {
   path: string;
 }
 
-export type BaseItemStatusState =
+export type ItemStatusState =
   | "deleted"
   | "created"
   | "modified"
-  | "not_modified";
+  | "not_modified"
+  | "renamed";
 
 export interface BaseItemStatus extends ItemInfo {
-  status: BaseItemStatusState;
+  status: ItemStatusState;
 }
 
 export type ModifiedItemStatus = BaseItemStatus & {
@@ -31,9 +32,11 @@ export type CreatedItemStatus = BaseItemStatus & {
   status: "created";
 };
 
-export type RenamedItemStatus =
-  | BaseItemStatus & { status: "renamed" }
-  | BaseItemStatus & { oldPath: string; similarity: number };
+export type RenamedItemStatus = BaseItemStatus & {
+  status: "renamed";
+  oldPath: string;
+  similarity: number;
+};
 
 export type ItemStatus =
   | ModifiedItemStatus
@@ -139,6 +142,41 @@ export class ItemStatusManager {
   }
 
   /**
+   * Removes an item with the specified path from any status category.
+   *
+   * @param path - The path of the item to remove
+   * @returns true if the item was found and removed, false otherwise
+   */
+  public remove(path: string): boolean {
+    if (this.#modified.has(path)) {
+      this.#modified.delete(path);
+      return true;
+    }
+
+    if (this.#not_modified.has(path)) {
+      this.#not_modified.delete(path);
+      return true;
+    }
+
+    if (this.#deleted.has(path)) {
+      this.#deleted.delete(path);
+      return true;
+    }
+
+    if (this.#created.has(path)) {
+      this.#created.delete(path);
+      return true;
+    }
+
+    if (this.#renamed.has(path)) {
+      this.#renamed.delete(path);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Inserts a file with the specified status, automatically handling transitions
    * between states based on existing entries.
    *
@@ -160,6 +198,14 @@ export class ItemStatusManager {
         this.#created.delete(file.path);
         file = { ...file, status: "modified" };
       }
+    } else if (file.status === "renamed") {
+      // Remove created and deleted files with the same name
+      if (this.#created.has(file.path)) {
+        this.#created.delete(file.path);
+      }
+      if (this.#deleted.has(file.path)) {
+        this.#deleted.delete(file.path);
+      }
     }
 
     switch (file.status) {
@@ -171,6 +217,9 @@ export class ItemStatusManager {
         break;
       case "modified":
         this.#modified.set(file.path, file as ModifiedItemStatus);
+        break;
+      case "renamed":
+        this.#renamed.set(file.path, file as RenamedItemStatus);
         break;
       case "not_modified":
         this.#not_modified.set(file.path, file as NotModifiedItemStatus);
@@ -257,10 +306,11 @@ export class ItemStatusManager {
    */
   public has(path: string): boolean {
     return (
-      this.#modified.has(path) ||
       this.#not_modified.has(path) ||
+      this.#modified.has(path) ||
       this.#deleted.has(path) ||
-      this.#created.has(path)
+      this.#created.has(path) ||
+      this.#renamed.has(path)
     );
   }
 
@@ -272,7 +322,8 @@ export class ItemStatusManager {
     return this.#modified.size === 0 &&
       this.#not_modified.size === 0 &&
       this.#deleted.size === 0 &&
-      this.#created.size === 0;
+      this.#created.size === 0 &&
+      this.#renamed.size === 0;
   }
 
   /**
@@ -280,10 +331,11 @@ export class ItemStatusManager {
    */
   public toJSON() {
     return {
-      created: this.created,
       modified: this.modified,
       not_modified: this.not_modified,
       deleted: this.deleted,
+      created: this.created,
+      renamed: this.renamed,
     };
   }
 
