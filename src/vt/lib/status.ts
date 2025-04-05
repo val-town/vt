@@ -4,12 +4,12 @@ import * as fs from "@std/fs";
 import * as path from "@std/path";
 import { isFileModified } from "~/vt/lib/utils.ts";
 import {
-  type CreatedFileStatus,
-  type DeletedFileStatus,
-  FilesStatusManager,
-  type ModifiedFileStatus,
-  type NotModifiedFileStatus,
-} from "~/vt/lib/FilesStatusManager.ts";
+  type CreatedItemStatus,
+  type DeletedItemStatus,
+  ItemStatusManager,
+  type ModifiedItemStatus,
+  type NotModifiedItemStatus,
+} from "~/vt/lib/ItemStatusManager.ts";
 import type ValTown from "@valtown/sdk";
 import type { ProjectItemType } from "~/types.ts";
 
@@ -39,9 +39,9 @@ export interface StatusParams {
  */
 export async function status(
   params: StatusParams,
-): Promise<FilesStatusManager> {
+): Promise<ItemStatusManager> {
   const { targetDir, projectId, branchId, version, gitignoreRules } = params;
-  const result = FilesStatusManager.empty();
+  const result = ItemStatusManager.empty();
 
   // Get all files
   const localFiles = await getLocalFiles({
@@ -64,7 +64,7 @@ export async function status(
 
     if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
-      const createdFileState: CreatedFileStatus = {
+      const createdFileState: CreatedItemStatus = {
         status: "created",
         type: localFileType,
         path: filePath,
@@ -86,14 +86,14 @@ export async function status(
         });
 
         if (isModified) {
-          const modifiedFileState: ModifiedFileStatus = {
+          const modifiedFileState: ModifiedItemStatus = {
             type: localFileType,
             path: filePath,
             status: "modified",
           };
           result.insert(modifiedFileState);
         } else {
-          const notModifiedFileState: NotModifiedFileStatus = {
+          const notModifiedFileState: NotModifiedItemStatus = {
             type: localFileType,
             path: filePath,
             status: "not_modified",
@@ -101,7 +101,7 @@ export async function status(
           result.insert(notModifiedFileState);
         }
       } else {
-        const notModifiedFileState: NotModifiedFileStatus = {
+        const notModifiedFileState: NotModifiedItemStatus = {
           type: localFileType,
           path: filePath,
           status: "not_modified",
@@ -114,7 +114,7 @@ export async function status(
   // Check for files that exist in project but not locally
   for (const [projectPath, projectFileInfo] of projectFiles.entries()) {
     if (!localFiles.has(projectPath)) {
-      const deletedFileState: DeletedFileStatus = {
+      const deletedFileState: DeletedItemStatus = {
         type: projectFileInfo.type,
         path: projectPath,
         status: "deleted",

@@ -5,9 +5,9 @@ import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import {
-  FilesStatusManager,
-  type FileStatus,
-} from "~/vt/lib/FilesStatusManager.ts";
+  type ItemStatus,
+  ItemStatusManager,
+} from "~/vt/lib/ItemStatusManager.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.
@@ -43,7 +43,7 @@ export interface PullParams {
  *
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull(params: PullParams): Promise<FilesStatusManager> {
+export function pull(params: PullParams): Promise<ItemStatusManager> {
   const {
     targetDir,
     projectId,
@@ -54,7 +54,7 @@ export function pull(params: PullParams): Promise<FilesStatusManager> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = FilesStatusManager.empty();
+      const changes = ItemStatusManager.empty();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the
@@ -100,7 +100,7 @@ export function pull(params: PullParams): Promise<FilesStatusManager> {
         if (projectItemsSet.has(relativePath)) continue;
 
         const stat = await Deno.stat(entry.path);
-        const fileStatus: FileStatus = {
+        const fileStatus: ItemStatus = {
           path: relativePath,
           status: "deleted",
           type: stat.isDirectory

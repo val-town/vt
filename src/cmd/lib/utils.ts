@@ -1,7 +1,7 @@
 import { colors } from "@cliffy/ansi/colors";
 import { basename, dirname, join } from "@std/path";
 import { ProjectItemColors, STATUS_STYLES, TypeToTypeStr } from "~/consts.ts";
-import type { FilesStatusManager } from "~/vt/lib/FilesStatusManager.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import type { ProjectItemType } from "~/types.ts";
 
 /**
@@ -54,7 +54,7 @@ export function getVersionRangeStr(
  */
 export function formatStatus(
   path: string,
-  status: keyof FilesStatusManager,
+  status: keyof ItemStatusManager,
   type?: ProjectItemType,
   maxTypeLength: number = 0,
 ): string {
@@ -88,7 +88,7 @@ export function formatStatus(
  * @returns void
  */
 export function displayFileStateChanges(
-  fileStateChanges: FilesStatusManager,
+  fileStateChanges: ItemStatusManager,
   options: {
     headerText: string;
     summaryText?: string;
@@ -147,7 +147,7 @@ export function displayFileStateChanges(
       console.log("\n" + summaryPrefix);
       for (const [type, files] of fileStateChanges.entries()) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeColor = STATUS_STYLES[type as keyof FilesStatusManager];
+          const typeColor = STATUS_STYLES[type as keyof ItemStatusManager];
           const coloredType = typeColor.color(type);
           console.log("  " + files.length + " " + coloredType);
         }

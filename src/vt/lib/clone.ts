@@ -7,9 +7,9 @@ import { join } from "@std/path";
 import { asProjectItemType } from "~/types.ts";
 import type ValTown from "@valtown/sdk";
 import {
-  FilesStatusManager,
-  type FileStatus,
-} from "~/vt/lib/FilesStatusManager.ts";
+  type ItemStatus,
+  ItemStatusManager,
+} from "~/vt/lib/ItemStatusManager.ts";
 
 /**
  * Parameters for cloning a project by downloading its files and directories to the specified
@@ -37,7 +37,7 @@ export interface CloneParams {
  * @param params Options for the clone operation
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone(params: CloneParams): Promise<FilesStatusManager> {
+export function clone(params: CloneParams): Promise<ItemStatusManager> {
   const {
     targetDir,
     projectId,
@@ -48,7 +48,7 @@ export function clone(params: CloneParams): Promise<FilesStatusManager> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = FilesStatusManager.empty();
+      const changes = ItemStatusManager.empty();
       const projectItems = await listProjectItems(projectId, {
         branch_id: branchId,
         version,
@@ -105,7 +105,7 @@ async function createFile(
   branchId: string,
   version: number | undefined = undefined,
   file: ValTown.Projects.FileRetrieveResponse,
-  changes: FilesStatusManager,
+  changes: ItemStatusManager,
   dryRun: boolean,
 ): Promise<void> {
   const updatedAt = new Date(file.updatedAt);
@@ -116,7 +116,7 @@ async function createFile(
     .stat(join(originalRoot, path))
     .catch(() => null);
 
-  let fileStatus: FileStatus;
+  let fileStatus: ItemStatus;
 
   if (fileInfo === null) {
     // File doesn't exist locally - it's being created

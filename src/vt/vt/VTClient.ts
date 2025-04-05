@@ -19,7 +19,7 @@ import {
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { FilesStatusManager } from "~/vt/lib/FilesStatusManager.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 
@@ -153,7 +153,7 @@ export default class VTClient {
    * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
   public async watch(
-    callback: (fileState: FilesStatusManager) => void | Promise<void>,
+    callback: (fileState: ItemStatusManager) => void | Promise<void>,
     debounceDelay: number = 1000,
     gracePeriod: number = 250,
   ): Promise<void> {

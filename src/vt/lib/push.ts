@@ -2,7 +2,7 @@ import * as path from "@std/path";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
 import { status } from "~/vt/lib/status.ts";
-import type { FilesStatusManager } from "~/vt/lib/FilesStatusManager.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { asProjectFileType, asProjectItemType } from "~/types.ts";
 
 /**
@@ -18,7 +18,7 @@ export interface PushParams {
   /** The version to compute the file state changes against. Defaults to latest version. */
   version?: number;
   /** The current file state. If not provided, it will be computed. */
-  fileState?: FilesStatusManager;
+  fileState?: ItemStatusManager;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
@@ -32,7 +32,7 @@ export interface PushParams {
  * @param {PushParams} params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export async function push(params: PushParams): Promise<FilesStatusManager> {
+export async function push(params: PushParams): Promise<ItemStatusManager> {
   let {
     targetDir,
     projectId,

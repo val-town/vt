@@ -1,58 +1,65 @@
 import type { ProjectItemType } from "~/types.ts";
 
-interface FileInfo {
+interface ItemInfo {
   type: ProjectItemType;
   path: string;
 }
 
-export type BaseFileStatusType =
+export type BaseItemStatusState =
   | "deleted"
   | "created"
   | "modified"
   | "not_modified";
 
-export interface BaseFileStatus extends FileInfo {
-  status: BaseFileStatusType;
+export interface BaseItemStatus extends ItemInfo {
+  status: BaseItemStatusState;
 }
 
-export type ModifiedFileStatus = BaseFileStatus & {
+export type ModifiedItemStatus = BaseItemStatus & {
   status: "modified";
 };
 
-export type NotModifiedFileStatus = BaseFileStatus & {
+export type NotModifiedItemStatus = BaseItemStatus & {
   status: "not_modified";
 };
 
-export type DeletedFileStatus = BaseFileStatus & {
+export type DeletedItemStatus = BaseItemStatus & {
   status: "deleted";
 };
 
-export type CreatedFileStatus = BaseFileStatus & {
+export type CreatedItemStatus = BaseItemStatus & {
   status: "created";
 };
 
-export type FileStatus =
-  | ModifiedFileStatus
-  | NotModifiedFileStatus
-  | DeletedFileStatus
-  | CreatedFileStatus;
+export type RenamedItemStatus =
+  | BaseItemStatus & { status: "renamed" }
+  | BaseItemStatus & { oldPath: string; similarity: number };
+
+export type ItemStatus =
+  | ModifiedItemStatus
+  | NotModifiedItemStatus
+  | DeletedItemStatus
+  | CreatedItemStatus
+  | RenamedItemStatus;
 
 /**
  * Class for managing file state changes with operations for creating,
  * merging, and processing file states.
  */
-export class FilesStatusManager {
-  #modified: Map<string, ModifiedFileStatus>;
-  #not_modified: Map<string, NotModifiedFileStatus>;
-  #deleted: Map<string, DeletedFileStatus>;
-  #created: Map<string, CreatedFileStatus>;
+export class ItemStatusManager {
+  #modified: Map<string, ModifiedItemStatus>;
+  #not_modified: Map<string, NotModifiedItemStatus>;
+  #deleted: Map<string, DeletedItemStatus>;
+  #created: Map<string, CreatedItemStatus>;
+  #renamed: Map<string, RenamedItemStatus>;
 
   public constructor(
     initialState?: Partial<{
-      modified?: ModifiedFileStatus[];
-      not_modified?: NotModifiedFileStatus[];
-      deleted?: DeletedFileStatus[];
-      created?: CreatedFileStatus[];
+      modified?: ModifiedItemStatus[];
+      not_modified?: NotModifiedItemStatus[];
+      deleted?: DeletedItemStatus[];
+      created?: CreatedItemStatus[];
+      renamed?: RenamedItemStatus[];
     }>,
   ) {
     this.#modified = new Map(
@@ -67,14 +74,37 @@ export class FilesStatusManager {
     this.#created = new Map(
       (initialState?.created || []).map((file) => [file.path, file]),
     );
+    this.#renamed = new Map(
+      (initialState?.renamed || []).map((file) => [file.path, file]),
+    );
+  }
+
+  get modified(): ModifiedItemStatus[] {
+    return Array.from(this.#modified.values());
+  }
+
+  get not_modified(): NotModifiedItemStatus[] {
+    return Array.from(this.#not_modified.values());
+  }
+
+  get deleted(): DeletedItemStatus[] {
+    return Array.from(this.#deleted.values());
+  }
+
+  get created(): CreatedItemStatus[] {
+    return Array.from(this.#created.values());
+  }
+
+  get renamed(): RenamedItemStatus[] {
+    return Array.from(this.#renamed.values());
   }
 
   /**
    * Creates an empty FileState object with initialized empty maps for all
    * status categories.
    */
-  static empty(): FilesStatusManager {
-    return new FilesStatusManager();
+  static empty(): ItemStatusManager {
+    return new ItemStatusManager();
   }
 
   /**
@@ -86,7 +116,8 @@ export class FilesStatusManager {
     return this.#modified.size +
       this.#not_modified.size +
       this.#deleted.size +
-      this.#created.size;
+      this.#created.size +
+      this.#renamed.size;
   }
 
   /**
@@ -103,7 +134,7 @@ export class FilesStatusManager {
    * Returns the file state as an array of key-value pairs.
    * @returns An array of entries from the JSON representation
    */
-  public entries(): [string, FileStatus[]][] {
+  public entries(): [string, ItemStatus[]][] {
     return Object.entries(this.toJSON());
   }
 
@@ -113,7 +144,7 @@ export class FilesStatusManager {
    *
    * @param file - The file status to insert
    */
-  public insert(file: FileStatus): this {
+  public insert(file: ItemStatus): this {
     if (file.path.length === 0) throw new Error("File path cannot be empty");
 
     // Handle the special case for created/deleted files
@@ -133,16 +164,16 @@ export class FilesStatusManager {
 
     switch (file.status) {
       case "created":
-        this.#created.set(file.path, file);
+        this.#created.set(file.path, file as CreatedItemStatus);
         break;
       case "deleted":
-        this.#deleted.set(file.path, file);
+        this.#deleted.set(file.path, file as DeletedItemStatus);
         break;
       case "modified":
-        this.#modified.set(file.path, file);
+        this.#modified.set(file.path, file as ModifiedItemStatus);
         break;
       case "not_modified":
-        this.#not_modified.set(file.path, file);
+        this.#not_modified.set(file.path, file as NotModifiedItemStatus);
         break;
     }
 
@@ -157,7 +188,7 @@ export class FilesStatusManager {
    * @param source - The FileState object to merge from
    * @returns this - The current FileState instance for chaining
    */
-  public merge(source: FilesStatusManager): this {
+  public merge(source: ItemStatusManager): this {
     // Collect all paths from the source
     const sourcePaths = new Set<string>();
 
@@ -179,44 +210,9 @@ export class FilesStatusManager {
     for (const file of source.not_modified) this.insert(file);
     for (const file of source.deleted) this.insert(file);
     for (const file of source.created) this.insert(file);
+    for (const file of source.renamed) this.insert(file);
 
     return this;
-  }
-
-  get modified(): ModifiedFileStatus[] {
-    return Array.from(this.#modified.values());
-  }
-
-  get not_modified(): NotModifiedFileStatus[] {
-    return Array.from(this.#not_modified.values());
-  }
-
-  get deleted(): DeletedFileStatus[] {
-    return Array.from(this.#deleted.values());
-  }
-
-  get created(): CreatedFileStatus[] {
-    return Array.from(this.#created.values());
-  }
-
-  /**
-   * Creates a new FileState with reversed creation and deletion states.
-   * Files that were created become deleted, and files that were deleted become created.
-   * Modified and not_modified files remain unchanged.
-   *
-   * @returns A new FileState with reversed creation and deletion states
-   */
-  public reversed(): FilesStatusManager {
-    const reversedState = new FilesStatusManager({
-      // Swap created and deleted
-      created: this.deleted.map((file) => ({ ...file, status: "created" })),
-      deleted: this.created.map((file) => ({ ...file, status: "deleted" })),
-      // Keep modified and not_modified as they are
-      modified: this.modified,
-      not_modified: this.not_modified,
-    });
-
-    return reversedState;
   }
 
   /**
@@ -226,9 +222,9 @@ export class FilesStatusManager {
    * @returns A new FileState containing only entries that pass the predicate test
    */
   public filter(
-    predicate: (entry: FileStatus) => boolean,
-  ): FilesStatusManager {
-    const result = new FilesStatusManager();
+    predicate: (entry: ItemStatus) => boolean,
+  ): ItemStatusManager {
+    const result = new ItemStatusManager();
 
     for (const file of this.created) {
       if (predicate(file)) result.insert(file);
@@ -243,6 +239,10 @@ export class FilesStatusManager {
     }
 
     for (const file of this.not_modified) {
+      if (predicate(file)) result.insert(file);
+    }
+
+    for (const file of this.renamed) {
       if (predicate(file)) result.insert(file);
     }
 
