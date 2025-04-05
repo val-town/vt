@@ -1,8 +1,14 @@
-import type { ProjectItemType } from "~/types.ts";
+import { levenshteinDistance } from "@std/text";
+import { asProjectItemType, type ProjectItemType } from "~/types.ts";
+import { RENAME_DETECTION_THRESHOLD } from "~/consts.ts";
+import { join } from "@std/path";
+import { exists } from "@std/fs";
 
-interface ItemInfo {
+export interface ItemInfo {
   type: ProjectItemType;
   path: string;
+  mtime: number;
+  content?: string; // directories don't have content
 }
 
 export type ItemStatusState =
@@ -56,6 +62,11 @@ export class ItemStatusManager {
   #created: Map<string, CreatedItemStatus>;
   #renamed: Map<string, RenamedItemStatus>;
 
+  /**
+   * Create a new ItemStatusManager.
+   *
+   * @param {Partial<ItemStatus>} initialState The initial state of the file status manager. This is a partial object that can contain any of the file states.
+   */
   public constructor(
     initialState?: Partial<{
       modified?: ModifiedItemStatus[];
@@ -100,14 +111,6 @@ export class ItemStatusManager {
 
   get renamed(): RenamedItemStatus[] {
     return Array.from(this.#renamed.values());
-  }
-
-  /**
-   * Creates an empty FileState object with initialized empty maps for all
-   * status categories.
-   */
-  static empty(): ItemStatusManager {
-    return new ItemStatusManager();
   }
 
   /**
@@ -180,50 +183,105 @@ export class ItemStatusManager {
    * Inserts a file with the specified status, automatically handling transitions
    * between states based on existing entries.
    *
-   * @param file - The file status to insert
+   * @param item - The file status to insert
    */
-  public insert(file: ItemStatus): this {
-    if (file.path.length === 0) throw new Error("File path cannot be empty");
+  public insert(item: ItemStatus): this {
+    if (item.path.length === 0) throw new Error("File path cannot be empty");
 
-    // Handle the special case for created/deleted files
-    if (file.status === "created") {
-      // Check if there's a deleted file with the same path
-      if (this.#deleted.has(file.path)) {
-        this.#deleted.delete(file.path);
-        file = { ...file, status: "modified" };
-      }
-    } else if (file.status === "deleted") {
-      // Check if there's a created file with the same path
-      if (this.#created.has(file.path)) {
-        this.#created.delete(file.path);
-        file = { ...file, status: "modified" };
-      }
-    } else if (file.status === "renamed") {
-      // Remove created and deleted files with the same name
-      if (this.#created.has(file.path)) {
-        this.#created.delete(file.path);
-      }
-      if (this.#deleted.has(file.path)) {
-        this.#deleted.delete(file.path);
-      }
-    }
-
-    switch (file.status) {
+    switch (item.status) {
       case "created":
-        this.#created.set(file.path, file as CreatedItemStatus);
+        // Check if there's a deleted file with the same path
+        if (this.#deleted.has(item.path)) {
+          this.#deleted.delete(item.path);
+          item = { ...item, status: "modified" };
+          this.#modified.set(item.path, item as ModifiedItemStatus);
+        } else {
+          this.#created.set(item.path, item as CreatedItemStatus);
+        }
         break;
       case "deleted":
-        this.#deleted.set(file.path, file as DeletedItemStatus);
-        break;
-      case "modified":
-        this.#modified.set(file.path, file as ModifiedItemStatus);
+        // Check if there's a created file with the same path
+        if (this.#created.has(item.path)) {
+          this.#created.delete(item.path);
+          item = { ...item, status: "modified" };
+          this.#modified.set(item.path, item as ModifiedItemStatus);
+        } else {
+          this.#deleted.set(item.path, item as DeletedItemStatus);
+        }
         break;
       case "renamed":
-        this.#renamed.set(file.path, file as RenamedItemStatus);
+        // Remove created and deleted files with the same name
+        if (this.#created.has(item.path)) {
+          this.#created.delete(item.path);
+        }
+        if (this.#deleted.has(item.path)) {
+          this.#deleted.delete(item.path);
+        }
+        this.#renamed.set(item.path, item as RenamedItemStatus);
+        break;
+      case "modified":
+        this.#modified.set(item.path, item as ModifiedItemStatus);
         break;
       case "not_modified":
-        this.#not_modified.set(file.path, file as NotModifiedItemStatus);
+        this.#not_modified.set(item.path, item as NotModifiedItemStatus);
         break;
+    }
+
+    return this;
+  }
+
+  /**
+   * Check to see if any item in the ItemStateManager is a renamed version of
+   * any other item, for every item. Consolidates the items into a single item
+   * of renamed state if a rename is detected.
+   */
+  public consolidateRenames(): this {
+    const processed = new Set<string>();
+
+    for (const oldItem of [...this.deleted]) {
+      // Find the most similar other entry
+      let maxSimilarItem: RenamedItemStatus | null = null;
+      for (const newItem of [...this.created]) {
+        // deno-fmt-ignore
+        if (oldItem.type === "directory" || newItem.type === "directory") continue;
+        if (oldItem.path === newItem.path) continue;
+
+        // If the file was deleted BEFORE the new one was created it couldn't have been renamed
+        if (!(newItem.mtime > oldItem.mtime)) continue;
+
+        // Content is empty if either is a directory, so we can use ! here
+        // since we already checked that
+        // The creation should always be local (since we are detecting a local rename)
+        const newItemContent = newItem.content!;
+        const oldItemContent = oldItem.content!;
+
+        const distance = levenshteinDistance(newItemContent, oldItemContent);
+
+        // deno-fmt-ignore
+        const similarity = 1 - (distance / Math.max(newItemContent.length, oldItemContent.length));
+        if (
+          similarity > RENAME_DETECTION_THRESHOLD &&
+            (maxSimilarItem && similarity > maxSimilarItem.similarity) ||
+          !maxSimilarItem
+        ) {
+          maxSimilarItem = {
+            path: newItem.path,
+            status: "renamed",
+            similarity,
+            oldPath: oldItem.path,
+            type: asProjectItemType(newItem.type),
+            mtime: newItem.mtime,
+            content: newItem.content,
+          };
+        }
+
+        // If we detected a similar item, then add it to the state
+        if (maxSimilarItem && !processed.has(maxSimilarItem.path)) {
+          this.insert(maxSimilarItem);
+          processed.add(maxSimilarItem.path);
+          processed.add(maxSimilarItem.oldPath);
+        }
+      }
     }
 
     return this;

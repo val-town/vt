@@ -1,4 +1,4 @@
-import { listProjectItems } from "~/sdk.ts";
+import sdk, { listProjectItems } from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
@@ -6,12 +6,12 @@ import { isFileModified } from "~/vt/lib/utils.ts";
 import {
   type CreatedItemStatus,
   type DeletedItemStatus,
+  type ItemInfo,
   ItemStatusManager,
   type ModifiedItemStatus,
   type NotModifiedItemStatus,
 } from "~/vt/lib/ItemStatusManager.ts";
-import type ValTown from "@valtown/sdk";
-import type { ProjectItemType } from "~/types.ts";
+import { join } from "@std/path";
 
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
@@ -37,11 +37,9 @@ export interface StatusParams {
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status(
-  params: StatusParams,
-): Promise<ItemStatusManager> {
+export async function status(params: StatusParams): Promise<ItemStatusManager> {
   const { targetDir, projectId, branchId, version, gitignoreRules } = params;
-  const result = ItemStatusManager.empty();
+  const result = new ItemStatusManager();
 
   // Get all files
   const localFiles = await getLocalFiles({
@@ -57,54 +55,63 @@ export async function status(
     version,
     gitignoreRules,
   });
+  const projectFileMap = new Map(Object.entries(projectFiles));
 
   // Compare local files against project files
-  for (const [filePath, localFileType] of localFiles.entries()) {
-    const projectFileInfo = projectFiles.get(filePath);
+  for (const localFile of localFiles) {
+    const projectFileInfo = projectFileMap.get(localFile.path);
 
     if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
       const createdFileState: CreatedItemStatus = {
         status: "created",
-        type: localFileType,
-        path: filePath,
+        type: localFile.type,
+        path: localFile.path,
+        mtime: localFile.mtime,
+        content: localFile.content,
       };
       result.insert(createdFileState);
     } else {
-      if (localFileType !== "directory") {
+      if (localFile.type !== "directory") {
+        const localStat = await Deno.stat(path.join(targetDir, localFile.path));
         // File exists in both places, check if modified
         const isModified = await isFileModified({
-          path: filePath,
+          path: localFile.path,
           targetDir,
-          originalPath: filePath,
+          originalPath: join(targetDir, localFile.path),
           projectId,
           branchId,
           version,
-          localMtime: (await Deno.stat(path.join(targetDir, filePath))).mtime!
-            .getTime(),
-          projectMtime: new Date(projectFileInfo.updatedAt).getTime(),
+          localMtime: localStat.mtime!.getTime(),
+          projectMtime: new Date(projectFileInfo.mtime).getTime(),
         });
 
         if (isModified) {
           const modifiedFileState: ModifiedItemStatus = {
-            type: localFileType,
-            path: filePath,
+            type: localFile.type,
+            path: localFile.path,
             status: "modified",
+            mtime: localStat.mtime!.getTime(),
+            content: localFile.content,
           };
           result.insert(modifiedFileState);
         } else {
           const notModifiedFileState: NotModifiedItemStatus = {
-            type: localFileType,
-            path: filePath,
+            type: localFile.type,
+            path: localFile.path,
             status: "not_modified",
+            mtime: localStat.mtime!.getTime(),
+            content: localFile.content,
           };
           result.insert(notModifiedFileState);
         }
       } else {
         const notModifiedFileState: NotModifiedItemStatus = {
-          type: localFileType,
-          path: filePath,
+          type: localFile.type,
+          path: localFile.type,
           status: "not_modified",
+          mtime: localFile.mtime,
+          content: localFile.content,
         };
         result.insert(notModifiedFileState);
       }
@@ -112,25 +119,20 @@ export async function status(
   }
 
   // Check for files that exist in project but not locally
-  for (const [projectPath, projectFileInfo] of projectFiles.entries()) {
-    if (!localFiles.has(projectPath)) {
+  for (const projectFile of projectFiles) {
+    if (!localFiles.find((f) => f.path === projectFile.path)) {
       const deletedFileState: DeletedItemStatus = {
-        type: projectFileInfo.type,
-        path: projectPath,
+        type: projectFile.type,
+        path: projectFile.path,
         status: "deleted",
+        mtime: projectFile.mtime,
+        content: projectFile.content,
       };
       result.insert(deletedFileState);
     }
   }
 
-  return result;
-}
-
-interface GetProjectFilesParams {
-  projectId: string;
-  branchId: string;
-  version?: number;
-  gitignoreRules?: string[];
+  return result.consolidateRenames();
 }
 
 async function getProjectFiles({
@@ -138,32 +140,33 @@ async function getProjectFiles({
   branchId,
   version = undefined,
   gitignoreRules,
-}: GetProjectFilesParams): Promise<
-  Map<string, ValTown.Projects.FileRetrieveResponse>
-> {
-  const projectItems = (await listProjectItems(projectId, {
-    path: "",
-    branch_id: branchId,
-    version,
-    recursive: true,
-  }))
-    .filter((file) => !shouldIgnore(file.path, gitignoreRules))
-    .map((
-      file,
-    ): [string, ValTown.Projects.FileRetrieveResponse] => [
-      file.path,
-      file,
-    ]);
-
-  return new Map<string, ValTown.Projects.FileRetrieveResponse>(projectItems);
-}
-
-interface GetLocalFilesParams {
+}: {
   projectId: string;
   branchId: string;
   version?: number;
-  targetDir: string;
   gitignoreRules?: string[];
+}): Promise<ItemInfo[]> {
+  return Promise.all(
+    (await listProjectItems(projectId, {
+      path: "",
+      branch_id: branchId,
+      version,
+      recursive: true,
+    }))
+      .filter((file) => !shouldIgnore(file.path, gitignoreRules))
+      .map(async (file): Promise<ItemInfo> => ({
+        path: file.path,
+        type: file.type,
+        mtime: new Date(file.updatedAt).getTime(),
+        content: file.type === "directory"
+          ? undefined
+          : await sdk.projects.files.getContent(projectId, {
+            path: file.path,
+            branch_id: branchId,
+            version,
+          }).then((resp) => resp.text()),
+      })),
+  );
 }
 
 async function getLocalFiles({
@@ -172,32 +175,43 @@ async function getLocalFiles({
   version = undefined,
   targetDir,
   gitignoreRules,
-}: GetLocalFilesParams): Promise<Map<string, ProjectItemType>> {
-  const files = new Map<string, ProjectItemType>();
-  const statPromises: Promise<void>[] = [];
-
-  const processEntry = async (entry: fs.WalkEntry) => {
-    // Check if this is on the ignore list
-    const relativePath = path.relative(targetDir, entry.path);
-    if (shouldIgnore(relativePath, gitignoreRules)) return;
-    if (entry.path === targetDir) return;
-
-    // Store the path and its modification time
-    files.set(
-      relativePath,
-      entry.isDirectory ? "directory" : await getProjectItemType(projectId, {
-        branchId: branchId,
-        version,
-        filePath: relativePath,
-      }),
-    );
-  };
+}: {
+  projectId: string;
+  branchId: string;
+  version?: number;
+  targetDir: string;
+  gitignoreRules?: string[];
+}): Promise<ItemInfo[]> {
+  const filePromises: Promise<ItemInfo | null>[] = [];
 
   for await (const entry of fs.walk(targetDir)) {
-    statPromises.push(processEntry(entry));
+    filePromises.push((async () => {
+      // Check if this is on the ignore list
+      const relativePath = path.relative(targetDir, entry.path);
+      if (shouldIgnore(relativePath, gitignoreRules)) return null;
+      if (entry.path === targetDir) return null;
+
+      // Store the path and its modification time
+      const localStat = await Deno.stat(entry.path);
+
+      return {
+        path: relativePath,
+        type: (entry.isDirectory
+          ? "directory"
+          : await getProjectItemType(projectId, {
+            branchId: branchId,
+            version,
+            filePath: relativePath,
+          })),
+        mtime: localStat.mtime!.getTime(),
+        content: entry.isDirectory
+          ? undefined
+          : await Deno.readTextFile(entry.path),
+      };
+    })());
   }
 
-  await Promise.all(statPromises);
-
-  return files;
+  // Wait for all promises to resolve and filter out nulls
+  const results = await Promise.all(filePromises);
+  return results.filter((item): item is ItemInfo => item !== null);
 }

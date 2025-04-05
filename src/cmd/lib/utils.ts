@@ -1,7 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
 import { basename, dirname, join } from "@std/path";
 import { ProjectItemColors, STATUS_STYLES, TypeToTypeStr } from "~/consts.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import type {
+  ItemStatus,
+  ItemStatusManager,
+  ItemStatusState,
+} from "~/vt/lib/ItemStatusManager.ts";
 import type { ProjectItemType } from "~/types.ts";
 
 /**
@@ -53,13 +57,15 @@ export function getVersionRangeStr(
  * @returns A formatted string with colored status prefix, file type, and path
  */
 export function formatStatus(
-  path: string,
-  status: keyof ItemStatusManager,
+  file: ItemStatus,
   type?: ProjectItemType,
   maxTypeLength: number = 0,
 ): string {
-  const styleConfig = STATUS_STYLES[status];
-  const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
+  const styleConfig = STATUS_STYLES[file.status];
+  let coloredPath = join(
+    dirname(file.path),
+    styleConfig.color(basename(file.path)),
+  );
 
   // Format type indicator with consistent padding and colors
   const typeStr = TypeToTypeStr[type!].padEnd(maxTypeLength);
@@ -68,6 +74,16 @@ export function formatStatus(
     ProjectItemColors[type!](typeStr) +
     colors.gray(")");
 
+  // If it was renamed show from what to what
+  if (file.status === "renamed") {
+    const renamedPath = join(
+      dirname(file.oldPath),
+      styleConfig.color(basename(file.oldPath)),
+    );
+    coloredPath = `${renamedPath} ${colors.dim("->")} ${coloredPath} ${
+      colors.gray("(" + (file.similarity * 100).toFixed(2) + "%)")
+    }`;
+  }
   // Construct the final formatted string
   return `${
     styleConfig.color(styleConfig.prefix)
@@ -125,13 +141,11 @@ export function displayFileStateChanges(
     if (type !== "not_modified") {
       for (const file of files) {
         console.log(
-          "  " +
-            formatStatus(
-              file.path,
-              file.status,
-              includeTypes ? file.type : undefined,
-              maxTypeLength,
-            ),
+          "  " + formatStatus(
+            file,
+            includeTypes ? file.type : undefined,
+            maxTypeLength,
+          ),
         );
       }
     }
