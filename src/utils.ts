@@ -39,3 +39,15 @@ export async function findRoot(
 
   throw new Deno.errors.NotFound();
 }
+
+/**
+ * Checks if a directory is empty asynchronously.
+ * @param path Path to the directory to check
+ * @returns Promise that resolves to true if the directory is empty, false otherwise
+ * @throws Will throw an error if the path doesn't exist or isn't a directory
+ */
+export async function dirIsEmpty(path: string | URL): Promise<boolean> {
+  const dirIter = Deno.readDir(path);
+  const firstEntry = await dirIter[Symbol.asyncIterator]().next();
+  return firstEntry.done === true;
+}

@@ -1,5 +1,20 @@
 import ValTown from "@valtown/sdk";
+import { join } from "@std/path";
 import Kia from "kia";
+
+/**
+ * Determines the clone path based on the provided directory and project name
+ *
+ * @param specifiedTarget Optional directory where the project should be cloned
+ * @param projectName Name of the project being cloned
+ * @returns The absolute path where the project will be cloned
+ */
+export function getClonePath(
+  specifiedTarget: string | undefined,
+  projectName: string,
+): string {
+  return specifiedTarget || join(Deno.cwd(), projectName);
+}
 
 /**
  * Clean and transform error messages

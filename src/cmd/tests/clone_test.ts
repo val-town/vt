@@ -3,7 +3,6 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
@@ -37,7 +36,7 @@ Deno.test({
               path: "test.js",
               content: "",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
 
@@ -49,18 +48,19 @@ Deno.test({
               content:
                 "export function test() { return 'Hello from test_inner'; }",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
         });
 
         await t.step("clone the project and assert the structure", async () => {
           const cloneDir = join(tmpDir, "cloned");
-          await runVtCommand([
+          const [output] = await runVtCommand([
             "clone",
             project.name,
             cloneDir,
           ], tmpDir);
+          assertStringIncludes(output, "cloned to");
 
           // Verify the files exist
           const testJsExists = await exists(join(cloneDir, "test.js"));
@@ -104,6 +104,7 @@ Deno.test({
           await runVtCommand([
             "create",
             projectName,
+            join(tmpDir, "unused_" + crypto.randomUUID()),
           ], tmpDir);
         });
 
@@ -121,10 +122,7 @@ Deno.test({
             `Project ${user.username!}/${projectName} cloned to`,
           );
 
-          assert(
-            await exists(join(tmpDir, projectName)),
-            "project directory was not created",
-          );
+          assert(await exists(targetDir), "project directory was not created");
         });
       } finally {
         const { id } = await sdk.alias.username.projectName.retrieve(
