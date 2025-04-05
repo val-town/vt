@@ -40,11 +40,9 @@ export const deleteCmd = new Command()
       }
 
       await doWithSpinner(`Deleting project ${projectName}...`, async () => {
+      await vt.delete()
         await sdk.projects.delete(projectId);
       });
-
-      // De-init the directory
-      await Deno.remove(join(vtRoot, META_FOLDER_NAME), { recursive: true });
 
       spinner.succeed(`Project "${projectName}" has been deleted.`);
       spinner.info(
