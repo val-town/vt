@@ -1,8 +1,6 @@
 import { levenshteinDistance } from "@std/text";
 import { asProjectItemType, type ProjectItemType } from "~/types.ts";
 import { RENAME_DETECTION_THRESHOLD } from "~/consts.ts";
-import { join } from "@std/path";
-import { exists } from "@std/fs";
 
 export interface ItemInfo {
   type: ProjectItemType;
@@ -260,10 +258,12 @@ export class ItemStatusManager {
         // deno-fmt-ignore
         const similarity = 1 - (distance / Math.max(newItemContent.length, oldItemContent.length));
         if (
-          similarity > RENAME_DETECTION_THRESHOLD &&
+          (similarity > RENAME_DETECTION_THRESHOLD) && (
             (maxSimilarItem && similarity > maxSimilarItem.similarity) ||
-          !maxSimilarItem
+            !maxSimilarItem
+          )
         ) {
+          console.log(similarity > RENAME_DETECTION_THRESHOLD);
           maxSimilarItem = {
             path: newItem.path,
             status: "renamed",

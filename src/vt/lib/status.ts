@@ -11,7 +11,6 @@ import {
   type ModifiedItemStatus,
   type NotModifiedItemStatus,
 } from "~/vt/lib/ItemStatusManager.ts";
-import { join } from "@std/path";
 
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
@@ -55,7 +54,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     version,
     gitignoreRules,
   });
-  const projectFileMap = new Map(Object.entries(projectFiles));
+  const projectFileMap = new Map(projectFiles.map((file) => [file.path, file]));
 
   // Compare local files against project files
   for (const localFile of localFiles) {
@@ -75,15 +74,11 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
       if (localFile.type !== "directory") {
         const localStat = await Deno.stat(path.join(targetDir, localFile.path));
         // File exists in both places, check if modified
-        const isModified = await isFileModified({
-          path: localFile.path,
-          targetDir,
-          originalPath: join(targetDir, localFile.path),
-          projectId,
-          branchId,
-          version,
-          localMtime: localStat.mtime!.getTime(),
-          projectMtime: new Date(projectFileInfo.mtime).getTime(),
+        const isModified = isFileModified({
+          srcContent: localFile.content!, // We know it isn't a dir, so there should be content
+          srcMtime: localFile.mtime,
+          dstContent: projectFileInfo.content!,
+          dstMtime: projectFileInfo.mtime,
         });
 
         if (isModified) {
@@ -108,7 +103,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
       } else {
         const notModifiedFileState: NotModifiedItemStatus = {
           type: localFile.type,
-          path: localFile.type,
+          path: localFile.path,
           status: "not_modified",
           mtime: localFile.mtime,
           content: localFile.content,
@@ -138,7 +133,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
 async function getProjectFiles({
   projectId,
   branchId,
-  version = undefined,
+  version,
   gitignoreRules,
 }: {
   projectId: string;

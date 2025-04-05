@@ -4,7 +4,6 @@ import { ProjectItemColors, STATUS_STYLES, TypeToTypeStr } from "~/consts.ts";
 import type {
   ItemStatus,
   ItemStatusManager,
-  ItemStatusState,
 } from "~/vt/lib/ItemStatusManager.ts";
 import type { ProjectItemType } from "~/types.ts";
 

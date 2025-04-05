@@ -48,7 +48,7 @@ export function clone(params: CloneParams): Promise<ItemStatusManager> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = ItemStatusManager.empty();
+      const changes = new ItemStatusManager();
       const projectItems = await listProjectItems(projectId, {
         branch_id: branchId,
         version,
@@ -73,6 +73,7 @@ export function clone(params: CloneParams): Promise<ItemStatusManager> {
                 type: "directory",
                 path: file.path,
                 status: "created",
+                mtime: new Date(file.updatedAt).getTime(),
               });
             }
           } else {
@@ -124,6 +125,7 @@ async function createFile(
       type: fileType,
       path: file.path,
       status: "created",
+      mtime: updatedAt.getTime(),
     };
   } else {
     // File exists - check if it's modified
@@ -146,12 +148,14 @@ async function createFile(
         type: fileType,
         path: file.path,
         status: "modified",
+        mtime: localMtime,
       };
     } else {
       fileStatus = {
         type: fileType,
         path: file.path,
         status: "not_modified",
+        mtime: localMtime,
       };
     }
   }

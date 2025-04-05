@@ -54,7 +54,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = ItemStatusManager.empty();
+      const changes = new ItemStatusManager();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the
@@ -110,6 +110,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
               version,
               filePath: relativePath,
             }),
+          mtime: stat.mtime?.getTime()!,
         };
         changes.insert(fileStatus);
 

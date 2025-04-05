@@ -147,6 +147,9 @@ Deno.test({
           await Deno.remove(oldPath);
           const newPath = join(folderPath, "new.txt");
           await Deno.writeTextFile(newPath, "content");
+
+          // Create a totally new file
+          await Deno.writeTextFile(join(tempDir, "new.txt"), "content");
         });
 
         await t.step("run a status check on the current state", async () => {
@@ -172,7 +175,7 @@ Deno.test({
           // Check created array
           assertEquals(statusResult.created.length, 1);
           assertEquals(statusResult.created[0].type, "file");
-          assertEquals(statusResult.created[0].path, "folder/new.txt");
+          assertEquals(statusResult.created[0].path, "new.txt");
           assertEquals(statusResult.created[0].status, "created");
         });
       });

@@ -90,7 +90,7 @@ export function checkout(
         overwrite: true,
       });
 
-      const fileStateChanges = ItemStatusManager.empty();
+      const fileStateChanges = new ItemStatusManager();
 
       // Determine if we're creating a new branch or checking out an existing one
       const createdNew = !("toBranchId" in params);
@@ -149,6 +149,7 @@ export function checkout(
             path: projectItem.path,
             status: "not_modified",
             type: projectItem.type,
+            mtime: new Date(projectItem.updatedAt).getTime(),
           });
         });
       } else {
@@ -208,6 +209,7 @@ export function checkout(
                   version: fromBranch.version,
                   filePath: relativePath,
                 }),
+              mtime: stat.mtime?.getTime()!,
             });
 
             // Delete the file from both directories if not in dry run mode
