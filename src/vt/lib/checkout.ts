@@ -6,7 +6,7 @@ import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import { FileState } from "~/vt/lib/FileState.ts";
+import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 
 /**
@@ -24,7 +24,7 @@ export interface CheckoutResult {
   /** Whether a new branch was created during checkout */
   createdNew: boolean;
   /** Changes made to files during the checkout process */
-  fileStateChanges: FileState;
+  fileStateChanges: ItemStatusManager;
 }
 
 /**
@@ -90,7 +90,7 @@ export function checkout(
         overwrite: true,
       });
 
-      const fileStateChanges = FileState.empty();
+      const fileStateChanges = new ItemStatusManager();
 
       // Determine if we're creating a new branch or checking out an existing one
       const createdNew = !("toBranchId" in params);
@@ -149,6 +149,7 @@ export function checkout(
             path: projectItem.path,
             status: "not_modified",
             type: projectItem.type,
+            mtime: new Date(projectItem.updatedAt).getTime(),
           });
         });
       } else {
@@ -208,6 +209,7 @@ export function checkout(
                   version: fromBranch.version,
                   filePath: relativePath,
                 }),
+              mtime: stat.mtime?.getTime()!,
             });
 
             // Delete the file from both directories if not in dry run mode

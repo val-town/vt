@@ -2,7 +2,6 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
@@ -19,7 +18,7 @@ Deno.test({
               path: "initial.js",
               content: "console.log('Initial file');",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
 

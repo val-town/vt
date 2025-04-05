@@ -4,7 +4,7 @@ import sdk from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 
 Deno.test({
   name: "test typical file status reporting",
@@ -50,7 +50,7 @@ Deno.test({
 
         await t.step("varify status layout", async () => {
           // Run status check
-          const result: FileState = await status({
+          const result: ItemStatusManager = await status({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
@@ -147,6 +147,9 @@ Deno.test({
           await Deno.remove(oldPath);
           const newPath = join(folderPath, "new.txt");
           await Deno.writeTextFile(newPath, "content");
+
+          // Create a totally new file
+          await Deno.writeTextFile(join(tempDir, "new.txt"), "content");
         });
 
         await t.step("run a status check on the current state", async () => {
@@ -172,7 +175,7 @@ Deno.test({
           // Check created array
           assertEquals(statusResult.created.length, 1);
           assertEquals(statusResult.created[0].type, "file");
-          assertEquals(statusResult.created[0].path, "folder/new.txt");
+          assertEquals(statusResult.created[0].path, "new.txt");
           assertEquals(statusResult.created[0].status, "created");
         });
       });

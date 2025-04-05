@@ -1,11 +1,11 @@
 import {
   DEFAULT_VAL_TYPE,
   FIRST_VERSION_NUMBER,
-  type ProjectItemType,
   RECENT_VERSION_COUNT,
 } from "~/consts.ts";
 import { getProjectItem } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
+import type { ProjectItemType } from "~/types.ts";
 
 /**
  * Determine the type of a project file.

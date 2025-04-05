@@ -2,7 +2,6 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
@@ -23,7 +22,7 @@ Deno.test({
               path: "original.txt",
               content: "original content",
               branch_id: mainBranch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
         });
@@ -113,7 +112,7 @@ Deno.test({
             path: "main-file.js",
             content: "console.log('Main branch file');",
             branch_id: branch.id,
-            type: "file" as ProjectFileType,
+            type: "file",
           },
         );
 
@@ -130,7 +129,7 @@ Deno.test({
             path: "feature-file.js",
             content: "console.log('Feature branch file');",
             branch_id: newBranch.id,
-            type: "file" as ProjectFileType,
+            type: "file",
           },
         );
 
@@ -186,7 +185,7 @@ Deno.test({
             path: "main-file.js",
             content: "console.log('Main branch file');",
             branch_id: branch.id,
-            type: "file" as ProjectFileType,
+            type: "file",
           },
         );
 
@@ -253,7 +252,7 @@ Deno.test({
             path: "shared-file.js",
             content: "console.log('Original content');",
             branch_id: branch.id,
-            type: "file" as ProjectFileType,
+            type: "file",
           },
         );
 
