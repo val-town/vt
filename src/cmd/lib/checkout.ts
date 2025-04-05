@@ -119,9 +119,12 @@ export const checkoutCmd = new Command()
                   .filter((fileStatus) => fileStatus.status === "not_modified"),
               );
 
+            const currentStatus = await vt.status();
             if (!isNewBranch) {
               if (
-                await vt.isDirty() && !force && !dryRun
+                (currentStatus.modified.length > 0 ||
+                  currentStatus.deleted.length > 0) &&
+                !force && !dryRun
               ) {
                 spinner.stop();
 

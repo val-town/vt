@@ -28,7 +28,10 @@ export const pullCmd = new Command()
         // Check if dirty, then early exit if it's dirty and they don't
         // want to proceed. If in force mode don't do this check.
         const fileStateChanges = await vt.pull({ dryRun: true });
-        if ((await vt.isDirty()) && !force) {
+        if (
+          fileStateChanges.deleted.length > 0 ||
+          fileStateChanges.modified.length > 0 && !force
+        ) {
           spinner.stop();
 
           // Display what would be pulled when dirty
@@ -39,10 +42,10 @@ export const pullCmd = new Command()
             includeTypes: !dryRun,
             includeSummary: true,
           });
-          console.log();
 
           // No need to confirm since they are just doing a dry run
           if (dryRun) return;
+          console.log();
 
           // Ask for confirmation to proceed despite dirty state
           const shouldProceed = await Confirm.prompt({
