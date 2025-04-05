@@ -5,6 +5,8 @@ import { runVtCommand, runVtProc } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { projectExists } from "~/sdk.ts";
 import stripAnsi from "strip-ansi";
+import { exists } from "@std/fs";
+import { META_FOLDER_NAME } from "~/consts.ts";
 
 Deno.test({
   name: "delete command with cancellation",
@@ -68,6 +70,13 @@ Deno.test({
           assert(
             !await projectExists(project.id),
             "project should no longer exist",
+          );
+        });
+
+        await t.step("directory should be de-inited", async () => {
+          assert(
+            !await exists(join(fullPath, META_FOLDER_NAME)),
+            "directory should be de-inited",
           );
         });
       });

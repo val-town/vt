@@ -4,6 +4,9 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 import { Confirm } from "@cliffy/prompt";
 import sdk from "~/sdk.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { join } from "@std/path";
+import { META_FOLDER_NAME } from "~/consts.ts";
+import { colors } from "@cliffy/ansi/colors";
 
 export const deleteCmd = new Command()
   .name("delete")
@@ -38,5 +41,13 @@ export const deleteCmd = new Command()
       await sdk.projects.delete(projectId);
     });
 
+    // De-init the directory
+    await Deno.remove(join(vtRoot, META_FOLDER_NAME), { recursive: true });
+
     console.log(`Project "${projectName}" has been deleted.`);
+    console.log(
+      `You will no longer be able to use ${
+        colors.bold("vt")
+      } commands in this directory.`,
+    );
   });
