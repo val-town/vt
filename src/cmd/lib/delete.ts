@@ -37,9 +37,7 @@ export const deleteCmd = new Command()
         }
       }
 
-      await doWithSpinner(`Deleting project ${projectName}...`, async () => {
-        await vt.delete();
-      });
+      await vt.delete();
 
       spinner.succeed(`Project "${projectName}" has been deleted.`);
       spinner.info(
