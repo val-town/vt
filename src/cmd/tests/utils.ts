@@ -3,21 +3,16 @@ import stripAnsi from "strip-ansi";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 
 /**
- * Runs the vt.ts script with provided arguments.
- *
- * Automatically sends "yes" to stdin to confirm any prompts, so that the
- * prompts themselves get captured.
+ * Creates and spawns a Deno child process for the vt.ts script.
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
- * @returns Tuple containing [merged output (stdout+stderr), exit code]
+ * @returns The spawned child process
  */
-export async function runVtCommand(
+export function runVtProc(
   args: string[],
   cwd: string,
-  autoConfirm = true,
-): Promise<[string, number]> {
-  // Configure and spawn the process
+): Deno.ChildProcess {
   const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
   const command = new Deno.Command(Deno.execPath(), {
     args: ["run", "-A", commandPath, ...args],
@@ -27,7 +22,26 @@ export async function runVtCommand(
     cwd,
   });
 
-  const process = command.spawn();
+  return command.spawn();
+}
+
+/**
+ * Runs the vt.ts script with provided arguments.
+ *
+ * Automatically sends "yes" to stdin to confirm any prompts, so that the
+ * prompts themselves get captured.
+ *
+ * @param args - Arguments to pass to the script
+ * @param cwd - Current working directory for the command
+ * @param autoConfirm - Whether to automatically send "y" to confirm prompts
+ * @returns Tuple containing [merged output (stdout+stderr), exit code]
+ */
+export async function runVtCommand(
+  args: string[],
+  cwd: string,
+  autoConfirm = true,
+): Promise<[string, number]> {
+  const process = runVtProc(args, cwd);
 
   // Send "y" to automatically confirm prompts
   if (autoConfirm) {
@@ -58,15 +72,7 @@ export function streamVtCommand(
   args: string[],
   cwd: string,
 ): [string[], Deno.ChildProcess] {
-  const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
-  const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "-A", commandPath, ...args],
-    stdout: "piped",
-    stderr: "piped",
-    cwd,
-  });
-
-  const process = command.spawn();
+  const process = runVtProc(args, cwd);
   const outputLines: string[] = [];
 
   // Read stdout
