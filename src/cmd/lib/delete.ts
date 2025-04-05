@@ -37,6 +37,7 @@ export const deleteCmd = new Command()
         }
       }
 
+      spinner.start();
       await vt.delete();
 
       spinner.succeed(`Project "${projectName}" has been deleted.`);
