@@ -16,6 +16,8 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await Deno.remove(join(fullPath, ".vtignore"));
+        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("run pull command", async () => {
           const [output] = await runVtCommand(["pull"], fullPath);
