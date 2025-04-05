@@ -263,7 +263,6 @@ export class ItemStatusManager {
             !maxSimilarItem
           )
         ) {
-          console.log(similarity > RENAME_DETECTION_THRESHOLD);
           maxSimilarItem = {
             path: newItem.path,
             status: "renamed",
