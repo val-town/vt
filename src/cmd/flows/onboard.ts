@@ -13,7 +13,7 @@ import { delay } from "@std/async";
  */
 function welcomeToVt(): void {
   // Header
-  console.log(colors.bold(colors.blue("Welcome to Val Town CLI!")));
+  console.log(colors.bold(colors.blue("Welcome to the Val Town CLI!")));
   console.log();
 
   // Introduction
