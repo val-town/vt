@@ -1,5 +1,5 @@
 import { levenshteinDistance } from "@std/text";
-import { asProjectItemType, type ProjectItemType } from "~/types.ts";
+import type { ProjectItemType } from "~/types.ts";
 import { RENAME_DETECTION_THRESHOLD } from "~/consts.ts";
 
 export interface ItemInfo {
@@ -266,7 +266,7 @@ export class ItemStatusManager {
             status: "renamed",
             similarity,
             oldPath: oldItem.path,
-            type: asProjectItemType(newItem.type),
+            type: oldItem.type, // Preserve the type
             mtime: newItem.mtime,
             content: newItem.content,
           };

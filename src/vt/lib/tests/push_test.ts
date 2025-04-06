@@ -94,25 +94,29 @@ Deno.test({
   async fn() {
     await doWithNewProject(async ({ project, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        // Create a folder
-        const folderPath = join(tempDir, "folder");
-        await Deno.mkdir(folderPath, { recursive: true });
+        // Create and push original file
+        const projectDir = join(tempDir, "project");
+        await Deno.mkdir(projectDir, { recursive: true });
+        await Deno.writeTextFile(
+          join(projectDir, "old.txt"),
+          "content",
+        );
 
-        // Create original file
-        const oldPath = join(folderPath, "old.txt");
-        await Deno.writeTextFile(oldPath, "content");
-
-        // Push original file
         await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
         });
 
+        // Get the id of the original file
+        const originalFile = await sdk.projects.files
+          .retrieve(project.id, { path: "project/old.txt" })
+          .then((resp) => resp.data[0]);
+
         // Rename file (delete old, create new)
-        await Deno.remove(oldPath);
-        const newPath = join(folderPath, "new.txt");
-        await Deno.writeTextFile(newPath, "content");
+        await Deno.remove(join(projectDir, "old.txt"));
+        // (slightly modified, but less than 50%)
+        await Deno.writeTextFile(join(projectDir, "new.txt"), "contentt");
 
         // Push renamed file
         const statusResult = await push({
@@ -121,51 +125,41 @@ Deno.test({
           branchId: branch.id,
         });
 
-        // Check modified array
-        assertEquals(statusResult.modified.length, 0);
-
-        // Check not_modified array
-        assertEquals(statusResult.not_modified.length, 1);
-        assertEquals(statusResult.not_modified[0].type, "directory");
-        assertEquals(statusResult.not_modified[0].path, "folder");
-        assertEquals(statusResult.not_modified[0].status, "not_modified");
-
-        // Check to see fi the rename was detected
+        // Verify rename was detected
         assertEquals(statusResult.renamed.length, 1);
         assertEquals(statusResult.renamed[0].type, "file");
-        assertEquals(statusResult.renamed[0].oldPath, "folder/old.txt");
-        assertEquals(statusResult.renamed[0].path, "folder/new.txt");
+        assertEquals(statusResult.renamed[0].oldPath, "project/old.txt");
+        assertEquals(statusResult.renamed[0].path, "project/new.txt");
         assertEquals(statusResult.renamed[0].status, "renamed");
+        // console.log(statusResult)
 
-        // Check old file is gone
+        // Verify file ID is preserved (same file)
+        const renamedFile = await sdk.projects.files.retrieve(
+          project.id,
+          { path: "project/new.txt" },
+        ).then((resp) => resp.data[0]);
+        assertEquals(originalFile.id, renamedFile.id);
+
+        // Verify old file is gone
         await assertRejects(
           async () => {
-            const response = await sdk.projects.files.getContent(project.id, {
-              path: "folder/old.txt",
+            return await sdk.projects.files.retrieve(project.id, {
+              path: "project/old.txt",
               branch_id: branch.id,
             });
-
-            // Ensure the response body is consumed even if we don't expect to get here
-            await response.text();
-            return response;
           },
           ValTown.APIError,
           "404",
-          "file should have been deleted during rename",
         );
 
-        // Check new file exists with the right content
+        // Verify content is preserved
         const content = await sdk.projects.files
           .getContent(project.id, {
-            path: "folder/new.txt",
+            path: "project/new.txt",
             branch_id: branch.id,
           })
           .then((resp) => resp.text());
-        assertEquals(
-          content,
-          "content",
-          "file content should match after rename",
-        );
+        assertEquals(content, "contentt");
       });
     });
   },

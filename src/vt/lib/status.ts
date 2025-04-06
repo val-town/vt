@@ -26,8 +26,6 @@ export interface StatusParams {
   version?: number;
   /** Gitignore rules */
   gitignoreRules?: string[];
-  /** Whether to detect renames */
-  detectRenames?: boolean;
 }
 
 /**
@@ -45,7 +43,6 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     branchId,
     version,
     gitignoreRules,
-    detectRenames = true,
   } = params;
   const result = new ItemStatusManager();
 
@@ -136,8 +133,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  if (detectRenames) return result.consolidateRenames();
-  else return result;
+  return result.consolidateRenames();
 }
 
 async function getProjectFiles({

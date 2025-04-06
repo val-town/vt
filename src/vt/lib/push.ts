@@ -1,9 +1,9 @@
-import * as path from "@std/path";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import sdk, { getLatestVersion, getProjectItem } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
 import { status } from "~/vt/lib/status.ts";
 import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { asProjectFileType, asProjectItemType } from "~/types.ts";
+import { basename, dirname, join } from "@std/path";
 
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town project.
@@ -52,26 +52,44 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
       branchId,
       version,
       gitignoreRules,
-      detectRenames: false, // We do this later, and we don't want to do double work
     });
   }
 
-  if (dryRun) return fileState.consolidateRenames(); // Exit early if dry run
+  if (dryRun) return fileState; // Exit early if dry run
 
   // Upload files that were modified locally
   const modifiedPromises = fileState.modified
     .filter((file) => file.type !== "directory")
     .map(async (file) => {
+      console.trace(file);
       await sdk.projects.files.update(
         projectId,
         {
           path: file.path,
           branch_id: branchId,
-          content: await Deno.readTextFile(path.join(targetDir, file.path)),
-          name: path.basename(file.path),
+          content: file.content,
+          name: basename(file.path),
           type: asProjectFileType(file.type),
         },
       );
+    });
+
+  // Rename files that were renamed locally
+  const renamePromises = fileState.renamed
+    .filter((file) => file.type !== "directory")
+    .map(async (file) => {
+      await sdk.projects.files.update(projectId, {
+        branch_id: branchId,
+        name: basename(file.path),
+        type: asProjectFileType(file.type),
+        content: file.content,
+        parent_id: (await getProjectItem(projectId, {
+          filePath: dirname(file.path),
+          branchId,
+          version,
+        }))?.id,
+        path: file.oldPath,
+      });
     });
 
   // Delete files that exist on the server but not locally
@@ -83,79 +101,73 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
     });
   });
 
-  // First ensure all directories exist
-  for (const file of fileState.created) {
-    if (file.path.includes("/")) {
-      await ensureValtownDir(projectId, branchId, file.path, false);
-    }
-  }
+  await assertAllDirs(
+    projectId,
+    branchId,
+    fileState.created
+      .filter((f) => f.type === "directory")
+      .map((f) => f.path),
+  );
 
   // Upload all files that exist locally but not on the server
-  for (const file of fileState.created) {
-    try {
-      if (file.type === "directory") {
-        // We want to make sure we get all the empty directories
-        await ensureValtownDir(projectId, branchId, file.path, true);
-      } else {
+  const createdPromises = fileState.created
+    .filter((file) => file.type !== "directory") // Filter out directories since we already handled them
+    .map(async (file) => {
+      try {
         // The file type is already a ProjectItemType since it comes from fileState
         // but we'll use asProjectItemType for extra safety
         const fileType = asProjectItemType(file.type);
 
         // Upload the file
-        await sdk.projects.files.create(
+        return await sdk.projects.files.create(
           projectId,
           {
             path: file.path,
-            content: (await Deno.readTextFile(path.join(targetDir, file.path))),
+            content: (await Deno.readTextFile(join(targetDir, file.path))),
             branch_id: branchId,
             type: asProjectFileType(fileType),
           },
         );
+      } catch (e) {
+        assertAllowedUploadError(e);
+        return null;
       }
-    } catch (e) {
-      assertAllowedUploadError(e);
-    }
-  }
+    });
 
   // Wait for all operations to complete
   await Promise.all([
     ...modifiedPromises,
     ...deletedPromises,
+    ...createdPromises,
+    ...renamePromises,
   ]);
 
   return fileState.consolidateRenames();
 }
 
-async function ensureValtownDir(
+async function assertAllDirs(
   projectId: string,
   branchId: string,
-  filePath: string,
-  isDirectory = false,
-): Promise<void> {
-  // Note that we cannot use path logic here because it must specific to val town
-  const dirPath = isDirectory ? filePath : path.dirname(filePath);
+  paths: string[],
+) {
+  const allDirs = paths
+    .map((p) => p.split("/"))
+    .sort((a, b) => a.length - b.length); // Sort by path depth
 
-  // If path is "" (root) no directories need to be created
-  if (dirPath === "") return;
+  const allCreatedDirs = new Set<string>();
 
-  // Split the path into segments
-  const segments = dirPath.split("/");
-  let currentPath = "";
+  // Process directories from shallowest to deepest without using shift
+  for (const dir of allDirs) {
+    const path = dir.join("/");
+    if (path === "") continue; // Skip empty path
 
-  // Create each directory in the path if it doesn't exist
-  for (let i = 0; i < segments.length; i++) {
-    if (segments[i] === "") continue;
-
-    currentPath += (currentPath ? "/" : "") + segments[i];
-
-    // Create directory - content can be null, empty string, or omitted for directories
-    try {
+    if (!allCreatedDirs.has(path)) {
+      // Only create if not already created
       await sdk.projects.files.create(
         projectId,
-        { path: currentPath, type: "directory", branch_id: branchId },
+        { path, type: "directory", branch_id: branchId },
       );
-    } catch (e) {
-      assertAllowedUploadError(e);
+      allCreatedDirs.add(path);
     }
   }
 }

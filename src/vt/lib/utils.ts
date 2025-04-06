@@ -1,7 +1,4 @@
-import ValTown from "@valtown/sdk";
-import sdk from "~/sdk.ts";
 import { copy, ensureDir, exists } from "@std/fs";
-import { dirname } from "@std/path";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -86,56 +83,6 @@ export async function doAtomically<T>(
     cleanup();
   }
   return result;
-}
-
-/**
- * Ensures that a directory path exists within a project in Valtown.
- * This function creates each directory in the specified path if it doesn't already exist.
- *
- * @param {string} projectId - The ID of the project where the directory should be ensured.
- * @param {string} branchId - The ID of the branch where the directory should be created.
- * @param {string} filePath - The file path for which directories need to be ensured.
- * @returns {Promise<void>} A promise that resolves when all necessary directories are created.
- */
-export async function ensureValtownDir(
-  projectId: string,
-  branchId: string,
-  filePath: string,
-): Promise<void> {
-  const dirPath = dirname(filePath);
-
-  // If path is "." (current directory) or empty, no directories need to be created
-  if (dirPath === "." || dirPath === "") {
-    return;
-  }
-
-  // Split the path into segments
-  const segments = dirPath.split("/");
-  let currentPath = "";
-
-  // Create each directory in the path if it doesn't exist
-  for (let i = 0; i < segments.length; i++) {
-    if (segments[i] === "") continue;
-
-    currentPath += (currentPath ? "/" : "") + segments[i];
-
-    // Create directory - content can be null, empty string, or omitted for directories
-    try {
-      await sdk.projects.files.create(
-        projectId,
-        {
-          type: "directory",
-          path: currentPath,
-          branch_id: branchId,
-          content: null,
-        },
-      );
-    } catch (e) {
-      if (e instanceof ValTown.APIError) {
-        if (e.status != 409) throw e;
-      } else throw e;
-    }
-  }
 }
 
 /**
