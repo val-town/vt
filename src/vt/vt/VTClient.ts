@@ -22,6 +22,8 @@ import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
+import { remix } from "~/vt/lib/remix.ts";
+import { create } from "~/vt/lib/create.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -226,7 +228,7 @@ export default class VTClient {
    * @param {string} rootPath - The root path where the VT instance will be initialized
    * @param {string} projectName - The name of the project to create
    * @param {string} username - The username of the project owner
-   * @param {'public' | 'private'} privacy - The privacy setting for the project
+   * @param {'public' | 'private' | 'unlisted'} privacy - The privacy setting for the project
    * @param {string} [description] - Optional description for the project
    * @returns {Promise<VTClient>} A new VTClient instance
    */
@@ -237,35 +239,68 @@ export default class VTClient {
     privacy: "public" | "private" | "unlisted",
     description?: string,
   ): Promise<VTClient> {
-    // First create the project
-    const project = await sdk.projects.create({
-      name: projectName,
-      privacy,
+    // Create the project using the create function
+    const { projectId } = await create({
+      sourceDir: rootPath,
+      projectName,
       description,
+      privacy,
+      gitignoreRules: [],
     });
 
     // Get the project branch
-    const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
-    if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
-
-    // Then clone it to the target directory
-    await clone({
-      targetDir: rootPath,
-      projectId: project.id,
-      branchId: branch.id,
-      version: branch.version,
-    });
+    const branch = await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME);
 
     // Initialize VT client with the new project
-    return VTClient.init(
-      {
-        rootPath,
-        username,
-        projectName,
-        version: branch.version,
-        branchName: DEFAULT_BRANCH_NAME,
-      },
-    );
+    return VTClient.init({
+      rootPath,
+      username,
+      projectName,
+      version: branch.version,
+      branchName: DEFAULT_BRANCH_NAME,
+    });
+  }
+
+  /**
+   * Remix an existing Val Town project to create a new one.
+   *
+   * @param {string} rootPath - The root path where the remixed project will be initialized
+   * @param {string} srcProjectId - The ID of the source project to remix from
+   * @param {string} projectName - The name for the new remixed project
+   * @param {string} username - The username of the project owner
+   * @param {'public' | 'private' | 'unlisted'} privacy - The privacy setting for the project
+   * @param {string} [description] - Optional description for the project
+   * @returns {Promise<VTClient>} A new VTClient instance for the remixed project
+   */
+  public static async remix(
+    rootPath: string,
+    srcProjectId: string,
+    projectName: string,
+    username: string,
+    privacy: "public" | "private" | "unlisted",
+    description?: string,
+  ): Promise<VTClient> {
+    // Remix the project using the remix function
+    const [_, dstProjectId] = await remix({
+      targetDir: rootPath,
+      srcProjectId,
+      projectName,
+      description,
+      privacy,
+      gitignoreRules: [],
+    });
+
+    // Get the project branch
+    const branch = await branchNameToBranch(dstProjectId, DEFAULT_BRANCH_NAME);
+
+    // Initialize VT client with the new project
+    return VTClient.init({
+      rootPath,
+      username,
+      projectName,
+      version: branch.version,
+      branchName: DEFAULT_BRANCH_NAME,
+    });
   }
 
   /**

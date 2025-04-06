@@ -1,0 +1,118 @@
+import { Command } from "@cliffy/command";
+import { join } from "@std/path";
+import VTClient from "~/vt/vt/VTClient.ts";
+import sdk, { projectExists, user } from "~/sdk.ts";
+import { APIError } from "@valtown/sdk";
+import { doWithSpinner } from "~/cmd/utils.ts";
+import { parseProjectUri } from "~/cmd/parsing.ts";
+import { randomIntegerBetween } from "@std/random";
+
+export const remixCmd = new Command()
+  .name("remix")
+  .description("Remix a Val Town project")
+  .arguments(
+    "<fromProjectUri:string> [newProjectName:string] [targetDir:string]",
+  )
+  .option("--public", "Remix as public project (default)", {
+    conflicts: ["private", "unlisted"],
+  })
+  .option("--private", "Remix as private project", {
+    conflicts: ["public", "unlisted"],
+  })
+  .option("--unlisted", "Remix as unlisted project", {
+    conflicts: ["public", "private"],
+  })
+  .option("--no-editor-files", "Skip creating editor configuration files")
+  .option("-d, --description <desc:string>", "Project description")
+  .example(
+    "Bootstrap a website",
+    `
+ vt remix srd/reactHonoStarter myNewWebsite
+ cd ./myNewWebsite
+ vt browse
+ vt watch # syncs changes to val town`,
+  )
+  .action(async (
+    {
+      private: isPrivate,
+      unlisted,
+      description,
+      editorFiles = true,
+    }: {
+      public?: boolean;
+      private?: boolean;
+      unlisted?: boolean;
+      description?: string;
+      editorFiles?: boolean;
+    },
+    fromProjectUri: string,
+    newProjectName?: string,
+    targetDir?: string,
+  ) => {
+    await doWithSpinner("Remixing Val Town project...", async (spinner) => {
+      // Parse the project uri for the project we are remixing
+      const {
+        ownerName: sourceProjectUsername,
+        projectName: sourceProjectName,
+      } = parseProjectUri(
+        fromProjectUri,
+        user.username!,
+      );
+
+      // Use source project name as a fallback if no new name provided
+      let projectName: string;
+      if (
+        !await projectExists({
+          projectName: sourceProjectName,
+          username: sourceProjectUsername,
+        })
+      ) {
+        projectName = newProjectName || `${sourceProjectName}_remix`;
+      } else {
+        projectName = newProjectName ||
+          `${sourceProjectName}_remix_${randomIntegerBetween(10000, 99999)}`;
+      }
+
+      let rootPath: string;
+      if (!targetDir) {
+        rootPath = join(Deno.cwd(), projectName);
+      } else rootPath = join(targetDir, projectName);
+
+      // Determine privacy setting (defaults to public)
+      const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
+
+      try {
+        // Get the source project ID
+        const sourceProject = await sdk.alias.username.projectName.retrieve(
+          sourceProjectUsername,
+          sourceProjectName,
+        );
+
+        if (!sourceProject) {
+          throw new Error(
+            `Source project @${sourceProjectUsername}/${sourceProjectName} not found`,
+          );
+        }
+
+        // Use the remix function instead of create
+        const vt = await VTClient.remix(
+          rootPath,
+          sourceProject.id,
+          projectName,
+          user.username!, // Init the client with authenticated user
+          privacy,
+          description,
+        );
+
+        if (editorFiles) await vt.addEditorFiles();
+
+        spinner.succeed(
+          `Remixed @${sourceProjectUsername}/${sourceProjectName} to ${privacy} project @${user.username}/${projectName}`,
+        );
+      } catch (error) {
+        if (error instanceof APIError && error.status === 409) {
+          throw new Error(`Project name "${projectName}" already exists`);
+        } else throw error;
+      }
+    });
+  });
