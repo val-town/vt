@@ -10,10 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump Version
+        run: |
+          deno run -A jsr:@kellnerd/bump patch --commit "chore: New release version"
+
+      - name: Push Changes
+        run: git push
+
       - name: Publish package
         run: npx jsr publish
