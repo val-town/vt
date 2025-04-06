@@ -61,7 +61,6 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
   const modifiedPromises = fileState.modified
     .filter((file) => file.type !== "directory")
     .map(async (file) => {
-      console.trace(file);
       await sdk.projects.files.update(
         projectId,
         {
