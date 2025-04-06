@@ -34,6 +34,7 @@
     "jsr:@std/path@^1.0.2": "1.0.8",
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/path@~1.0.6": "1.0.8",
+    "jsr:@std/random@0.1": "0.1.0",
     "jsr:@std/text@~1.0.7": "1.0.11",
     "jsr:@valtown/sdk@0.38": "0.38.0",
     "npm:@ai-sdk/anthropic@*": "1.2.0_zod@3.24.2",
@@ -176,6 +177,9 @@
     },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@std/random@0.1.0": {
+      "integrity": "70a006be0ffb77d036bab54aa8ae6bd0119ba77ace0f2f56f63273d4262a5667"
     },
     "@std/text@1.0.11": {
       "integrity": "f191fa22590cac8b1cdba6cc4ab97940e720f7cc67b3084e54405b428bf5843d"
@@ -1028,6 +1032,7 @@
       "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fs@^1.0.13",
       "jsr:@std/path@^1.0.8",
+      "jsr:@std/random@0.1",
       "jsr:@valtown/sdk@0.38",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
