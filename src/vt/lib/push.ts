@@ -52,10 +52,11 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
       branchId,
       version,
       gitignoreRules,
+      detectRenames: false, // We do this later, and we don't want to do double work
     });
   }
 
-  if (dryRun) return fileState; // Exit early if dry run
+  if (dryRun) return fileState.consolidateRenames(); // Exit early if dry run
 
   // Upload files that were modified locally
   const modifiedPromises = fileState.modified
@@ -122,7 +123,7 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
     ...deletedPromises,
   ]);
 
-  return fileState;
+  return fileState.consolidateRenames();
 }
 
 async function ensureValtownDir(

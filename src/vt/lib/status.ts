@@ -26,6 +26,8 @@ export interface StatusParams {
   version?: number;
   /** Gitignore rules */
   gitignoreRules?: string[];
+  /** Whether to detect renames */
+  detectRenames?: boolean;
 }
 
 /**
@@ -37,7 +39,14 @@ export interface StatusParams {
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
 export async function status(params: StatusParams): Promise<ItemStatusManager> {
-  const { targetDir, projectId, branchId, version, gitignoreRules } = params;
+  const {
+    targetDir,
+    projectId,
+    branchId,
+    version,
+    gitignoreRules,
+    detectRenames = true,
+  } = params;
   const result = new ItemStatusManager();
 
   // Get all files
@@ -127,7 +136,8 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  return result.consolidateRenames();
+  if (detectRenames) return result.consolidateRenames();
+  else return result;
 }
 
 async function getProjectFiles({

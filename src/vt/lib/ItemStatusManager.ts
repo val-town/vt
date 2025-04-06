@@ -209,12 +209,10 @@ export class ItemStatusManager {
         break;
       case "renamed":
         // Remove created and deleted files with the same name
-        if (this.#created.has(item.path)) {
-          this.#created.delete(item.path);
-        }
-        if (this.#deleted.has(item.path)) {
-          this.#deleted.delete(item.path);
-        }
+        this.#created.delete(item.path);
+        this.#created.delete(item.oldPath);
+        this.#deleted.delete(item.path);
+        this.#deleted.delete(item.oldPath);
         this.#renamed.set(item.path, item as RenamedItemStatus);
         break;
       case "modified":

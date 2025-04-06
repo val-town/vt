@@ -130,17 +130,12 @@ Deno.test({
         assertEquals(statusResult.not_modified[0].path, "folder");
         assertEquals(statusResult.not_modified[0].status, "not_modified");
 
-        // Check deleted array
-        assertEquals(statusResult.deleted.length, 1);
-        assertEquals(statusResult.deleted[0].type, "file");
-        assertEquals(statusResult.deleted[0].path, "folder/old.txt");
-        assertEquals(statusResult.deleted[0].status, "deleted");
-
-        // Check created array
-        assertEquals(statusResult.created.length, 1);
-        assertEquals(statusResult.created[0].type, "file");
-        assertEquals(statusResult.created[0].path, "folder/new.txt");
-        assertEquals(statusResult.created[0].status, "created");
+        // Check to see fi the rename was detected
+        assertEquals(statusResult.renamed.length, 1);
+        assertEquals(statusResult.renamed[0].type, "file");
+        assertEquals(statusResult.renamed[0].oldPath, "folder/old.txt");
+        assertEquals(statusResult.renamed[0].path, "folder/new.txt");
+        assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Check old file is gone
         await assertRejects(

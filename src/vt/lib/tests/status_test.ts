@@ -145,7 +145,7 @@ Deno.test({
 
           // Rename file (delete old, create new)
           await Deno.remove(oldPath);
-          const newPath = join(folderPath, "new.txt");
+          const newPath = join(folderPath, "renamed.txt");
           await Deno.writeTextFile(newPath, "content");
 
           // Create a totally new file
@@ -166,17 +166,21 @@ Deno.test({
           assertEquals(statusResult.not_modified[0].path, "folder");
           assertEquals(statusResult.not_modified[0].status, "not_modified");
 
-          // Check deleted array
-          assertEquals(statusResult.deleted.length, 1);
-          assertEquals(statusResult.deleted[0].type, "file");
-          assertEquals(statusResult.deleted[0].path, "folder/old.txt");
-          assertEquals(statusResult.deleted[0].status, "deleted");
+          // Check renamed array
+          assertEquals(statusResult.renamed.length, 1);
+          assertEquals(statusResult.renamed[0].type, "file");
+          assertEquals(statusResult.renamed[0].path, "folder/renamed.txt");
+          assertEquals(statusResult.renamed[0].oldPath, "folder/old.txt");
+          assertEquals(statusResult.renamed[0].status, "renamed");
 
-          // Check created array
+          // Check created array - should only have the new.txt file
           assertEquals(statusResult.created.length, 1);
           assertEquals(statusResult.created[0].type, "file");
           assertEquals(statusResult.created[0].path, "new.txt");
           assertEquals(statusResult.created[0].status, "created");
+
+          // Check deleted array - should be empty since the file was renamed, not deleted
+          assertEquals(statusResult.deleted.length, 0);
         });
       });
     });

@@ -132,15 +132,19 @@ async function createFile(
     const localMtime = fileInfo.mtime!.getTime();
     const projectMtime = updatedAt.getTime();
 
-    const modified = await isFileModified({
-      path: file.path,
-      targetDir: originalRoot,
-      originalPath: path,
-      projectId,
-      branchId,
+    // Get its content for modification checking
+    const localContent = await Deno.readTextFile(join(originalRoot, path));
+    const projectContent = await sdk.projects.files.getContent(projectId, {
+      path,
+      branch_id: branchId,
       version,
-      localMtime,
-      projectMtime,
+    }).then((resp) => resp.text());
+
+    const modified = isFileModified({
+      srcContent: localContent,
+      srcMtime: localMtime,
+      dstContent: projectContent,
+      dstMtime: projectMtime,
     });
 
     if (modified) {
@@ -149,6 +153,7 @@ async function createFile(
         path: file.path,
         status: "modified",
         mtime: localMtime,
+        content: localContent,
       };
     } else {
       fileStatus = {
@@ -156,6 +161,7 @@ async function createFile(
         path: file.path,
         status: "not_modified",
         mtime: localMtime,
+        content: localContent,
       };
     }
   }
