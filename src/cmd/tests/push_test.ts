@@ -128,12 +128,12 @@ Deno.test({
 
           // Verify some of the expected directories and files
           assertStringIncludes(pushOutput, "dir1/");
-          assertStringIncludes(pushOutput, "dir10/");
+          assertStringIncludes(pushOutput, "dir5/");
           assertStringIncludes(pushOutput, "file1_1.js");
-          assertStringIncludes(pushOutput, "file10_2.js");
+          assertStringIncludes(pushOutput, "file5_2.js");
 
           // Verify the count of changes
-          assertStringIncludes(pushOutput, "15 created"); // 5 dirs + (5*2=10) files
+          assertStringIncludes(pushOutput, "15 created"); // 5 dirs + (6*2=10) files
         });
       });
     });
