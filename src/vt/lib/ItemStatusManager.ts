@@ -260,7 +260,11 @@ export class ItemStatusManager {
             RENAME_DETECTION_THRESHOLD
         ) continue;
 
-        const distance = levenshteinDistance(newItemContent, oldItemContent);
+        // It is relatively commont that a file might be renamed with zero
+        // modification to the file, so we pay O(n) to avoid O(nm)
+        const distance = (newItemContent === oldItemContent)
+          ? 1
+          : levenshteinDistance(newItemContent, oldItemContent);
 
         // deno-fmt-ignore
         const similarity = 1 - (distance / Math.max(newItemContent.length, oldItemContent.length));

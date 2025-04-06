@@ -131,25 +131,40 @@ Deno.test({
           const folderPath = join(tempDir, "folder");
           await Deno.mkdir(folderPath, { recursive: true });
 
-          // Create original file
-          const oldPath = join(folderPath, "old.txt");
-          await Deno.writeTextFile(oldPath, "content");
+          // Create original file A
+          const oldPathA = join(folderPath, "oldA.txt");
+          await Deno.writeTextFile(oldPathA, "content");
 
-          // Push original file to remote
+          // Create original file B
+          const oldPathB = join(folderPath, "oldB.txt");
+          await Deno.writeTextFile(oldPathB, "differentContent");
+
+          // Push original files to remote
           await sdk.projects.files.create(project.id, {
-            path: "folder/old.txt",
+            path: "folder/oldA.txt",
             content: "content",
             branch_id: branch.id,
             type: "file",
           });
 
-          // Rename file (delete old, create new)
-          await Deno.remove(oldPath);
-          const newPath = join(folderPath, "renamed.txt");
-          await Deno.writeTextFile(newPath, "content");
+          await sdk.projects.files.create(project.id, {
+            path: "folder/oldB.txt",
+            content: "differentContent",
+            branch_id: branch.id,
+            type: "file",
+          });
 
-          // Create a totally new file
-          await Deno.writeTextFile(join(tempDir, "new.txt"), "content");
+          // Rename files (delete old, create new)
+          await Deno.remove(oldPathA);
+          await Deno.remove(oldPathB);
+
+          // Create renamed file A with modified content
+          const newPathA = join(folderPath, "renamedA.txt");
+          await Deno.writeTextFile(newPathA, "contentModified");
+
+          // Create renamed file B with same content
+          const newPathB = join(folderPath, "renamedB.txt");
+          await Deno.writeTextFile(newPathB, "differentContent");
         });
 
         await t.step("run a status check on the current state", async () => {
@@ -166,21 +181,24 @@ Deno.test({
           assertEquals(statusResult.not_modified[0].path, "folder");
           assertEquals(statusResult.not_modified[0].status, "not_modified");
 
-          // Check renamed array
+          // Check renamed array - should have the file with unchanged content
           assertEquals(statusResult.renamed.length, 1);
           assertEquals(statusResult.renamed[0].type, "file");
-          assertEquals(statusResult.renamed[0].path, "folder/renamed.txt");
-          assertEquals(statusResult.renamed[0].oldPath, "folder/old.txt");
+          assertEquals(statusResult.renamed[0].path, "folder/renamedB.txt");
+          assertEquals(statusResult.renamed[0].oldPath, "folder/oldB.txt");
           assertEquals(statusResult.renamed[0].status, "renamed");
 
-          // Check created array - should only have the new.txt file
+          // Check created array - should have the file with modified content
           assertEquals(statusResult.created.length, 1);
           assertEquals(statusResult.created[0].type, "file");
-          assertEquals(statusResult.created[0].path, "new.txt");
+          assertEquals(statusResult.created[0].path, "folder/renamedA.txt");
           assertEquals(statusResult.created[0].status, "created");
 
-          // Check deleted array - should be empty since the file was renamed, not deleted
-          assertEquals(statusResult.deleted.length, 0);
+          // Check deleted array - should have the old file that was "modified"
+          assertEquals(statusResult.deleted.length, 1);
+          assertEquals(statusResult.deleted[0].type, "file");
+          assertEquals(statusResult.deleted[0].path, "folder/oldA.txt");
+          assertEquals(statusResult.deleted[0].status, "deleted");
         });
       });
     });
