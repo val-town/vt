@@ -251,6 +251,15 @@ export class ItemStatusManager {
         const newItemContent = newItem.content!;
         const oldItemContent = oldItem.content!;
 
+        // If newItemContent differs in length by more than
+        // RENAME_DETECTION_THRESHOLD% of oldItemContent, skip it since it
+        // cannot possibly be a candidate
+        if (
+          (Math.abs(newItemContent.length - oldItemContent.length) /
+            Math.max(newItemContent.length, oldItemContent.length)) >
+            RENAME_DETECTION_THRESHOLD
+        ) continue;
+
         const distance = levenshteinDistance(newItemContent, oldItemContent);
 
         // deno-fmt-ignore
