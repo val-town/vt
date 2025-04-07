@@ -98,6 +98,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -181,6 +182,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -288,6 +290,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test("file not in target branch should be deleted", async (t) => {
@@ -357,6 +360,7 @@ Deno.test("file not in target branch should be deleted", async (t) => {
       });
     });
   });
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -458,6 +462,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -576,4 +581,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

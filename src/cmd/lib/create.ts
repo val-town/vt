@@ -80,9 +80,7 @@ vt checkout main`,
         await vt.addEditorFiles();
 
         spinner.succeed(
-          `Created ${privacy} project ${projectName} in ./${
-            basename(clonePath)
-          }`,
+          `Created ${privacy} project ${projectName} in ${basename(clonePath)}`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {
