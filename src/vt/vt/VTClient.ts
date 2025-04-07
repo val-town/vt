@@ -462,15 +462,4 @@ export default class VTClient {
       return result;
     });
   }
-
-  /**
-   * Check if the working directory is dirty relative to remote.
-   *
-   * @returns {Promise<boolean>} True if local state is dirty
-   */
-  public async isDirty(): Promise<boolean> {
-    const fileStateChanges = await this.status();
-    return fileStateChanges.modified.length > 0 ||
-      fileStateChanges.deleted.length > 0;
-  }
 }
