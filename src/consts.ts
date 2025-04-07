@@ -75,3 +75,6 @@ export type ProjectItemType = typeof ProjectItems[number];
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
 
 export const RECENT_VERSION_COUNT = 5;
+
+export const GET_API_KEY_URL = "https://www.val.town/settings/api";
+export const VT_README_URL = "https://github.com/val-town/vt/blob/main/README.md"
