@@ -165,8 +165,8 @@ export const checkoutCmd = new Command()
                   },
                 );
 
-                console.log();
                 console.log(dangerousChanges);
+                console.log();
 
                 // Ask for confirmation to proceed despite dirty state
                 const shouldProceed = await Confirm.prompt({
@@ -181,7 +181,7 @@ export const checkoutCmd = new Command()
                 if (!shouldProceed) Deno.exit(0);
                 else {
                   prepareForResult = () =>
-                    tty.eraseLines(dangerousChanges.split("\n").length + 2);
+                    tty.eraseLines(dangerousChanges.split("\n").length + 3);
                 }
               }
             }
@@ -234,6 +234,7 @@ export const checkoutCmd = new Command()
                   includeSummary: true,
                 }),
               );
+              console.log();
               // If no changes nothing was printed, so we don't need to log state info
               if (checkoutResult.fileStateChanges.changes() > 0) console.log();
 
