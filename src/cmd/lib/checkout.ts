@@ -240,7 +240,7 @@ export const checkoutCmd = new Command()
 
               // Report the success, which is either a successful switch or a
               // successful fork
-              tty.scrollDown(1);
+              tty.scrollDown(2);
               spinner.succeed(
                 isNewBranch
                   ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
