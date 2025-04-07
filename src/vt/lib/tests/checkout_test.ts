@@ -98,6 +98,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -181,6 +182,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -288,75 +290,80 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
-Deno.test("file not in target branch should be deleted", async (t) => {
-  await doWithNewProject(async ({ project, branch: mainBranch }) => {
-    // Create a feature branch
-    const featureBranch = await sdk.projects.branches
-      .create(project.id, { name: "feature" });
+Deno.test({
+  name: "file not in target branch should be deleted",
+  fn: async (t) => {
+    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+      // Create a feature branch
+      const featureBranch = await sdk.projects.branches
+        .create(project.id, { name: "feature" });
 
-    await t.step("add file to feature branch", async () => {
-      await sdk.projects.files.create(project.id, {
-        path: "feature.txt",
-        content: "feature content",
-        branch_id: featureBranch.id,
-        type: "file",
-      });
-    });
-
-    // First temp directory for feature branch checkout
-    await doWithTempDir(async (featureTempDir) => {
-      await t.step("checkout feature branch", async () => {
-        await checkout({
-          targetDir: featureTempDir,
-          projectId: project.id,
-          toBranchId: featureBranch.id,
-          fromBranchId: featureBranch.id,
-          toBranchVersion: 1,
+      await t.step("add file to feature branch", async () => {
+        await sdk.projects.files.create(project.id, {
+          path: "feature.txt",
+          content: "feature content",
+          branch_id: featureBranch.id,
+          type: "file",
         });
-
-        assert(
-          await exists(join(featureTempDir, "feature.txt")),
-          "feature file should exist",
-        );
       });
 
-      await t.step("create local file", async () => {
-        await Deno.writeTextFile(
-          join(featureTempDir, "local.txt"),
-          "local content",
-        );
-      });
-
-      // Second temp directory for main branch checkout
-      await doWithTempDir(async (mainTempDir) => {
-        await t.step("checkout main branch", async () => {
+      // First temp directory for feature branch checkout
+      await doWithTempDir(async (featureTempDir) => {
+        await t.step("checkout feature branch", async () => {
           await checkout({
-            targetDir: mainTempDir,
+            targetDir: featureTempDir,
             projectId: project.id,
-            toBranchId: mainBranch.id,
+            toBranchId: featureBranch.id,
             fromBranchId: featureBranch.id,
             toBranchVersion: 1,
           });
+
+          assert(
+            await exists(join(featureTempDir, "feature.txt")),
+            "feature file should exist",
+          );
         });
 
-        await t.step("verify file states", async () => {
-          assert(
-            !(await exists(join(mainTempDir, "feature.txt"))),
-            "feature file should be deleted",
+        await t.step("create local file", async () => {
+          await Deno.writeTextFile(
+            join(featureTempDir, "local.txt"),
+            "local content",
           );
+        });
 
-          // Local file should not exist in the main branch temp dir
-          // since it's a different directory
-          assert(
-            !(await exists(join(mainTempDir, "local.txt"))),
-            "local file should not exist in main branch directory",
-          );
+        // Second temp directory for main branch checkout
+        await doWithTempDir(async (mainTempDir) => {
+          await t.step("checkout main branch", async () => {
+            await checkout({
+              targetDir: mainTempDir,
+              projectId: project.id,
+              toBranchId: mainBranch.id,
+              fromBranchId: featureBranch.id,
+              toBranchVersion: 1,
+            });
+          });
+
+          await t.step("verify file states", async () => {
+            assert(
+              !(await exists(join(mainTempDir, "feature.txt"))),
+              "feature file should be deleted",
+            );
+
+            // Local file should not exist in the main branch temp dir
+            // since it's a different directory
+            assert(
+              !(await exists(join(mainTempDir, "local.txt"))),
+              "local file should not exist in main branch directory",
+            );
+          });
         });
       });
     });
-  });
+  },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -458,6 +465,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -576,4 +584,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
