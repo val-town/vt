@@ -31,7 +31,10 @@ export const pullCmd = new Command()
         // want to proceed. If in force mode don't do this check.
         const fileStateChanges = await vt.pull({ dryRun: true });
         let prepareForResult = () => {};
-        if ((await vt.isDirty()) && !force) {
+        if (
+          fileStateChanges.deleted.length > 0 ||
+          fileStateChanges.modified.length > 0 && !force
+        ) {
           spinner.stop();
 
           const dangerousChanges = displayFileStateChanges(fileStateChanges, {
@@ -47,6 +50,7 @@ export const pullCmd = new Command()
 
           // No need to confirm since they are just doing a dry run
           if (dryRun) return;
+          console.log();
 
           // Ask for confirmation to proceed despite dirty state
           const shouldProceed = await Confirm.prompt({

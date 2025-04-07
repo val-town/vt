@@ -65,17 +65,21 @@ export function formatStatus(
   const styleConfig = STATUS_STYLES[status];
   const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
 
-  // Format type indicator with consistent padding and colors
-  const typeStr = TypeToTypeStr[type!].padEnd(maxTypeLength);
-  const typeIndicator = //
-    colors.gray("(") +
-    ProjectItemColors[type!](typeStr) +
-    colors.gray(")");
-
   // Construct the final formatted string
-  return `${
-    styleConfig.color(styleConfig.prefix)
-  } ${typeIndicator} ${coloredPath}`;
+  if (type !== undefined) {
+    // Format type indicator with consistent padding and colors
+    const typeStr = TypeToTypeStr[type].padEnd(maxTypeLength);
+    const typeIndicator = colors.gray("(") +
+      ProjectItemColors[type](typeStr) +
+      colors.gray(")");
+
+    return `${
+      styleConfig.color(styleConfig.prefix)
+    } ${typeIndicator} ${coloredPath}`;
+  } else {
+    // No type provided, don't include type indicator
+    return `${styleConfig.color(styleConfig.prefix)} ${coloredPath}`;
+  }
 }
 
 /**
