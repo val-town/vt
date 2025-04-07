@@ -82,6 +82,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -227,6 +228,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -314,4 +316,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
