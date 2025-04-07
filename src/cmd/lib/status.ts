@@ -40,10 +40,10 @@ export const statusCmd = new Command()
       );
       console.log();
 
-      displayFileStateChanges(await vt.status(), {
+      console.log(displayFileStateChanges(await vt.status(), {
         headerText: "Local Changes:",
         emptyMessage: "No changes locally to push.",
         summaryText: "Changes to be pushed:",
-      });
+      }));
     });
   });
