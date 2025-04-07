@@ -2,11 +2,13 @@ import { Command } from "@cliffy/command";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { tty } from "@cliffy/ansi/tty";
 import {
   displayFileStateChanges,
   noChangesDryRunMsg,
 } from "~/cmd/lib/utils.ts";
 import { Confirm } from "@cliffy/prompt";
+import { colors } from "@cliffy/ansi/colors";
 
 export const pullCmd = new Command()
   .name("pull")
@@ -28,18 +30,20 @@ export const pullCmd = new Command()
         // Check if dirty, then early exit if it's dirty and they don't
         // want to proceed. If in force mode don't do this check.
         const fileStateChanges = await vt.pull({ dryRun: true });
+        let prepareForResult = () => {};
         if ((await vt.isDirty()) && !force) {
           spinner.stop();
 
-          // Display what would be pulled when dirty
-          displayFileStateChanges(fileStateChanges, {
-            headerText: "Changes that would be pulled:",
+          const dangerousChanges = displayFileStateChanges(fileStateChanges, {
+            headerText: `Changes that ${colors.underline("would be pulled")}:`,
             summaryText: "Would pull:",
             emptyMessage: "No changes to pull, local state is up to date",
             includeTypes: !dryRun,
             includeSummary: true,
-          });
-          console.log();
+          }) + "\n";
+
+          // Display what would be pulled when dirty
+          console.log(dangerousChanges);
 
           // No need to confirm since they are just doing a dry run
           if (dryRun) return;
@@ -51,32 +55,39 @@ export const pullCmd = new Command()
               " Are you sure you want to proceed?",
             default: false,
           });
-          if (!shouldProceed) Deno.exit(0); // This is what they wanted
-          console.log();
+          if (!shouldProceed) {
+            Deno.exit(0);
+          } else {
+            prepareForResult = () =>
+              tty
+                .eraseLines(dangerousChanges.split("\n").length + 2);
+          }
         }
 
         if (dryRun) {
           spinner.stop();
-          displayFileStateChanges(fileStateChanges, {
-            headerText: "Changes that would be pulled:",
+          prepareForResult();
+          console.log(displayFileStateChanges(fileStateChanges, {
+            headerText: `Changes that ${colors.underline("would be pulled")}:`,
             summaryText: "Would pull:",
             emptyMessage: "No changes to pull, local state is up to date",
             includeTypes: !dryRun,
             includeSummary: true,
-          });
+          }));
           console.log();
           spinner.succeed(noChangesDryRunMsg);
         } else {
           // Perform the actual pull
           const realPullChanges = await vt.pull();
           spinner.stop();
-          displayFileStateChanges(realPullChanges, {
-            headerText: "Changes pulled:",
+          prepareForResult();
+          console.log(displayFileStateChanges(realPullChanges, {
+            headerText: "Changes " + colors.underline("pulled:"),
             summaryText: "Pulled:",
             emptyMessage: "No changes were pulled, local state is up to date",
             includeTypes: !dryRun,
             includeSummary: true,
-          });
+          }));
           console.log();
           spinner.succeed("Successfully pulled the latest changes");
         }
