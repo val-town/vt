@@ -2,7 +2,7 @@ import sdk, { getLatestVersion, getProjectItem } from "~/sdk.ts";
 import ValTown from "@valtown/sdk";
 import { status } from "~/vt/lib/status.ts";
 import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
-import { asProjectFileType, asProjectItemType } from "~/types.ts";
+import type { ProjectFileType } from "~/types.ts";
 import { basename, dirname, join } from "@std/path";
 
 /**
@@ -68,7 +68,7 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
           branch_id: branchId,
           content: file.content,
           name: basename(file.path),
-          type: asProjectFileType(file.type),
+          type: file.type as ProjectFileType,
         },
       );
     });
@@ -80,7 +80,7 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
       await sdk.projects.files.update(projectId, {
         branch_id: branchId,
         name: basename(file.path),
-        type: asProjectFileType(file.type),
+        type: file.type as ProjectFileType,
         content: file.content,
         parent_id: (await getProjectItem(projectId, {
           filePath: dirname(file.path),
@@ -113,9 +113,7 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
     .filter((file) => file.type !== "directory") // Filter out directories since we already handled them
     .map(async (file) => {
       try {
-        // The file type is already a ProjectItemType since it comes from fileState
-        // but we'll use asProjectItemType for extra safety
-        const fileType = asProjectItemType(file.type);
+        const fileType = file.type;
 
         // Upload the file
         return await sdk.projects.files.create(
@@ -124,7 +122,7 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
             path: file.path,
             content: (await Deno.readTextFile(join(targetDir, file.path))),
             branch_id: branchId,
-            type: asProjectFileType(fileType),
+            type: fileType as ProjectFileType,
           },
         );
       } catch (e) {

@@ -5,7 +5,7 @@ import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
-import { asProjectFileType } from "~/types.ts";
+import type { ProjectFileType } from "~/types.ts";
 
 Deno.test({
   name: "test typical cloning",
@@ -77,7 +77,7 @@ Deno.test({
                 path: file.path,
                 content: file.content,
                 branch_id: branch.id,
-                type: asProjectFileType(file.type),
+                type: file.type as ProjectFileType,
               },
             );
           }

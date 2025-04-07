@@ -4,7 +4,6 @@ import { ensureDir, exists } from "@std/fs";
 import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
-import { asProjectItemType } from "~/types.ts";
 import type ValTown from "@valtown/sdk";
 import {
   type ItemStatus,
@@ -110,7 +109,7 @@ async function createFile(
   dryRun: boolean,
 ): Promise<void> {
   const updatedAt = new Date(file.updatedAt);
-  const fileType = asProjectItemType(file.type);
+  const fileType = file.type;
 
   // Check for existing file and determine status
   const fileInfo = await Deno
