@@ -10,6 +10,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
+import sdk from "~/sdk.ts";
 
 const toListBranchesCmd = "Use `vt branch` to list branches.";
 const noChangesToStateMsg = "No changes were made to local state";
@@ -67,6 +68,12 @@ export const checkoutCmd = new Command()
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
           const config = await vt.getMeta().loadConfig();
 
+          // Get the current branch data
+          const currentBranchData = await sdk.projects.branches.retrieve(
+            config.projectId,
+            config.currentBranch,
+          );
+
           // Validate input parameters
           if (!branch && !existingBranchName) {
             throw new Error(
@@ -89,10 +96,7 @@ export const checkoutCmd = new Command()
               },
             );
 
-            if (
-              dryCheckoutResult.toBranch &&
-              config.currentBranch === dryCheckoutResult.toBranch.id
-            ) {
+            if (currentBranchData.name === existingBranchName) {
               spinner.warn(
                 `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,
               );
