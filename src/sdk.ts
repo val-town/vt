@@ -63,7 +63,6 @@ export async function getProjectItem(
     filePath: string;
   },
 ): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
-  console.log(projectId, branchId, version, filePath);
   branchId = (branchId ||
     await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
       resp.id
