@@ -1,5 +1,5 @@
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { branchExists } from "~/sdk.ts";
+import sdk, { branchExists, getLatestVersion } from "~/sdk.ts";
 import { checkout } from "~/vt/lib/checkout.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -74,7 +74,10 @@ Deno.test({
           projectId: project.id,
           toBranchId: featureBranch.id,
           fromBranchId: mainBranch.id,
-          toBranchVersion: featureBranch.version + 1,
+          toBranchVersion: await getLatestVersion(
+            project.id,
+            featureBranch.id,
+          ),
         });
 
         // Verify branch info
@@ -415,7 +418,10 @@ Deno.test({
             projectId: project.id,
             toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
-            toBranchVersion: 1,
+            toBranchVersion: await getLatestVersion(
+              project.id,
+              mainBranch.id,
+            ),
           });
 
           assertEquals(result.fileStateChanges.not_modified.length, 1);
