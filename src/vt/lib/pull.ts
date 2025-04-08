@@ -99,14 +99,12 @@ export function pull(params: PullParams): Promise<FileState> {
         const fileStatus: FileStatus = {
           path: relativePath,
           status: "deleted",
-          type: stat.isDirectory
-            ? "directory"
-            : await getProjectItemType(
-              projectId,
-              branchId,
-              version,
-              relativePath,
-            ),
+          type: stat.isDirectory ? "directory" : await getProjectItemType(
+            projectId,
+            branchId,
+            version,
+            relativePath,
+          ),
         };
         changes.insert(fileStatus);
 

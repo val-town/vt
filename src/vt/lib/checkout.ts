@@ -219,14 +219,12 @@ async function handleBranchCheckout(
           fileStateChanges.insert({
             path: relativePath,
             status: "deleted",
-            type: stat.isDirectory
-              ? "directory"
-              : await getProjectItemType(
-                params.projectId,
-                fromBranch.id,
-                fromBranch.version,
-                relativePath,
-              ),
+            type: stat.isDirectory ? "directory" : await getProjectItemType(
+              params.projectId,
+              fromBranch.id,
+              fromBranch.version,
+              relativePath,
+            ),
           });
 
           // Delete the file from both directories if not in dry run mode
