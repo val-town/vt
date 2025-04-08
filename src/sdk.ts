@@ -105,6 +105,7 @@ export const listProjectItems = memoize(async (
       path: "",
       branch_id: branchId,
       version,
+      recursive: true,
     })
   ) files.push(file);
 

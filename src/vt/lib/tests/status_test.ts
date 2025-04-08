@@ -91,7 +91,7 @@ Deno.test({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
-          version: branch.version,
+          version: await getLatestVersion(project.id, branch.id),
           gitignoreRules: [
             ".vtignore",
             ".vt",

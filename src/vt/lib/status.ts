@@ -179,7 +179,7 @@ async function getLocalFiles({
       type: entry.isDirectory
         ? "directory"
         : await getProjectItemType(projectId, {
-          branchId: branchId,
+          branchId,
           version,
           filePath: relativePath,
         }),
