@@ -46,11 +46,7 @@ async function getProjectItemType(
     i > (version || FIRST_VERSION_NUMBER) - RECENT_VERSION_COUNT;
     i--
   ) {
-    const type = await getProjectItem(projectId, {
-      branchId,
-      version,
-      filePath,
-    })
+    const type = await getProjectItem(projectId, branchId, version, filePath)
       .then((resp) => resp?.type);
 
     if (type === undefined) continue;

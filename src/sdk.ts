@@ -51,29 +51,25 @@ export async function branchNameToBranch(
  * @param {string} options.filePath - The file path to locate
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
-export async function getProjectItem(
+export const getProjectItem = memoize(async (
   projectId: string,
-  {
-    branchId,
-    version,
-    filePath,
-  }: {
-    branchId: string;
-    version: number;
-    filePath: string;
-  },
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
+  branchId: string,
+  version: number,
+  filePath: string,
+): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
   branchId = (branchId ||
     await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
       resp.id
     ))!;
 
   const projectItems = await listProjectItems(projectId, branchId, version);
+  const results = [];
   for (const filepath of projectItems) {
-    if (filepath.path === filePath) return filepath;
+    if (filepath.path === filePath) results.push(filepath);
   }
-  return undefined;
-}
+
+  return results.length === 1 ? results[0] : undefined;
+});
 
 /**
   * Lists all file paths in a project with pagination support.
