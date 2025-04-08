@@ -16,7 +16,7 @@ export interface PushParams {
   /** The branch ID to upload to. */
   branchId: string;
   /** The version to compute the file state changes against. Defaults to latest version. */
-  version?: number;
+  latestVersion?: number;
   /** The current file state. If not provided, it will be computed. */
   fileState?: FileState;
   /** A list of gitignore rules. */
@@ -37,12 +37,12 @@ export async function push(params: PushParams): Promise<FileState> {
     targetDir,
     projectId,
     branchId,
-    version,
+    latestVersion,
     fileState,
     gitignoreRules,
     dryRun = false,
   } = params;
-  version = version || await getLatestVersion(projectId, branchId);
+  latestVersion = latestVersion ?? await getLatestVersion(projectId, branchId);
 
   // Use provided status, or retrieve the status
   if (!fileState || fileState.isEmpty()) {
@@ -50,7 +50,7 @@ export async function push(params: PushParams): Promise<FileState> {
       targetDir,
       projectId,
       branchId,
-      version,
+      version: latestVersion,
       gitignoreRules,
     });
   }

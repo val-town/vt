@@ -1,7 +1,7 @@
 import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
@@ -103,7 +103,7 @@ export function pull(params: PullParams): Promise<FileState> {
             ? "directory"
             : await getProjectItemType(projectId, {
               branchId,
-              version: version || await getLatestVersion(projectId, branchId),
+              version,
               filePath: relativePath,
             }),
         };

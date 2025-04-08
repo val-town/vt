@@ -97,7 +97,6 @@ export const listProjectItems = memoize(async (
   branchId = branchId ||
     (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
-  version = version || (await getLatestVersion(projectId, branchId));
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {
