@@ -78,12 +78,12 @@ export function pull(params: PullParams): Promise<FileState> {
       changes.merge(cloneChanges);
 
       // Get list of files from the server
-      const projectItems = await listProjectItems(projectId, {
-        path: "",
-        branch_id: branchId,
+      const projectItems = await listProjectItems(
+        projectId,
+        branchId,
+        "",
         version,
-        recursive: true,
-      });
+      );
       const projectItemsSet = new Set(projectItems.map((file) => file.path));
 
       // Scan the temp directory to identify files that should be deleted

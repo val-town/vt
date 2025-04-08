@@ -75,12 +75,12 @@ Deno.test({
 
           await t.step("verify files were synced correctly", async () => {
             // Verify all files were synced
-            const projectItemsAfterBatch = await listProjectItems(project.id, {
-              path: "",
-              branch_id: branch.id,
-              recursive: true,
-              version: await getLatestVersion(project.id, branch.id),
-            });
+            const projectItemsAfterBatch = await listProjectItems(
+              project.id,
+              branch.id,
+              "",
+              await getLatestVersion(project.id, branch.id),
+            );
 
             // Get status to verify all files are synced
             const statusAfterBatch = await vt!.status();

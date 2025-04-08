@@ -138,12 +138,12 @@ export function checkout(
 
       // Get files from the source branch
       if (createdNew) {
-        const projectItems = await listProjectItems(params.projectId, {
-          path: "",
-          branch_id: fromBranch.id,
-          version: fromBranch.version,
-          recursive: true,
-        });
+        const projectItems = await listProjectItems(
+          params.projectId,
+          fromBranch.id,
+          "",
+          fromBranch.version,
+        );
         projectItems.forEach((projectItem) => {
           fileStateChanges.insert({
             path: projectItem.path,
@@ -153,12 +153,12 @@ export function checkout(
         });
       } else {
         const fromFiles = new Set(
-          await listProjectItems(params.projectId, {
-            path: "",
-            branch_id: fromBranch.id,
-            version: fromBranch.version,
-            recursive: true,
-          }).then((resp) => resp.map((file) => file.path)),
+          await listProjectItems(
+            params.projectId,
+            fromBranch.id,
+            "",
+            fromBranch.version,
+          ).then((resp) => resp.map((file) => file.path)),
         );
 
         // Get files from the target branch. Note that the target branch is
@@ -166,12 +166,12 @@ export function checkout(
         // id/checkout version id are undefined, since in that case we are
         // forking, and when we are forking we are copying the from branch.
         const toFiles = new Set(
-          await listProjectItems(params.projectId, {
-            path: "",
-            branch_id: toBranch.id,
-            version: toBranch.version,
-            recursive: true,
-          }).then((resp) => resp.map((file) => file.path)),
+          await listProjectItems(
+            params.projectId,
+            toBranch.id,
+            "",
+            toBranch.version,
+          ).then((resp) => resp.map((file) => file.path)),
         );
 
         // Clone the target branch into the temporary directory

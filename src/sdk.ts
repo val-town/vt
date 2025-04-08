@@ -51,7 +51,7 @@ export async function branchNameToBranch(
  * @param {string} options.filePath - The file path to locate
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
-export const getProjectItem = memoize(async (
+export async function getProjectItem(
   projectId: string,
   {
     branchId,
@@ -62,7 +62,8 @@ export const getProjectItem = memoize(async (
     version: number;
     filePath: string;
   },
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
+): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
+  console.log(projectId, branchId, version, filePath);
   branchId = (branchId ||
     await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
       resp.id
@@ -75,7 +76,7 @@ export const getProjectItem = memoize(async (
       { path: "", branch_id: branchId, version, recursive: true },
     )
   ) if (filepath.path === filePath) return filepath;
-});
+}
 
 /**
   * Lists all file paths in a project with pagination support.
@@ -91,31 +92,22 @@ export const getProjectItem = memoize(async (
   */
 export const listProjectItems = memoize(async (
   projectId: string,
-  {
-    path,
-    branch_id,
-    version,
-    recursive,
-  }: {
-    path: string;
-    branch_id: string;
-    version: number;
-    recursive?: boolean;
-  },
+  branchId: string,
+  path: string,
+  version: number,
 ): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
 
-  branch_id = branch_id ||
+  branchId = branchId ||
     (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
-  version = version || (await getLatestVersion(projectId, branch_id));
+  version = version || (await getLatestVersion(projectId, branchId));
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {
       path,
-      branch_id,
+      branch_id: branchId,
       version,
-      recursive,
     })
   ) files.push(file);
 

@@ -46,12 +46,12 @@ export function clone(params: CloneParams): Promise<FileState> {
   return doAtomically(
     async (tmpDir) => {
       const changes = FileState.empty();
-      const projectItems = await listProjectItems(projectId, {
-        branch_id: branchId,
+      const projectItems = await listProjectItems(
+        projectId,
+        branchId,
+        "",
         version,
-        path: "",
-        recursive: true,
-      });
+      );
 
       await Promise.all(projectItems
         .map(async (file) => {
