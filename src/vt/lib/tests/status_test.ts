@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk from "~/sdk.ts";
+import sdk, { getLatestVersion } from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
@@ -54,6 +54,7 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
+            version: await getLatestVersion(project.id, branch.id),
           });
 
           // Test file that exists in both places but was modified locally
@@ -155,6 +156,7 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
+            version: branch.version,
           });
 
           // Check not_modified array

@@ -20,7 +20,7 @@ export interface CloneParams {
   /** The branch ID of the project to clone */
   branchId: string;
   /** The version to clone. Defaults to latest */
-  version?: number;
+  version: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually write files, just report what would change */

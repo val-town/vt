@@ -34,9 +34,9 @@ import { compile as compileGitignore } from "gitignore-parser";
  */
 async function getProjectItemType(
   projectId: string,
-  { branchId, version = undefined, filePath }: {
+  { branchId, version, filePath }: {
     branchId: string;
-    version: number | undefined;
+    version: number;
     filePath: string;
   },
 ): Promise<ProjectItemType> {

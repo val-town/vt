@@ -21,7 +21,7 @@ export interface StatusParams {
   /** Branch ID to check against. */
   branchId: string;
   /** The version to check the status against. Defaults to the latest version. */
-  version?: number;
+  version: number;
   /** Gitignore rules */
   gitignoreRules?: string[];
 }
@@ -126,14 +126,14 @@ export async function status(params: StatusParams): Promise<FileState> {
 interface GetProjectFilesParams {
   projectId: string;
   branchId: string;
-  version?: number;
+  version: number;
   gitignoreRules?: string[];
 }
 
 async function getProjectFiles({
   projectId,
   branchId,
-  version = undefined,
+  version,
   gitignoreRules,
 }: GetProjectFilesParams): Promise<
   Map<string, ValTown.Projects.FileRetrieveResponse>
@@ -158,7 +158,7 @@ async function getProjectFiles({
 interface GetLocalFilesParams {
   projectId: string;
   branchId: string;
-  version?: number;
+  version: number;
   targetDir: string;
   gitignoreRules?: string[];
 }
@@ -166,7 +166,7 @@ interface GetLocalFilesParams {
 async function getLocalFiles({
   projectId,
   branchId,
-  version = undefined,
+  version,
   targetDir,
   gitignoreRules,
 }: GetLocalFilesParams): Promise<Map<string, FileInfo>> {

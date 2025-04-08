@@ -5,7 +5,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { listProjectItems } from "~/sdk.ts";
+import { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
@@ -79,6 +79,7 @@ Deno.test({
               path: "",
               branch_id: branch.id,
               recursive: true,
+              version: await getLatestVersion(project.id, branch.id),
             });
 
             // Get status to verify all files are synced

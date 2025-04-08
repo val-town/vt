@@ -1,5 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
+import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
@@ -50,14 +51,18 @@ export async function branchNameToBranch(
  * @param {string} options.filePath - The file path to locate
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
-export async function getProjectItem(
+export const getProjectItem = memoize(async (
   projectId: string,
-  { branchId, version, filePath }: {
-    branchId?: string;
-    version?: number;
+  {
+    branchId,
+    version,
+    filePath,
+  }: {
+    branchId: string;
+    version: number;
     filePath: string;
   },
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
+): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
   branchId = (branchId ||
     await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
       resp.id
@@ -70,7 +75,7 @@ export async function getProjectItem(
       { path: "", branch_id: branchId, version, recursive: true },
     )
   ) if (filepath.path === filePath) return filepath;
-}
+});
 
 /**
   * Lists all file paths in a project with pagination support.
@@ -84,7 +89,7 @@ export async function getProjectItem(
   * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
   * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
   */
-export async function listProjectItems(
+export const listProjectItems = memoize(async (
   projectId: string,
   {
     path,
@@ -93,11 +98,11 @@ export async function listProjectItems(
     recursive,
   }: {
     path: string;
-    branch_id?: string;
-    version?: number;
+    branch_id: string;
+    version: number;
     recursive?: boolean;
   },
-): Promise<ValTown.Projects.FileRetrieveResponse[]> {
+): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
 
   branch_id = branch_id ||
@@ -115,7 +120,7 @@ export async function listProjectItems(
   ) files.push(file);
 
   return files;
-}
+});
 
 /**
  * Get the latest version of a branch.

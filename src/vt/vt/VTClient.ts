@@ -347,6 +347,7 @@ export default class VTClient {
         projectId: config.projectId,
         branchId: targetBranchId,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
+        version: await getLatestVersion(config.projectId, targetBranchId),
       });
     });
   }
@@ -368,6 +369,10 @@ export default class VTClient {
           projectId: config.projectId,
           branchId: config.currentBranch,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
+          version: await getLatestVersion(
+            config.projectId,
+            config.currentBranch,
+          ),
         },
         ...options,
       });
