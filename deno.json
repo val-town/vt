@@ -1,14 +1,14 @@
 {
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "exports": "./vt.ts",
   "license": "MIT",
   "tasks": {
     "run": "./vt.ts",
-    "test": "deno task test:cmd --parallel && sleep 10 && deno task test:lib --parallel",
-    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/vt",
-    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
+    "test": "deno task test:cmd && sleep 10 && deno task test:lib",
+    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/vt --parallel",
+    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd --parallel",
     "check": "env DENO_NO_PROMPT=1 deno check .",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },

@@ -88,11 +88,11 @@ export const watchCmd = new Command()
           try {
             if (fileStateChanges.size() > 0) {
               console.log();
-              displayFileStateChanges(fileStateChanges, {
+              console.log(displayFileStateChanges(fileStateChanges, {
                 emptyMessage: "No changes detected. Continuing to watch...",
                 headerText: "New changes detected",
                 summaryText: "Pushed:",
-              });
+              }));
               console.log();
               console.log(watchingForChangesLine());
             }

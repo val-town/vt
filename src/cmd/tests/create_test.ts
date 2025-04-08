@@ -5,15 +5,79 @@ import type ValTown from "@valtown/sdk";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { dirIsEmpty } from "~/utils.ts";
 
-Deno.test("create new project in specific directory", async (c) => {
+Deno.test({
+  name: "create project with existing directory name",
+  async fn(c) {
+    const emptyDirProjectName = "emptyDir" + randomProjectName();
+    const nonEmptyDirProjectName = "nonEmptyDir" + randomProjectName();
+    let emptyDirProject: ValTown.Projects.ProjectCreateResponse | null = null;
+
+    await doWithTempDir(async (tmpDir) => {
+      await c.step(
+        "can create project with name of empty directory",
+        async () => {
+          // Create an empty directory
+          const emptyDirPath = join(tmpDir, emptyDirProjectName);
+          await Deno.mkdir(emptyDirPath);
+
+          // Should succeed with empty directory
+          await runVtCommand(["create", emptyDirProjectName], tmpDir);
+          emptyDirProject = await sdk.alias.username.projectName.retrieve(
+            user.username!,
+            emptyDirProjectName,
+          );
+
+          assertEquals(emptyDirProject.name, emptyDirProjectName);
+
+          // Clean up
+          if (emptyDirProject) {
+            await sdk.projects.delete(emptyDirProject.id);
+            emptyDirProject = null;
+          }
+        },
+      );
+
+      await c.step(
+        "cannot create project with name of non-empty directory",
+        async () => {
+          // Create a non-empty directory
+          const nonEmptyDirPath = join(tmpDir, nonEmptyDirProjectName);
+          await Deno.mkdir(nonEmptyDirPath);
+          await Deno.writeTextFile(join(nonEmptyDirPath, "file"), "content");
+
+          // Verify it exists and is not empty
+          assert(
+            await exists(nonEmptyDirPath),
+            "non-empty directory should exist",
+          );
+          assert(
+            !await dirIsEmpty(nonEmptyDirPath),
+            "directory should not be empty",
+          );
+
+          // Should fail with non-empty directory
+          const [_, status] = await runVtCommand([
+            "create",
+            nonEmptyDirProjectName,
+          ], tmpDir);
+          assertEquals(status, 1);
+        },
+      );
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test("new project in specific directory", async (c) => {
   const newProjectName = randomProjectName();
   let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
 
   try {
     await doWithTempDir(async (tmpDir) => {
       await c.step("create a new project", async () => {
-        await runVtCommand(["create", newProjectName, tmpDir], tmpDir);
+        await runVtCommand(["create", newProjectName], tmpDir);
 
         newProject = await sdk.alias.username.projectName.retrieve(
           user.username!,

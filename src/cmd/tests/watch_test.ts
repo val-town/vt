@@ -23,29 +23,24 @@ Deno.test({
           await t.step(
             "setup by cloneing project and starting watch process",
             async () => {
-              // Clone the empty project
-              await runVtCommand(["clone", project.name], tmpDir);
-
-              // Get project directory path
-              projectDir = join(tmpDir, project.name);
-              assert(
-                await exists(projectDir),
-                "project directory should exist after clone",
-              );
-
-              // Create VTClient instance for direct API operations
-              vt = VTClient.from(projectDir);
-
-              // Start the watch process with a short debounce
-              [outputLines, watchChild] = streamVtCommand(
-                ["watch", "-d", "750"],
-                projectDir,
-              );
-
-              // Wait for the watch process to start
-              while (outputLines.length < 3) {
-                await delay(100);
+              // Create 10 files in rapid succession
+              for (let i = 0; i <= 10; i++) {
+                const filePath = join(projectDir!, `rapid-file-${i}.js`);
+                await Deno.writeTextFile(
+                  filePath,
+                  `console.log('Rapid file ${i}');`,
+                );
+                createTimes.push({
+                  path: `rapid-file-${i}.js`,
+                  time: Date.now(),
+                });
+                // Add minimal delay between file creations to ensure they're
+                // distinct events
+                await delay(200);
               }
+
+              // Wait for the debounce period plus buffer for the actual uploads
+              await delay(15000); // Probably excessive
             },
           );
 
