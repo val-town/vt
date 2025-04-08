@@ -16,6 +16,7 @@ import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   FIRST_VERSION_NUMBER,
+  META_FOLDER_NAME,
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
@@ -325,6 +326,23 @@ export default class VTClient {
     });
 
     return vt;
+  }
+
+  /**
+   * Delete the val town project.
+   */
+  public async delete(): Promise<void> {
+    // Don't need to use doWithConfig since the config will get distructed
+    const config = await this.getMeta().loadConfig();
+
+    // Delete the project
+    await sdk.projects.delete(config.projectId);
+
+    // De-init the directory
+    await Deno.remove(
+      join(this.rootPath, META_FOLDER_NAME),
+      { recursive: true },
+    );
   }
 
   /**

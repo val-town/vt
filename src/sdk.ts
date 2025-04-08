@@ -111,6 +111,22 @@ export const listProjectItems = memoize(async (
 });
 
 /**
+ * Checks if a project exists in Val Town
+ *
+ * @param projectId - The UUID of the project to check
+ * @returns A promise that resolves to true if the project exists, false if it doesn't exist
+ */
+export async function projectExists(projectId: string) {
+  try {
+    return Boolean(await sdk.projects.retrieve(projectId));
+  } catch (e) {
+    if (e instanceof ValTown.APIError && e.status === 404) {
+      return false;
+    } else throw e;
+  }
+}
+
+/**
  * Get the latest version of a branch.
  */
 export async function getLatestVersion(projectId: string, branchId: string) {
