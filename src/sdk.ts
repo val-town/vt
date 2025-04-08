@@ -67,7 +67,6 @@ export async function getProjectItem(
     await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
       resp.id
     ))!;
-  version = version || (await getLatestVersion(projectId, branchId));
 
   const projectItems = await listProjectItems(projectId, branchId, version);
   for (const filepath of projectItems) {
