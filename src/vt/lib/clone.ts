@@ -49,7 +49,6 @@ export function clone(params: CloneParams): Promise<FileState> {
       const projectItems = await listProjectItems(
         projectId,
         branchId,
-        "",
         version,
       );
 

@@ -141,7 +141,6 @@ export function checkout(
         const projectItems = await listProjectItems(
           params.projectId,
           fromBranch.id,
-          "",
           fromBranch.version,
         );
         projectItems.forEach((projectItem) => {
@@ -156,7 +155,6 @@ export function checkout(
           await listProjectItems(
             params.projectId,
             fromBranch.id,
-            "",
             fromBranch.version,
           ).then((resp) => resp.map((file) => file.path)),
         );
@@ -169,7 +167,6 @@ export function checkout(
           await listProjectItems(
             params.projectId,
             toBranch.id,
-            "",
             toBranch.version,
           ).then((resp) => resp.map((file) => file.path)),
         );

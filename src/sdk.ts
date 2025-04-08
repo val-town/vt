@@ -70,12 +70,11 @@ export async function getProjectItem(
     ))!;
   version = version || (await getLatestVersion(projectId, branchId));
 
-  for await (
-    const filepath of await sdk.projects.files.retrieve(
-      projectId,
-      { path: "", branch_id: branchId, version, recursive: true },
-    )
-  ) if (filepath.path === filePath) return filepath;
+  const projectItems = await listProjectItems(projectId, branchId, version);
+  for (const filepath of projectItems) {
+    if (filepath.path === filePath) return filepath;
+  }
+  return undefined;
 }
 
 /**
@@ -93,7 +92,6 @@ export async function getProjectItem(
 export const listProjectItems = memoize(async (
   projectId: string,
   branchId: string,
-  path: string,
   version: number,
 ): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
@@ -105,7 +103,7 @@ export const listProjectItems = memoize(async (
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {
-      path,
+      path: "",
       branch_id: branchId,
       version,
     })

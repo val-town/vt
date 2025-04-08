@@ -138,15 +138,14 @@ async function getProjectFiles({
 }: GetProjectFilesParams): Promise<
   Map<string, ValTown.Projects.FileRetrieveResponse>
 > {
-  const projectItems =
-    (await listProjectItems(projectId, branchId, "", version))
-      .filter((file) => !shouldIgnore(file.path, gitignoreRules))
-      .map((
-        file,
-      ): [string, ValTown.Projects.FileRetrieveResponse] => [
-        file.path,
-        file,
-      ]);
+  const projectItems = (await listProjectItems(projectId, branchId, version))
+    .filter((file) => !shouldIgnore(file.path, gitignoreRules))
+    .map((
+      file,
+    ): [string, ValTown.Projects.FileRetrieveResponse] => [
+      file.path,
+      file,
+    ]);
 
   return new Map<string, ValTown.Projects.FileRetrieveResponse>(projectItems);
 }

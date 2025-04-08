@@ -211,7 +211,6 @@ Deno.test({
         const listResult = await listProjectItems(
           project.id,
           branch.id,
-          "",
           await getLatestVersion(project.id, branch.id),
         );
 

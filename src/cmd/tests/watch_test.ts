@@ -78,7 +78,6 @@ Deno.test({
             const projectItemsAfterBatch = await listProjectItems(
               project.id,
               branch.id,
-              "",
               await getLatestVersion(project.id, branch.id),
             );
 

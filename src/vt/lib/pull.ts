@@ -81,7 +81,6 @@ export function pull(params: PullParams): Promise<FileState> {
       const projectItems = await listProjectItems(
         projectId,
         branchId,
-        "",
         version,
       );
       const projectItemsSet = new Set(projectItems.map((file) => file.path));
