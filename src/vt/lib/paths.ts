@@ -32,13 +32,11 @@ import { compile as compileGitignore } from "gitignore-parser";
  * @param {string} options.filePath - The path of the val or file to get the type of
  * @returns {Promise<ProjectItemType>} The val file type
  */
-async function getProjectItemType(
+export async function getProjectItemType(
   projectId: string,
-  { branchId, version, filePath }: {
-    branchId: string;
-    version: number;
-    filePath: string;
-  },
+  branchId: string,
+  version: number,
+  filePath: string,
 ): Promise<ProjectItemType> {
   // Preserve the type if the file was deleted recently and then recreated
   for (
@@ -89,7 +87,7 @@ async function getProjectItemType(
  * @param {string[]} gitignoreRules - Array of gitignore rules to check against
  * @returns {Promise<boolean>} True if the path should be ignored
  */
-function shouldIgnore(
+export function shouldIgnore(
   pathToCheck: string,
   gitignoreRules: string[] = [],
 ): boolean {
@@ -100,5 +98,3 @@ function shouldIgnore(
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
   return gitignore.denies(pathToCheck);
 }
-
-export { getProjectItemType, shouldIgnore };

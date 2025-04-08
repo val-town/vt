@@ -221,11 +221,12 @@ async function handleBranchCheckout(
             status: "deleted",
             type: stat.isDirectory
               ? "directory"
-              : await getProjectItemType(params.projectId, {
-                branchId: fromBranch.id,
-                version: fromBranch.version,
-                filePath: relativePath,
-              }),
+              : await getProjectItemType(
+                params.projectId,
+                fromBranch.id,
+                fromBranch.version,
+                relativePath,
+              ),
           });
 
           // Delete the file from both directories if not in dry run mode

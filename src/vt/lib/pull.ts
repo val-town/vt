@@ -101,11 +101,12 @@ export function pull(params: PullParams): Promise<FileState> {
           status: "deleted",
           type: stat.isDirectory
             ? "directory"
-            : await getProjectItemType(projectId, {
+            : await getProjectItemType(
+              projectId,
               branchId,
               version,
-              filePath: relativePath,
-            }),
+              relativePath,
+            ),
         };
         changes.insert(fileStatus);
 

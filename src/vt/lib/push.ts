@@ -83,9 +83,16 @@ export async function push(params: PushParams): Promise<FileState> {
   });
 
   // First ensure all directories exist
+  const alreadyCreatedDirs = new Set<string>();
   for (const file of fileState.created) {
     if (file.path.includes("/")) {
-      await ensureValtownDir(projectId, branchId, file.path, false);
+      await ensureValtownDir(
+        projectId,
+        branchId,
+        file.path,
+        false,
+        alreadyCreatedDirs,
+      );
     }
   }
 
@@ -126,6 +133,7 @@ async function ensureValtownDir(
   branchId: string,
   filePath: string,
   isDirectory = false,
+  alreadyCreatedDirs = new Set(),
 ): Promise<void> {
   // Note that we cannot use path logic here because it must specific to val town
   const dirPath = isDirectory ? filePath : path.dirname(filePath);
@@ -145,10 +153,12 @@ async function ensureValtownDir(
 
     // Create directory - content can be null, empty string, or omitted for directories
     try {
+      if (alreadyCreatedDirs.has(currentPath)) continue;
       await sdk.projects.files.create(
         projectId,
         { path: currentPath, type: "directory", branch_id: branchId },
       );
+      alreadyCreatedDirs.add(currentPath);
     } catch (e) {
       assertAllowedUploadError(e);
     }

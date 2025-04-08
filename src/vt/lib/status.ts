@@ -178,11 +178,7 @@ async function getLocalFiles({
     files.set(path.relative(targetDir, entry.path), {
       type: entry.isDirectory
         ? "directory"
-        : await getProjectItemType(projectId, {
-          branchId,
-          version,
-          filePath: relativePath,
-        }),
+        : await getProjectItemType(projectId, branchId, version, relativePath),
     });
   };
 
