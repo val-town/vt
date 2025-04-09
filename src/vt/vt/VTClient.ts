@@ -4,7 +4,7 @@ import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
-import { join } from "@std/path";
+import { join, relative } from "@std/path";
 import {
   type BaseCheckoutParams,
   type BranchCheckoutParams,
@@ -16,12 +16,15 @@ import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   FIRST_VERSION_NUMBER,
+  META_FOLDER_NAME,
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
+import { dirIsEmpty } from "~/utils.ts";
+import VTConfig from "~/vt/VTConfig.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -49,6 +52,15 @@ export default class VTClient {
   }
 
   /**
+   * Returns a new VTConfig object init-ed at this VTClient's rootPath.
+   *
+   * @returns {VTConfig} The VTConfig instance.
+   */
+  public getConfig(): VTConfig {
+    return new VTConfig(this.rootPath);
+  }
+
+  /**
    * Adds editor configuration files to the target directory.
    *
    * @param {object} options - Options for adding editor files
@@ -59,15 +71,19 @@ export default class VTClient {
     options?: { noDenoJson?: boolean },
   ): Promise<void> {
     // Always add the vt ignore file
-    await Deno.writeTextFile(
-      join(this.rootPath, META_IGNORE_FILE_NAME),
-      vtIgnore.text,
-    );
+    const metaIgnoreFile = join(this.rootPath, META_IGNORE_FILE_NAME);
+    if (!await exists(metaIgnoreFile)) {
+      await Deno.writeTextFile(
+        join(this.rootPath, META_IGNORE_FILE_NAME),
+        vtIgnore.text,
+      );
+    }
 
     // Add deno.json unless explicitly disabled
-    if (!options?.noDenoJson) {
+    const denoJsonFile = join(this.rootPath, "deno.json");
+    if (!(options?.noDenoJson) && !await exists(denoJsonFile)) {
       await Deno.writeTextFile(
-        join(this.rootPath, "deno.json"),
+        denoJsonFile,
         JSON.stringify(denoJson, undefined, 2),
       );
     }
@@ -99,6 +115,13 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
+    // If the directory exists, that is only OK if it is empty
+    if (await exists(rootPath) && !(await dirIsEmpty(rootPath))) {
+      throw new Error(
+        `"${relative(Deno.cwd(), rootPath)}" already exists and is not empty`,
+      );
+    }
+
     const projectId = await sdk.alias.username.projectName.retrieve(
       username,
       projectName,
@@ -115,14 +138,13 @@ export default class VTClient {
 
     const vt = new VTClient(rootPath);
 
-    if ((await exists(vt.getMeta().configFilePath))) {
+    if ((await exists(vt.getMeta().getVtStateFileName()))) {
       throw new Error("VT project already initialized in this directory");
     }
 
-    await vt.getMeta().saveConfig({
-      projectId,
-      currentBranch: branch.id,
-      version: version,
+    await vt.getMeta().saveVtState({
+      project: { id: projectId },
+      branch: { id: branch.id, version: version },
     });
 
     return vt;
@@ -163,14 +185,10 @@ export default class VTClient {
       await callback(firstPush);
     }
 
-    // Set the lock file at the start
-    await this.getMeta().setLockFile();
-
     // Listen for termination signals to perform cleanup
     for (const signal of ["SIGINT", "SIGTERM"]) {
       Deno.addSignalListener(signal as Deno.Signal, () => {
         console.log("Stopping watch process...");
-        this.getMeta().rmLockFile();
         Deno.exit(0);
       });
     }
@@ -223,20 +241,27 @@ export default class VTClient {
   /**
    * Create a new Val Town project and initialize a VT instance for it.
    *
-   * @param {string} rootPath - The root path where the VT instance will be initialized
-   * @param {string} projectName - The name of the project to create
-   * @param {string} username - The username of the project owner
-   * @param {'public' | 'private'} privacy - The privacy setting for the project
-   * @param {string} [description] - Optional description for the project
+   * @param {Object} options - The options for creating a new project
+   * @param {string} options.rootPath - The root path where the VT instance will be initialized
+   * @param {string} options.projectName - The name of the project to create
+   * @param {string} options.username - The username of the project owner
+   * @param {'public' | 'private' | 'unlisted'} options.privacy - The privacy setting for the project
+   * @param {string} [options.description] - Optional description for the project
    * @returns {Promise<VTClient>} A new VTClient instance
    */
-  public static async create(
-    rootPath: string,
-    projectName: string,
-    username: string,
-    privacy: "public" | "private" | "unlisted",
-    description?: string,
-  ): Promise<VTClient> {
+  public static async create({
+    rootPath,
+    projectName,
+    username,
+    privacy,
+    description,
+  }: {
+    rootPath: string;
+    projectName: string;
+    username: string;
+    privacy: "public" | "private" | "unlisted";
+    description?: string;
+  }): Promise<VTClient> {
     // First create the project
     const project = await sdk.projects.create({
       name: projectName,
@@ -248,43 +273,83 @@ export default class VTClient {
     const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
-    // Then clone it to the target directory
-    await clone({
-      targetDir: rootPath,
-      projectId: project.id,
-      branchId: branch.id,
+    // Clone and return the VTClient
+    const vt = await VTClient.init({
+      rootPath,
+      username,
+      projectName,
       version: branch.version,
+      branchName: DEFAULT_BRANCH_NAME,
     });
-
-    // Initialize VT client with the new project
-    return VTClient.init(
-      {
-        rootPath,
-        username,
-        projectName,
-        version: branch.version,
-        branchName: DEFAULT_BRANCH_NAME,
-      },
-    );
+    await VTClient.clone({
+      username,
+      projectName,
+      rootPath,
+    });
+    return vt;
   }
 
   /**
-   * Clone val town project into a directory using the current configuration.
+   * Clone a Val Town project into a directory.
    *
-   * @param {string} targetDir - The directory to clone the project into.
-   * @returns {Promise<void>}
+   * @param {object} params - Clone parameters
+   * @param {string} params.rootPath - The directory to clone the project into
+   * @param {string} params.username - The username of the project owner
+   * @param {string} params.projectName - The name of the project to clone
+   * @param {number} [params.version] - Optional specific version to clone, defaults to latest
+   * @param {string} [params.branchName] - Optional branch name to clone, defaults to main
+   * @returns {Promise<VTClient>} A new VTClient instance for the cloned project
    */
-  public async clone(targetDir: string): Promise<void> {
-    await this.getMeta().doWithConfig(async (config) => {
+  public static async clone({
+    rootPath,
+    username,
+    projectName,
+    version,
+    branchName = DEFAULT_BRANCH_NAME,
+  }: {
+    rootPath: string;
+    username: string;
+    projectName: string;
+    version?: number;
+    branchName?: string;
+  }): Promise<VTClient> {
+    const vt = await VTClient.init({
+      rootPath,
+      username,
+      projectName,
+      version,
+      branchName,
+    });
+
+    await vt.getMeta().doWithVtState(async (config) => {
       // Do the clone using the configuration
       await clone({
-        targetDir,
-        projectId: config.projectId,
-        branchId: config.currentBranch,
-        version: config.version,
-        gitignoreRules: await this.getMeta().loadGitignoreRules(),
+        targetDir: rootPath,
+        projectId: config.project.id,
+        branchId: config.branch.id,
+        version: config.branch.version,
+        gitignoreRules: await vt.getMeta().loadGitignoreRules(),
       });
     });
+
+    return vt;
+  }
+
+  /**
+   * Delete the val town project.
+   */
+  public async delete(): Promise<void> {
+    // Don't need to use doWithConfig since the config will get distructed
+    const vtState = await this.getMeta().loadVtState();
+
+    // Delete the project
+    await sdk.projects.delete(vtState.project.id);
+
+    // De-init the directory
+    await Deno.remove(
+      join(this.rootPath, META_FOLDER_NAME),
+      { recursive: true },
+    );
   }
 
   /**
@@ -298,15 +363,16 @@ export default class VTClient {
   public async status(
     { branchId }: { branchId?: string } = {},
   ): ReturnType<typeof status> {
-    return await this.getMeta().doWithConfig(async (config) => {
-      // Use provided branchId or fall back to the current branch from config
-      const targetBranchId = branchId || config.currentBranch;
+    return await this.getMeta().doWithVtState(async (vtState) => {
+      // Use provided branchId or fall back to the current branch from state
+      const targetBranchId = branchId || vtState.branch.id;
 
       return status({
         targetDir: this.rootPath,
-        projectId: config.projectId,
+        projectId: vtState.project.id,
         branchId: targetBranchId,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
+        version: await getLatestVersion(vtState.project.id, targetBranchId),
       });
     });
   }
@@ -321,24 +387,28 @@ export default class VTClient {
   public async pull(
     options?: Partial<Parameters<typeof pull>[0]>,
   ): ReturnType<typeof pull> {
-    return await this.getMeta().doWithConfig(async (config) => {
+    return await this.getMeta().doWithVtState(async (vtState) => {
       const result = await pull({
         ...{
           targetDir: this.rootPath,
-          projectId: config.projectId,
-          branchId: config.currentBranch,
+          projectId: vtState.project.id,
+          branchId: vtState.branch.id,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
+          version: await getLatestVersion(
+            vtState.project.id,
+            vtState.branch.id,
+          ),
         },
         ...options,
       });
 
       if (options?.dryRun === false) {
         const latestVersion = await getLatestVersion(
-          config.projectId,
-          config.currentBranch,
+          vtState.project.id,
+          vtState.branch.id,
         );
 
-        config.version = latestVersion;
+        vtState.branch.version = latestVersion;
       }
 
       return result;
@@ -354,21 +424,21 @@ export default class VTClient {
   public async push(
     options?: Partial<Parameters<typeof push>[0]>,
   ): ReturnType<typeof push> {
-    return await this.getMeta().doWithConfig(async (config) => {
+    return await this.getMeta().doWithVtState(async (config) => {
       const fileStateChanges = await push({
         ...{
           targetDir: this.rootPath,
-          projectId: config.projectId,
-          branchId: config.currentBranch,
+          projectId: config.project.id,
+          branchId: config.branch.id,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
         },
         ...options,
       });
 
       if (!options || options.dryRun === false) {
-        config.version = await getLatestVersion(
-          config.projectId,
-          config.currentBranch,
+        config.branch.version = await getLatestVersion(
+          config.project.id,
+          config.branch.id,
         );
       }
 
@@ -388,8 +458,8 @@ export default class VTClient {
     branchName: string,
     options?: Partial<ForkCheckoutParams>,
   ): Promise<CheckoutResult> {
-    return await this.getMeta().doWithConfig(async (config) => {
-      const currentBranchId = config.currentBranch;
+    return await this.getMeta().doWithVtState(async (vtState) => {
+      const currentBranchId = vtState.branch.id;
 
       // Get files that were newly created but not yet committed
       const fileStateChanges = await this.status();
@@ -405,7 +475,7 @@ export default class VTClient {
       // Common checkout parameters
       const baseParams: BaseCheckoutParams = {
         targetDir: this.rootPath,
-        projectId: config.projectId,
+        projectId: vtState.project.id,
         dryRun: options?.dryRun || false,
         gitignoreRules,
       };
@@ -425,14 +495,14 @@ export default class VTClient {
 
         if (!baseParams.dryRun) {
           if (result.toBranch) {
-            config.currentBranch = result.toBranch.id;
-            config.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
+            vtState.branch.id = result.toBranch.id;
+            vtState.branch.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
           }
         }
       } else {
         // Checking out an existing branch
         const checkoutBranch = await branchNameToBranch(
-          config.projectId,
+          vtState.project.id,
           branchName,
         );
 
@@ -451,26 +521,15 @@ export default class VTClient {
         result = await checkout(branchParams);
       }
 
-      // Don't touch the config if it's a dry run
+      // Don't touch the state if it's a dry run
       if (!baseParams.dryRun) {
         if (result.toBranch) {
-          config.currentBranch = result.toBranch.id;
-          config.version = result.toBranch.version; // Use the target branch's version
+          vtState.branch.id = result.toBranch.id;
+          vtState.branch.version = result.toBranch.version; // Use the target branch's version
         }
       }
 
       return result;
     });
-  }
-
-  /**
-   * Check if the working directory is dirty relative to remote.
-   *
-   * @returns {Promise<boolean>} True if local state is dirty
-   */
-  public async isDirty(): Promise<boolean> {
-    const fileStateChanges = await this.status();
-    return fileStateChanges.modified.length > 0 ||
-      fileStateChanges.deleted.length > 0;
   }
 }

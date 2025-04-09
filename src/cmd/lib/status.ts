@@ -17,20 +17,16 @@ export const statusCmd = new Command()
     doWithSpinner("Checking status...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
+      const vtState = await vt.getMeta().loadVtState();
 
       const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
+        vtState.project.id,
+        vtState.branch.id,
       );
 
       const versionStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
-        currentVersion,
+        vtState.branch.version,
         currentBranch.version,
       );
 
@@ -40,10 +36,10 @@ export const statusCmd = new Command()
       );
       console.log();
 
-      displayFileStateChanges(await vt.status(), {
+      console.log(displayFileStateChanges(await vt.status(), {
         headerText: "Local Changes:",
         emptyMessage: "No changes locally to push.",
         summaryText: "Changes to be pushed:",
-      });
+      }));
     });
   });

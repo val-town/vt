@@ -53,6 +53,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -65,6 +66,8 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await Deno.remove(join(fullPath, ".vtignore"));
+        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("run push command with no changes", async () => {
           const [output] = await runVtCommand(["push"], fullPath);
@@ -73,4 +76,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
