@@ -1,9 +1,8 @@
-import * as path from "@std/path";
 import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import type { ProjectItemType } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
-import { dirname } from "@std/path";
+import { basename, dirname, join } from "@std/path";
 
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town project.
@@ -125,8 +124,7 @@ export async function push(params: PushParams): Promise<FileState> {
               projectId,
               {
                 path: file.path,
-                content:
-                  (await Deno.readTextFile(path.join(targetDir, file.path))),
+                content: await Deno.readTextFile(join(targetDir, file.path)),
                 branch_id: branchId,
                 type: file.type as Exclude<ProjectItemType, "directory">,
               },
@@ -144,8 +142,8 @@ export async function push(params: PushParams): Promise<FileState> {
         {
           path: file.path,
           branch_id: branchId,
-          content: await Deno.readTextFile(path.join(targetDir, file.path)),
-          name: path.basename(file.path),
+          content: await Deno.readTextFile(join(targetDir, file.path)),
+          name: basename(file.path),
           type: file.type as Exclude<ProjectItemType, "directory">,
         },
       );
