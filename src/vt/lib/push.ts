@@ -1,9 +1,9 @@
 import * as path from "@std/path";
-import sdk, { getLatestVersion } from "~/sdk.ts";
-import ValTown from "@valtown/sdk";
+import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import type { ProjectItemType } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import type { FileState } from "~/vt/lib/FileState.ts";
+import { dirname } from "@std/path";
 
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town project.
@@ -57,6 +57,84 @@ export async function push(params: PushParams): Promise<FileState> {
 
   if (dryRun) return fileState; // Exit early if dry run
 
+  // Get existing project items to check which directories already exist
+  const existingItems = await listProjectItems(
+    projectId,
+    branchId,
+    latestVersion,
+  );
+
+  // Create a set of existing paths that already exist
+  const existingDirs = new Set([ // no duplicates
+    ...existingItems
+      .filter((item) => item.type === "directory")
+      .map((item) => item.path),
+    ...existingItems.map((item) => dirname(item.path)),
+  ]);
+
+  // Get directories that need to be created
+  const dirsToCreate = fileState.created
+    .filter((f) => f.type === "directory")
+    .map((f) => f.path)
+    .filter((path) => !existingDirs.has(path));
+
+  // Add parent directories of created files if they don't exist
+  fileState.created
+    .filter((f) => f.type !== "directory")
+    .forEach((file) => {
+      let dir = dirname(file.path);
+      while (
+        dir &&
+        dir !== "." &&
+        !existingDirs.has(dir) &&
+        !dirsToCreate.includes(dir)
+      ) {
+        dirsToCreate.push(dir);
+        dir = dirname(dir); // eventually becomes "."
+      }
+    });
+
+  // Sort directories by depth to ensure parent directories are created first
+  const sortedDirsToCreate = [...new Set(dirsToCreate)]
+    .sort((a, b) => {
+      const segmentsA = a.split("/").filter(Boolean).length;
+      const segmentsB = b.split("/").filter(Boolean).length;
+      return segmentsA - segmentsB; // Sort by segment count (fewest first)
+    });
+
+  // Create all necessary directories first
+  const directoryPromises = sortedDirsToCreate.map(async (path) => {
+    await sdk.projects.files.create(
+      projectId,
+      { path, type: "directory", branch_id: branchId },
+    );
+    // Add to existing dirs set after creation
+    existingDirs.add(path);
+  });
+
+  const createFilesPromise =
+    // First wait for creating all directories
+    Promise.all(directoryPromises).then(async () => {
+      // Then create all the new files
+      await Promise.all(
+        fileState.created
+          .filter((f) => f.type !== "directory") // Already created directories
+          .map(async (file) => {
+            // Upload the file
+            await sdk.projects.files.create(
+              projectId,
+              {
+                path: file.path,
+                content:
+                  (await Deno.readTextFile(path.join(targetDir, file.path))),
+                branch_id: branchId,
+                type: file.type as Exclude<ProjectItemType, "directory">,
+              },
+            );
+          }),
+      );
+    });
+
   // Upload files that were modified locally
   const modifiedPromises = fileState.modified
     .filter((file) => file.type !== "directory")
@@ -82,91 +160,12 @@ export async function push(params: PushParams): Promise<FileState> {
     });
   });
 
-  // First ensure all directories exist
-  const alreadyCreatedDirs = new Set<string>();
-  for (const file of fileState.created) {
-    if (file.path.includes("/")) {
-      await ensureValtownDir(
-        projectId,
-        branchId,
-        file.path,
-        false,
-        alreadyCreatedDirs,
-      );
-    }
-  }
-
-  // Upload all files that exist locally but not on the server
-  for (const file of fileState.created) {
-    try {
-      if (file.type === "directory") {
-        // We want to make sure we get all the empty directories
-        await ensureValtownDir(projectId, branchId, file.path, true);
-      } else {
-        // Upload the file
-        await sdk.projects.files.create(
-          projectId,
-          {
-            path: file.path,
-            content: (await Deno.readTextFile(path.join(targetDir, file.path))),
-            branch_id: branchId,
-            type: file.type,
-          },
-        );
-      }
-    } catch (e) {
-      assertAllowedUploadError(e);
-    }
-  }
-
-  // Wait for all operations to complete
+  // Wait for all modifications and deletions to complete
   await Promise.all([
     ...modifiedPromises,
     ...deletedPromises,
+    createFilesPromise,
   ]);
 
   return fileState;
-}
-
-async function ensureValtownDir(
-  projectId: string,
-  branchId: string,
-  filePath: string,
-  isDirectory = false,
-  alreadyCreatedDirs = new Set(),
-): Promise<void> {
-  // Note that we cannot use path logic here because it must specific to val town
-  const dirPath = isDirectory ? filePath : path.dirname(filePath);
-
-  // If path is "" (root) no directories need to be created
-  if (dirPath === "") return;
-
-  // Split the path into segments
-  const segments = dirPath.split("/");
-  let currentPath = "";
-
-  // Create each directory in the path if it doesn't exist
-  for (let i = 0; i < segments.length; i++) {
-    if (segments[i] === "") continue;
-
-    currentPath += (currentPath ? "/" : "") + segments[i];
-
-    // Create directory - content can be null, empty string, or omitted for directories
-    try {
-      if (alreadyCreatedDirs.has(currentPath)) continue;
-      await sdk.projects.files.create(
-        projectId,
-        { path: currentPath, type: "directory", branch_id: branchId },
-      );
-      alreadyCreatedDirs.add(currentPath);
-    } catch (e) {
-      assertAllowedUploadError(e);
-    }
-  }
-}
-
-function assertAllowedUploadError(error: unknown) {
-  if (error instanceof ValTown.APIError) {
-    if (error.status != 409) throw error;
-  } else throw error;
 }
