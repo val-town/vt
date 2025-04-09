@@ -35,7 +35,7 @@
     "highlight.js": "npm:highlight.js@^11.11.1",
     "strip-ansi": "npm:strip-ansi@^7.1.0",
     "word-wrap": "npm:word-wrap@^1.2.5",
-    "xdg": "https://deno.land/x/xdg_portable@v10.6.0/src/mod.deno.ts",
+    "xdg-portable": "npm:xdg-portable@^10.6.0",
     "zod-to-json-schema": "npm:zod-to-json-schema@^3.24.5",
     "zod-validation-error": "npm:zod-validation-error@^3.4.0",
     "~/": "./src/",
