@@ -86,7 +86,7 @@ export function pull(params: PullParams): Promise<FileState> {
       const projectItemsSet = new Set(projectItems.map((file) => file.path));
 
       // Scan the temp directory to identify files that should be deleted
-      const toDelete: (() => Promise<void>)[] = [];
+      const pathsToDelete: string[] = [];
       for await (const entry of walk(tmpDir)) {
         const relativePath = relative(tmpDir, entry.path);
         const targetDirPath = join(targetDir, relativePath);
@@ -111,21 +111,17 @@ export function pull(params: PullParams): Promise<FileState> {
 
         // Delete the file from both directories if not in dry run mode
         if (!dryRun) {
-          if (await exists(targetDirPath)) {
-            toDelete.push(async () =>
-              await Deno.remove(targetDirPath, { recursive: true })
-            );
-          }
-          if (await exists(tmpDirPath)) {
-            toDelete.push(async () =>
-              await Deno.remove(tmpDirPath, { recursive: true })
-            );
-          }
+          pathsToDelete.push(targetDirPath);
+          pathsToDelete.push(tmpDirPath);
         }
       }
 
-      await Promise.all(toDelete.map((del) => del()));
-
+      // Perform the deletions
+      await Promise.all(pathsToDelete.map(async (path) => {
+        if (await exists(path)) {
+          await Deno.remove(path, { recursive: true });
+        }
+      }));
       return [changes, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },
