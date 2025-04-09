@@ -7,6 +7,78 @@ import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
+  name: "clone preserves custom deno.json and .vtignore",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+    run: true,
+  },
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project, branch }) => {
+        const customDenoJson = '{"tasks":{"custom":"echo test"}}';
+        const customVtignore = "custom_ignore_pattern";
+
+        await t.step("set up custom config files", async () => {
+          // Create custom deno.json
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: "deno.json",
+              content: customDenoJson,
+              branch_id: branch.id,
+              type: "file" as ProjectFileType,
+            },
+          );
+
+          // Create custom .vtignore
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: ".vtignore",
+              content: customVtignore,
+              branch_id: branch.id,
+              type: "file" as ProjectFileType,
+            },
+          );
+        });
+
+        await t.step("clone and verify custom config files", async () => {
+          const cloneDir = join(tmpDir, "config-clone");
+          await runVtCommand([
+            "clone",
+            project.name,
+            cloneDir,
+          ], tmpDir);
+
+          // Verify deno.json content
+          const denoJsonContent = await Deno.readTextFile(
+            join(cloneDir, "deno.json"),
+          );
+          assertEquals(
+            denoJsonContent,
+            customDenoJson,
+            "custom deno.json should be preserved",
+          );
+
+          // Verify .vtignore content
+          const vtignoreContent = await Deno.readTextFile(
+            join(cloneDir, ".vtignore"),
+          );
+          assertEquals(
+            vtignoreContent,
+            customVtignore,
+            "custom .vtignore should be preserved",
+          );
+        });
+      });
+    });
+  },
+});
+
+Deno.test({
   name: "clone a newly created project",
   permissions: {
     read: true,
