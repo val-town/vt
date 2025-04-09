@@ -66,12 +66,12 @@ export const checkoutCmd = new Command()
           : "Checking out branch...",
         async (spinner) => {
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-          const config = await vt.getMeta().loadConfig();
+          const vtState = await vt.getMeta().loadVtState();
 
           // Get the current branch data
           const currentBranchData = await sdk.projects.branches.retrieve(
-            config.projectId,
-            config.currentBranch,
+            vtState.project.id,
+            vtState.branch.id,
           );
 
           // Validate input parameters
@@ -90,8 +90,8 @@ export const checkoutCmd = new Command()
             const dryCheckoutResult = await vt.checkout(
               branch || existingBranchName!,
               {
-                toBranchVersion: config.version,
-                forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                toBranchVersion: vtState.branch.version,
+                forkedFromId: isNewBranch ? vtState.branch.id : undefined,
                 dryRun: true,
               },
             );
@@ -133,8 +133,12 @@ export const checkoutCmd = new Command()
                     if (
                       fileStatus.status === "modified" &&
                       fileStatus.where === "remote"
-                    ) fileStatus.status = "not_modified";
-
+                    ) {
+                      return {
+                        ...fileStatus,
+                        status: "not_modified",
+                      };
+                    }
                     return fileStatus;
                   })
                   .filter((fileStatus) => fileStatus.status === "not_modified"),
@@ -216,7 +220,7 @@ export const checkoutCmd = new Command()
                 {
                   dryRun: false,
                   // Undefined --> use current branch
-                  forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                  forkedFromId: isNewBranch ? vtState.branch.id : undefined,
                 },
               );
 

@@ -32,13 +32,11 @@ import type { ProjectItemType } from "~/types.ts";
  * @param {string} options.filePath - The path of the val or file to get the type of
  * @returns {Promise<ProjectItemType>} The val file type
  */
-async function getProjectItemType(
+export async function getProjectItemType(
   projectId: string,
-  { branchId, version = undefined, filePath }: {
-    branchId: string;
-    version: number | undefined;
-    filePath: string;
-  },
+  branchId: string,
+  version: number,
+  filePath: string,
 ): Promise<ProjectItemType> {
   // Preserve the type if the file was deleted recently and then recreated
   for (
@@ -46,11 +44,7 @@ async function getProjectItemType(
     i > (version || FIRST_VERSION_NUMBER) - RECENT_VERSION_COUNT;
     i--
   ) {
-    const type = await getProjectItem(projectId, {
-      branchId,
-      version,
-      filePath,
-    })
+    const type = await getProjectItem(projectId, branchId, version, filePath)
       .then((resp) => resp?.type);
 
     if (type === undefined) continue;
@@ -93,7 +87,7 @@ async function getProjectItemType(
  * @param {string[]} gitignoreRules - Array of gitignore rules to check against
  * @returns {Promise<boolean>} True if the path should be ignored
  */
-function shouldIgnore(
+export function shouldIgnore(
   pathToCheck: string,
   gitignoreRules: string[] = [],
 ): boolean {
@@ -104,5 +98,3 @@ function shouldIgnore(
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
   return gitignore.denies(pathToCheck);
 }
-
-export { getProjectItemType, shouldIgnore };

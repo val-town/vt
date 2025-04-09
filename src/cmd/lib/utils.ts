@@ -41,8 +41,9 @@ export function getVersionRangeStr(
   }
 
   // Otherwise, show the full range: first..current..latest
-  return `${firstVersion}..${colors.cyan(currentVersion.toString())
-    }..${latestVersion}`;
+  return `${firstVersion}..${
+    colors.cyan(currentVersion.toString())
+  }..${latestVersion}`;
 }
 
 /**
@@ -73,8 +74,9 @@ export function formatStatus(
       ProjectItemColors[type](typeStr) +
       colors.gray(")");
 
-    return `${styleConfig.color(styleConfig.prefix)
-      } ${typeIndicator} ${coloredPath}`;
+    return `${
+      styleConfig.color(styleConfig.prefix)
+    } ${typeIndicator} ${coloredPath}`;
   } else {
     // No type provided, don't include type indicator
     return `${styleConfig.color(styleConfig.prefix)} ${coloredPath}`;
@@ -115,6 +117,8 @@ export function displayFileStateChanges(
   } = options;
   const output: string[] = [];
   const totalChanges = fileStateChanges.changes();
+  const fileStateChangesEntriesSorted = fileStateChanges
+    .entries({ sorted: true });
 
   // Exit early if we do not show empty
   if (totalChanges === 0 && !showEmpty) return "";
@@ -123,22 +127,22 @@ export function displayFileStateChanges(
   if (headerText && totalChanges !== 0) output.push(headerText);
 
   // Calculate the longest type length from all files
-  const maxTypeLength = fileStateChanges.entries()
+  const maxTypeLength = fileStateChangesEntriesSorted
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
     .reduce((max, file) => Math.max(max, file.type.length), 0);
 
   // Print all changed files state
-  for (const [type, files] of fileStateChanges.entries()) {
+  for (const [type, files] of fileStateChangesEntriesSorted) {
     if (type !== "not_modified") {
       for (const file of files) {
         output.push(
           "  " +
-          formatStatus(
-            file,
-            includeTypes ? file.type : undefined,
-            maxTypeLength,
-          ),
+            formatStatus(
+              file,
+              includeTypes ? file.type : undefined,
+              maxTypeLength,
+            ),
         );
       }
     }
@@ -152,7 +156,7 @@ export function displayFileStateChanges(
       }
     } else {
       output.push("\n" + summaryPrefix);
-      for (const [type, files] of fileStateChanges.entries()) {
+      for (const [type, files] of fileStateChangesEntriesSorted) {
         if (type !== "not_modified" && files.length > 0) {
           const typeColor = STATUS_STYLES[type as keyof ItemStatusManager];
           const coloredType = typeColor.color(type);

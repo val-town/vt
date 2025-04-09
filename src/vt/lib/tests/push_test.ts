@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { listProjectItems } from "~/sdk.ts";
+import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
@@ -211,11 +211,8 @@ Deno.test({
         // Check that the directory exists on the server
         const listResult = await listProjectItems(
           project.id,
-          {
-            path: "",
-            branch_id: branch.id,
-            recursive: true,
-          },
+          branch.id,
+          await getLatestVersion(project.id, branch.id),
         );
 
         assertEquals(

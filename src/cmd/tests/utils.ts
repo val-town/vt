@@ -1,23 +1,24 @@
 import { join } from "@std/path";
 import stripAnsi from "strip-ansi";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
+import { doWithTempDir } from "~/vt/lib/utils.ts";
 
 /**
- * Runs the vt.ts script with provided arguments.
- *
- * Automatically sends "yes" to stdin to confirm any prompts, so that the
- * prompts themselves get captured.
+ * Creates and spawns a Deno child process for the vt.ts script.
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
- * @returns Tuple containing [merged output (stdout+stderr), exit code]
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
+ * @returns The spawned child process
  */
-export async function runVtCommand(
+export function runVtProc(
   args: string[],
   cwd: string,
-  autoConfirm = true,
-): Promise<[string, number]> {
-  // Configure and spawn the process
+  options: {
+    env?: Record<string, string>;
+  } = {},
+): Deno.ChildProcess {
   const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
   const command = new Deno.Command(Deno.execPath(), {
     args: ["run", "-A", commandPath, ...args],
@@ -25,25 +26,64 @@ export async function runVtCommand(
     stderr: "piped",
     stdin: "piped",
     cwd,
+    env: options.env,
   });
 
-  const process = command.spawn();
+  return command.spawn();
+}
 
-  // Send "y" to automatically confirm prompts
-  if (autoConfirm) {
-    const stdin = process.stdin.getWriter();
-    await stdin.write(new TextEncoder().encode("y\n"));
-    stdin.releaseLock();
+/**
+ * Runs the vt.ts script with provided arguments.
+ *
+ * @param args - Arguments to pass to the script
+ * @param cwd - Current working directory for the command
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
+ * @param options.autoConfirm - Automatically confirm prompts
+ * @returns Tuple containing [merged output (stdout+stderr), exit code]
+ */
+export async function runVtCommand(
+  args: string[],
+  cwd: string,
+  options: {
+    env?: Record<string, string>;
+    autoConfirm?: boolean;
+  } = {},
+): Promise<[string, number]> {
+  options = { autoConfirm: true, ...options };
+
+  return await doWithTempDir(async (tmpDir) => {
+    // Configure and spawn the process
+    const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
+    const command = new Deno.Command(Deno.execPath(), {
+      args: ["run", "-A", commandPath, ...args],
+      stdout: "piped",
+      stderr: "piped",
+      stdin: "piped",
+      cwd,
+      env: { XDG_CONFIG_HOME: join(tmpDir, "config"), ...options.env },
+    });
+
+    const process = command.spawn();
+
+    // Send "y" to automatically confirm prompts
+    if (options.autoConfirm) {
+      const stdin = process.stdin.getWriter();
+      await stdin.write(new TextEncoder().encode("y\n"));
+      stdin.releaseLock();
+    }
+
+    // Close stdin to prevent resource leaks
     await process.stdin.close();
-  }
 
-  // Collect and process the output
-  const { stdout, stderr, code } = await process.output();
-  const stdoutText = new TextDecoder().decode(stdout);
-  const stderrText = new TextDecoder().decode(stderr);
-  const combinedOutput = stdoutText + stderrText;
+    // Collect and process the output
+    const { stdout, stderr, code } = await process.output();
+    const stdoutText = new TextDecoder().decode(stdout);
+    const stderrText = new TextDecoder().decode(stderr);
+    const combinedOutput = stdoutText + stderrText;
 
-  return [stripAnsi(combinedOutput), code];
+    return [stripAnsi(combinedOutput), code];
+  });
 }
 
 /**
@@ -52,21 +92,18 @@ export async function runVtCommand(
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
  * @returns [outputLines, process]
  */
 export function streamVtCommand(
   args: string[],
   cwd: string,
+  options: {
+    env?: Record<string, string>;
+  } = {},
 ): [string[], Deno.ChildProcess] {
-  const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
-  const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "-A", commandPath, ...args],
-    stdout: "piped",
-    stderr: "piped",
-    cwd,
-  });
-
-  const process = command.spawn();
+  const process = runVtProc(args, cwd, options);
   const outputLines: string[] = [];
 
   // Read stdout

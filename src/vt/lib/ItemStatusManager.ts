@@ -1,6 +1,7 @@
 import { levenshteinDistance } from "@std/text";
 import type { ProjectItemType } from "~/types.ts";
-import { RENAME_DETECTION_THRESHOLD } from "~/consts.ts";
+import { RENAME_DETECTION_THRESHOLD, TYPE_PRIORITY } from "~/consts.ts";
+import { basename } from "@std/path";
 
 export interface ItemInfo {
   type: ProjectItemType;
@@ -22,6 +23,7 @@ export interface BaseItemStatus extends ItemInfo {
 
 export type ModifiedItemStatus = BaseItemStatus & {
   status: "modified";
+  where: "local" | "remote";
 };
 
 export type NotModifiedItemStatus = BaseItemStatus & {
@@ -136,10 +138,86 @@ export class ItemStatusManager {
 
   /**
    * Returns the file state as an array of key-value pairs.
+   * When sorted=true, entries are sorted by:
+   * 1. Path segment count (longest paths first)
+   * 2. Type (created, deleted, modified, etc.)
+   * 3. Basename length
+   * 4. Alphabetical order of the type if all else is equal
+   *
+   * @param options - Optional configuration {sorted: boolean}
    * @returns An array of entries from the JSON representation
    */
-  public entries(): [string, ItemStatus[]][] {
-    return Object.entries(this.toJSON());
+  public entries(options?: { sorted?: boolean }): [string, ItemStatus[]][] {
+    const entries = Object.entries(this.toJSON());
+
+    if (!options?.sorted) {
+      return entries;
+    }
+
+    // Flatten all files with their categories (a category being, created,
+    // deleted, etc)
+    const allFiles = entries
+      .flatMap(
+        // Transform each category to be more "verbose", like [created, FileStatus]
+        ([category, files]) =>
+          files.map((file) => [category, file] as [string, ItemStatus]),
+      );
+
+    // Sort all files by our criteria
+    allFiles.sort((a, b) => {
+      const [aCategory, aFile] = a;
+      const [bCategory, bFile] = b;
+
+      // 1. Path segment count (longest paths first)
+      const aSegments = aFile.path.split("/").length;
+      const bSegments = bFile.path.split("/").length;
+      if (aSegments !== bSegments) {
+        return bSegments - aSegments; // Longest paths first
+      }
+
+      // 2. Sort by file type
+      if (aFile.type !== bFile.type) {
+        return (
+          (TYPE_PRIORITY[aFile.type] || Number.MAX_SAFE_INTEGER) -
+          (TYPE_PRIORITY[bFile.type] || Number.MAX_SAFE_INTEGER)
+        );
+      }
+
+      // 3. Status type priority
+      const statusPriority: Record<string, number> = {
+        "created": 0,
+        "deleted": 1,
+        "modified": 2,
+        "not_modified": 3,
+      };
+      const aPriority = statusPriority[aCategory];
+      const bPriority = statusPriority[bCategory];
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // 4. Basename length
+      const aBasename = basename(aFile.path);
+      const bBasename = basename(bFile.path);
+      if (aBasename.length !== bBasename.length) {
+        return aBasename.length - bBasename.length;
+      }
+
+      // 5. Alphabetical order of path
+      return aFile.path.localeCompare(bFile.path);
+    });
+
+    // Regroup files into categories
+    const result = new Map<string, ItemStatus[]>();
+    for (const [category, file] of allFiles) {
+      if (!result.has(category)) {
+        result.set(category, []);
+      }
+      result.get(category)!.push(file);
+    }
+
+    // Convert to array entries
+    return Array.from(result.entries());
   }
 
   /**
@@ -191,7 +269,8 @@ export class ItemStatusManager {
         // Check if there's a deleted file with the same path
         if (this.#deleted.has(item.path)) {
           this.#deleted.delete(item.path);
-          item = { ...item, status: "modified" };
+          // If it was deleted and created relative to the remote it was a local modification
+          item = { ...item, status: "modified", where: "local" };
           this.#modified.set(item.path, item as ModifiedItemStatus);
         } else {
           this.#created.set(item.path, item as CreatedItemStatus);
@@ -201,7 +280,8 @@ export class ItemStatusManager {
         // Check if there's a created file with the same path
         if (this.#created.has(item.path)) {
           this.#created.delete(item.path);
-          item = { ...item, status: "modified" };
+          // If it was deleted and created relative to the remote it was a local modification
+          item = { ...item, status: "modified", where: "local" };
           this.#modified.set(item.path, item as ModifiedItemStatus);
         } else {
           this.#deleted.set(item.path, item as DeletedItemStatus);
@@ -361,6 +441,41 @@ export class ItemStatusManager {
 
     for (const file of this.renamed) {
       if (predicate(file)) result.insert(file);
+    }
+
+    return result;
+  }
+
+  /**
+   * Creates a new ItemStatusManager with the results of calling a provided function
+   * on every item in this ItemStatusManager.
+   *
+   * @param mapper - Function that produces a new item from an existing item
+   * @returns A new ItemStatusManager with the mapped items
+   */
+  public map(
+    mapper: (entry: ItemStatus) => ItemStatus,
+  ): ItemStatusManager {
+    const result = new ItemStatusManager();
+
+    for (const file of this.created) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.deleted) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.modified) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.not_modified) {
+      result.insert(mapper(file));
+    }
+
+    for (const file of this.renamed) {
+      result.insert(mapper(file));
     }
 
     return result;

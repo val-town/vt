@@ -25,6 +25,8 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await Deno.remove(join(fullPath, ".vtignore"));
+        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("make a local change", async () => {
           // Make a local change

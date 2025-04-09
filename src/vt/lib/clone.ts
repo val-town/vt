@@ -22,7 +22,7 @@ export interface CloneParams {
   /** The branch ID of the project to clone */
   branchId: string;
   /** The version to clone. Defaults to latest */
-  version?: number;
+  version: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually write files, just report what would change */
@@ -48,12 +48,11 @@ export function clone(params: CloneParams): Promise<ItemStatusManager> {
   return doAtomically(
     async (tmpDir) => {
       const changes = new ItemStatusManager();
-      const projectItems = await listProjectItems(projectId, {
-        branch_id: branchId,
+      const projectItems = await listProjectItems(
+        projectId,
+        branchId,
         version,
-        path: "",
-        recursive: true,
-      });
+      );
 
       await Promise.all(projectItems
         .map(async (file) => {
@@ -153,6 +152,7 @@ async function createFile(
         status: "modified",
         mtime: localMtime,
         content: localContent,
+        where: "local",
       };
     } else {
       fileStatus = {

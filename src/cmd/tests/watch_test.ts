@@ -5,12 +5,12 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay, retry } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { listProjectItems } from "~/sdk.ts";
+import { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
   name: "simulate a watch",
-  fn: async (t) =>
+  fn: async (t) => {
     await retry(async () => {
       await doWithTempDir(async (tmpDir) => {
         await doWithNewProject(async ({ project, branch }) => {
@@ -23,24 +23,29 @@ Deno.test({
           await t.step(
             "setup by cloneing project and starting watch process",
             async () => {
-              // Create 10 files in rapid succession
-              for (let i = 0; i <= 10; i++) {
-                const filePath = join(projectDir!, `rapid-file-${i}.js`);
-                await Deno.writeTextFile(
-                  filePath,
-                  `console.log('Rapid file ${i}');`,
-                );
-                createTimes.push({
-                  path: `rapid-file-${i}.js`,
-                  time: Date.now(),
-                });
-                // Add minimal delay between file creations to ensure they're
-                // distinct events
-                await delay(200);
-              }
+              // Clone the empty project
+              await runVtCommand(["clone", project.name], tmpDir);
 
-              // Wait for the debounce period plus buffer for the actual uploads
-              await delay(15000); // Probably excessive
+              // Get project directory path
+              projectDir = join(tmpDir, project.name);
+              assert(
+                await exists(projectDir),
+                "project directory should exist after clone",
+              );
+
+              // Create VTClient instance for direct API operations
+              vt = VTClient.from(projectDir);
+
+              // Start the watch process with a short debounce
+              [outputLines, watchChild] = streamVtCommand(
+                ["watch", "-d", "750"],
+                projectDir,
+              );
+
+              // Wait for the watch process to start
+              while (outputLines.length < 3) {
+                await delay(100);
+              }
             },
           );
 
@@ -61,11 +66,11 @@ Deno.test({
                   });
                   // Add minimal delay between file creations to ensure they're
                   // distinct events
-                  await delay(500);
+                  await delay(200);
                 }
 
                 // Wait for the debounce period plus buffer for the actual uploads
-                await delay(10000); // Probably excessive
+                await delay(20000); // Probably excessive
               },
             );
 
@@ -73,11 +78,8 @@ Deno.test({
               // Verify all files were synced
               const projectItemsAfterBatch = await listProjectItems(
                 project.id,
-                {
-                  path: "",
-                  branch_id: branch.id,
-                  recursive: true,
-                },
+                branch.id,
+                await getLatestVersion(project.id, branch.id),
               );
 
               // Get status to verify all files are synced
@@ -123,9 +125,9 @@ Deno.test({
         });
       });
     }, {
-      maxAttempts: 2,
+      maxAttempts: 3,
       maxTimeout: 30_000,
-      minTimeout: 5_000,
-    }),
+    });
+  },
   sanitizeResources: false,
 });

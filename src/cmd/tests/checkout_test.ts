@@ -6,6 +6,7 @@ import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { deadline } from "@std/async";
+import type { ProjectFileType } from "~/types.ts";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
@@ -186,6 +187,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -259,6 +261,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -326,6 +329,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({

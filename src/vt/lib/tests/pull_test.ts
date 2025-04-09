@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk from "~/sdk.ts";
+import sdk, { getLatestVersion } from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -38,6 +38,7 @@ Deno.test({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
+            version: await getLatestVersion(project.id, branch.id),
           });
 
           await t.step("verify pulled file", async () => {

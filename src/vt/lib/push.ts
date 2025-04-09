@@ -1,8 +1,11 @@
-import sdk, { getLatestVersion, getProjectItem } from "~/sdk.ts";
-import ValTown from "@valtown/sdk";
-import { status } from "~/vt/lib/status.ts";
 import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
-import type { ProjectFileType } from "~/types.ts";
+import type { ProjectFileType, ProjectItemType } from "~/types.ts";
+import sdk, {
+  getLatestVersion,
+  getProjectItem,
+  listProjectItems,
+} from "~/sdk.ts";
+import { status } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
 
 /**
@@ -16,7 +19,7 @@ export interface PushParams {
   /** The branch ID to upload to. */
   branchId: string;
   /** The version to compute the file state changes against. Defaults to latest version. */
-  version?: number;
+  latestVersion?: number;
   /** The current file state. If not provided, it will be computed. */
   fileState?: ItemStatusManager;
   /** A list of gitignore rules. */
@@ -37,12 +40,12 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
     targetDir,
     projectId,
     branchId,
-    version,
+    latestVersion,
     fileState,
     gitignoreRules,
     dryRun = false,
   } = params;
-  version = version || await getLatestVersion(projectId, branchId);
+  latestVersion = latestVersion ?? await getLatestVersion(projectId, branchId);
 
   // Use provided status, or retrieve the status
   if (!fileState || fileState.isEmpty()) {
@@ -50,12 +53,53 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
       targetDir,
       projectId,
       branchId,
-      version,
+      version: latestVersion,
       gitignoreRules,
     });
   }
 
   if (dryRun) return fileState; // Exit early if dry run
+
+  // Get existing project items to check which directories already exist
+  const existingItems = await listProjectItems(
+    projectId,
+    branchId,
+    latestVersion,
+  );
+
+  // Create a set of existing paths that already exist
+  const existingDirs = new Set([ // no duplicates
+    ...existingItems
+      .filter((item) => item.type === "directory")
+      .map((item) => item.path),
+    ...existingItems.map((item) => dirname(item.path)),
+  ]);
+
+  // Create all necessary directories first
+  const createFilesPromise = createRequiredDirectories(
+    projectId,
+    branchId,
+    fileState,
+    existingDirs,
+  )
+    .then(() =>
+      Promise.all(
+        fileState.created
+          .filter((f) => f.type !== "directory") // Already created directories
+          .map(async (file) => {
+            // Upload the file
+            await sdk.projects.files.create(
+              projectId,
+              {
+                path: file.path,
+                content: await Deno.readTextFile(join(targetDir, file.path)),
+                branch_id: branchId,
+                type: file.type as Exclude<ProjectItemType, "directory">,
+              },
+            );
+          }),
+      )
+    );
 
   // Upload files that were modified locally
   const modifiedPromises = fileState.modified
@@ -82,11 +126,12 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
         name: basename(file.path),
         type: file.type as ProjectFileType,
         content: file.content,
-        parent_id: (await getProjectItem(projectId, {
-          filePath: dirname(file.path),
+        parent_id: (await getProjectItem(
+          projectId,
           branchId,
-          version,
-        }))?.id,
+          latestVersion,
+          dirname(file.path),
+        ))?.id,
         path: file.oldPath,
       });
     });
@@ -100,77 +145,60 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
     });
   });
 
-  await assertAllDirs(
-    projectId,
-    branchId,
-    fileState.created
-      .filter((f) => f.type === "directory")
-      .map((f) => f.path),
-  );
-
-  // Upload all files that exist locally but not on the server
-  const createdPromises = fileState.created
-    .filter((file) => file.type !== "directory") // Filter out directories since we already handled them
-    .map(async (file) => {
-      try {
-        const fileType = file.type;
-
-        // Upload the file
-        return await sdk.projects.files.create(
-          projectId,
-          {
-            path: file.path,
-            content: (await Deno.readTextFile(join(targetDir, file.path))),
-            branch_id: branchId,
-            type: fileType as ProjectFileType,
-          },
-        );
-      } catch (e) {
-        assertAllowedUploadError(e);
-        return null;
-      }
-    });
-
-  // Wait for all operations to complete
+  // Wait for all modifications and deletions to complete
   await Promise.all([
     ...modifiedPromises,
     ...deletedPromises,
-    ...createdPromises,
     ...renamePromises,
+    createFilesPromise,
   ]);
 
   return fileState.consolidateRenames();
 }
 
-async function assertAllDirs(
+async function createRequiredDirectories(
   projectId: string,
   branchId: string,
-  paths: string[],
-) {
-  const allDirs = paths
-    .map((p) => p.split("/"))
-    .sort((a, b) => a.length - b.length); // Sort by path depth
+  fileState: ItemStatusManager,
+  existingDirs: Set<string>,
+): Promise<void> {
+  // Get directories that need to be created
+  const dirsToCreate = fileState.created
+    .filter((f) => f.type === "directory")
+    .map((f) => f.path)
+    .filter((path) => !existingDirs.has(path));
 
-  const allCreatedDirs = new Set<string>();
+  // Add parent directories of created files if they don't exist
+  fileState.created
+    .filter((f) => f.type !== "directory")
+    .forEach((file) => {
+      let dir = dirname(file.path);
+      while (
+        dir &&
+        dir !== "." &&
+        !existingDirs.has(dir) &&
+        !dirsToCreate.includes(dir)
+      ) {
+        dirsToCreate.push(dir);
+        dir = dirname(dir); // eventually becomes "."
+      }
+    });
 
-  // Process directories from shallowest to deepest without using shift
-  for (const dir of allDirs) {
-    const path = dir.join("/");
-    if (path === "") continue; // Skip empty path
+  // Sort directories by depth to ensure parent directories are created first
+  const sortedDirsToCreate = [...new Set(dirsToCreate)]
+    .sort((a, b) => {
+      const segmentsA = a.split("/").filter(Boolean).length;
+      const segmentsB = b.split("/").filter(Boolean).length;
+      return segmentsA - segmentsB; // Sort by segment count (fewest first)
+    });
 
-    if (!allCreatedDirs.has(path)) {
-      // Only create if not already created
-      await sdk.projects.files.create(
-        projectId,
-        { path, type: "directory", branch_id: branchId },
-      );
-      allCreatedDirs.add(path);
-    }
+  // Create all necessary directories
+  for (const path of sortedDirsToCreate) {
+    await sdk.projects.files.create(
+      projectId,
+      { path, type: "directory", branch_id: branchId },
+    );
+    // Add to existing dirs set after creation
+    existingDirs.add(path);
   }
-}
-
-function assertAllowedUploadError(error: unknown) {
-  if (error instanceof ValTown.APIError) {
-    if (error.status != 409) throw error;
-  } else throw error;
 }

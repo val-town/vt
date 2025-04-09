@@ -23,7 +23,7 @@ export interface StatusParams {
   /** Branch ID to check against. */
   branchId: string;
   /** The version to check the status against. Defaults to the latest version. */
-  version?: number;
+  version: number;
   /** Gitignore rules */
   gitignoreRules?: string[];
 }
@@ -92,6 +92,9 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
             type: localFile.type,
             path: localFile.path,
             status: "modified",
+            where: localStat.mtime!.getTime() > projectFileInfo.mtime
+              ? "local"
+              : "remote",
             mtime: localStat.mtime!.getTime(),
             content: localFile.content,
           };
@@ -144,16 +147,11 @@ async function getProjectFiles({
 }: {
   projectId: string;
   branchId: string;
-  version?: number;
+  version: number;
   gitignoreRules?: string[];
 }): Promise<ItemInfo[]> {
   return Promise.all(
-    (await listProjectItems(projectId, {
-      path: "",
-      branch_id: branchId,
-      version,
-      recursive: true,
-    }))
+    (await listProjectItems(projectId, branchId, version))
       .filter((file) => !shouldIgnore(file.path, gitignoreRules))
       .map(async (file): Promise<ItemInfo> => ({
         path: file.path,
@@ -173,13 +171,13 @@ async function getProjectFiles({
 async function getLocalFiles({
   projectId,
   branchId,
-  version = undefined,
+  version,
   targetDir,
   gitignoreRules,
 }: {
   projectId: string;
   branchId: string;
-  version?: number;
+  version: number;
   targetDir: string;
   gitignoreRules?: string[];
 }): Promise<ItemInfo[]> {
@@ -197,13 +195,12 @@ async function getLocalFiles({
 
       return {
         path: relativePath,
-        type: (entry.isDirectory
-          ? "directory"
-          : await getProjectItemType(projectId, {
-            branchId: branchId,
-            version,
-            filePath: relativePath,
-          })),
+        type: (entry.isDirectory ? "directory" : await getProjectItemType(
+          projectId,
+          branchId,
+          version,
+          relativePath,
+        )),
         mtime: localStat.mtime!.getTime(),
         content: entry.isDirectory
           ? undefined
