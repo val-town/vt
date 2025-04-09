@@ -71,51 +71,15 @@ export async function push(params: PushParams): Promise<FileState> {
     ...existingItems.map((item) => dirname(item.path)),
   ]);
 
-  // Get directories that need to be created
-  const dirsToCreate = fileState.created
-    .filter((f) => f.type === "directory")
-    .map((f) => f.path)
-    .filter((path) => !existingDirs.has(path));
-
-  // Add parent directories of created files if they don't exist
-  fileState.created
-    .filter((f) => f.type !== "directory")
-    .forEach((file) => {
-      let dir = dirname(file.path);
-      while (
-        dir &&
-        dir !== "." &&
-        !existingDirs.has(dir) &&
-        !dirsToCreate.includes(dir)
-      ) {
-        dirsToCreate.push(dir);
-        dir = dirname(dir); // eventually becomes "."
-      }
-    });
-
-  // Sort directories by depth to ensure parent directories are created first
-  const sortedDirsToCreate = [...new Set(dirsToCreate)]
-    .sort((a, b) => {
-      const segmentsA = a.split("/").filter(Boolean).length;
-      const segmentsB = b.split("/").filter(Boolean).length;
-      return segmentsA - segmentsB; // Sort by segment count (fewest first)
-    });
-
   // Create all necessary directories first
-  const directoryPromises = sortedDirsToCreate.map(async (path) => {
-    await sdk.projects.files.create(
-      projectId,
-      { path, type: "directory", branch_id: branchId },
-    );
-    // Add to existing dirs set after creation
-    existingDirs.add(path);
-  });
-
-  const createFilesPromise =
-    // First wait for creating all directories
-    Promise.all(directoryPromises).then(async () => {
-      // Then create all the new files
-      await Promise.all(
+  const createFilesPromise = createRequiredDirectories(
+    projectId,
+    branchId,
+    fileState,
+    existingDirs,
+  )
+    .then(() =>
+      Promise.all(
         fileState.created
           .filter((f) => f.type !== "directory") // Already created directories
           .map(async (file) => {
@@ -130,8 +94,8 @@ export async function push(params: PushParams): Promise<FileState> {
               },
             );
           }),
-      );
-    });
+      )
+    );
 
   // Upload files that were modified locally
   const modifiedPromises = fileState.modified
@@ -166,4 +130,51 @@ export async function push(params: PushParams): Promise<FileState> {
   ]);
 
   return fileState;
+}
+
+async function createRequiredDirectories(
+  projectId: string,
+  branchId: string,
+  fileState: FileState,
+  existingDirs: Set<string>,
+): Promise<void> {
+  // Get directories that need to be created
+  const dirsToCreate = fileState.created
+    .filter((f) => f.type === "directory")
+    .map((f) => f.path)
+    .filter((path) => !existingDirs.has(path));
+
+  // Add parent directories of created files if they don't exist
+  fileState.created
+    .filter((f) => f.type !== "directory")
+    .forEach((file) => {
+      let dir = dirname(file.path);
+      while (
+        dir &&
+        dir !== "." &&
+        !existingDirs.has(dir) &&
+        !dirsToCreate.includes(dir)
+      ) {
+        dirsToCreate.push(dir);
+        dir = dirname(dir); // eventually becomes "."
+      }
+    });
+
+  // Sort directories by depth to ensure parent directories are created first
+  const sortedDirsToCreate = [...new Set(dirsToCreate)]
+    .sort((a, b) => {
+      const segmentsA = a.split("/").filter(Boolean).length;
+      const segmentsB = b.split("/").filter(Boolean).length;
+      return segmentsA - segmentsB; // Sort by segment count (fewest first)
+    });
+
+  // Create all necessary directories
+  for (const path of sortedDirsToCreate) {
+    await sdk.projects.files.create(
+      projectId,
+      { path, type: "directory", branch_id: branchId },
+    );
+    // Add to existing dirs set after creation
+    existingDirs.add(path);
+  }
 }
