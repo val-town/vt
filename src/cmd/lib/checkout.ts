@@ -9,6 +9,8 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
+import { tty } from "@cliffy/ansi/tty";
+import sdk from "~/sdk.ts";
 
 const toListBranchesCmd = "Use `vt branch` to list branches.";
 const noChangesToStateMsg = "No changes were made to local state";
@@ -66,6 +68,12 @@ export const checkoutCmd = new Command()
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
           const config = await vt.getMeta().loadConfig();
 
+          // Get the current branch data
+          const currentBranchData = await sdk.projects.branches.retrieve(
+            config.projectId,
+            config.currentBranch,
+          );
+
           // Validate input parameters
           if (!branch && !existingBranchName) {
             throw new Error(
@@ -88,10 +96,7 @@ export const checkoutCmd = new Command()
               },
             );
 
-            if (
-              dryCheckoutResult.toBranch &&
-              config.currentBranch === dryCheckoutResult.toBranch.id
-            ) {
+            if (currentBranchData.name === existingBranchName) {
               spinner.warn(
                 `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,
               );
@@ -116,19 +121,40 @@ export const checkoutCmd = new Command()
               )
               .merge(
                 (await vt.status())
+                  // https://github.com/val-town/vt/pull/71
+                  // If a file is modified more recently remotely during a
+                  // checkout, then we do not need to count it as a dirty state,
+                  // since when we land on the new branch we will not have lost any
+                  // local state, since the newest change from the destination was
+                  // the remote state of the given file. So, we remap all the
+                  // remote modifications to not-modified state, and then do a
+                  // right intesection into the dangerousLocalChanges.
+                  .map((fileStatus) => {
+                    if (
+                      fileStatus.status === "modified" &&
+                      fileStatus.where === "remote"
+                    ) fileStatus.status = "not_modified";
+
+                    return fileStatus;
+                  })
                   .filter((fileStatus) => fileStatus.status === "not_modified"),
               );
 
+            let prepareForResult = () => {};
             if (!isNewBranch) {
               if (
-                await vt.isDirty() && !force && !dryRun
+                (dangerousLocalChanges.modified.length > 0 ||
+                  dangerousLocalChanges.deleted.length > 0) &&
+                !force && !dryRun
               ) {
                 spinner.stop();
 
-                displayFileStateChanges(
+                const dangerousChanges = displayFileStateChanges(
                   dangerousLocalChanges,
                   {
-                    headerText: `Dangerous changes that would occur when ${
+                    headerText: `Dangerous changes ${
+                      colors.underline("that would occur when")
+                    } ${
                       isNewBranch
                         ? `creating branch "${targetBranch}"`
                         : `checking out "${targetBranch}"`
@@ -138,6 +164,8 @@ export const checkoutCmd = new Command()
                     includeSummary: true,
                   },
                 );
+
+                console.log(dangerousChanges);
                 console.log();
 
                 // Ask for confirmation to proceed despite dirty state
@@ -151,60 +179,73 @@ export const checkoutCmd = new Command()
 
                 // Exit if user doesn't want to proceed
                 if (!shouldProceed) Deno.exit(0);
-                else console.log(); // Newline
+                else {
+                  prepareForResult = () =>
+                    tty.eraseLines(dangerousChanges.split("\n").length + 3);
+                }
               }
             }
 
             // If this is a dry run then report the changes and exit early.
             if (dryRun) {
               spinner.stop();
+              prepareForResult();
 
               // Inline display of dry run changes
-              displayFileStateChanges(dryCheckoutResult.fileStateChanges, {
-                headerText: `Changes that would occur when ${
-                  isNewBranch
-                    ? `creating branch "${targetBranch}"`
-                    : `checking out "${targetBranch}"`
-                }:`,
-                summaryText: "Would change:",
-                emptyMessage: noChangesToStateMsg,
-                includeSummary: true,
-              });
+              console.log(
+                displayFileStateChanges(dryCheckoutResult.fileStateChanges, {
+                  headerText: `Changes ${
+                    colors.underline("that would occur")
+                  } when ${
+                    isNewBranch
+                      ? `creating branch "${targetBranch}"`
+                      : `checking out "${targetBranch}"`
+                  }:`,
+                  summaryText: "Would change:",
+                  emptyMessage: noChangesToStateMsg,
+                  includeSummary: true,
+                }),
+              );
               console.log();
 
               spinner.succeed(noChangesDryRunMsg);
-              return;
+            } else {
+              // Perform the actual checkout
+              const checkoutResult = await vt.checkout(
+                targetBranch,
+                {
+                  dryRun: false,
+                  // Undefined --> use current branch
+                  forkedFromId: isNewBranch ? config.currentBranch : undefined,
+                },
+              );
+
+              spinner.stop();
+              prepareForResult();
+
+              // Inline display of actual checkout changes
+              console.log(
+                displayFileStateChanges(checkoutResult.fileStateChanges, {
+                  headerText: `Changes ${
+                    colors.underline("made to local state")
+                  } during checkout:`,
+                  summaryText: "Changed:",
+                  showEmpty: false,
+                  includeSummary: true,
+                }),
+              );
+              // If no changes nothing was printed, so we don't need to log state info
+              if (checkoutResult.fileStateChanges.changes() > 0) console.log();
+
+              // Report the success, which is either a successful switch or a
+              // successful fork
+              tty.scrollDown(1);
+              spinner.succeed(
+                isNewBranch
+                  ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
+                  : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
+              );
             }
-
-            // Perform the actual checkout
-            const checkoutResult = await vt.checkout(
-              targetBranch,
-              {
-                dryRun: false,
-                // Undefined --> use current branch
-                forkedFromId: isNewBranch ? config.currentBranch : undefined,
-              },
-            );
-
-            spinner.stop();
-
-            // Inline display of actual checkout changes
-            displayFileStateChanges(checkoutResult.fileStateChanges, {
-              headerText: "Changes made to local state during checkout:",
-              summaryText: "Changed:",
-              showEmpty: false,
-              includeSummary: true,
-            });
-            // If no changes nothing was printed, so we don't need to log state info
-            if (checkoutResult.fileStateChanges.changes() > 0) console.log();
-
-            // Report the success, which is either a successful switch or a
-            // successful fork
-            spinner.succeed(
-              isNewBranch
-                ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
-                : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
-            );
           } catch (e) {
             if (e instanceof ValTown.APIError) {
               if (e.status === 409 && branch) {

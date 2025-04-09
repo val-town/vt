@@ -17,5 +17,6 @@ cmd.command("checkout", cmds.checkoutCmd);
 cmd.command("watch", cmds.watchCmd);
 cmd.command("browse", cmds.browseCmd);
 cmd.command("create", cmds.createCmd);
+cmd.command("delete", cmds.deleteCmd);
 
 export { cmd };

@@ -5,7 +5,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { listProjectItems } from "~/sdk.ts";
+import { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
@@ -65,21 +65,21 @@ Deno.test({
                 });
                 // Add minimal delay between file creations to ensure they're
                 // distinct events
-                await delay(500);
+                await delay(200);
               }
 
               // Wait for the debounce period plus buffer for the actual uploads
-              await delay(10000); // Probably excessive
+              await delay(15000); // Probably excessive
             },
           );
 
           await t.step("verify files were synced correctly", async () => {
             // Verify all files were synced
-            const projectItemsAfterBatch = await listProjectItems(project.id, {
-              path: "",
-              branch_id: branch.id,
-              recursive: true,
-            });
+            const projectItemsAfterBatch = await listProjectItems(
+              project.id,
+              branch.id,
+              await getLatestVersion(project.id, branch.id),
+            );
 
             // Get status to verify all files are synced
             const statusAfterBatch = await vt!.status();
