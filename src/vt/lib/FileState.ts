@@ -1,4 +1,5 @@
-import type { ProjectItemType } from "~/consts.ts";
+import { basename } from "@std/path";
+import { type ProjectItemType, TYPE_PRIORITY } from "~/consts.ts";
 
 export interface FileInfo {
   type: ProjectItemType;
@@ -80,10 +81,86 @@ export class FileState {
 
   /**
    * Returns the file state as an array of key-value pairs.
+   * When sorted=true, entries are sorted by:
+   * 1. Path segment count (longest paths first)
+   * 2. Type (created, deleted, modified, etc.)
+   * 3. Basename length
+   * 4. Alphabetical order of the type if all else is equal
+   *
+   * @param options - Optional configuration {sorted: boolean}
    * @returns An array of entries from the JSON representation
    */
-  public entries(): [string, FileStatus[]][] {
-    return Object.entries(this.toJSON());
+  public entries(options?: { sorted?: boolean }): [string, FileStatus[]][] {
+    const entries = Object.entries(this.toJSON());
+
+    if (!options?.sorted) {
+      return entries;
+    }
+
+    // Flatten all files with their categories (a category being, created,
+    // deleted, etc)
+    const allFiles = entries
+      .flatMap(
+        // Transform each category to be more "verbose", like [created, FileStatus]
+        ([category, files]) =>
+          files.map((file) => [category, file] as [string, FileStatus]),
+      );
+
+    // Sort all files by our criteria
+    allFiles.sort((a, b) => {
+      const [aCategory, aFile] = a;
+      const [bCategory, bFile] = b;
+
+      // 1. Path segment count (longest paths first)
+      const aSegments = aFile.path.split("/").length;
+      const bSegments = bFile.path.split("/").length;
+      if (aSegments !== bSegments) {
+        return bSegments - aSegments; // Longest paths first
+      }
+
+      // 2. Sort by file type
+      if (aFile.type !== bFile.type) {
+        return (
+          (TYPE_PRIORITY[aFile.type] || Number.MAX_SAFE_INTEGER) -
+          (TYPE_PRIORITY[bFile.type] || Number.MAX_SAFE_INTEGER)
+        );
+      }
+
+      // 3. Status type priority
+      const statusPriority: Record<string, number> = {
+        "created": 0,
+        "deleted": 1,
+        "modified": 2,
+        "not_modified": 3,
+      };
+      const aPriority = statusPriority[aCategory];
+      const bPriority = statusPriority[bCategory];
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // 4. Basename length
+      const aBasename = basename(aFile.path);
+      const bBasename = basename(bFile.path);
+      if (aBasename.length !== bBasename.length) {
+        return aBasename.length - bBasename.length;
+      }
+
+      // 5. Alphabetical order of path
+      return aFile.path.localeCompare(bFile.path);
+    });
+
+    // Regroup files into categories
+    const result = new Map<string, FileStatus[]>();
+    for (const [category, file] of allFiles) {
+      if (!result.has(category)) {
+        result.set(category, []);
+      }
+      result.get(category)!.push(file);
+    }
+
+    // Convert to array entries
+    return Array.from(result.entries());
   }
 
   /**

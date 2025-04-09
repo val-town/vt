@@ -116,6 +116,8 @@ export function displayFileStateChanges(
   } = options;
   const output: string[] = [];
   const totalChanges = fileStateChanges.changes();
+  const fileStateChangesEntriesSorted = fileStateChanges
+    .entries({ sorted: true });
 
   // Exit early if we do not show empty
   if (totalChanges === 0 && !showEmpty) return "";
@@ -124,13 +126,13 @@ export function displayFileStateChanges(
   if (headerText && totalChanges !== 0) output.push(headerText);
 
   // Calculate the longest type length from all files
-  const maxTypeLength = fileStateChanges.entries()
+  const maxTypeLength = fileStateChangesEntriesSorted
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
     .reduce((max, file) => Math.max(max, file.type.length), 0);
 
   // Print all changed files state
-  for (const [type, files] of fileStateChanges.entries()) {
+  for (const [type, files] of fileStateChangesEntriesSorted) {
     if (type !== "not_modified") {
       for (const file of files) {
         output.push(
@@ -154,7 +156,7 @@ export function displayFileStateChanges(
       }
     } else {
       output.push("\n" + summaryPrefix);
-      for (const [type, files] of fileStateChanges.entries()) {
+      for (const [type, files] of fileStateChangesEntriesSorted) {
         if (type !== "not_modified" && files.length > 0) {
           const typeColor = STATUS_STYLES[type as keyof FileState];
           const coloredType = typeColor.color(type);
