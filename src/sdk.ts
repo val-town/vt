@@ -1,5 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
+import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
@@ -50,27 +51,25 @@ export async function branchNameToBranch(
  * @param {string} options.filePath - The file path to locate
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
-export async function getProjectItem(
+export const getProjectItem = memoize(async (
   projectId: string,
-  { branchId, version, filePath }: {
-    branchId?: string;
-    version?: number;
-    filePath: string;
-  },
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
+  branchId: string,
+  version: number,
+  filePath: string,
+): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
   branchId = (branchId ||
     await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
       resp.id
     ))!;
-  version = version || (await getLatestVersion(projectId, branchId));
 
-  for await (
-    const filepath of await sdk.projects.files.retrieve(
-      projectId,
-      { path: "", branch_id: branchId, version, recursive: true },
-    )
-  ) if (filepath.path === filePath) return filepath;
-}
+  const projectItems = await listProjectItems(projectId, branchId, version);
+  const results = [];
+  for (const filepath of projectItems) {
+    if (filepath.path === filePath) results.push(filepath);
+  }
+
+  return results.length === 1 ? results[0] : undefined;
+});
 
 /**
   * Lists all file paths in a project with pagination support.
@@ -84,38 +83,28 @@ export async function getProjectItem(
   * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
   * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
   */
-export async function listProjectItems(
+export const listProjectItems = memoize(async (
   projectId: string,
-  {
-    path,
-    branch_id,
-    version,
-    recursive,
-  }: {
-    path: string;
-    branch_id?: string;
-    version?: number;
-    recursive?: boolean;
-  },
-): Promise<ValTown.Projects.FileRetrieveResponse[]> {
+  branchId: string,
+  version: number,
+): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
 
-  branch_id = branch_id ||
+  branchId = branchId ||
     (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
-  version = version || (await getLatestVersion(projectId, branch_id));
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {
-      path,
-      branch_id,
+      path: "",
+      branch_id: branchId,
       version,
-      recursive,
+      recursive: true,
     })
   ) files.push(file);
 
   return files;
-}
+});
 
 /**
  * Checks if a project exists in Val Town

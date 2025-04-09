@@ -21,7 +21,7 @@ export interface StatusParams {
   /** Branch ID to check against. */
   branchId: string;
   /** The version to check the status against. Defaults to the latest version. */
-  version?: number;
+  version: number;
   /** Gitignore rules */
   gitignoreRules?: string[];
 }
@@ -126,24 +126,19 @@ export async function status(params: StatusParams): Promise<FileState> {
 interface GetProjectFilesParams {
   projectId: string;
   branchId: string;
-  version?: number;
+  version: number;
   gitignoreRules?: string[];
 }
 
 async function getProjectFiles({
   projectId,
   branchId,
-  version = undefined,
+  version,
   gitignoreRules,
 }: GetProjectFilesParams): Promise<
   Map<string, ValTown.Projects.FileRetrieveResponse>
 > {
-  const projectItems = (await listProjectItems(projectId, {
-    path: "",
-    branch_id: branchId,
-    version,
-    recursive: true,
-  }))
+  const projectItems = (await listProjectItems(projectId, branchId, version))
     .filter((file) => !shouldIgnore(file.path, gitignoreRules))
     .map((
       file,
@@ -158,7 +153,7 @@ async function getProjectFiles({
 interface GetLocalFilesParams {
   projectId: string;
   branchId: string;
-  version?: number;
+  version: number;
   targetDir: string;
   gitignoreRules?: string[];
 }
@@ -166,7 +161,7 @@ interface GetLocalFilesParams {
 async function getLocalFiles({
   projectId,
   branchId,
-  version = undefined,
+  version,
   targetDir,
   gitignoreRules,
 }: GetLocalFilesParams): Promise<Map<string, FileInfo>> {
@@ -183,11 +178,7 @@ async function getLocalFiles({
     files.set(path.relative(targetDir, entry.path), {
       type: entry.isDirectory
         ? "directory"
-        : await getProjectItemType(projectId, {
-          branchId: branchId,
-          version,
-          filePath: relativePath,
-        }),
+        : await getProjectItemType(projectId, branchId, version, relativePath),
     });
   };
 
