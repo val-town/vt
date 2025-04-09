@@ -6,7 +6,7 @@ import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import { FileState } from "~/vt/lib/FileState.ts";
+import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -23,7 +23,7 @@ export interface CheckoutResult {
   /** Whether a new branch was created during checkout */
   createdNew: boolean;
   /** Changes made to files during the checkout process */
-  fileStateChanges: FileState;
+  fileStateChanges: ItemStatusManager;
 }
 
 /**
@@ -97,7 +97,7 @@ export function checkout(
 async function handleForkCheckout(
   params: ForkCheckoutParams,
 ): Promise<CheckoutResult> {
-  const fileStateChanges = FileState.empty();
+  const fileStateChanges = new ItemStatusManager();
 
   // Get the source branch info
   const fromBranch:
@@ -132,6 +132,7 @@ async function handleForkCheckout(
         path: item.path,
         status: "not_modified",
         type: item.type,
+        mtime: new Date(item.updatedAt).getTime(),
       });
     })
   );
@@ -158,7 +159,7 @@ async function handleBranchCheckout(
         overwrite: true,
       });
 
-      const fileStateChanges = FileState.empty();
+      const fileStateChanges = new ItemStatusManager();
 
       // Get the target branch info
       let toBranch:
@@ -217,6 +218,7 @@ async function handleBranchCheckout(
         // delete it. This preserves untracked files (files not in fromFiles)
         if (fromFiles.has(relativePath) && !toFiles.has(relativePath)) {
           const stat = await Deno.stat(entry.path);
+
           fileStateChanges.insert({
             path: relativePath,
             status: "deleted",
@@ -226,6 +228,7 @@ async function handleBranchCheckout(
               fromBranch.version,
               relativePath,
             ),
+            mtime: stat.mtime!.getTime(),
           });
 
           // Delete the file from both directories if not in dry run mode
@@ -254,6 +257,6 @@ async function handleBranchCheckout(
         fileStateChanges,
       }, !params.dryRun];
     },
-    { targetDir: params.targetDir, prefix: "vt_checkout_" },
+    { targetDir: params.targetDir },
   );
 }

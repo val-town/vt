@@ -1,12 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
 import { basename, dirname, join } from "@std/path";
-import {
-  ProjectItemColors,
-  type ProjectItemType,
-  STATUS_STYLES,
-  TypeToTypeStr,
-} from "~/consts.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import { ProjectItemColors, STATUS_STYLES, TypeToTypeStr } from "~/consts.ts";
+import type {
+  ItemStatus,
+  ItemStatusManager,
+} from "~/vt/lib/ItemStatusManager.ts";
+import type { ProjectItemType } from "~/types.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -57,13 +56,15 @@ export function getVersionRangeStr(
  * @returns A formatted string with colored status prefix, file type, and path
  */
 export function formatStatus(
-  path: string,
-  status: keyof FileState,
+  file: ItemStatus,
   type?: ProjectItemType,
   maxTypeLength: number = 0,
 ): string {
-  const styleConfig = STATUS_STYLES[status];
-  const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
+  const styleConfig = STATUS_STYLES[file.status];
+  let coloredPath = join(
+    dirname(file.path),
+    styleConfig.color(basename(file.path)),
+  );
 
   // Construct the final formatted string
   if (type !== undefined) {
@@ -96,7 +97,7 @@ export function formatStatus(
  * @returns void
  */
 export function displayFileStateChanges(
-  fileStateChanges: FileState,
+  fileStateChanges: ItemStatusManager,
   options: {
     headerText: string;
     summaryText?: string;
@@ -138,8 +139,7 @@ export function displayFileStateChanges(
         output.push(
           "  " +
             formatStatus(
-              file.path,
-              file.status,
+              file,
               includeTypes ? file.type : undefined,
               maxTypeLength,
             ),
@@ -158,7 +158,7 @@ export function displayFileStateChanges(
       output.push("\n" + summaryPrefix);
       for (const [type, files] of fileStateChangesEntriesSorted) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeColor = STATUS_STYLES[type as keyof FileState];
+          const typeColor = STATUS_STYLES[type as keyof ItemStatusManager];
           const coloredType = typeColor.color(type);
           output.push("  " + files.length + " " + coloredType);
         }

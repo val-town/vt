@@ -5,7 +5,7 @@ import { join } from "@std/path";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
-import type { ProjectFileType } from "~/consts.ts";
+import type { ProjectFileType } from "~/types.ts";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",

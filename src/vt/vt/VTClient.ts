@@ -20,7 +20,7 @@ import {
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
@@ -175,7 +175,7 @@ export default class VTClient {
    * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
    */
   public async watch(
-    callback: (fileState: FileState) => void | Promise<void>,
+    callback: (fileState: ItemStatusManager) => void | Promise<void>,
     debounceDelay: number = 1000,
     gracePeriod: number = 250,
   ): Promise<void> {
@@ -362,7 +362,7 @@ export default class VTClient {
    */
   public async status(
     { branchId }: { branchId?: string } = {},
-  ): ReturnType<typeof status> {
+  ): Promise<ItemStatusManager> {
     return await this.getMeta().doWithVtState(async (vtState) => {
       // Use provided branchId or fall back to the current branch from state
       const targetBranchId = branchId || vtState.branch.id;
@@ -386,7 +386,7 @@ export default class VTClient {
    */
   public async pull(
     options?: Partial<Parameters<typeof pull>[0]>,
-  ): ReturnType<typeof pull> {
+  ): Promise<ItemStatusManager> {
     return await this.getMeta().doWithVtState(async (vtState) => {
       const result = await pull({
         ...{
@@ -423,7 +423,7 @@ export default class VTClient {
    */
   public async push(
     options?: Partial<Parameters<typeof push>[0]>,
-  ): ReturnType<typeof push> {
+  ): Promise<ItemStatusManager> {
     return await this.getMeta().doWithVtState(async (config) => {
       const fileStateChanges = await push({
         ...{

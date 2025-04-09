@@ -82,6 +82,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -91,86 +92,86 @@ Deno.test({
     write: true,
     net: true,
   },
-  async fn() {
+  async fn(t) {
     await doWithNewProject(async ({ project, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        // Create a folder
-        const folderPath = join(tempDir, "folder");
-        await Deno.mkdir(folderPath, { recursive: true });
+        const projectDir = join(tempDir, "project");
 
-        // Create original file
-        const oldPath = join(folderPath, "old.txt");
-        await Deno.writeTextFile(oldPath, "content");
+        await t.step("create a file and push it", async () => {
+          // Create and push original file
+          await Deno.mkdir(projectDir, { recursive: true });
+          await Deno.writeTextFile(
+            join(projectDir, "old.http.ts"),
+            "content",
+          );
 
-        // Push original file
-        await push({
-          targetDir: tempDir,
-          projectId: project.id,
-          branchId: branch.id,
+          await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
         });
 
-        // Rename file (delete old, create new)
-        await Deno.remove(oldPath);
-        const newPath = join(folderPath, "new.txt");
-        await Deno.writeTextFile(newPath, "content");
+        // Get the id of the original file
+        const originalFile = await sdk.projects.files
+          .retrieve(project.id, { path: "project/old.http.ts" })
+          .then((resp) => resp.data[0]);
 
-        // Push renamed file
-        const statusResult = await push({
-          targetDir: tempDir,
-          projectId: project.id,
-          branchId: branch.id,
+        await t.step("rename the file and push changes", async () => {
+          // Rename file (delete old, create new)
+          await Deno.remove(join(projectDir, "old.http.ts"));
+          // (slightly modified, but less than 50%)
+          await Deno.writeTextFile(join(projectDir, "new.tsx"), "contentt");
+
+          // Push renamed file
+          const statusResult = await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+
+          // Verify rename was detected
+          assertEquals(statusResult.renamed.length, 1);
+          assertEquals(statusResult.renamed[0].type, "http");
+          assertEquals(statusResult.renamed[0].oldPath, "project/old.http.ts");
+          assertEquals(statusResult.renamed[0].path, "project/new.tsx");
+          assertEquals(statusResult.renamed[0].status, "renamed");
         });
 
-        // Check modified array
-        assertEquals(statusResult.modified.length, 0);
+        await t.step("verify file content, type, and uuid", async () => {
+          // Verify file ID is preserved (same file)
+          const renamedFile = await sdk.projects.files.retrieve(
+            project.id,
+            { path: "project/new.tsx" },
+          ).then((resp) => resp.data[0]);
+          assertEquals(originalFile.id, renamedFile.id);
 
-        // Check not_modified array
-        assertEquals(statusResult.not_modified.length, 1);
-        assertEquals(statusResult.not_modified[0].type, "directory");
-        assertEquals(statusResult.not_modified[0].path, "folder");
-        assertEquals(statusResult.not_modified[0].status, "not_modified");
+          // Verify file type is preserved
+          assertEquals(renamedFile.type, "http");
 
-        // Check deleted array
-        assertEquals(statusResult.deleted.length, 1);
-        assertEquals(statusResult.deleted[0].type, "file");
-        assertEquals(statusResult.deleted[0].path, "folder/old.txt");
-        assertEquals(statusResult.deleted[0].status, "deleted");
-
-        // Check created array
-        assertEquals(statusResult.created.length, 1);
-        assertEquals(statusResult.created[0].type, "file");
-        assertEquals(statusResult.created[0].path, "folder/new.txt");
-        assertEquals(statusResult.created[0].status, "created");
-
-        // Check old file is gone
-        await assertRejects(
-          async () => {
-            const response = await sdk.projects.files.getContent(project.id, {
-              path: "folder/old.txt",
+          // Verify content is preserved
+          const content = await sdk.projects.files
+            .getContent(project.id, {
+              path: "project/new.tsx",
               branch_id: branch.id,
-            });
+            })
+            .then((resp) => resp.text());
+          assertEquals(content, "contentt");
+        });
 
-            // Ensure the response body is consumed even if we don't expect to get here
-            await response.text();
-            return response;
-          },
-          ValTown.APIError,
-          "404",
-          "file should have been deleted during rename",
-        );
-
-        // Check new file exists with the right content
-        const content = await sdk.projects.files
-          .getContent(project.id, {
-            path: "folder/new.txt",
-            branch_id: branch.id,
-          })
-          .then((resp) => resp.text());
-        assertEquals(
-          content,
-          "content",
-          "file content should match after rename",
-        );
+        await t.step("ensure file no longer exists at old path", async () => {
+          // Verify old file is gone
+          await assertRejects(
+            async () => {
+              return await sdk.projects.files.retrieve(project.id, {
+                path: "project/old.http.ts",
+                branch_id: branch.id,
+              });
+            },
+            ValTown.APIError,
+            "404",
+          );
+        });
       });
     });
   },
@@ -224,6 +225,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -311,4 +313,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

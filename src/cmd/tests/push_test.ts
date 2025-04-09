@@ -2,7 +2,6 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
@@ -19,7 +18,7 @@ Deno.test({
               path: "initial.js",
               content: "console.log('Initial file');",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
 
@@ -77,4 +76,70 @@ Deno.test({
     });
   },
   sanitizeResources: false,
+});
+
+Deno.test({
+  name: "push command stress test with 10 recursive dirs and 20 files",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project, branch }) => {
+        await t.step("create initial file and clone the project", async () => {
+          // Create initial file
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: "initial.js",
+              content: "console.log('Initial file');",
+              branch_id: branch.id,
+              type: "file",
+            },
+          );
+
+          await runVtCommand(["clone", project.name], tmpDir);
+        });
+
+        const fullPath = join(tmpDir, project.name);
+
+        await t.step(
+          "create deep directory structure with multiple files",
+          async () => {
+            // Create 10 nested directories
+            let currentPath = fullPath;
+            for (let i = 1; i <= 5; i++) {
+              const dirName = `dir${i}`;
+              currentPath = join(currentPath, dirName);
+              await Deno.mkdir(currentPath);
+
+              // Add 2 files per directory (total 20 files)
+              await Deno.writeTextFile(
+                join(currentPath, `file${i}_1.js`),
+                `console.log('File ${i}_1 content');`,
+              );
+              await Deno.writeTextFile(
+                join(currentPath, `file${i}_2.js`),
+                `console.log('File ${i}_2 content');`,
+              );
+            }
+          },
+        );
+
+        await t.step("push all changes and verify output", async () => {
+          // Run push command
+          const [pushOutput] = await runVtCommand(["push"], fullPath);
+
+          // Verify the push was successful
+          assertStringIncludes(pushOutput, "Successfully pushed local changes");
+
+          // Verify some of the expected directories and files
+          assertStringIncludes(pushOutput, "dir1/");
+          assertStringIncludes(pushOutput, "dir5/");
+          assertStringIncludes(pushOutput, "file1_1.js");
+          assertStringIncludes(pushOutput, "file5_2.js");
+
+          // Verify the count of changes
+          assertStringIncludes(pushOutput, "17 created"); // 5 dirs + (6*2=10) files + .vtignore + deno.json
+        });
+      });
+    });
+  },
 });

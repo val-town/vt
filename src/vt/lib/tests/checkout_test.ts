@@ -298,7 +298,7 @@ Deno.test({
 
 Deno.test({
   name: "file not in target branch should be deleted",
-  fn: async (t) => {
+  async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a feature branch
       const featureBranch = await sdk.projects.branches

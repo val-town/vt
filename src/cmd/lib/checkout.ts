@@ -133,8 +133,12 @@ export const checkoutCmd = new Command()
                     if (
                       fileStatus.status === "modified" &&
                       fileStatus.where === "remote"
-                    ) fileStatus.status = "not_modified";
-
+                    ) {
+                      return {
+                        ...fileStatus,
+                        status: "not_modified",
+                      };
+                    }
                     return fileStatus;
                   })
                   .filter((fileStatus) => fileStatus.status === "not_modified"),

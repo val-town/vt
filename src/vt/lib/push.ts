@@ -1,7 +1,11 @@
-import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
-import type { ProjectItemType } from "~/consts.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import type { ProjectFileType, ProjectItemType } from "~/types.ts";
+import sdk, {
+  getLatestVersion,
+  getProjectItem,
+  listProjectItems,
+} from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
 import { basename, dirname, join } from "@std/path";
 
 /**
@@ -17,7 +21,7 @@ export interface PushParams {
   /** The version to compute the file state changes against. Defaults to latest version. */
   latestVersion?: number;
   /** The current file state. If not provided, it will be computed. */
-  fileState?: FileState;
+  fileState?: ItemStatusManager;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
@@ -31,7 +35,7 @@ export interface PushParams {
  * @param {PushParams} params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export async function push(params: PushParams): Promise<FileState> {
+export async function push(params: PushParams): Promise<ItemStatusManager> {
   let {
     targetDir,
     projectId,
@@ -106,11 +110,30 @@ export async function push(params: PushParams): Promise<FileState> {
         {
           path: file.path,
           branch_id: branchId,
-          content: await Deno.readTextFile(join(targetDir, file.path)),
+          content: file.content,
           name: basename(file.path),
-          type: file.type as Exclude<ProjectItemType, "directory">,
+          type: file.type as ProjectFileType,
         },
       );
+    });
+
+  // Rename files that were renamed locally
+  const renamePromises = fileState.renamed
+    .filter((file) => file.type !== "directory")
+    .map(async (file) => {
+      await sdk.projects.files.update(projectId, {
+        branch_id: branchId,
+        name: basename(file.path),
+        type: file.type as ProjectFileType,
+        content: file.content,
+        parent_id: (await getProjectItem(
+          projectId,
+          branchId,
+          latestVersion,
+          dirname(file.path),
+        ))?.id,
+        path: file.oldPath,
+      });
     });
 
   // Delete files that exist on the server but not locally
@@ -126,16 +149,17 @@ export async function push(params: PushParams): Promise<FileState> {
   await Promise.all([
     ...modifiedPromises,
     ...deletedPromises,
+    ...renamePromises,
     createFilesPromise,
   ]);
 
-  return fileState;
+  return fileState.consolidateRenames();
 }
 
 async function createRequiredDirectories(
   projectId: string,
   branchId: string,
-  fileState: FileState,
+  fileState: ItemStatusManager,
   existingDirs: Set<string>,
 ): Promise<void> {
   // Get directories that need to be created
