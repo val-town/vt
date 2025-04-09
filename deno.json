@@ -1,7 +1,7 @@
 {
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "exports": "./vt.ts",
   "license": "MIT",
   "tasks": {
