@@ -16,10 +16,10 @@ export const deleteCmd = new Command()
       const vtRoot = await findVtRoot(Deno.cwd());
       const vt = VTClient.from(vtRoot);
       const meta = vt.getMeta();
-      const { projectId } = await meta.loadConfig();
+      const vtState = await meta.loadVtState();
 
       // Get project name for display
-      const project = await sdk.projects.retrieve(projectId);
+      const project = await sdk.projects.retrieve(vtState.project.id);
       const projectName = project.name;
 
       // Confirm deletion unless --force is used
