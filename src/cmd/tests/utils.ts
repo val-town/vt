@@ -4,10 +4,36 @@ import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 
 /**
- * Runs the vt.ts script with provided arguments.
+ * Creates and spawns a Deno child process for the vt.ts script.
  *
- * Automatically sends "yes" to stdin to confirm any prompts, so that the
- * prompts themselves get captured.
+ * @param args - Arguments to pass to the script
+ * @param cwd - Current working directory for the command
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
+ * @returns The spawned child process
+ */
+export function runVtProc(
+  args: string[],
+  cwd: string,
+  options: {
+    env?: Record<string, string>;
+  } = {},
+): Deno.ChildProcess {
+  const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
+  const command = new Deno.Command(Deno.execPath(), {
+    args: ["run", "-A", commandPath, ...args],
+    stdout: "piped",
+    stderr: "piped",
+    stdin: "piped",
+    cwd,
+    env: options.env,
+  });
+
+  return command.spawn();
+}
+
+/**
+ * Runs the vt.ts script with provided arguments.
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
@@ -66,21 +92,18 @@ export async function runVtCommand(
  *
  * @param args - Arguments to pass to the script
  * @param cwd - Current working directory for the command
+ * @param options - Additional options
+ * @param options.env - Environment variables to set
  * @returns [outputLines, process]
  */
 export function streamVtCommand(
   args: string[],
   cwd: string,
+  options: {
+    env?: Record<string, string>;
+  } = {},
 ): [string[], Deno.ChildProcess] {
-  const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
-  const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "-A", commandPath, ...args],
-    stdout: "piped",
-    stderr: "piped",
-    cwd,
-  });
-
-  const process = command.spawn();
+  const process = runVtProc(args, cwd, options);
   const outputLines: string[] = [];
 
   // Read stdout

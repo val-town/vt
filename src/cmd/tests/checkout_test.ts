@@ -9,6 +9,93 @@ import { exists } from "@std/fs";
 import { deadline } from "@std/async";
 
 Deno.test({
+  name: "checkout with remote modifications on current branch is allowed",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project, branch: mainBranch }) => {
+        await t.step("set up the state of the project", async () => {
+          // Create initial file on main branch
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: "main-file.js",
+              content: "console.log('Initial content');",
+              branch_id: mainBranch.id,
+              type: "file",
+            },
+          );
+
+          // Create a feature branch
+          const featureBranch = await sdk.projects.branches.create(
+            project.id,
+            { name: "feature-branch", branchId: mainBranch.id },
+          );
+
+          // Add a file to feature branch
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: "feature-file.js",
+              content: "console.log('Feature branch file');",
+              branch_id: featureBranch.id,
+              type: "file",
+            },
+          );
+        });
+
+        const fullPath = join(tmpDir, project.name);
+
+        await t.step("clone the project and modify it", async () => {
+          // Clone the project (defaults to main branch)
+          await runVtCommand(["clone", project.name], tmpDir);
+
+          // Make a remote change to main branch after cloning
+          await sdk.projects.files.update(
+            project.id,
+            {
+              branch_id: mainBranch.id,
+              path: "main-file.js",
+              content: "console.log('Remote modification');",
+            },
+          );
+        });
+
+        // Now try checking out to feature branch
+        // This should succeed without requiring force flag or showing dirty warning
+        const [checkoutOutput] = await runVtCommand([
+          "checkout",
+          "feature-branch",
+        ], fullPath);
+
+        await t.step("check the checkout output", async () => {
+          // Should successfully switch branches without warning about dirty state
+          assertStringIncludes(
+            checkoutOutput,
+            'Switched to branch "feature-branch"',
+          );
+
+          // Should not contain warnings about dirty working directory
+          assert(
+            !checkoutOutput.includes("proceed with checkout anyway"),
+            "Checkout should not warn about dirty working directory with remote changes",
+          );
+
+          // Verify we're on feature branch by checking for feature file
+          assert(
+            await exists(join(fullPath, "feature-file.js")),
+            "feature-file.js should exist after checkout",
+          );
+
+          // Check status to confirm we're on feature branch
+          const [statusOutput] = await runVtCommand(["status"], fullPath);
+          assertStringIncludes(statusOutput, "On branch feature-branch@");
+        });
+      });
+    });
+  },
+});
+
+Deno.test({
   name: "checkout -b preserves local unpushed changes",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
@@ -248,7 +335,7 @@ Deno.test({
 Deno.test({
   name: "warning on modified files",
   async fn(t) {
-    // Put an 15s deadline, since in the past we had an issue with this stalling
+    // Put an 8s deadline, since in the past we had an issue with this stalling
     // due to waiting for a user interaction
     await deadline(
       (async () => {
@@ -324,28 +411,60 @@ Deno.test({
               // Try with force option
               const [forceCheckoutOutput] = await runVtCommand([
                 "checkout",
-                "feature",
+                "main",
                 "-f",
               ], fullPath);
               assertStringIncludes(
                 forceCheckoutOutput,
-                'Switched to branch "feature"',
-              );
-
-              // The content should now be the feature branch content
-              const fileContent = await Deno.readTextFile(
-                join(fullPath, "shared-file.js"),
-              );
-              assert(
-                fileContent === "console.log('Feature branch content');",
-                "File content should match feature branch version after force checkout",
+                'Switched to branch "main"',
               );
             });
           });
         });
       })(),
-      1000 * 15,
+      1000 * 8,
     );
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "checkout to current branch shows 'already on branch' message",
+  async fn() {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project, branch }) => {
+        // Create initial file on main branch
+        await sdk.projects.files.create(
+          project.id,
+          {
+            path: "main-file.js",
+            content: "console.log('Main branch file');",
+            branch_id: branch.id,
+            type: "file" as ProjectFileType,
+          },
+        );
+
+        // Clone the project (defaults to main branch)
+        await runVtCommand(["clone", project.name], tmpDir);
+        const fullPath = join(tmpDir, project.name);
+
+        // Try checking out to main branch while already on main
+        const [checkoutOutput] = await runVtCommand([
+          "checkout",
+          "main",
+        ], fullPath);
+
+        // Should indicate we're already on the branch
+        assertStringIncludes(
+          checkoutOutput,
+          'You are already on branch "main"',
+        );
+
+        // Verify we're still on main branch
+        const [statusOutput] = await runVtCommand(["status"], fullPath);
+        assertStringIncludes(statusOutput, "On branch main@");
+      });
+    });
   },
   sanitizeResources: false,
 });

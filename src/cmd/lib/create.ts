@@ -1,17 +1,23 @@
 import { Command } from "@cliffy/command";
-import { basename, join } from "@std/path";
+import { basename } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
-import { doWithSpinner } from "~/cmd/utils.ts";
+import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 
 export const createCmd = new Command()
   .name("create")
   .description("Create a new Val Town project")
   .arguments("<projectName:string> [targetDir:string]")
-  .option("--public", "Create as public project (default)")
-  .option("--private", "Create as private project")
-  .option("--unlisted", "Create as unlisted project")
+  .option("--public", "Create as public project (default)", {
+    conflicts: ["private", "unlisted"],
+  })
+  .option("--private", "Create as private project", {
+    conflicts: ["public", "unlisted"],
+  })
+  .option("--unlisted", "Create as unlisted project", {
+    conflicts: ["public", "private"],
+  })
   .option("--no-editor-files", "Skip creating editor configuration files")
   .option("-d, --description <desc:string>", "Project description")
   .example(
@@ -41,7 +47,6 @@ vt checkout main`,
   )
   .action(async (
     {
-      public: isPublic,
       private: isPrivate,
       unlisted,
       description,
@@ -55,37 +60,23 @@ vt checkout main`,
     targetDir?: string,
   ) => {
     await doWithSpinner("Creating new project...", async (spinner) => {
-      let rootPath: string;
-      if (!targetDir) {
-        rootPath = join(Deno.cwd(), projectName);
-      } else rootPath = join(targetDir, projectName);
-
-      // Check for mutually exclusive privacy flags
-      const privacyFlags =
-        [isPublic, isPrivate, unlisted].filter(Boolean).length;
-      if (privacyFlags > 1) {
-        throw new Error(
-          "Can only specify one privacy flag: --public, --private, or --unlisted",
-        );
-      }
+      const clonePath = getClonePath(targetDir, projectName);
 
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       try {
-        const vt = await VTClient.create(
-          rootPath,
+        const vt = await VTClient.create({
+          rootPath: clonePath,
           projectName,
-          user.username!, // Init the client with authenticated user
+          username: user.username!,
           privacy,
           description,
-        );
+        });
         await vt.addEditorFiles();
 
         spinner.succeed(
-          `Created ${privacy} project ${projectName} in ./${
-            basename(rootPath)
-          }`,
+          `Created ${privacy} project ${projectName} in ${basename(clonePath)}`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {

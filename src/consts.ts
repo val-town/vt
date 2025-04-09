@@ -8,7 +8,6 @@ export const PROGRAM_NAME = "vt";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
 export const ALWAYS_IGNORE_PATTERNS: string[] = [
-  ".vtignore",
   ".vt",
   ".env",
 ];
@@ -78,3 +77,11 @@ export const RECENT_VERSION_COUNT = 5;
 
 export const GET_API_KEY_URL = "https://www.val.town/settings/api";
 export const VT_README_URL = "https://github.com/val-town/vt/blob/main/README.md"
+export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
+  "script": 0,
+  "email": 1,
+  "http": 2,
+  "directory": 3,
+  "file": 4,
+  "interval": 5,
+};
