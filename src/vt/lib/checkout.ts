@@ -204,6 +204,7 @@ async function handleBranchCheckout(
       fileStateChanges.merge(pullResult);
 
       // Scan the target directory to identify files that need to be deleted
+      const pathsToDelete: string[] = [];
       for await (const entry of walk(params.targetDir)) {
         const relativePath = relative(params.targetDir, entry.path);
         const targetDirPath = entry.path;
@@ -230,15 +231,18 @@ async function handleBranchCheckout(
           // Delete the file from both directories if not in dry run mode
           // That way it isn't also copied back
           if (!params.dryRun) {
-            if (await exists(targetDirPath)) {
-              await Deno.remove(targetDirPath, { recursive: true });
-            }
-            if (await exists(tmpDirPath)) {
-              await Deno.remove(tmpDirPath, { recursive: true });
-            }
+            pathsToDelete.push(targetDirPath);
+            pathsToDelete.push(tmpDirPath);
           }
         }
       }
+
+      // Perform the deletions
+      await Promise.all(pathsToDelete.map(async (path) => {
+        if (await exists(path)) {
+          await Deno.remove(path, { recursive: true });
+        }
+      }));
 
       // If it is a dry run then the toBranch was only for use temporarily
       if (params.dryRun) toBranch = null;
