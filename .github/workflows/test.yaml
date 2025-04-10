@@ -4,7 +4,7 @@ on:
   - push
 
 jobs:
-  test:
+  test-linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,3 +37,15 @@ jobs:
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
         run: deno task test
+
+  test-publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dry run publish package
+        run: npx jsr publish --dry-run
