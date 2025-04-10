@@ -23,3 +23,17 @@ jobs:
 
       - name: Run deno format check
         run: deno task fmt:check
+
+  test-mac:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run deno test
+        env:
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
+        run: deno task test
