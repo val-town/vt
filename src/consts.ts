@@ -1,7 +1,7 @@
 import { colors } from "@cliffy/ansi/colors";
 import type { ProjectItemType } from "~/types.ts";
 import { join } from "@std/path";
-import xdg from "xdg";
+import xdg from "xdg-portable";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
