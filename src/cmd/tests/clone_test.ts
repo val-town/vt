@@ -77,6 +77,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -157,6 +158,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -206,6 +208,7 @@ Deno.test({
       }
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -227,4 +230,5 @@ Deno.test({
       assertStringIncludes(out, "Project not found");
     });
   },
+  sanitizeResources: false,
 });
