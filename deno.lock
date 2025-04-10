@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@404wolf/xdg-portable@0.1": "0.1.0",
     "jsr:@cfa/gitignore-parser@~0.1.4": "0.1.4",
     "jsr:@cliffy/ansi@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/ansi@^1.0.0-rc.7": "1.0.0-rc.7",
@@ -40,12 +41,17 @@
     "npm:open@^10.1.0": "10.1.0",
     "npm:strip-ansi@^7.1.0": "7.1.0",
     "npm:word-wrap@^1.2.5": "1.2.5",
-    "npm:xdg-portable@^10.6.0": "10.6.0",
     "npm:zod-to-json-schema@^3.24.5": "3.24.5_zod@3.24.2",
     "npm:zod-validation-error@^3.4.0": "3.4.0_zod@3.24.2",
     "npm:zod@^3.24.2": "3.24.2"
   },
   "jsr": {
+    "@404wolf/xdg-portable@0.1.0": {
+      "integrity": "3a54d193601165deede0f84ab0a3e731ad8a1707ac4efa93c2a3db51ff270247",
+      "dependencies": [
+        "jsr:@std/path@^1.0.8"
+      ]
+    },
     "@cfa/gitignore-parser@0.1.4": {
       "integrity": "60d3563bbd7b8797f50c28585d7d74d231fbb56a1d9df7b0673c27cbdf60a23a"
     },
@@ -230,9 +236,6 @@
         "lowlight"
       ]
     },
-    "fsevents@2.3.3": {
-      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="
-    },
     "highlight.js@11.11.1": {
       "integrity": "sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w=="
     },
@@ -271,12 +274,6 @@
         "is-wsl"
       ]
     },
-    "os-paths@7.4.0": {
-      "integrity": "sha512-Ux1J4NUqC6tZayBqLN1kUlDAEvLiQlli/53sSddU4IN+h+3xxnv2HmRSMpVSvr1hvJzotfMs3ERvETGK+f4OwA==",
-      "dependencies": [
-        "fsevents"
-      ]
-    },
     "run-applescript@7.0.0": {
       "integrity": "sha512-9by4Ij99JUr/MCFBUkDKLWK3G9HVXmabKz9U5MlIAIuvuzkiOicRYs8XJLxX+xahD+mLiiCYDqF9dKAgtzKP1A=="
     },
@@ -288,13 +285,6 @@
     },
     "word-wrap@1.2.5": {
       "integrity": "sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA=="
-    },
-    "xdg-portable@10.6.0": {
-      "integrity": "sha512-xrcqhWDvtZ7WLmt8G4f3hHy37iK7D2idtosRgkeiSPZEPmBShp0VfmRBLWAPC6zLF48APJ21yfea+RfQMF4/Aw==",
-      "dependencies": [
-        "fsevents",
-        "os-paths"
-      ]
     },
     "zod-to-json-schema@3.24.5_zod@3.24.2": {
       "integrity": "sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g==",
@@ -314,6 +304,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@404wolf/xdg-portable@0.1",
       "jsr:@cfa/gitignore-parser@~0.1.4",
       "jsr:@cliffy/ansi@^1.0.0-rc.7",
       "jsr:@cliffy/command@^1.0.0-rc.7",
@@ -337,7 +328,6 @@
       "npm:open@^10.1.0",
       "npm:strip-ansi@^7.1.0",
       "npm:word-wrap@^1.2.5",
-      "npm:xdg-portable@^10.6.0",
       "npm:zod-to-json-schema@^3.24.5",
       "npm:zod-validation-error@^3.4.0",
       "npm:zod@^3.24.2"
