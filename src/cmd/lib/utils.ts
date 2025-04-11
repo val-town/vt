@@ -75,7 +75,7 @@ export function formatStatus(
         dirname(file.path),
         styleConfig.color(basename(file.path)),
       ) +
-      ` ${colors.gray((file.similarity * 100).toFixed(2) + "%")}`;
+      ` ${colors.gray("(" + (file.similarity * 100).toFixed(2) + "%)")}`;
   } else {
     // Normal path display for other statuses
     pathDisplay = join(
