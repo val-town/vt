@@ -42,6 +42,31 @@ export async function branchNameToBranch(
 }
 
 /**
+ * Checks if a file exists at the specified path in a project
+ *
+ * @param {string} projectId - The ID of the project containing the file
+ * @param {string} filePath - The file path to check
+ * @param {string} branchId - The ID of the project branch to reference
+ * @param {number} version - The version of the project to check
+ * @returns {Promise<boolean>} Promise resolving to true if the file exists, false otherwise
+ */
+export async function projectItemExists(
+  projectId: string,
+  branchId: string,
+  filePath: string,
+  version: number,
+): Promise<boolean> {
+  try {
+    const item = await getProjectItem(projectId, branchId, version, filePath);
+    return item !== undefined;
+  } catch (e) {
+    if (e instanceof ValTown.APIError && e.status === 404) {
+      return false;
+    } else throw e;
+  }
+}
+
+/**
  * Converts a file path to its corresponding project item for a given project.
  *
  * @param {string} projectId - The ID of the project containing the file
@@ -57,18 +82,13 @@ export const getProjectItem = memoize(async (
   version: number,
   filePath: string,
 ): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
-  branchId = (branchId ||
-    await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
-      resp.id
-    ))!;
-
   const projectItems = await listProjectItems(projectId, branchId, version);
-  const results = [];
+
   for (const filepath of projectItems) {
-    if (filepath.path === filePath) results.push(filepath);
+    if (filepath.path === filePath) return filepath;
   }
 
-  return results.length === 1 ? results[0] : undefined;
+  return undefined;
 });
 
 /**

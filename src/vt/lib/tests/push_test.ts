@@ -1,10 +1,104 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import sdk, {
+  getLatestVersion,
+  listProjectItems,
+  projectItemExists,
+} from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
-import { assertEquals, assertRejects } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import ValTown from "@valtown/sdk";
+
+Deno.test({
+  name: "test moving file to subdirectory",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+  },
+  async fn(t) {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        const originalFilePath = join(tempDir, "test_cron.ts");
+        const fileContent = "console.log('Hello, world!');";
+
+        await t.step("create a file and push it", async () => {
+          await Deno.writeTextFile(originalFilePath, fileContent);
+          await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+
+          // Verify file exists at original location
+          const fileExists = await projectItemExists(
+            project.id,
+            branch.id,
+            "test_cron.ts",
+            await getLatestVersion(project.id, branch.id),
+          );
+          assert(fileExists, "file should exist after creation");
+        });
+
+        // Get the original file ID
+        const originalFile = await sdk.projects.files
+          .retrieve(project.id, { path: "test_cron.ts" })
+          .then((resp) => resp.data[0]);
+
+        await t.step("move file to subdirectory", async () => {
+          // Move file to subdirectory
+          const subDir = join(tempDir, "subdir");
+          await Deno.mkdir(subDir, { recursive: true });
+          const newFilePath = join(subDir, "moved_file.ts");
+          await Deno.remove(originalFilePath);
+          await Deno.writeTextFile(newFilePath, fileContent);
+
+          // Push the changes
+          await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+        });
+
+        await t.step("verify file moved correctly", async () => {
+          // Verify file exists at new location
+          const fileExistsAtNewPath = await projectItemExists(
+            project.id,
+            branch.id,
+            "subdir/moved_file.ts",
+            await getLatestVersion(project.id, branch.id),
+          );
+          assert(fileExistsAtNewPath, "file should exist at new location");
+
+          // Verify file no longer exists at original location
+          const fileExistsAtOldPath = await projectItemExists(
+            project.id,
+            branch.id,
+            "test_file.ts",
+            await getLatestVersion(project.id, branch.id),
+          );
+          assert(
+            !fileExistsAtOldPath,
+            "File should not exist at original location",
+          );
+
+          // Verify the file ID is preserved (same file)
+          const movedFile = await sdk.projects.files
+            .retrieve(project.id, { path: "subdir/moved_file.ts" })
+            .then((resp) => resp.data[0]);
+          assertEquals(
+            originalFile.id,
+            movedFile.id,
+            "file id should be preserved after move",
+          );
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
 
 Deno.test({
   name: "test typical pushing",
@@ -68,16 +162,13 @@ Deno.test({
           });
 
           // Assert that the file no longer exists on the remote
-          await assertRejects(
-            async () => {
-              await sdk.projects.files.getContent(project.id, {
-                path: vtFilePath,
-                branch_id: branch.id,
-              });
-            },
-            ValTown.APIError,
-            "404",
+          const fileExists = await projectItemExists(
+            project.id,
+            branch.id,
+            vtFilePath,
+            await getLatestVersion(project.id, branch.id),
           );
+          assert(!fileExists, "file should have been deleted");
         });
       });
     });
@@ -143,16 +234,13 @@ Deno.test({
         assertEquals(originalFile.id, renamedFile.id);
 
         // Verify old file is gone
-        await assertRejects(
-          async () => {
-            return await sdk.projects.files.retrieve(project.id, {
-              path: "project/original.ts",
-              branch_id: branch.id,
-            });
-          },
-          ValTown.APIError,
-          "404",
+        const oldFileExists = await projectItemExists(
+          project.id,
+          branch.id,
+          "project/original.ts",
+          await getLatestVersion(project.id, branch.id),
         );
+        assert(!oldFileExists, "Old file should not exist after rename");
       });
     });
   },
@@ -235,16 +323,13 @@ Deno.test({
 
         await t.step("ensure file no longer exists at old path", async () => {
           // Verify old file is gone
-          await assertRejects(
-            async () => {
-              return await sdk.projects.files.retrieve(project.id, {
-                path: "project/old.http.ts",
-                branch_id: branch.id,
-              });
-            },
-            ValTown.APIError,
-            "404",
+          const oldFileExists = await projectItemExists(
+            project.id,
+            branch.id,
+            "project/old.http.ts",
+            await getLatestVersion(project.id, branch.id),
           );
+          assert(!oldFileExists, "Old file should not exist after rename");
         });
       });
     });
@@ -332,17 +417,13 @@ Deno.test({
         assertEquals(result.created[0].type, "file");
 
         // Assert that the file was NOT actually pushed to the server
-        await assertRejects(
-          async () => {
-            await sdk.projects.files.getContent(project.id, {
-              path: vtFilePath,
-              branch_id: branch.id,
-            });
-          },
-          ValTown.APIError,
-          "404",
-          "File should not exist on server after dry run",
+        const fileExists = await projectItemExists(
+          project.id,
+          branch.id,
+          vtFilePath,
+          await getLatestVersion(project.id, branch.id),
         );
+        assert(!fileExists, "File should not exist on server after dry run");
       });
     });
   },
