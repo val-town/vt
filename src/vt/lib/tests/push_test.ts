@@ -86,6 +86,80 @@ Deno.test({
 });
 
 Deno.test({
+  name: "test renaming file without content change",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        const projectDir = join(tempDir, "project");
+
+        // Create and push original file
+        await Deno.mkdir(projectDir, { recursive: true });
+        await Deno.writeTextFile(
+          join(projectDir, "original.ts"),
+          "unchanged content",
+        );
+
+        await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Get the id of the original file
+        const originalFile = await sdk.projects.files
+          .retrieve(project.id, { path: "project/original.ts" })
+          .then((resp) => resp.data[0]);
+
+        // Rename file without changing content
+        await Deno.remove(join(projectDir, "original.ts"));
+        await Deno.writeTextFile(
+          join(projectDir, "renamed.ts"),
+          "unchanged content",
+        );
+
+        // Push renamed file
+        const statusResult = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Verify rename was detected
+        assertEquals(statusResult.renamed.length, 1);
+        assertEquals(statusResult.renamed[0].oldPath, "project/original.ts");
+        assertEquals(statusResult.renamed[0].path, "project/renamed.ts");
+        assertEquals(statusResult.renamed[0].status, "renamed");
+
+        // Verify file ID is preserved (same file)
+        const renamedFile = await sdk.projects.files.retrieve(
+          project.id,
+          { path: "project/renamed.ts" },
+        ).then((resp) => resp.data[0]);
+        assertEquals(originalFile.id, renamedFile.id);
+
+        // Verify old file is gone
+        await assertRejects(
+          async () => {
+            return await sdk.projects.files.retrieve(project.id, {
+              path: "project/original.ts",
+              branch_id: branch.id,
+            });
+          },
+          ValTown.APIError,
+          "404",
+        );
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
   name: "test renaming file",
   permissions: {
     read: true,

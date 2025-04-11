@@ -153,7 +153,7 @@ export async function push(params: PushParams): Promise<ItemStatusManager> {
     createFilesPromise,
   ]);
 
-  return fileState.consolidateRenames();
+  return fileState;
 }
 
 async function createRequiredDirectories(

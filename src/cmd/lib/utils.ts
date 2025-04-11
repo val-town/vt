@@ -61,10 +61,28 @@ export function formatStatus(
   maxTypeLength: number = 0,
 ): string {
   const styleConfig = STATUS_STYLES[file.status];
-  let coloredPath = join(
-    dirname(file.path),
-    styleConfig.color(basename(file.path)),
-  );
+
+  // Handle renamed files differently
+  let pathDisplay;
+  if (file.status === "renamed") {
+    // For renamed files, show oldPath -> path
+    pathDisplay = //
+      join(
+        dirname(file.oldPath),
+        styleConfig.color(basename(file.oldPath)),
+      ) +
+      colors.dim(" -> ") + join(
+        dirname(file.path),
+        styleConfig.color(basename(file.path)),
+      ) +
+      ` ${colors.gray((file.similarity * 100).toFixed(2))}%`;
+  } else {
+    // Normal path display for other statuses
+    pathDisplay = join(
+      dirname(file.path),
+      styleConfig.color(basename(file.path)),
+    );
+  }
 
   // Construct the final formatted string
   if (type !== undefined) {
@@ -76,10 +94,10 @@ export function formatStatus(
 
     return `${
       styleConfig.color(styleConfig.prefix)
-    } ${typeIndicator} ${coloredPath}`;
+    } ${typeIndicator} ${pathDisplay}`;
   } else {
     // No type provided, don't include type indicator
-    return `${styleConfig.color(styleConfig.prefix)} ${coloredPath}`;
+    return `${styleConfig.color(styleConfig.prefix)} ${pathDisplay}`;
   }
 }
 

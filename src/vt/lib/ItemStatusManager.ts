@@ -322,9 +322,6 @@ export class ItemStatusManager {
         if (oldItem.type === "directory" || newItem.type === "directory") continue;
         if (oldItem.path === newItem.path) continue;
 
-        // If the file was deleted BEFORE the new one was created it couldn't have been renamed
-        if (!(newItem.mtime > oldItem.mtime)) continue;
-
         // Content is empty if either is a directory, so we can use ! here
         // since we already checked that
         // The creation should always be local (since we are detecting a local rename)
@@ -340,11 +337,22 @@ export class ItemStatusManager {
             RENAME_DETECTION_THRESHOLD
         ) continue;
 
-        // It is relatively commont that a file might be renamed with zero
-        // modification to the file, so we pay O(n) to avoid O(nm)
-        const distance = (newItemContent === oldItemContent)
-          ? 1
-          : levenshteinDistance(newItemContent, oldItemContent);
+        // If contents are identical, we've found our match - early break
+        if (newItemContent === oldItemContent) {
+          maxSimilarItem = {
+            path: newItem.path,
+            status: "renamed",
+            similarity: 1, // Perfect similarity
+            oldPath: oldItem.path,
+            type: oldItem.type, // Preserve the type
+            mtime: newItem.mtime,
+            content: newItem.content,
+          };
+          break; // Early break as we've found a perfect match
+        }
+
+        // Calculate similarity for non-identical content
+        const distance = levenshteinDistance(newItemContent, oldItemContent);
 
         // deno-fmt-ignore
         const similarity = 1 - (distance / Math.max(newItemContent.length, oldItemContent.length));
@@ -364,13 +372,13 @@ export class ItemStatusManager {
             content: newItem.content,
           };
         }
+      }
 
-        // If we detected a similar item, then add it to the state
-        if (maxSimilarItem && !processed.has(maxSimilarItem.path)) {
-          this.insert(maxSimilarItem);
-          processed.add(maxSimilarItem.path);
-          processed.add(maxSimilarItem.oldPath);
-        }
+      // If we detected a similar item, then add it to the state
+      if (maxSimilarItem && !processed.has(maxSimilarItem.path)) {
+        this.insert(maxSimilarItem);
+        processed.add(maxSimilarItem.path);
+        processed.add(maxSimilarItem.oldPath);
       }
     }
 
