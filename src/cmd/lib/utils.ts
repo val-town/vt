@@ -75,7 +75,7 @@ export function formatStatus(
         dirname(file.path),
         styleConfig.color(basename(file.path)),
       ) +
-      ` ${colors.gray((file.similarity * 100).toFixed(2))}%`;
+      ` ${colors.gray((file.similarity * 100).toFixed(2) + "%")}`;
   } else {
     // Normal path display for other statuses
     pathDisplay = join(
@@ -87,9 +87,11 @@ export function formatStatus(
   // Construct the final formatted string
   if (type !== undefined) {
     // Format type indicator with consistent padding and colors
-    const typeStr = TypeToTypeStr[type].padEnd(maxTypeLength);
+    // Use padEnd on the original string before applying colors
+    const typeStr = TypeToTypeStr[type];
+    const paddedTypeStr = typeStr.padEnd(maxTypeLength);
     const typeIndicator = colors.gray("(") +
-      ProjectItemColors[type](typeStr) +
+      ProjectItemColors[type](paddedTypeStr) +
       colors.gray(")");
 
     return `${
@@ -148,7 +150,11 @@ export function displayFileStateChanges(
   const maxTypeLength = fileStateChangesEntriesSorted
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
-    .reduce((max, file) => Math.max(max, file.type.length), 0);
+    .reduce((max, file) => {
+      // Get the actual string representation that will be displayed
+      const typeStr = TypeToTypeStr[file.type];
+      return Math.max(max, typeStr.length);
+    }, 0);
 
   // Print all changed files state
   for (const [type, files] of fileStateChangesEntriesSorted) {
