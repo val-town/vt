@@ -9,8 +9,8 @@
     "run": "./vt.ts",
     "test": "deno task test:cmd && sleep 10 && deno task test:lib",
     "test:workflow": "deno task test:cmd && deno task test:lib",
-    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
-    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
+    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd --parallel",
+    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd --parallel",
     "check": "env DENO_NO_PROMPT=1 deno check .",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },
