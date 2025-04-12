@@ -10,6 +10,71 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 
 Deno.test({
+  name: "test moving file from subdirectory to root",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn(t) {
+    await doWithTempDir(async (tempDir) => {
+      await doWithNewProject(async ({ project, branch }) => {
+        // Make sure tempDir exists and is accessible
+        await Deno.mkdir(tempDir, { recursive: true });
+
+        const subDir = join(tempDir, "subdir");
+        const initialFilePath = join(subDir, "test.txt");
+
+        await t.step("create file in directory", async () => {
+          // Create a file in a subdirectory
+          await Deno.mkdir(subDir, { recursive: true });
+          await Deno.writeTextFile(initialFilePath, "test content");
+
+          // Push the file in subdirectory
+          const { itemStateChanges: firstPush } = await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+          assertEquals(firstPush.created.length, 2); // dir and file
+        });
+
+        await t.step("move the file to root", async () => {
+          // Move file to root
+          const rootFilePath = join(tempDir, "test.txt");
+          await Deno.remove(initialFilePath);
+          await Deno.writeTextFile(rootFilePath, "test content");
+
+          // Push the moved file
+          const { itemStateChanges: secondPush } = await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+          assertEquals(secondPush.renamed.length, 1);
+          assertEquals(secondPush.renamed[0].oldPath, "subdir/test.txt");
+          assertEquals(secondPush.renamed[0].path, "test.txt");
+        });
+
+        await t.step("verify file exists at new location", async () => {
+          // Push again with no changes
+          const { itemStateChanges: thirdPush } = await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+
+          // Final push should have no changes
+          assertEquals(thirdPush.not_modified.length, 2);
+          assertEquals(thirdPush.size(), 2);
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
   name: "test ambiguous rename detection with duplicate content",
   permissions: {
     read: true,
@@ -53,7 +118,7 @@ Deno.test({
         await Deno.writeTextFile(join(projectDir, "newfile2.ts"), sameContent);
 
         // Push changes
-        const result = await push({
+        const { itemStateChanges: result } = await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -303,7 +368,7 @@ Deno.test({
         );
 
         // Push renamed file
-        const statusResult = await push({
+        const { itemStateChanges: statusResult } = await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -375,7 +440,7 @@ Deno.test({
           await Deno.writeTextFile(join(projectDir, "new.tsx"), "contentt");
 
           // Push renamed file
-          const statusResult = await push({
+          const { itemStateChanges: statusResult } = await push({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
@@ -441,7 +506,7 @@ Deno.test({
         await Deno.mkdir(emptyDirPath, { recursive: true });
 
         // Push the empty directory
-        const pushResult = await push({
+        const { itemStateChanges: pushResult } = await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -492,7 +557,7 @@ Deno.test({
         await Deno.writeTextFile(localFilePath, "test content");
 
         // Push with dryRun enabled
-        const result = await push({
+        const { itemStateChanges: result } = await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -534,7 +599,7 @@ Deno.test({
         await Deno.writeTextFile(localFilePath, "test content");
 
         // Do the push
-        const firstResult = await push({
+        const { itemStateChanges: firstResult } = await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -546,7 +611,7 @@ Deno.test({
         assertEquals(firstResult.created.length, 1);
         assertEquals(firstResult.size(), 1);
 
-        const secondResult = await push({
+        const { itemStateChanges: secondResult } = await push({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,

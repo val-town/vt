@@ -2,6 +2,7 @@ import { colors } from "@cliffy/ansi/colors";
 import type { ProjectItemType } from "~/types.ts";
 import { join } from "@std/path";
 import xdg from "xdg-portable";
+import type { ItemWarning } from "~/vt/lib/ItemStatusManager.ts";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
@@ -38,6 +39,11 @@ export const STATUS_STYLES: Record<
   created: { prefix: "A", color: colors.green },
   deleted: { prefix: "D", color: colors.red },
   not_modified: { prefix: " ", color: colors.gray },
+};
+
+export const WARNING_MESSAGES: Record<ItemWarning, string> = {
+  "bad_name": "Invalid file name",
+  "is_binary": "File has binary content",
 };
 
 export const DEFAULT_VAL_TYPE = "script";
@@ -91,3 +97,5 @@ export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
   "file": 4,
   "interval": 5,
 };
+
+export const PROJECT_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");

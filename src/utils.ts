@@ -118,3 +118,10 @@ export async function dirIsEmpty(path: string | URL): Promise<boolean> {
   const firstEntry = await dirIter[Symbol.asyncIterator]().next();
   return firstEntry.done === true;
 }
+
+/**
+ * Heuristic val town uses to detect whether a file is utf 8.
+ */
+export function hasNullBytes(str: string): boolean {
+  return str.includes("\0");
+}

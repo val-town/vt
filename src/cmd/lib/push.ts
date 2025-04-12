@@ -1,11 +1,9 @@
 import { Command } from "@cliffy/command";
-import {
-  displayFileStateChanges,
-  noChangesDryRunMsg,
-} from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
+import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
 const nothingNewToPushMsg =
   "No local changes to push, remote state is up to date";
@@ -55,7 +53,11 @@ export const pushCmd = new Command()
           }));
 
           console.log();
-          spinner.succeed("Successfully pushed local changes");
+          if (statusResult.hasWarnings()) {
+            spinner.warn("Failed to push everything");
+          } else {
+            spinner.succeed("Successfully pushed local changes");
+          }
         }
       },
     );

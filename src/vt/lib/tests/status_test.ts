@@ -7,6 +7,96 @@ import { status } from "~/vt/lib/status.ts";
 import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 
 Deno.test({
+  name: "test status detects binary files",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a binary file (contains null bytes)
+        const binaryFilePath = join(tempDir, "binary-file.bin");
+        const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0x00, 0x03]);
+        await Deno.writeFile(binaryFilePath, binaryData);
+
+        // Run status check
+        const statusResult = await status({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          version: await getLatestVersion(project.id, branch.id),
+        });
+
+        // Find the binary file in created items
+        const binaryFile = statusResult.created.find(
+          (item) => item.path === "binary-file.bin",
+        );
+
+        // Verify the binary file is detected and has the is_binary warning
+        assertEquals(
+          binaryFile !== undefined,
+          true,
+          "binary file should be detected",
+        );
+        assertEquals(
+          binaryFile?.warnings?.includes("is_binary"),
+          true,
+          "binary file should have is_binary warning",
+        );
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "test status detects files with invalid names",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create a file with an invalid name (contains invalid characters)
+        const invalidFileName = "file with spaces.txt";
+        const invalidFilePath = join(tempDir, invalidFileName);
+        await Deno.writeTextFile(invalidFilePath, "content");
+
+        // Run status check
+        const statusResult = await status({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+          version: await getLatestVersion(project.id, branch.id),
+        });
+
+        // Find the file with invalid name in created items
+        const invalidFile = statusResult.created.find(
+          (item) => item.path === invalidFileName,
+        );
+
+        // Verify the file with invalid name is detected and has the bad_name warning
+        assertEquals(
+          invalidFile !== undefined,
+          true,
+          "file with invalid name should be detected",
+        );
+        assertEquals(
+          invalidFile?.warnings?.includes("bad_name"),
+          true,
+          "file with invalid name should have bad_name warning",
+        );
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
   name: "test typical file status reporting",
   permissions: {
     read: true,
