@@ -13,16 +13,16 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Run deno test script
-        env:
-          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
-        run: deno task test:workflow
-
       - name: Run deno lint check
         run: deno task check
 
       - name: Run deno format check
         run: deno task fmt:check
+
+      - name: Run deno test script
+        env:
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
+        run: deno task test:workflow
 
   test-mac:
     runs-on: macos-latest

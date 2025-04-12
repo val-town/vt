@@ -424,28 +424,29 @@ export default class VTClient {
   public async push(
     options?: Partial<Parameters<typeof push>[0]>,
   ): Promise<ItemStatusManager> {
-    const { itemStateChanges: fileStateChanges } = await this.getMeta().doWithVtState(
-      async (config) => {
-        const fileStateChanges = await push({
-          ...{
-            targetDir: this.rootPath,
-            projectId: config.project.id,
-            branchId: config.branch.id,
-            gitignoreRules: await this.getMeta().loadGitignoreRules(),
-          },
-          ...options,
-        });
+    const { itemStateChanges: fileStateChanges } = await this.getMeta()
+      .doWithVtState(
+        async (config) => {
+          const fileStateChanges = await push({
+            ...{
+              targetDir: this.rootPath,
+              projectId: config.project.id,
+              branchId: config.branch.id,
+              gitignoreRules: await this.getMeta().loadGitignoreRules(),
+            },
+            ...options,
+          });
 
-        if (!options || options.dryRun === false) {
-          config.branch.version = await getLatestVersion(
-            config.project.id,
-            config.branch.id,
-          );
-        }
+          if (!options || options.dryRun === false) {
+            config.branch.version = await getLatestVersion(
+              config.project.id,
+              config.branch.id,
+            );
+          }
 
-        return fileStateChanges;
-      },
-    );
+          return fileStateChanges;
+        },
+      );
     return fileStateChanges;
   }
 
