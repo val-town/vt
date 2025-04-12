@@ -4,6 +4,7 @@ export { checkoutCmd } from "./checkout.ts";
 export { cloneCmd } from "./clone.ts";
 export { createCmd } from "./create.ts";
 export { deleteCmd } from "./delete.ts";
+export { listCmd } from "./list.ts";
 export { pullCmd } from "./pull.ts";
 export { pushCmd } from "./push.ts";
 export { statusCmd } from "./status.ts";

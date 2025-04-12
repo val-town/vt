@@ -19,5 +19,6 @@ cmd.command("browse", cmds.browseCmd);
 cmd.command("create", cmds.createCmd);
 cmd.command("config", cmds.configCmd);
 cmd.command("delete", cmds.deleteCmd);
+cmd.command("list", cmds.listCmd);
 
 export { cmd };
