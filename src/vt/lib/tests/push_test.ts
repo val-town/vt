@@ -10,6 +10,95 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 
 Deno.test({
+  name: "test ambiguous rename detection with duplicate content",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn() {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        const projectDir = join(tempDir, "project");
+        await Deno.mkdir(projectDir, { recursive: true });
+
+        // Create two files with identical content
+        const sameContent = "identical content";
+        await Deno.writeTextFile(join(projectDir, "file1.ts"), sameContent);
+        await Deno.writeTextFile(join(projectDir, "file2.ts"), sameContent);
+
+        // But the mtimes should be the same, so that it's ambiguous
+        await Deno.utime(join(projectDir, "file2.ts"), 0, 0);
+        await Deno.utime(join(projectDir, "file1.ts"), 0, 0);
+
+        // Push initial files
+        await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Get original file IDs
+        const file1 = await sdk.projects.files
+          .retrieve(project.id, { path: "project/file1.ts" })
+          .then((resp) => resp.data[0]);
+        const file2 = await sdk.projects.files
+          .retrieve(project.id, { path: "project/file2.ts" })
+          .then((resp) => resp.data[0]);
+
+        // Delete both files and create two new files with the same content
+        await Deno.remove(join(projectDir, "file1.ts"));
+        await Deno.remove(join(projectDir, "file2.ts"));
+        await Deno.writeTextFile(join(projectDir, "newfile1.ts"), sameContent);
+        await Deno.writeTextFile(join(projectDir, "newfile2.ts"), sameContent);
+
+        // Push changes
+        const result = await push({
+          targetDir: tempDir,
+          projectId: project.id,
+          branchId: branch.id,
+        });
+
+        // Verify no renames were detected due to duplicate content
+        assertEquals(
+          result.renamed.length,
+          0,
+          "No renames should be detected with duplicate content",
+        );
+        assertEquals(
+          result.deleted.length,
+          2,
+          "both original files should be marked as deleted",
+        );
+        assertEquals(
+          result.created.length,
+          2,
+          "both new files should be marked as created",
+        );
+
+        // Verify new files have different IDs than original files
+        const newFile1 = await sdk.projects.files
+          .retrieve(project.id, { path: "project/newfile1.ts" })
+          .then((resp) => resp.data[0]);
+        const newFile2 = await sdk.projects.files
+          .retrieve(project.id, { path: "project/newfile2.ts" })
+          .then((resp) => resp.data[0]);
+
+        assert(
+          newFile1.id !== file1.id,
+          "new file should have different id than original file",
+        );
+        assert(
+          newFile2.id !== file2.id,
+          "new file should have different id than original file",
+        );
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
   name: "test moving file to subdirectory",
   permissions: {
     read: true,

@@ -314,10 +314,15 @@ export class ItemStatusManager {
   public consolidateRenames(): this {
     const processed = new Set<string>();
 
-    for (const oldItem of [...this.deleted]) {
+    const deletedItems = Array.from(this.deleted)
+      .sort((a, b) => b.mtime - a.mtime);
+    const createdItems = Array.from(this.created)
+      .sort((a, b) => b.mtime - a.mtime);
+
+    for (const oldItem of deletedItems) {
       // Find the most similar other entry
       let maxSimilarItem: RenamedItemStatus | null = null;
-      for (const newItem of [...this.created]) {
+      for (const newItem of createdItems) {
         // deno-fmt-ignore
         if (oldItem.type === "directory" || newItem.type === "directory") continue;
         if (oldItem.path === newItem.path) continue;
@@ -376,9 +381,29 @@ export class ItemStatusManager {
 
       // If we detected a similar item, then add it to the state
       if (maxSimilarItem && !processed.has(maxSimilarItem.path)) {
-        this.insert(maxSimilarItem);
-        processed.add(maxSimilarItem.path);
-        processed.add(maxSimilarItem.oldPath);
+        // If there are any other files that were created or deleted that have
+        // the same contents then we ignore the rename, unless the duplicate's
+        // mtime is older
+        const contentToCheck = maxSimilarItem.content;
+
+        const hasDuplicateContent = contentToCheck && (
+          this.deleted.some((item) =>
+            item.path !== oldItem.path &&
+            item.content === contentToCheck &&
+            item.mtime >= oldItem.mtime
+          ) ||
+          this.created.some((item) =>
+            item.path !== maxSimilarItem!.path &&
+            item.content === contentToCheck &&
+            item.mtime >= oldItem.mtime
+          )
+        );
+
+        if (!hasDuplicateContent) {
+          this.insert(maxSimilarItem);
+          processed.add(maxSimilarItem.path);
+          processed.add(maxSimilarItem.oldPath);
+        }
       }
     }
 
