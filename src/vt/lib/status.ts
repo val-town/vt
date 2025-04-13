@@ -6,11 +6,13 @@ import { isFileModified } from "~/vt/lib/utils.ts";
 import {
   type CreatedItemStatus,
   type DeletedItemStatus,
+  getItemWarnings,
   type ItemInfo,
   ItemStatusManager,
   type ModifiedItemStatus,
   type NotModifiedItemStatus,
 } from "~/vt/lib/ItemStatusManager.ts";
+import { join } from "@std/path";
 
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
@@ -65,6 +67,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
   // Compare local files against project files
   for (const localFile of localFiles) {
     const projectFileInfo = projectFileMap.get(localFile.path);
+    const localFilePath = join(targetDir, localFile.path);
 
     if (projectFileInfo === undefined) {
       // File exists locally but not in project - it's created
@@ -74,6 +77,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
         path: localFile.path,
         mtime: localFile.mtime,
         content: localFile.content,
+        warnings: await getItemWarnings(localFilePath),
       };
       result.insert(createdFileState);
     } else {
@@ -97,6 +101,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
               : "remote",
             mtime: localStat.mtime!.getTime(),
             content: localFile.content,
+            warnings: await getItemWarnings(localFilePath),
           };
           result.insert(modifiedFileState);
         } else {

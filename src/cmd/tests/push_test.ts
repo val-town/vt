@@ -143,3 +143,49 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "push command fails with binary file",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project, branch }) => {
+        await t.step("create initial file and clone the project", async () => {
+          // Create initial file
+          await sdk.projects.files.create(
+            project.id,
+            {
+              path: "initial.js",
+              content: "console.log('Initial file');",
+              branch_id: branch.id,
+              type: "file",
+            },
+          );
+
+          await runVtCommand(["clone", project.name], tmpDir);
+        });
+
+        const fullPath = join(tmpDir, project.name);
+
+        await t.step("create a binary file", async () => {
+          // Create binary file with null bytes
+          const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0x00, 0x03]);
+          await Deno.writeFile(
+            join(fullPath, "binary_file.bin"),
+            binaryData,
+          );
+        });
+
+        await t.step("try to push binary file and verify failure", async () => {
+          // Run push command and expect failure
+          const [pushOutput] = await runVtCommand(["push"], fullPath);
+
+          // Verify the push failed due to binary file
+          assertStringIncludes(pushOutput, "binary_file.bin");
+          assertStringIncludes(pushOutput, "File has binary content");
+          assertStringIncludes(pushOutput, "Failed to push everything");
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
