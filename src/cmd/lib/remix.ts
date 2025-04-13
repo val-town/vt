@@ -27,10 +27,10 @@ export const remixCmd = new Command()
   .example(
     "Bootstrap a website",
     `
-  vt remix srd/reactHonoStarter myNewWebsite
-  cd ./myNewWebsite
-  vt browse
-  vt watch # syncs changes to val town`,
+   vt remix srd/reactHonoStarter myNewWebsite
+   cd ./myNewWebsite
+   vt browse
+   vt watch # syncs changes to val town`,
   )
   .action(async (
     {
@@ -59,24 +59,35 @@ export const remixCmd = new Command()
         user.username!,
       );
 
-      // Use source project name as a fallback if no new name provided
+      // Determine project name based on input or generate one if needed
       let projectName: string;
-      if (
+      if (newProjectName) {
+        // Use explicitly provided name
+        projectName = newProjectName;
+      } else if (
         !await projectExists({
           projectName: sourceProjectName,
           username: user.username!,
         })
       ) {
+        // Use source project name if it doesn't already exist
         projectName = sourceProjectName;
       } else {
-        projectName = newProjectName ||
-          `${sourceProjectName}_remix_${randomIntegerBetween(10000, 99999)}`;
+        // Generate a unique name with random suffix
+        projectName = `${sourceProjectName}_remix_${
+          randomIntegerBetween(10000, 99999)
+        }`;
       }
 
+      // Determine the target directory
       let rootPath: string;
-      if (!targetDir) {
+      if (targetDir) {
+        // Use explicitly provided target directory
+        rootPath = join(Deno.cwd(), targetDir, projectName);
+      } else {
+        // Default to current directory + project name
         rootPath = join(Deno.cwd(), projectName);
-      } else rootPath = join(targetDir, projectName);
+      }
 
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";

@@ -1,7 +1,11 @@
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { create } from "~/vt/lib/create.ts";
-import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  getLatestVersion,
+  listProjectItems,
+} from "~/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_PROJECT_PRIVACY } from "~/consts.ts";
 import type { ProjectPrivacy } from "~/types.ts";
@@ -96,6 +100,23 @@ export async function remix(
         gitignoreRules,
       });
     itemStateChanges.merge(createResult);
+
+    // Update the type of each of each file in the project to match the type in
+    // the original project
+    await Promise.all(
+      (await listProjectItems(
+        srcProjectId,
+        srcBranch.id,
+        await getLatestVersion(srcProjectId, srcBranch.id),
+      )).map(async (item) => {
+        if (item.type === "directory") return;
+        await sdk.projects.files.update(newProjectId, {
+          path: item.path,
+          type: item.type,
+          branch_id: newBranchId,
+        });
+      }),
+    );
 
     return [{
       toProjectId: newProjectId,
