@@ -17,7 +17,7 @@ Deno.test({
       await doWithNewProject(async ({ project }) => {
         await t.step("run list command", async () => {
           const [output] = await runVtCommand(["list"], tmpDir);
-          
+
           // Verify basic output structure
           assertStringIncludes(output, "Name");
           assertStringIncludes(output, "Privacy");

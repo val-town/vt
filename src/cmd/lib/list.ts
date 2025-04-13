@@ -7,8 +7,8 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 export const listCmd = new Command()
   .name("list")
   .description("List all your Val Town projects")
+  .example("List all projects", "vt list")
   .action(async () => {
-    // Fetch all projects first
     const myProjects = await doWithSpinner(
       "Loading project list...",
       async (spinner) => {
@@ -43,4 +43,3 @@ export const listCmd = new Command()
       `Total: ${colors.yellow(myProjects.length.toString())} projects`,
     );
   });
-
