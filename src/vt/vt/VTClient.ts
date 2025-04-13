@@ -274,19 +274,11 @@ export default class VTClient {
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
     // Clone and return the VTClient
-    const vt = await VTClient.init({
-      rootPath,
-      username,
-      projectName,
-      version: branch.version,
-      branchName: DEFAULT_BRANCH_NAME,
-    });
-    await VTClient.clone({
+    return await VTClient.clone({
       username,
       projectName,
       rootPath,
     });
-    return vt;
   }
 
   /**
