@@ -4,7 +4,10 @@ import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
-import { FileState, type FileStatus } from "~/vt/lib/FileState.ts";
+import {
+  type ItemStatus,
+  ItemStatusManager,
+} from "~/vt/lib/ItemStatusManager.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.
@@ -17,7 +20,7 @@ export interface PullParams {
   /** The branch ID to download file content from. */
   branchId: string;
   /** The version to pull. Defaults to latest version. */
-  version?: number;
+  version: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files, just report what would change. */
@@ -40,7 +43,7 @@ export interface PullParams {
  *
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull(params: PullParams): Promise<FileState> {
+export function pull(params: PullParams): Promise<ItemStatusManager> {
   const {
     targetDir,
     projectId,
@@ -51,7 +54,7 @@ export function pull(params: PullParams): Promise<FileState> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = FileState.empty();
+      const changes = new ItemStatusManager();
 
       // Copy over all the files in the original dir into the temp dir During a
       // dry run the purpose here is to ensure that clone reports back the
@@ -78,15 +81,15 @@ export function pull(params: PullParams): Promise<FileState> {
       changes.merge(cloneChanges);
 
       // Get list of files from the server
-      const projectItems = await listProjectItems(projectId, {
-        path: "",
-        branch_id: branchId,
+      const projectItems = await listProjectItems(
+        projectId,
+        branchId,
         version,
-        recursive: true,
-      });
+      );
       const projectItemsSet = new Set(projectItems.map((file) => file.path));
 
       // Scan the temp directory to identify files that should be deleted
+      const pathsToDelete: string[] = [];
       for await (const entry of walk(tmpDir)) {
         const relativePath = relative(tmpDir, entry.path);
         const targetDirPath = join(targetDir, relativePath);
@@ -97,30 +100,32 @@ export function pull(params: PullParams): Promise<FileState> {
         if (projectItemsSet.has(relativePath)) continue;
 
         const stat = await Deno.stat(entry.path);
-        const fileStatus: FileStatus = {
+        const fileStatus: ItemStatus = {
           path: relativePath,
           status: "deleted",
-          type: stat.isDirectory
-            ? "directory"
-            : await getProjectItemType(projectId, {
-              branchId,
-              version,
-              filePath: relativePath,
-            }),
+          type: stat.isDirectory ? "directory" : await getProjectItemType(
+            projectId,
+            branchId,
+            version,
+            relativePath,
+          ),
+          mtime: stat.mtime?.getTime()!,
         };
         changes.insert(fileStatus);
 
         // Delete the file from both directories if not in dry run mode
         if (!dryRun) {
-          if (await exists(targetDirPath)) {
-            await Deno.remove(targetDirPath, { recursive: true });
-          }
-          if (await exists(tmpDirPath)) {
-            await Deno.remove(tmpDirPath, { recursive: true });
-          }
+          pathsToDelete.push(targetDirPath);
+          pathsToDelete.push(tmpDirPath);
         }
       }
 
+      // Perform the deletions
+      await Promise.all(pathsToDelete.map(async (path) => {
+        if (await exists(path)) {
+          await Deno.remove(path, { recursive: true });
+        }
+      }));
       return [changes, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },

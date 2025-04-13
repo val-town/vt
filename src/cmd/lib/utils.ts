@@ -1,12 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
 import { basename, dirname, join } from "@std/path";
-import {
-  ProjectItemColors,
-  type ProjectItemType,
-  STATUS_STYLES,
-  TypeToTypeStr,
-} from "~/consts.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import { ProjectItemColors, STATUS_STYLES, TypeToTypeStr } from "~/consts.ts";
+import type {
+  ItemStatus,
+  ItemStatusManager,
+} from "~/vt/lib/ItemStatusManager.ts";
+import type { ProjectItemType } from "~/types.ts";
 
 /**
  * Formats a version range string based on the first, current, and latest versions.
@@ -57,25 +56,51 @@ export function getVersionRangeStr(
  * @returns A formatted string with colored status prefix, file type, and path
  */
 export function formatStatus(
-  path: string,
-  status: keyof FileState,
+  file: ItemStatus,
   type?: ProjectItemType,
   maxTypeLength: number = 0,
 ): string {
-  const styleConfig = STATUS_STYLES[status];
-  const coloredPath = join(dirname(path), styleConfig.color(basename(path)));
+  const styleConfig = STATUS_STYLES[file.status];
 
-  // Format type indicator with consistent padding and colors
-  const typeStr = TypeToTypeStr[type!].padEnd(maxTypeLength);
-  const typeIndicator = //
-    colors.gray("(") +
-    ProjectItemColors[type!](typeStr) +
-    colors.gray(")");
+  // Handle renamed files differently
+  let pathDisplay;
+  if (file.status === "renamed") {
+    // For renamed files, show oldPath -> path
+    pathDisplay = //
+      join(
+        dirname(file.oldPath),
+        styleConfig.color(basename(file.oldPath)),
+      ) +
+      colors.dim(" -> ") + join(
+        dirname(file.path),
+        styleConfig.color(basename(file.path)),
+      ) +
+      ` ${colors.gray("(" + (file.similarity * 100).toFixed(2) + "%)")}`;
+  } else {
+    // Normal path display for other statuses
+    pathDisplay = join(
+      dirname(file.path),
+      styleConfig.color(basename(file.path)),
+    );
+  }
 
   // Construct the final formatted string
-  return `${
-    styleConfig.color(styleConfig.prefix)
-  } ${typeIndicator} ${coloredPath}`;
+  if (type !== undefined) {
+    // Format type indicator with consistent padding and colors
+    // Use padEnd on the original string before applying colors
+    const typeStr = TypeToTypeStr[type];
+    const paddedTypeStr = typeStr.padEnd(maxTypeLength);
+    const typeIndicator = colors.gray("(") +
+      ProjectItemColors[type](paddedTypeStr) +
+      colors.gray(")");
+
+    return `${
+      styleConfig.color(styleConfig.prefix)
+    } ${typeIndicator} ${pathDisplay}`;
+  } else {
+    // No type provided, don't include type indicator
+    return `${styleConfig.color(styleConfig.prefix)} ${pathDisplay}`;
+  }
 }
 
 /**
@@ -92,7 +117,7 @@ export function formatStatus(
  * @returns void
  */
 export function displayFileStateChanges(
-  fileStateChanges: FileState,
+  fileStateChanges: ItemStatusManager,
   options: {
     headerText: string;
     summaryText?: string;
@@ -101,7 +126,7 @@ export function displayFileStateChanges(
     includeSummary?: boolean;
     includeTypes?: boolean;
   },
-): void {
+): string {
   const {
     headerText: headerText,
     summaryText: summaryPrefix = "Summary:",
@@ -110,29 +135,35 @@ export function displayFileStateChanges(
     includeSummary = true,
     includeTypes = true,
   } = options;
+  const output: string[] = [];
   const totalChanges = fileStateChanges.changes();
+  const fileStateChangesEntriesSorted = fileStateChanges
+    .entries({ sorted: true });
 
   // Exit early if we do not show empty
-  if (totalChanges === 0 && !showEmpty) return;
+  if (totalChanges === 0 && !showEmpty) return "";
 
   // Display header if provided
-  if (headerText && totalChanges !== 0) console.log(headerText);
+  if (headerText && totalChanges !== 0) output.push(headerText);
 
   // Calculate the longest type length from all files
-  const maxTypeLength = fileStateChanges.entries()
+  const maxTypeLength = fileStateChangesEntriesSorted
     .filter(([type]) => type !== "not_modified")
     .flatMap(([_, files]) => files)
-    .reduce((max, file) => Math.max(max, file.type.length), 0);
+    .reduce((max, file) => {
+      // Get the actual string representation that will be displayed
+      const typeStr = TypeToTypeStr[file.type];
+      return Math.max(max, typeStr.length);
+    }, 0);
 
   // Print all changed files state
-  for (const [type, files] of fileStateChanges.entries()) {
+  for (const [type, files] of fileStateChangesEntriesSorted) {
     if (type !== "not_modified") {
       for (const file of files) {
-        console.log(
+        output.push(
           "  " +
             formatStatus(
-              file.path,
-              file.status,
+              file,
               includeTypes ? file.type : undefined,
               maxTypeLength,
             ),
@@ -145,19 +176,21 @@ export function displayFileStateChanges(
   if (includeSummary) {
     if (totalChanges === 0) {
       if (emptyMessage) {
-        console.log(colors.green(emptyMessage));
+        output.push(colors.green(emptyMessage));
       }
     } else {
-      console.log("\n" + summaryPrefix);
-      for (const [type, files] of fileStateChanges.entries()) {
+      output.push("\n" + summaryPrefix);
+      for (const [type, files] of fileStateChangesEntriesSorted) {
         if (type !== "not_modified" && files.length > 0) {
-          const typeColor = STATUS_STYLES[type as keyof FileState];
+          const typeColor = STATUS_STYLES[type as keyof ItemStatusManager];
           const coloredType = typeColor.color(type);
-          console.log("  " + files.length + " " + coloredType);
+          output.push("  " + files.length + " " + coloredType);
         }
       }
     }
   }
+
+  return output.join("\n");
 }
 
 export const noChangesDryRunMsg = "Dry run completed. " +

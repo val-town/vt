@@ -10,35 +10,6 @@ import {
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 
-export const watchStopCmd = new Command()
-  .name("watch stop")
-  .description("Stop the watch daemon process")
-  .action(() => {
-    const cwd = Deno.cwd();
-    const vt = VTClient.from(cwd);
-    doWithSpinner(
-      "Stopping the watch process...",
-      async (spinner) => {
-        try {
-          const pidStr = await vt.getMeta().getLockFile();
-          if (pidStr) {
-            const pid = parseInt(pidStr, 10);
-            if (!isNaN(pid)) {
-              Deno.kill(pid);
-              spinner.succeed(`Stopped watch process with PID: ${pid}`);
-            } else {
-              throw new Error("Invalid PID in lockfile.");
-            }
-          } else {
-            throw new Error("No running watch process found.");
-          }
-        } catch {
-          throw new Error("Failed to stop the watch process.");
-        }
-      },
-    );
-  });
-
 export const watchCmd = new Command()
   .name("watch")
   .description("Watch for changes and automatically sync with Val Town")
@@ -52,21 +23,17 @@ export const watchCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
-      const {
-        currentBranch: currentBranchId,
-        version: currentVersion,
-        projectId,
-      } = await vt.getMeta().loadConfig();
+      const state = await vt.getMeta().loadVtState();
       const currentBranch = await sdk.projects.branches.retrieve(
-        projectId,
-        currentBranchId,
+        state.project.id,
+        state.branch.id,
       );
 
       spinner.stop();
 
       const versionRangeStr = getVersionRangeStr(
         FIRST_VERSION_NUMBER,
-        currentVersion,
+        state.branch.version,
         currentBranch.version,
       );
       console.log(
@@ -88,11 +55,11 @@ export const watchCmd = new Command()
           try {
             if (fileStateChanges.size() > 0) {
               console.log();
-              displayFileStateChanges(fileStateChanges, {
+              console.log(displayFileStateChanges(fileStateChanges, {
                 emptyMessage: "No changes detected. Continuing to watch...",
                 headerText: "New changes detected",
                 summaryText: "Pushed:",
-              });
+              }));
               console.log();
               console.log(watchingForChangesLine());
             }
@@ -107,5 +74,4 @@ export const watchCmd = new Command()
         if (e instanceof Error) console.log(colors.red(e.message));
       }
     });
-  })
-  .command("stop", watchStopCmd);
+  });

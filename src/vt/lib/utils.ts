@@ -1,7 +1,4 @@
-import ValTown from "@valtown/sdk";
-import sdk from "~/sdk.ts";
 import { copy, ensureDir, exists } from "@std/fs";
-import { dirname, join } from "@std/path";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -89,112 +86,28 @@ export async function doAtomically<T>(
 }
 
 /**
- * Ensures that a directory path exists within a project in Valtown.
- * This function creates each directory in the specified path if it doesn't already exist.
- *
- * @param {string} projectId - The ID of the project where the directory should be ensured.
- * @param {string} branchId - The ID of the branch where the directory should be created.
- * @param {string} filePath - The file path for which directories need to be ensured.
- * @returns {Promise<void>} A promise that resolves when all necessary directories are created.
- */
-export async function ensureValtownDir(
-  projectId: string,
-  branchId: string,
-  filePath: string,
-): Promise<void> {
-  const dirPath = dirname(filePath);
-
-  // If path is "." (current directory) or empty, no directories need to be created
-  if (dirPath === "." || dirPath === "") {
-    return;
-  }
-
-  // Split the path into segments
-  const segments = dirPath.split("/");
-  let currentPath = "";
-
-  // Create each directory in the path if it doesn't exist
-  for (let i = 0; i < segments.length; i++) {
-    if (segments[i] === "") continue;
-
-    currentPath += (currentPath ? "/" : "") + segments[i];
-
-    // Create directory - content can be null, empty string, or omitted for directories
-    try {
-      await sdk.projects.files.create(
-        projectId,
-        {
-          type: "directory",
-          path: currentPath,
-          branch_id: branchId,
-          content: null,
-        },
-      );
-    } catch (e) {
-      if (e instanceof ValTown.APIError) {
-        if (e.status != 409) throw e;
-      } else throw e;
-    }
-  }
-}
-
-/**
- * Determines if a local file has been modified compared to its project version.
+ * Determines if a file has been modified compared to its original version.
  *
  * This function uses a two-step approach to check for modifications:
  * 1. First, it compares modification timestamps as a quick heuristic
  * 2. If timestamps suggest a change, it performs a full content comparison
  *
- * @param {object} params - The parameters object
- * @param {string} params.path - The file path in the project
- * @param {string} params.targetDir - The local target directory
- * @param {string} params.originalPath - The original file path
- * @param {string} params.projectId - The ID of the project
- * @param {string} params.branchId - The ID of the branch
- * @param {number} [params.version] - Optional version number
- * @param {number} params.localMtime - Modification time of the local file
- * @param {number} params.projectMtime - Modification time of the project file
- *
- * @returns {Promise<boolean>} True if the file has been modified, false otherwise
+ * @returns {boolean} True if the file has been modified, false otherwise
  */
-export async function isFileModified(
-  {
-    path,
-    targetDir,
-    originalPath,
-    projectId,
-    branchId,
-    version,
-    localMtime,
-    projectMtime,
-  }: {
-    path: string;
-    targetDir: string;
-    originalPath: string;
-    projectId: string;
-    branchId: string;
-    version?: number;
-    localMtime: number;
-    projectMtime: number;
-  },
-): Promise<boolean> {
+export function isFileModified({
+  srcContent,
+  srcMtime,
+  dstContent,
+  dstMtime,
+}: {
+  srcContent: string;
+  srcMtime: number;
+  dstContent: string;
+  dstMtime: number;
+}): boolean {
   // First use the mtime as a heuristic to avoid unnecessary content checks
-  if (projectMtime == localMtime) return false;
+  if (srcMtime === dstMtime) return false;
 
   // If mtime indicates a possible change, check content
-  const projectFileContent = await sdk.projects.files.getContent(
-    projectId,
-    {
-      path,
-      branch_id: branchId,
-      version,
-    },
-  ).then((resp) => resp.text());
-
-  // For some reason the local paths seem to have an extra newline
-  const localFileContent = await Deno.readTextFile(
-    join(targetDir, originalPath),
-  );
-
-  return projectFileContent !== localFileContent;
+  return srcContent !== dstContent;
 }

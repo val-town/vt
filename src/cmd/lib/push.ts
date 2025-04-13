@@ -33,12 +33,12 @@ export const pushCmd = new Command()
           const statusResult = await vt.push({ dryRun: true });
           spinner.stop();
 
-          displayFileStateChanges(statusResult, {
+          console.log(displayFileStateChanges(statusResult, {
             headerText: "Changes that would be pushed:",
             summaryText: "Would push:",
             emptyMessage: nothingNewToPushMsg,
             includeSummary: true,
-          });
+          }));
 
           console.log();
           spinner.succeed(noChangesDryRunMsg);
@@ -48,11 +48,11 @@ export const pushCmd = new Command()
           spinner.stop();
 
           // Display the changes that were pushed
-          displayFileStateChanges(statusResult, {
+          console.log(displayFileStateChanges(statusResult, {
             headerText: "Pushed:",
             emptyMessage: nothingNewToPushMsg,
             includeSummary: true,
-          });
+          }));
 
           console.log();
           spinner.succeed("Successfully pushed local changes");

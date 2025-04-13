@@ -2,7 +2,6 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
@@ -18,7 +17,7 @@ Deno.test({
               path: "test.js",
               content: "console.log('Initial content');",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
 
@@ -26,6 +25,8 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await Deno.remove(join(fullPath, ".vtignore"));
+        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("make a local change", async () => {
           // Make a local change
@@ -71,7 +72,7 @@ Deno.test({
               path: "initial.js",
               content: "console.log('Initial content');",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
 
@@ -88,7 +89,7 @@ Deno.test({
               path: "remote-file.js",
               content: "console.log('Remote file');",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
         });

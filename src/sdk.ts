@@ -1,5 +1,6 @@
 import ValTown from "@valtown/sdk";
 import "@std/dotenv/load";
+import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
@@ -79,6 +80,31 @@ export async function branchNameToBranch(
 }
 
 /**
+ * Checks if a file exists at the specified path in a project
+ *
+ * @param {string} projectId - The ID of the project containing the file
+ * @param {string} filePath - The file path to check
+ * @param {string} branchId - The ID of the project branch to reference
+ * @param {number} version - The version of the project to check
+ * @returns {Promise<boolean>} Promise resolving to true if the file exists, false otherwise
+ */
+export async function projectItemExists(
+  projectId: string,
+  branchId: string,
+  filePath: string,
+  version: number,
+): Promise<boolean> {
+  try {
+    const item = await getProjectItem(projectId, branchId, version, filePath);
+    return item !== undefined;
+  } catch (e) {
+    if (e instanceof ValTown.APIError && e.status === 404) {
+      return false;
+    } else throw e;
+  }
+}
+
+/**
  * Converts a file path to its corresponding project item for a given project.
  *
  * @param {string} projectId - The ID of the project containing the file
@@ -88,27 +114,20 @@ export async function branchNameToBranch(
  * @param {string} options.filePath - The file path to locate
  * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
-export async function getProjectItem(
+export const getProjectItem = memoize(async (
   projectId: string,
-  { branchId, version, filePath }: {
-    branchId?: string;
-    version?: number;
-    filePath: string;
-  },
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> {
-  branchId = (branchId ||
-    await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME).then((resp) =>
-      resp.id
-    ))!;
-  version = version || (await getLatestVersion(projectId, branchId));
+  branchId: string,
+  version: number,
+  filePath: string,
+): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
+  const projectItems = await listProjectItems(projectId, branchId, version);
 
-  for await (
-    const filepath of await sdk.projects.files.retrieve(
-      projectId,
-      { path: "", branch_id: branchId, version, recursive: true },
-    )
-  ) if (filepath.path === filePath) return filepath;
-}
+  for (const filepath of projectItems) {
+    if (filepath.path === filePath) return filepath;
+  }
+
+  return undefined;
+});
 
 /**
   * Lists all file paths in a project with pagination support.
@@ -122,37 +141,43 @@ export async function getProjectItem(
   * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
   * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
   */
-export async function listProjectItems(
+export const listProjectItems = memoize(async (
   projectId: string,
-  {
-    path,
-    branch_id,
-    version,
-    recursive,
-  }: {
-    path: string;
-    branch_id?: string;
-    version?: number;
-    recursive?: boolean;
-  },
-): Promise<ValTown.Projects.FileRetrieveResponse[]> {
+  branchId: string,
+  version: number,
+): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
   const files: ValTown.Projects.FileRetrieveResponse[] = [];
 
-  branch_id = branch_id ||
+  branchId = branchId ||
     (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
-  version = version || (await getLatestVersion(projectId, branch_id));
 
   for await (
     const file of sdk.projects.files.retrieve(projectId, {
-      path,
-      branch_id,
+      path: "",
+      branch_id: branchId,
       version,
-      recursive,
+      recursive: true,
     })
   ) files.push(file);
 
   return files;
+});
+
+/**
+ * Checks if a project exists in Val Town
+ *
+ * @param projectId - The UUID of the project to check
+ * @returns A promise that resolves to true if the project exists, false if it doesn't exist
+ */
+export async function projectExists(projectId: string) {
+  try {
+    return Boolean(await sdk.projects.retrieve(projectId));
+  } catch (e) {
+    if (e instanceof ValTown.APIError && e.status === 404) {
+      return false;
+    } else throw e;
+  }
 }
 
 /**

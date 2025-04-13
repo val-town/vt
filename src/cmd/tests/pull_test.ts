@@ -2,7 +2,6 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import type { ProjectFileType } from "~/consts.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
@@ -16,6 +15,8 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await Deno.remove(join(fullPath, ".vtignore"));
+        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("run pull command", async () => {
           const [output] = await runVtCommand(["pull"], fullPath);
@@ -24,6 +25,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -45,7 +47,7 @@ Deno.test({
               path: "remote-new.js",
               content: "console.log('Added remotely');",
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file",
             },
           );
         });
@@ -60,4 +62,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
