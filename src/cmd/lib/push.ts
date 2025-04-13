@@ -6,6 +6,7 @@ import {
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import sdk, { user } from "~/sdk.ts";
 
 const nothingNewToPushMsg =
   "No local changes to push, remote state is up to date";
@@ -25,6 +26,15 @@ export const pushCmd = new Command()
         : "Pushing local changes...",
       async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+
+        const vtState = await vt.getMeta().loadVtState();
+        const projectToPush = await sdk.projects.retrieve(vtState.project.id);
+        if (projectToPush.author.id !== user.id) {
+          throw new Error(
+            "You are not the owner of this projecta, you cannot push." +
+              "\nTo make a PR, go to the website, fork the project, clone the fork, make changes, push them, and then PR on the website.",
+          );
+        }
 
         // Note that we must wait until we have retrieved the status before
         // stopping the spinner
