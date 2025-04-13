@@ -124,17 +124,19 @@ async function handleForkCheckout(
     fromBranch.id,
     fromBranch.version,
   ).then((items) =>
-    items.forEach((item) => {
-      // Ignore files that are in the gitignore rules
-      if (shouldIgnore(item.path, params.gitignoreRules)) return;
+    Promise.all(
+      items.map((item) => {
+        // Ignore files that are in the gitignore rules
+        if (shouldIgnore(item.path, params.gitignoreRules)) return;
 
-      fileStateChanges.insert({
-        path: item.path,
-        status: "not_modified",
-        type: item.type,
-        mtime: new Date(item.updatedAt).getTime(),
-      });
-    })
+        return fileStateChanges.insert({
+          path: item.path,
+          status: "not_modified",
+          type: item.type,
+          mtime: new Date(item.updatedAt).getTime(),
+        });
+      }),
+    )
   );
 
   return {

@@ -75,7 +75,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
 
             // If the directory is new mark it as created
             if (!(await exists(join(targetDir, file.path)))) {
-              itemStateChanges.insert({
+              await itemStateChanges.insert({
                 type: "directory",
                 path: file.path,
                 status: "created",
@@ -174,7 +174,7 @@ async function createFile(
   }
 
   // Track file status
-  changes.insert(fileStatus);
+  await changes.insert(fileStatus);
 
   // Stop here for dry runs
   if (dryRun) return;

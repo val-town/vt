@@ -48,15 +48,15 @@ export function sanitizeErrors(error: unknown): string {
  * @param options.exitOnError - Whether to exit on error (default: true)
  * @returns The result of the callback function
  */
-export async function doWithSpinner(
+export async function doWithSpinner<T>(
   spinnerText: string,
-  callback: (spinner: Kia) => Promise<void>,
+  callback: (spinner: Kia) => Promise<T>,
   options: {
     autostart?: boolean;
     cleanError?: (error: unknown) => string;
     exitOnError?: boolean;
   } = {},
-): Promise<void> {
+): Promise<T> {
   const {
     autostart = true,
     cleanError = sanitizeErrors,
@@ -72,6 +72,7 @@ export async function doWithSpinner(
 
     return await callback(spinner);
   } catch (e) {
+    console.log(e);
     // Use the provided or default error cleaning function
     const cleanedErrorMessage = cleanError(e);
 
@@ -79,6 +80,10 @@ export async function doWithSpinner(
     spinner?.fail(cleanedErrorMessage);
 
     if (exitOnError) Deno.exit(1);
+
+    // This throw is necessary for TypeScript to understand the control flow
+    // It will only be reached if exitOnError is false
+    throw e;
   } finally {
     // Ensure spinner is stopped in all scenarios
     if (spinner?.isSpinning()) {
