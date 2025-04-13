@@ -18,6 +18,7 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
   ".env",
 ];
 
+export const DEFAULT_PROJECT_PRIVACY = "public";
 export const META_STATE_FILE_NAME = "state.json";
 export const VT_CONFIG_FILE_NAME = "config.yaml";
 export const META_FOLDER_NAME = ".vt";

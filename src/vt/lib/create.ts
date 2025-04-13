@@ -1,11 +1,22 @@
 import { push } from "~/vt/lib/push.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
-import sdk from "~/sdk.ts";
+import sdk, { branchNameToBranch } from "~/sdk.ts";
+import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import type { ProjectPrivacy } from "~/types.ts";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { ensureDir } from "@std/fs";
 
 /**
- * Privacy settings for a Val Town project.
+ * Result of a checkout operation containing branch information and file
+ * changes.
  */
-export type ProjectPrivacy = "public" | "unlisted" | "private";
+interface CreateResponse {
+  /** The state of the files that were pushed to the new project. */
+  itemStateChanges: ItemStatusManager;
+  /** The ID of the newly created project. */
+  newProjectId: string;
+  /** The ID of the new branch created in the new project. */
+  newBranchId: string;
+}
 
 /**
  * Parameters for creating a new Val Town project from a local directory.
@@ -15,9 +26,9 @@ export interface CreateParams {
   sourceDir: string;
   /** The name for the new project. */
   projectName: string;
-  /** Optional project description. */
+  /** Optional project description. Defaults to that of the project being remixed. */
   description?: string;
-  /** Privacy setting for the project. Defaults to "private". */
+  /** Privacy setting for the project. Defaults to that of the project being remixed. */
   privacy?: ProjectPrivacy;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
@@ -32,7 +43,7 @@ export interface CreateParams {
  */
 export async function create(
   params: CreateParams,
-): Promise<{ fileState: FileState; projectId: string }> {
+): Promise<CreateResponse> {
   const {
     sourceDir,
     projectName,
@@ -41,29 +52,30 @@ export async function create(
     gitignoreRules,
   } = params;
 
+  await ensureDir(sourceDir);
+
   // Create a new project in Val Town
   const newProject = await sdk.projects.create({
     name: projectName,
     description,
     privacy,
   });
-
-  const projectId = newProject.id;
-  const branchId = await sdk.projects.branches.list(projectId, {
-    limit: 1,
-    offset: 0,
-  }).then((resp) => resp.data[0].id);
+  const newBranch = await branchNameToBranch(
+    newProject.id,
+    DEFAULT_BRANCH_NAME,
+  );
 
   // Push the local directory contents to the new project
   const fileState = await push({
     targetDir: sourceDir,
-    projectId,
-    branchId,
+    projectId: newProject.id,
+    branchId: newBranch.id,
     gitignoreRules,
   });
 
   return {
-    fileState,
-    projectId,
+    itemStateChanges: fileState,
+    newProjectId: newProject.id,
+    newBranchId: newBranch.id,
   };
 }

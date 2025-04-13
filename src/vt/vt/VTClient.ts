@@ -12,7 +12,7 @@ import {
   type CheckoutResult,
   type ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
+import sdk, { branchNameToBranch, getLatestVersion, user } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   FIRST_VERSION_NUMBER,
@@ -25,6 +25,9 @@ import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
+import { remix } from "~/vt/lib/remix.ts";
+import type { ProjectPrivacy } from "~/types.ts";
+import { create } from "~/vt/lib/create.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -115,13 +118,6 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
-    // If the directory exists, that is only OK if it is empty
-    if (await exists(rootPath) && !(await dirIsEmpty(rootPath))) {
-      throw new Error(
-        `"${relative(Deno.cwd(), rootPath)}" already exists and is not empty`,
-      );
-    }
-
     const projectId = await sdk.alias.username.projectName.retrieve(
       username,
       projectName,
@@ -137,10 +133,6 @@ export default class VTClient {
       (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
 
     const vt = new VTClient(rootPath);
-
-    if ((await exists(vt.getMeta().getVtStateFileName()))) {
-      throw new Error("VT project already initialized in this directory");
-    }
 
     await vt.getMeta().saveVtState({
       project: { id: projectId },
@@ -262,15 +254,18 @@ export default class VTClient {
     privacy: "public" | "private" | "unlisted";
     description?: string;
   }): Promise<VTClient> {
+    await assertSafeDirectory(rootPath);
+
     // First create the project
-    const project = await sdk.projects.create({
-      name: projectName,
+    const { newProjectId } = await create({
+      sourceDir: rootPath,
+      projectName,
       privacy,
       description,
     });
 
     // Get the project branch
-    const branch = await branchNameToBranch(project.id, DEFAULT_BRANCH_NAME);
+    const branch = await branchNameToBranch(newProjectId, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
     // Clone and return the VTClient
@@ -278,6 +273,68 @@ export default class VTClient {
       username,
       projectName,
       rootPath,
+    });
+  }
+
+  /**
+   * Remix an existing Val Town project and initialize a VT instance for it.
+   *
+   * @param {Object} options - The options for remixing a project
+   * @param {string} options.rootPath - The root path where the VT instance will be initialized
+   * @param {string} options.srcProjectUsername - The username of the source project owner
+   * @param {string} options.srcProjectName - The name of the source project to remix
+   * @param {string} [options.srcBranchName] - The branch name of the source project to remix (defaults to main)
+   * @param {string} options.dstProjectName - The name for the new remixed project
+   * @param {'public' | 'private' | 'unlisted'} options.dstProjectPrivacy - The privacy setting for the new project
+   * @param {string} [options.description] - Optional description for the new project
+   * @returns {Promise<VTClient>} A new VTClient instance
+   */
+  public static async remix({
+    rootPath,
+    srcProjectUsername,
+    srcProjectName,
+    srcBranchName = DEFAULT_BRANCH_NAME,
+    dstProjectName,
+    dstProjectPrivacy,
+    description,
+  }: {
+    rootPath: string;
+    srcProjectUsername: string;
+    srcProjectName: string;
+    srcBranchName?: string;
+    dstProjectName: string;
+    dstProjectPrivacy?: ProjectPrivacy;
+    description?: string;
+  }): Promise<VTClient> {
+    await assertSafeDirectory(rootPath);
+
+    // Get the source project ID from username and project name
+    const sourceProject = await sdk.alias.username.projectName.retrieve(
+      srcProjectUsername,
+      srcProjectName,
+    );
+
+    // Remix the project
+    const { toProjectId, toVersion } = await remix({
+      targetDir: rootPath,
+      srcProjectId: sourceProject.id,
+      srcBranchId: srcBranchName,
+      projectName: dstProjectName,
+      description,
+      privacy: dstProjectPrivacy,
+    });
+
+    // Get the project branch
+    const branch = await branchNameToBranch(toProjectId, DEFAULT_BRANCH_NAME);
+    if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
+
+    // Return the new VTClient
+    return VTClient.init({
+      projectName: dstProjectName,
+      username: user.username!,
+      rootPath,
+      version: toVersion,
+      branchName: branch.name,
     });
   }
 
@@ -305,6 +362,8 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
+    await assertSafeDirectory(rootPath);
+
     const vt = await VTClient.init({
       rootPath,
       username,
@@ -523,5 +582,19 @@ export default class VTClient {
 
       return result;
     });
+  }
+}
+
+/**
+ * Ensures the specified directory is safe to use (either doesn't exist or is empty)
+ * @param {string} rootPath - The path to the directory to check
+ * @throws {Error} If the directory exists and is not empty
+ */
+async function assertSafeDirectory(rootPath: string) {
+  // If the directory exists, that is only OK if it is empty
+  if (await exists(rootPath) && !await dirIsEmpty(rootPath)) {
+    throw new Error(
+      `"${relative(Deno.cwd(), rootPath)}" already exists and is not empty`,
+    );
   }
 }

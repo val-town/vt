@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import sdk, { projectExists, user } from "~/sdk.ts";
+import { projectExists, user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
@@ -27,10 +27,10 @@ export const remixCmd = new Command()
   .example(
     "Bootstrap a website",
     `
- vt remix srd/reactHonoStarter myNewWebsite
- cd ./myNewWebsite
- vt browse
- vt watch # syncs changes to val town`,
+  vt remix srd/reactHonoStarter myNewWebsite
+  cd ./myNewWebsite
+  vt browse
+  vt watch # syncs changes to val town`,
   )
   .action(async (
     {
@@ -64,10 +64,10 @@ export const remixCmd = new Command()
       if (
         !await projectExists({
           projectName: sourceProjectName,
-          username: sourceProjectUsername,
+          username: user.username!,
         })
       ) {
-        projectName = newProjectName || `${sourceProjectName}_remix`;
+        projectName = sourceProjectName;
       } else {
         projectName = newProjectName ||
           `${sourceProjectName}_remix_${randomIntegerBetween(10000, 99999)}`;
@@ -82,32 +82,20 @@ export const remixCmd = new Command()
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       try {
-        // Get the source project ID
-        const sourceProject = await sdk.alias.username.projectName.retrieve(
-          sourceProjectUsername,
-          sourceProjectName,
-        );
-
-        if (!sourceProject) {
-          throw new Error(
-            `Source project @${sourceProjectUsername}/${sourceProjectName} not found`,
-          );
-        }
-
-        // Use the remix function instead of create
-        const vt = await VTClient.remix(
+        // Use the remix function with updated signature
+        const vt = await VTClient.remix({
           rootPath,
-          sourceProject.id,
-          projectName,
-          user.username!, // Init the client with authenticated user
-          privacy,
+          srcProjectUsername: sourceProjectUsername,
+          srcProjectName: sourceProjectName,
+          dstProjectName: projectName,
+          dstProjectPrivacy: privacy,
           description,
-        );
+        });
 
         if (editorFiles) await vt.addEditorFiles();
 
         spinner.succeed(
-          `Remixed @${sourceProjectUsername}/${sourceProjectName} to ${privacy} project @${user.username}/${projectName}`,
+          `Remixed "@${sourceProjectUsername}/${sourceProjectName}" to ${privacy} project "@${user.username}/${projectName}"`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {

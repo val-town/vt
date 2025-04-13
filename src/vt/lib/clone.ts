@@ -11,6 +11,14 @@ import {
 } from "~/vt/lib/ItemStatusManager.ts";
 
 /**
+ * Result of a clone operation.
+ */
+export interface CloneResult {
+  /** Changes made to items during the cloning process */
+  itemStateChanges: ItemStatusManager;
+}
+
+/**
  * Parameters for cloning a project by downloading its files and directories to the specified
  * target directory.
  */
@@ -36,7 +44,7 @@ export interface CloneParams {
  * @param params Options for the clone operation
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone(params: CloneParams): Promise<ItemStatusManager> {
+export function clone(params: CloneParams): Promise<CloneResult> {
   const {
     targetDir,
     projectId,
@@ -47,7 +55,7 @@ export function clone(params: CloneParams): Promise<ItemStatusManager> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
-      const changes = new ItemStatusManager();
+      const itemStateChanges = new ItemStatusManager();
       const projectItems = await listProjectItems(
         projectId,
         branchId,
@@ -67,7 +75,7 @@ export function clone(params: CloneParams): Promise<ItemStatusManager> {
 
             // If the directory is new mark it as created
             if (!(await exists(join(targetDir, file.path)))) {
-              changes.insert({
+              itemStateChanges.insert({
                 type: "directory",
                 path: file.path,
                 status: "created",
@@ -84,13 +92,13 @@ export function clone(params: CloneParams): Promise<ItemStatusManager> {
               branchId,
               version,
               file,
-              changes,
+              itemStateChanges,
               dryRun,
             );
           }
         }));
 
-      return [changes, !dryRun];
+      return [{ itemStateChanges }, !dryRun];
     },
     { targetDir, prefix: "vt_clone_" },
   );

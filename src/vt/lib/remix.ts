@@ -1,13 +1,29 @@
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
-import { push } from "~/vt/lib/push.ts";
-import sdk from "~/sdk.ts";
-import type { FileState } from "~/vt/lib/FileState.ts";
+import { create } from "~/vt/lib/create.ts";
+import sdk, { branchNameToBranch, getLatestVersion } from "~/sdk.ts";
+import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_PROJECT_PRIVACY } from "~/consts.ts";
+import type { ProjectPrivacy } from "~/types.ts";
 
 /**
- * Privacy settings for a Val Town project.
+ * Result of remixing a project.
+ *
+ * When a project is remixed, a new project is created based on an existing project.
+ * This object contains information about the newly created project and the changes
+ * that were made to the local file state during the remix operation.
  */
-export type ProjectPrivacy = "public" | "unlisted" | "private";
+export interface RemixResult {
+  /** The ID of the newly created project */
+  toProjectId: string;
+  /** The version number of the newly created project */
+  toVersion: number;
+  /**
+   * Changes made to local state during the remix process. This is roughly the
+   * same result as cloning the project being remixed.
+   */
+  fileStateChanges: ItemStatusManager;
+}
 
 /**
  * Parameters for remixing some Val Town project to a new Val Town project.
@@ -17,6 +33,8 @@ export interface RemixParams {
   targetDir: string;
   /** The id of the project to remix from. */
   srcProjectId: string;
+  /** The id of the branch to remix. Defaults to the main branch. */
+  srcBranchId: string;
   /** The name for the new project. */
   projectName: string;
   /** Optional project description. */
@@ -32,55 +50,60 @@ export interface RemixParams {
  *
  * @param {RemixParams} params Options for remix operation.
  *
- * @returns Promise that resolves with changes that were applied during the push operation to sync the new project with the one we are remixing from.
+ * @returns Promise that resolves with a CheckoutResult containing information about the
+ * newly created project and the changes made during the remix operation.
  */
-export async function remix(params: RemixParams): Promise<[FileState, string]> {
+export async function remix(
+  params: RemixParams,
+): Promise<RemixResult> {
+  const itemStateChanges = new ItemStatusManager();
+
   const {
     targetDir,
     srcProjectId,
     projectName,
-    description = "",
-    privacy = "private",
     gitignoreRules,
   } = params;
 
+  const srcBranch = await branchNameToBranch(
+    srcProjectId,
+    params.srcBranchId ?? DEFAULT_BRANCH_NAME,
+  );
+  const srcProject = await sdk.projects.retrieve(srcProjectId);
+
+  const description = (params.description ?? srcProject.description) || "";
+  const privacy = (params.privacy ?? srcProject.privacy) ||
+    DEFAULT_PROJECT_PRIVACY;
+
   return await doAtomically(async () => {
-    // Get the source project
-    const srcProject = await sdk.projects.retrieve(srcProjectId);
-
-    if (!srcProject) {
-      throw new Error("Source project not found");
-    }
-
-    const srcBranchId = srcProject.id;
-
     // First, clone the source project to the target directory
-    const cloneResult = await clone({
+    const { itemStateChanges: cloneResult } = await clone({
       targetDir,
-      projectId: srcProjectId,
-      branchId: srcBranchId,
+      projectId: srcProject.id,
+      branchId: srcBranch.id,
+      version: srcBranch.version,
       gitignoreRules,
     });
+    itemStateChanges.merge(cloneResult);
 
-    // Create a new project in Val Town
-    const newProject = await sdk.projects.create({
-      name: projectName,
-      description,
-      privacy,
-    });
+    // Create a new project using the files in the target directory
+    const { itemStateChanges: createResult, newProjectId, newBranchId } =
+      await create({
+        sourceDir: targetDir,
+        projectName,
+        description,
+        privacy,
+        gitignoreRules,
+      });
+    itemStateChanges.merge(createResult);
 
-    const dstProjectId = newProject.id;
-    const dstBranchId = newProject.id; // Assuming default branch ID is the same as project ID
-
-    // Then, push the cloned files to the new project
-    const pushResult = await push({
-      targetDir,
-      projectId: dstProjectId,
-      branchId: dstBranchId,
-      gitignoreRules,
-      fileState: cloneResult, // Use the file state from the clone operation
-    });
-
-    return [[pushResult, dstProjectId], true];
+    return [{
+      toProjectId: newProjectId,
+      toVersion: await getLatestVersion(
+        newProjectId,
+        newBranchId,
+      ),
+      fileStateChanges: createResult,
+    }, true];
   }, { targetDir });
 }
