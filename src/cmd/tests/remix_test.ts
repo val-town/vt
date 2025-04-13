@@ -150,3 +150,77 @@ Deno.test({
   },
   sanitizeResources: false,
 });
+
+Deno.test({
+  name: "remix command preserves HTTP type",
+  async fn(t) {
+    // Create a temp dir for the source project
+    await doWithTempDir(async (srcTmpDir) => {
+      // Create a temp dir for the remix destination
+      await doWithTempDir(async (destTmpDir) => {
+        await doWithNewProject(async ({ project }) => {
+          const sourceProjectName = project.name;
+          const remixedProjectName = `${sourceProjectName}_http_preserved`;
+
+          // Clone the project to the source directory
+          await runVtCommand([
+            "clone",
+            `${user.username}/${sourceProjectName}`,
+            srcTmpDir,
+          ], ".");
+
+          // Create an HTTP val in the source project
+          const httpValName = "foo_http";
+          const httpValPath = join(srcTmpDir, `${httpValName}.ts`);
+
+          await Deno.writeTextFile(
+            httpValPath,
+            "export default function handler(req: Request) {\n" +
+              '  return new Response("Hello from HTTP val!");\n' +
+              "}",
+          );
+
+          // Push the changes to sync the HTTP val
+          await runVtCommand(["push"], srcTmpDir, { autoConfirm: true });
+
+          // Remix the project
+          await t.step("remix project with HTTP val", async () => {
+            await runVtCommand([
+              "remix",
+              `${user.username}/${sourceProjectName}`,
+              remixedProjectName,
+            ], destTmpDir);
+
+            // Check that the HTTP val exists in the remixed project
+            const remixedProjectPath = join(destTmpDir, remixedProjectName);
+            const remixedHttpValPath = join(
+              remixedProjectPath,
+              `${httpValName}.ts`,
+            );
+
+            assert(
+              await exists(remixedHttpValPath),
+              "HTTP val file should exist in remixed project",
+            );
+
+            // Check the file content to ensure it's still an HTTP val
+            const content = await Deno.readTextFile(remixedHttpValPath);
+            assertStringIncludes(
+              content,
+              "export default function handler(req: Request)",
+              "HTTP val signature should be preserved",
+            );
+          });
+
+          // Clean up the remixed project
+          const { id } = await sdk.alias.username.projectName.retrieve(
+            user.username!,
+            remixedProjectName,
+          );
+          await sdk.projects.delete(id);
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
