@@ -1,7 +1,6 @@
 # Val Town CLI
 
-This is the cli to work with projects in the [Val Town](https://val.town)
-platform.
+VT is a cli to work with projects in the [Val Town](https://val.town) platform.
 
 ```
 Usage:   vt
@@ -30,7 +29,7 @@ Commands:
 To install or update to the latest version, run:
 
 ```bash
-deno install -gAfr jsr:@valtown/vt
+deno install -grAf jsr:@valtown/vt
 ```
 
 Or if you would prefer a more descriptive command with minimal permissions:
@@ -39,17 +38,32 @@ Or if you would prefer a more descriptive command with minimal permissions:
 deno install --global --force --reload --allow-read --allow-write --allow-env --allow-net jsr:@valtown/vt
 ```
 
-Set the `VAL_TOWN_API_KEY` environment variable to authenticate. Either as an
-environment variable, or in a .env in your project. Head over to
-[val.town/settings/api](https://www.val.town/settings/api) to make a new one.
-Make sure it has "Read and write" permissions on "Projects".
+To authenticate with `val.town`, just run `vt`, and you should get the dialog
 
-```bash
-# Or add to a .env in your project
-export VAL_TOWN_API_KEY=vtwn_notRealnotRealnotRealnotReal
+```
+Welcome to the Val Town CLI!
+
+  VT is a companion CLI to interface with Val Town projects.
+
+  With this CLI, you can:
+  - Create and manage Val Town projects
+  - Push and pull changes between your local system and Val Town
+  - Watch a directory to keep it automatically synced with Val Town
+  - And more!
+
+  To get started, you need to authenticate with Val Town.
+
+? Would you like to open val.town/settings/api in a browser to get an API key? (y/n) ›
 ```
 
-Run `vt` to confirm everything is working:
+Respond yes, and ensure you select to create an API key with user read &
+project read+write permissions.
+
+Alternatively, you can set the `VAL_TOWN_API_KEY` environment variable to
+authenticate. Either as an environment variable, or place it in a .env in your
+project. 
+
+Now you can run `vt` again to confirm everything is working:
 
 ```bash
 $ vt --version
@@ -62,45 +76,75 @@ vt 0.0.11
 Let's walk through a complete workflow to get you familiar with the Val Town
 CLI.
 
-First, let's create a new project:
+First, let's remix a nice starting project.
+
 
 ```bash
-$ vt create helloWorld
+$ vt remix std/reactHonoStarter myNewWebsite
 
-√ Created public project apricot in ./helloWorld
+√ Remixed "@std/reactHonoStarter" to public project "@you/myNewWebsite"
 
-$ cd helloWorld
+$ cd myNewWebsite
 ```
 
-This directory is empty except for a metadata folder `.vt` that tracks your
-project metadata. Let's start our project by adding a text file.
+![Your new project!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
+
+Alternatively, you can use `vt create` to create a new empty project. If you
+don't specify a path, the name of the project will automatically be used.
+
+When you `remix`, `create`, or `clone` a project, `vt` creates a `.vt` that
+tracks your project metadata. You can think of this like `.git`, it is not
+meant to be manually edited and is used for internal bookkeeping.
+
+`vt` also creates an ignore file, `.vtignore`, which works like
+`.gitignore`, and a `deno.json`. By having a `deno.json`, your editor will be
+able to make use of the
+[Deno LSP](https://docs.deno.com/runtime/reference/cli/lsp/) (for code
+suggestions -- red squiggles, etc). If you use `vscode`, head over and get
+[Deno's official VsCode
+plugin](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno).
+
+If you use some other editor, you'll want to head over to [Deno's editor set
+up](https://docs.deno.com/runtime/getting_started/setup_your_environment/)
+guide and find how to configure yours.
+
+![Making changes](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
+
+Let's start editing our project! Fire up your favorite editor, and then make a
+change to `README.md`.
+
+Now, let's upload this file to your project with `vt push`
 
 ```bash
-echo "Hello val town" > hello.txt
-```
+Pushed:
+  A (file) .vtignore
+  A (file) deno.json
+  M (file) README.md
 
-Upload this file to your project with `vt push`
-
-```bash
-$ vt push
-
-Changes pushed:
-  A (file) hello.txt
-
-Changes pushed:
-  1 created
+Summary:
+  2 created
+  1 modified
 
 √ Successfully pushed local changes
 ```
 
-Now run `vt browse` to see your file in the Val Town website UI.
+The `deno.json` and `.vtignore` by default get tracked in Val Town. If you
+don't want this behavior, then you can delete them and add `deno.json` and
+`.vtignore` to the `.vtignore`(the `.vtignore` will respect itself being
+ignored!).
+
+![Browse the project on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
+
+Now run `vt browse` to see your file in the Val Town website UI. We advise you
+use `vt` in conjunction with the Val Town website. The CLI can do a lot, but
+not everything.
 
 #### HTTP Val
 
-Now that we've written our text file, let's create an HTTP val. Create new file
-with the `.http.tsx` extension and we'll automatically create it as an HTTP val
-with an endpoint. Any file with "http" in the name is detected to be an http
-val, so `_http.tsx` also would work.
+Now that we've written our text file, let's create a new HTTP val. Create new
+file with the `.http.tsx` extension and we'll automatically create it as an
+HTTP val with an endpoint. Any file with "http" in the name is detected to be
+an http val, so `_http.tsx` also would work.
 
 ```bash
 $touch index.http.tsx
@@ -108,11 +152,9 @@ $ vt push
 
 Changes pushed:
   A (http) index.http.tsx
-  M (file) hello.txt
 
 Changes pushed:
   1 created
-  1 modified
 
 √ Successfully pushed local changes
 ```
