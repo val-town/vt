@@ -27,7 +27,7 @@ export const remixCmd = new Command()
   .example(
     "Bootstrap a website",
     `
-   vt remix srd/reactHonoStarter myNewWebsite
+   vt remix std/reactHonoStarter myNewWebsite
    cd ./myNewWebsite
    vt browse
    vt watch # syncs changes to val town`,
