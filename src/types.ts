@@ -7,3 +7,5 @@ export type ProjectItemType =
   | "directory";
 
 export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+
+export type ProjectPrivacy = "public" | "unlisted" | "private";

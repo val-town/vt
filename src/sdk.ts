@@ -6,6 +6,47 @@ import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
 
 /**
+ * Checks if a project exists.
+ *
+ * @param {string} projectId - The ID of the project to check
+ * @returns {Promise<boolean>} Promise resolving to true if the project exists, false otherwise
+ */
+export async function projectExists(projectId: string): Promise<boolean>;
+/**
+ * Checks if a project exists.
+ *
+ * @param {object} options - Project identification options
+ * @param {string} options.username - The username of the project owner
+ * @param {string} options.projectName - The name of the project to check
+ * @returns {Promise<boolean>} Promise resolving to true if the project exists, false otherwise
+ */
+export async function projectExists(options: {
+  username: string;
+  projectName: string;
+}): Promise<boolean>;
+export async function projectExists(
+  projectIdOrOptions: string | { username: string; projectName: string },
+): Promise<boolean> {
+  try {
+    if (typeof projectIdOrOptions === "string") {
+      // Project ID provided
+      const projectId = projectIdOrOptions;
+      await sdk.projects.retrieve(projectId);
+    } else {
+      // Username and project name provided
+      const { username, projectName } = projectIdOrOptions;
+      await sdk.alias.username.projectName.retrieve(username, projectName);
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof ValTown.APIError && error.status === 404) {
+      return false;
+    }
+    throw error; // Re-throw if it's not a 404 error
+  }
+}
+
+/**
  * Checks if a branch with the given name exists in a project.
  *
  * @param {string} projectId - The ID of the project to check
@@ -125,22 +166,6 @@ export const listProjectItems = memoize(async (
 
   return files;
 });
-
-/**
- * Checks if a project exists in Val Town
- *
- * @param projectId - The UUID of the project to check
- * @returns A promise that resolves to true if the project exists, false if it doesn't exist
- */
-export async function projectExists(projectId: string) {
-  try {
-    return Boolean(await sdk.projects.retrieve(projectId));
-  } catch (e) {
-    if (e instanceof ValTown.APIError && e.status === 404) {
-      return false;
-    } else throw e;
-  }
-}
 
 /**
  * Get the latest version of a branch.

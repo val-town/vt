@@ -68,7 +68,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
       // Clone all the files from the project into the temp dir. This
       // implicitly will overwrite files with the current version on the
       // server.
-      const cloneChanges = await clone({
+      const { itemStateChanges: cloneChanges } = await clone({
         targetDir: tmpDir,
         projectId,
         branchId,

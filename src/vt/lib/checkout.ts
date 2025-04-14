@@ -1,4 +1,3 @@
-import { doAtomically } from "~/vt/lib/utils.ts";
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
@@ -7,6 +6,7 @@ import { copy, exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import { doAtomically } from "~/vt/lib/utils.ts";
 
 /**
  * Result of a checkout operation containing branch information and file

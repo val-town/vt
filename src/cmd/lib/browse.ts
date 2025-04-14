@@ -15,7 +15,7 @@ export const browseCmd = new Command()
     const state = await vt.getMeta().loadVtState();
     const branch = await sdk.projects.branches.retrieve(
       state.project.id,
-      String(state.branch.version),
+      state.branch.id,
     );
 
     if (browser) {

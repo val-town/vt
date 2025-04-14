@@ -17,6 +17,7 @@ cmd.command("checkout", cmds.checkoutCmd);
 cmd.command("watch", cmds.watchCmd);
 cmd.command("browse", cmds.browseCmd);
 cmd.command("create", cmds.createCmd);
+cmd.command("remix", cmds.remixCmd);
 cmd.command("config", cmds.configCmd);
 cmd.command("delete", cmds.deleteCmd);
 cmd.command("list", cmds.listCmd);
