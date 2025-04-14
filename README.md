@@ -25,7 +25,7 @@ Commands:
   remix     <fromProjectUri> [newProjectName] [targetDir]  - Remix a Val Town project                              
   config                                                   - Manage vt configuration                               
   delete                                                   - Delete a Val Town project                             
-  list                                                     - List all your Val Town projects                       
+  list                                                     - List all your Val Town projects
 ```
 
 ## Installation
