@@ -66,7 +66,7 @@ export async function create(
   );
 
   // Push the local directory contents to the new project
-  const fileState = await push({
+  const { itemStateChanges } = await push({
     targetDir: sourceDir,
     projectId: newProject.id,
     branchId: newBranch.id,
@@ -74,7 +74,7 @@ export async function create(
   });
 
   return {
-    itemStateChanges: fileState,
+    itemStateChanges: itemStateChanges,
     newProjectId: newProject.id,
     newBranchId: newBranch.id,
   };
