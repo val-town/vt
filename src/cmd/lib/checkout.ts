@@ -1,9 +1,5 @@
 import { Command } from "@cliffy/command";
 import ValTown from "@valtown/sdk";
-import {
-  displayFileStateChanges,
-  noChangesDryRunMsg,
-} from "~/cmd/lib/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -11,6 +7,8 @@ import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
 import sdk, { user } from "~/sdk.ts";
+import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
+import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
 const toListBranchesCmd = "Use `vt branch` to list branches.";
 const noChangesToStateMsg = "No changes were made to local state";
@@ -127,7 +125,8 @@ export const checkoutCmd = new Command()
             // right intersection so we overwrite all the previously detected to
             // be dangerous state changes as safe if it's not modified according
             // to vt.status().
-            const dangerousLocalChanges = dryCheckoutResult.fileStateChanges
+            const dangerousLocalChanges = await dryCheckoutResult
+              .fileStateChanges
               .filter(
                 (fileStatus) => (fileStatus.status == "deleted" ||
                   fileStatus.status == "modified"),

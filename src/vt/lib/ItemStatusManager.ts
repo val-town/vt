@@ -1,13 +1,23 @@
 import { levenshteinDistance } from "@std/text";
 import type { ProjectItemType } from "~/types.ts";
-import { RENAME_DETECTION_THRESHOLD, TYPE_PRIORITY } from "~/consts.ts";
+import {
+  PROJECT_ITEM_NAME_REGEX,
+  RENAME_DETECTION_THRESHOLD,
+  TYPE_PRIORITY,
+} from "~/consts.ts";
 import { basename } from "@std/path";
+import { hasNullBytes } from "~/utils.ts";
+
+export type ItemWarning =
+  | "bad_name"
+  | "is_binary";
 
 export interface ItemInfo {
   type: ProjectItemType;
   path: string;
   mtime: number;
   content?: string; // directories don't have content
+  warnings?: ItemWarning[];
 }
 
 export type ItemStatusState =
@@ -119,11 +129,22 @@ export class ItemStatusManager {
    * @returns The total number of files in this FileState
    */
   public size(): number {
-    return this.#modified.size +
-      this.#not_modified.size +
-      this.#deleted.size +
-      this.#created.size +
-      this.#renamed.size;
+    return this.all().length;
+  }
+
+  /**
+   * Returns all items in this ItemStatusManager as a single array.
+   *
+   * @returns Array containing all items from all categories
+   */
+  public all(): ItemStatus[] {
+    return [
+      ...this.created,
+      ...this.deleted,
+      ...this.modified,
+      ...this.not_modified,
+      ...this.renamed,
+    ];
   }
 
   /**
@@ -134,6 +155,15 @@ export class ItemStatusManager {
    */
   public changes(): number {
     return this.size() - this.#not_modified.size;
+  }
+
+  /**
+   * Checks if any item in the ItemStatusManager has warnings.
+   *
+   * @returns True if at least one item has warnings, false otherwise
+   */
+  public hasWarnings(): boolean {
+    return this.all().some((item) => item.warnings?.length);
   }
 
   /**
@@ -258,8 +288,6 @@ export class ItemStatusManager {
   /**
    * Inserts a file with the specified status, automatically handling transitions
    * between states based on existing entries.
-   *
-   * @param item - The file status to insert
    */
   public insert(item: ItemStatus): this {
     if (item.path.length === 0) throw new Error("File path cannot be empty");
@@ -314,10 +342,15 @@ export class ItemStatusManager {
   public consolidateRenames(): this {
     const processed = new Set<string>();
 
-    for (const oldItem of [...this.deleted]) {
+    const deletedItems = Array.from(this.deleted)
+      .sort((a, b) => b.mtime - a.mtime);
+    const createdItems = Array.from(this.created)
+      .sort((a, b) => b.mtime - a.mtime);
+
+    for (const oldItem of deletedItems) {
       // Find the most similar other entry
       let maxSimilarItem: RenamedItemStatus | null = null;
-      for (const newItem of [...this.created]) {
+      for (const newItem of createdItems) {
         // deno-fmt-ignore
         if (oldItem.type === "directory" || newItem.type === "directory") continue;
         if (oldItem.path === newItem.path) continue;
@@ -376,9 +409,29 @@ export class ItemStatusManager {
 
       // If we detected a similar item, then add it to the state
       if (maxSimilarItem && !processed.has(maxSimilarItem.path)) {
-        this.insert(maxSimilarItem);
-        processed.add(maxSimilarItem.path);
-        processed.add(maxSimilarItem.oldPath);
+        // If there are any other files that were created or deleted that have
+        // the same contents then we ignore the rename, unless the duplicate's
+        // mtime is older
+        const contentToCheck = maxSimilarItem.content;
+
+        const hasDuplicateContent = contentToCheck && (
+          this.deleted.some((item) =>
+            item.path !== oldItem.path &&
+            item.content === contentToCheck &&
+            item.mtime >= oldItem.mtime
+          ) ||
+          this.created.some((item) =>
+            item.path !== maxSimilarItem!.path &&
+            item.content === contentToCheck &&
+            item.mtime >= oldItem.mtime
+          )
+        );
+
+        if (!hasDuplicateContent) {
+          this.insert(maxSimilarItem);
+          processed.add(maxSimilarItem.path);
+          processed.add(maxSimilarItem.oldPath);
+        }
       }
     }
 
@@ -533,4 +586,22 @@ export class ItemStatusManager {
   [Symbol.for("Deno.customInspect")](): string {
     return JSON.stringify(this.toJSON(), null, 2);
   }
+}
+
+/**
+ * Get a list of warnings for a given item at a specific path.
+ */
+export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
+  const warnings: ItemWarning[] = [];
+
+  const fileInfo = await Deno.stat(path);
+
+  if (!fileInfo.isDirectory && hasNullBytes(await Deno.readTextFile(path))) {
+    warnings.push("is_binary");
+  }
+  if (!PROJECT_ITEM_NAME_REGEX.test(basename(path))) {
+    warnings.push("bad_name");
+  }
+
+  return warnings;
 }

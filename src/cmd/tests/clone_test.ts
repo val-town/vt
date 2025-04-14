@@ -4,8 +4,9 @@ import { exists } from "@std/fs";
 import { join } from "@std/path";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import type { ProjectFileType } from "~/types.ts";
+import { deadline } from "@std/async";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
@@ -229,6 +230,65 @@ Deno.test({
 
       assertStringIncludes(out, "Project not found");
     });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "interactive clone with no project URI",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+    run: true,
+  },
+  fn: async (t: Deno.TestContext) => {
+    const testPromise = (async () => {
+      await doWithTempDir(async (tmpDir) => {
+        await doWithNewProject(async ({ project }) => {
+          let outputLines: string[];
+          let cloneChild: Deno.ChildProcess;
+
+          await t.step("use interactive clone", async () => {
+            // Start the clone process with no arguments
+            [outputLines, cloneChild] = streamVtCommand(
+              ["clone"],
+              tmpDir,
+            );
+
+            // Send the project name followed by Enter
+            const stdin = cloneChild.stdin.getWriter();
+            await stdin.write(new TextEncoder().encode(project.name + "\n"));
+            stdin.releaseLock();
+
+            // Process should complete
+            const { code } = await cloneChild.status;
+
+            // Check if the clone was successful
+            assert(
+              code === 0,
+              "clone process should exit with code 0",
+            );
+
+            // Verify the project directory exists
+            assert(
+              await exists(join(tmpDir, project.name)),
+              "project directory was not created",
+            );
+
+            // Verify output contains cloning confirmation
+            assert(
+              outputLines.some((line) => line.includes("cloned")),
+              "Output should include cloning confirmation",
+            );
+          });
+        });
+      });
+    })();
+
+    // in case input isn't accepted and it hangs waiting for input
+    await deadline(testPromise, 5000);
   },
   sanitizeResources: false,
 });
