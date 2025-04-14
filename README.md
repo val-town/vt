@@ -56,12 +56,12 @@ Welcome to the Val Town CLI!
 ? Would you like to open val.town/settings/api in a browser to get an API key? (y/n) ›
 ```
 
-Respond yes, and ensure you select to create an API key with user read &
-project read+write permissions.
+Respond yes, and ensure you select to create an API key with user read & project
+read+write permissions.
 
 Alternatively, you can set the `VAL_TOWN_API_KEY` environment variable to
 authenticate. Either as an environment variable, or place it in a .env in your
-project. 
+project.
 
 Now you can run `vt` again to confirm everything is working:
 
@@ -78,7 +78,6 @@ CLI.
 
 First, let's remix a nice starting project.
 
-
 ```bash
 $ vt remix std/reactHonoStarter myNewWebsite
 
@@ -93,19 +92,17 @@ Alternatively, you can use `vt create` to create a new empty project. If you
 don't specify a path, the name of the project will automatically be used.
 
 When you `remix`, `create`, or `clone` a project, `vt` creates a `.vt` that
-tracks your project metadata. You can think of this like `.git`, it is not
-meant to be manually edited and is used for internal bookkeeping.
+tracks your project metadata. You can think of this like `.git`, it is not meant
+to be manually edited and is used for internal bookkeeping.
 
-`vt` also creates an ignore file, `.vtignore`, which works like
-`.gitignore`, and a `deno.json`. By having a `deno.json`, your editor will be
-able to make use of the
-[Deno LSP](https://docs.deno.com/runtime/reference/cli/lsp/) (for code
+`vt` also creates an ignore file, `.vtignore`, which works like `.gitignore`,
+and a `deno.json`. By having a `deno.json`, your editor will be able to make use
+of the [Deno LSP](https://docs.deno.com/runtime/reference/cli/lsp/) (for code
 suggestions -- red squiggles, etc). If you use `vscode`, head over and get
-[Deno's official VsCode
-plugin](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno).
+[Deno's official VsCode plugin](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno).
 
-If you use some other editor, you'll want to head over to [Deno's editor set
-up](https://docs.deno.com/runtime/getting_started/setup_your_environment/)
+If you use some other editor, you'll want to head over to
+[Deno's editor set up](https://docs.deno.com/runtime/getting_started/setup_your_environment/)
 guide and find how to configure yours.
 
 ![Making changes](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
@@ -128,23 +125,22 @@ Summary:
 √ Successfully pushed local changes
 ```
 
-The `deno.json` and `.vtignore` by default get tracked in Val Town. If you
-don't want this behavior, then you can delete them and add `deno.json` and
-`.vtignore` to the `.vtignore`(the `.vtignore` will respect itself being
-ignored!).
+The `deno.json` and `.vtignore` by default get tracked in Val Town. If you don't
+want this behavior, then you can delete them and add `deno.json` and `.vtignore`
+to the `.vtignore`(the `.vtignore` will respect itself being ignored!).
 
 ![Browse the project on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
 
 Now run `vt browse` to see your file in the Val Town website UI. We advise you
-use `vt` in conjunction with the Val Town website. The CLI can do a lot, but
-not everything.
+use `vt` in conjunction with the Val Town website. The CLI can do a lot, but not
+everything.
 
 #### HTTP Val
 
 Now that we've written our text file, let's create a new HTTP val. Create new
-file with the `.http.tsx` extension and we'll automatically create it as an
-HTTP val with an endpoint. Any file with "http" in the name is detected to be
-an http val, so `_http.tsx` also would work.
+file with the `.http.tsx` extension and we'll automatically create it as an HTTP
+val with an endpoint. Any file with "http" in the name is detected to be an http
+val, so `_http.tsx` also would work.
 
 ```bash
 $touch index.http.tsx
