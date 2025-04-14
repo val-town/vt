@@ -29,7 +29,7 @@ export const pushCmd = new Command()
         const projectToPush = await sdk.projects.retrieve(vtState.project.id);
         if (projectToPush.author.id !== user.id) {
           throw new Error(
-            "You are not the owner of this projecta, you cannot push." +
+            "You are not the owner of this project, you cannot push." +
               "\nTo make a PR, go to the website, fork the project, clone the fork, make changes, push them, and then PR on the website.",
           );
         }
