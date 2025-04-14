@@ -112,14 +112,15 @@ export const checkoutCmd = new Command()
             // right intersection so we overwrite all the previously detected to
             // be dangerous state changes as safe if it's not modified according
             // to vt.status().
-            const dangerousLocalChanges = await dryCheckoutResult
+            const priorVtStatus = await vt.status();
+            const dangerousLocalChanges = dryCheckoutResult
               .fileStateChanges
               .filter(
                 (fileStatus) => (fileStatus.status == "deleted" ||
                   fileStatus.status == "modified"),
               )
               .merge(
-                (await vt.status())
+                priorVtStatus
                   // https://github.com/val-town/vt/pull/71
                   // If a file is modified more recently remotely during a
                   // checkout, then we do not need to count it as a dirty state,
