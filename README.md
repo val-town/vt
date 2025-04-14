@@ -3,25 +3,29 @@
 VT is a cli to work with projects in the [Val Town](https://val.town) platform.
 
 ```
-Usage:   vt
-Version: 0.0.11
+Usage:   vt    
+Version: 0.1.19
 
 Options:
 
-  -h, --help     - Show this help.
-  -V, --version  - Show the version number for this program.
+  -h, --help     - Show this help.                            
+  -V, --version  - Show the version number for this program.  
 
 Commands:
 
-  clone     <projectUri> [cloneDir] [branchName]  - Clone a val town project
-  push                                            - Push local changes to a val town project
-  pull                                            - Pull the latest changes for a val town project
-  status                                          - Show the working tree status
-  branch                                          - List all project branches 
-  checkout  [existingBranchName]                  - Check out a different branch
-  watch                                           - Watch for changes and automatically sync with Val Town
-  browse                                          - Open a project in a web browser
-  create    <projectName> [targetDir]             - Create a new Val Town project
+  clone     [projectUri] [cloneDir] [branchName]           - Clone a val town project                              
+  push                                                     - Push local changes to a val town project              
+  pull                                                     - Pull the latest changes for a val town project        
+  status                                                   - Show the working tree status                          
+  branch                                                   - List or delete branches                               
+  checkout  [existingBranchName]                           - Check out a different branch                          
+  watch                                                    - Watch for changes and automatically sync with Val Town
+  browse                                                   - Open a project in a web browser                       
+  create    <projectName> [targetDir]                      - Create a new Val Town project                         
+  remix     <fromProjectUri> [newProjectName] [targetDir]  - Remix a Val Town project                              
+  config                                                   - Manage vt configuration                               
+  delete                                                   - Delete a Val Town project                             
+  list                                                     - List all your Val Town projects                       
 ```
 
 ## Installation
