@@ -6,7 +6,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
-import sdk from "~/sdk.ts";
+import sdk, { user } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
@@ -83,6 +83,19 @@ export const checkoutCmd = new Command()
           try {
             const targetBranch = branch || existingBranchName!;
             const isNewBranch = Boolean(branch);
+
+            if (isNewBranch) {
+              // Early exit if they are trying to make a new branch on a
+              // project that they don't own
+              const projectToPush = await sdk.projects.retrieve(
+                vtState.project.id,
+              );
+              if (projectToPush.author.id !== user.id) {
+                throw new Error(
+                  "You are not the owner of this projecta, you cannot make a new branch.",
+                );
+              }
+            }
 
             // Always do a dry checkout first to check for changes
             const dryCheckoutResult = await vt.checkout(
