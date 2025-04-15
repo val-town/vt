@@ -6,7 +6,7 @@ import sdk, { randomProjectName, user } from "~/sdk.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import type { ProjectFileType } from "~/types.ts";
-import { deadline } from "@std/async";
+import { deadline, delay } from "@std/async";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
@@ -261,6 +261,8 @@ Deno.test({
             const stdin = cloneChild.stdin.getWriter();
             await stdin.write(new TextEncoder().encode(project.name + "\n"));
             stdin.releaseLock();
+
+            await delay(1000); // Wait for the process to handle input
 
             // Process should complete
             const { code } = await cloneChild.status;
