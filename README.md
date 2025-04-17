@@ -1,27 +1,34 @@
 # Val Town CLI
 
-VT is a cli to work with projects in the [Val Town](https://val.town) platform.
+![Vt in action!](https://github.com/user-attachments/assets/a6355261-4964-4d7b-b297-c7f42b25512b)
+
+VT is the official CLI to work with projects on the [Val Town](https://val.town)
+platform.
 
 ```
-Usage:   vt
-Version: 0.0.11
+Usage:   vt    
+Version: x.x.xx
 
 Options:
 
-  -h, --help     - Show this help.
-  -V, --version  - Show the version number for this program.
+  -h, --help     - Show this help.                            
+  -V, --version  - Show the version number for this program.  
 
 Commands:
 
-  clone     <projectUri> [cloneDir] [branchName]  - Clone a val town project
-  push                                            - Push local changes to a val town project
-  pull                                            - Pull the latest changes for a val town project
-  status                                          - Show the working tree status
-  branch                                          - List all project branches 
-  checkout  [existingBranchName]                  - Check out a different branch
-  watch                                           - Watch for changes and automatically sync with Val Town
-  browse                                          - Open a project in a web browser
-  create    <projectName> [targetDir]             - Create a new Val Town project
+  clone     [projectUri] [targetDir] [branchName]          - Clone a val town project
+  push                                                     - Push local changes to a val town project
+  pull                                                     - Pull the latest changes for a val town project
+  status                                                   - Show the working tree status
+  branch                                                   - List or delete branches
+  checkout  [existingBranchName]                           - Check out a different branch
+  watch                                                    - Watch for changes and automatically sync with Val Town
+  browse                                                   - Open a project in a web browser
+  create    <projectName> [targetDir]                      - Create a new Val Town project
+  remix     <fromProjectUri> [newProjectName] [targetDir]  - Remix a Val Town project
+  config                                                   - Manage vt configuration
+  delete                                                   - Delete a Val Town project
+  list                                                     - List all your Val Town projects
 ```
 
 ## Installation
@@ -68,7 +75,7 @@ Now you can run `vt` again to confirm everything is working:
 ```bash
 $ vt --version
 
-vt 0.0.11
+vt x.x.xx
 ```
 
 ## Getting Started
@@ -130,9 +137,20 @@ Summary:
 √ Successfully pushed local changes
 ```
 
-The `deno.json` and `.vtignore` by default get tracked in Val Town. If you don't
-want this behavior, then you can delete them and add `deno.json` and `.vtignore`
-to the `.vtignore`(the `.vtignore` will respect itself being ignored!).
+[Reverting](https://filedumpthing.val.run/blob/blob_file_1744908459972_recording.gif)
+
+Note that `vt push` in general **is** a _forceful_ operation and there are never
+confirmations when you push. This is because if you ever need to "undo" a push,
+you can use the Val Town website to revert to a previous version. Make sure
+after reverting to do a `vt pull` to get that new change reflected locally. `vt`
+pull **is** _graceful_, so you may have to confirm you are OK losing the local
+state when you pull. There should never be a situation where you run a command
+that causes irreversible changes.
+
+The `deno.json` and `.vtignore` get tracked in Val Town, but don't get pushed
+until you run `vt push`. If you don't want this behavior, then you can delete
+them and add `deno.json` and `.vtignore` to the `.vtignore`(the `.vtignore` will
+respect itself being ignored!).
 
 ![Browse the project on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
 
@@ -182,7 +200,45 @@ $ curl https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run
 Hello GET https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run/
 ```
 
-### Configuration
+### Watching for Changes
+
+Oftentimes you'll end up in a workflow that looks like
+
+1. Make a change locally
+2. `vt push`
+3. Reload the website
+4. Repeat
+
+`vt`'s solution to tightening this loop is `vt watch`. With `vt watch`, `vt`
+will automatically run `vt push` when any project files are modified
+**locally**.
+
+To get automatic website reloading, check out
+[this live reload middleware](https://www.val.town/x/stevekrouse/live-reload)
+that works by polling Val Town for updates.
+
+### Branching Out
+
+One common Val Town project workflow is branching out. `vt`'s `checkout` and
+`branch` command work the same as `git`'s.
+
+- `vt checkout <branchName>` checks out the branch as it is on Val Town. You
+  will receive confirmation if the process of checking out would cause loss of
+  any local state. If it would, you can push before you checkout, or you can
+  force checkout (by approving the confirmation or using `vt checkout -f`)
+- `vt checkout -b <newBranchName>` creates a new branch and checks it out. If a
+  file in the local state does not exist on Val Town on the initial branch, it
+  will also not exist on the new branch until you push.
+- `vt branch` lists all branches.
+- `vt branch -D` deletes a branch. You can't delete the branch you are on.
+
+### Management
+
+- `vt list` lists all your Val Town projects
+- `vt delete` deletes the current project of the folder you are in (with
+  confirmation).
+
+## Configuration
 
 `vt` has a simple to use configuration interface whose backend rests in
 `<System Configuration Directory>/vt/config.yaml`. Right now, this file only
@@ -194,17 +250,15 @@ global config is modified). This can be useful if someone shares an API key with
 you so you can collaborate on a project. You can view all configuration options
 with `vt config`, and all the ones you've set with `vt config get`.
 
-### LLMs
+## LLMs
 
 Vt lets you use all your favorite local LLM tools like
-[Claude
-Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview),
+[Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview),
 [Cursor](https://www.cursor.com/), and [Windsurf](https://windsurf.com/editor)
 with Val Town.
 
 If you're using local AI tools, you will find it useful providing them
-[OpenTownie's system
-prompt](https://esm.town/v/stevekrouse/OpenTownie/prompts/system_prompt.txt).
+[OpenTownie's system prompt](https://esm.town/v/stevekrouse/OpenTownie/prompts/system_prompt.txt).
 
 One quirk of `vt` that's a bit different from OpenTownie is that to create http
 vals you need to include `http` in the name of the file. You can amend the
