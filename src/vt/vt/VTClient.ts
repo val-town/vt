@@ -171,6 +171,14 @@ export default class VTClient {
     debounceDelay: number = 1000,
     gracePeriod: number = 250,
   ): Promise<void> {
+    // Ensure there are not multiple watchers at once
+    const vtState = await this.getMeta().loadVtState();
+    try {
+      Deno.kill(vtState.lastRun.pid);
+    } catch (e) {
+      if (!(e instanceof Deno.errors.NotFound)) throw e;
+    }
+
     // Do an initial push
     const firstPush = await this.push();
     if (firstPush.changes() > 0) {
