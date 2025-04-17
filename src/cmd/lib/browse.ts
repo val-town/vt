@@ -4,6 +4,7 @@ import sdk from "~/sdk.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
+import { delay } from "@std/async";
 
 export const browseCmd = new Command()
   .name("browse")
@@ -21,6 +22,7 @@ export const browseCmd = new Command()
     if (browser) {
       await doWithSpinner("Opening project url...", async (spinner) => {
         await open(branch.links.html);
+        await delay(150);
         spinner.succeed(`Project url opened in browser:\n${branch.links.html}`);
       });
     } else console.log(`${branch.links.html}`);
