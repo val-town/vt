@@ -263,4 +263,3 @@ If you're using local AI tools, you will find it useful providing them
 One quirk of `vt` that's a bit different from OpenTownie is that to create http
 vals you need to include `http` in the name of the file. You can amend the
 prompt, or just change the type on the Val Town website after the fact.
-
