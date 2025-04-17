@@ -1,6 +1,6 @@
 # Val Town CLI
 
-![Vt in action!](https://filedumpthing.val.run/blob/blob_file_1744914440382_watching-example.gif)
+![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
 
 VT is the official CLI to work with projects on the [Val Town](https://val.town)
 platform.
@@ -263,3 +263,4 @@ If you're using local AI tools, you will find it useful providing them
 One quirk of `vt` that's a bit different from OpenTownie is that to create http
 vals you need to include `http` in the name of the file. You can amend the
 prompt, or just change the type on the Val Town website after the fact.
+
