@@ -1,6 +1,6 @@
 # Val Town CLI
 
-![Vt in action!](https://github.com/user-attachments/assets/a6355261-4964-4d7b-b297-c7f42b25512b)
+![Vt in action!](https://filedumpthing.val.run/blob/blob_file_1744914440382_watching-example.gif)
 
 VT is the official CLI to work with projects on the [Val Town](https://val.town)
 platform.
