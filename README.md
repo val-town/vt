@@ -1,9 +1,9 @@
 # Val Town CLI
 
-![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
-
 VT is the official CLI to work with projects on the [Val Town](https://val.town)
 platform.
+
+![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
 
 ```
 Usage:   vt    
@@ -137,7 +137,7 @@ Summary:
 √ Successfully pushed local changes
 ```
 
-[Reverting](https://filedumpthing.val.run/blob/blob_file_1744908459972_recording.gif)
+![Reverting](https://filedumpthing.val.run/blob/blob_file_1744908459972_recording.gif)
 
 Note that `vt push` in general **is** a _forceful_ operation and there are never
 confirmations when you push. This is because if you ever need to "undo" a push,
