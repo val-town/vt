@@ -141,15 +141,15 @@ use `vt` in conjunction with the Val Town website. The CLI can do a lot, but not
 everything.
 
 Sometimes, when working locally you want to create a specific type of val. In
-general, `vt` does not touch the metadata of your vals (this means that
-metadata like `cron` settings in general should get preserved when using `vt`.
-One exception to this is the type of vals created when uploading **new** files
-with `vt`.
+general, `vt` does not touch the metadata of your vals (this means that metadata
+like `cron` settings in general should get preserved when using `vt`. One
+exception to this is the type of vals created when uploading **new** files with
+`vt`.
 
 Now that we've written our text file, let's create a new HTTP val. Create new
-file with the `.http.tsx` extension and we'll automatically create it as an
-HTTP val with an endpoint. Any file with "http" in the name is detected to be
-an http val, so `_http.tsx` also would work.
+file with the `.http.tsx` extension and we'll automatically create it as an HTTP
+val with an endpoint. Any file with "http" in the name is detected to be an http
+val, so `_http.tsx` also would work.
 
 ```bash
 $touch index.http.tsx
@@ -186,10 +186,26 @@ Hello GET https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run/
 
 `vt` has a simple to use configuration interface whose backend rests in
 `<System Configuration Directory>/vt/config.yaml`. Right now, this file only
-stores your `config.yaml`, and some experimental options. 
+stores your `config.yaml`, and some experimental options.
 
 This config can also be overridden locally for specific projects by, when you
 are in a `.vt` directory, using `vt config set [-g for global]` (otherwise the
-global config is modified). This can be useful if someone shares an API key
-with you so you can collaborate on a project. You can view all configuration
-options with `vt config`, and all the ones you've set with `vt config get`.
+global config is modified). This can be useful if someone shares an API key with
+you so you can collaborate on a project. You can view all configuration options
+with `vt config`, and all the ones you've set with `vt config get`.
+
+### LLMs
+
+Vt lets you use all your favorite local LLM tools like
+[Claude
+Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview),
+[Cursor](https://www.cursor.com/), and [Windsurf](https://windsurf.com/editor)
+with Val Town.
+
+If you're using local AI tools, you will find it useful providing them
+[OpenTownie's system
+prompt](https://esm.town/v/stevekrouse/OpenTownie/prompts/system_prompt.txt).
+
+One quirk of `vt` that's a bit different from OpenTownie is that to create http
+vals you need to include `http` in the name of the file. You can amend the
+prompt, or just change the type on the Val Town website after the fact.
