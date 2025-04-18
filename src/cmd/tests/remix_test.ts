@@ -8,7 +8,53 @@ import { exists } from "@std/fs";
 import { META_FOLDER_NAME } from "~/consts.ts";
 
 Deno.test({
-  name: "remix command basic functionality",
+  name: "remix command from current directory",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewProject(async ({ project }) => {
+        // Clone the source project to the temp dir
+        await runVtCommand([
+          "clone",
+          `${user.username}/${project.name}`,
+        ], tmpDir);
+
+        await t.step("remix from current directory", async () => {
+          const [output] = await runVtCommand(
+            ["remix"],
+            join(tmpDir, project.name),
+          );
+
+          // Check that the output contains the expected pattern
+          assertStringIncludes(
+            output,
+            `Remixed current project to public project "@${user.username}/`,
+          );
+
+          // Extract the actual remixed project name from the output
+          const remixPattern = new RegExp(`@${user.username}/([\\w_]+)`);
+          const match = output.match(remixPattern);
+          assert(
+            match && match[1],
+            "Could not extract remixed project name from output",
+          );
+
+          const actualRemixedProjectName = match[1];
+
+          // Clean up the remixed project
+          const { id } = await sdk.alias.username.projectName.retrieve(
+            user.username!,
+            actualRemixedProjectName,
+          );
+          await sdk.projects.delete(id);
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "remix a specific project uri",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project }) => {

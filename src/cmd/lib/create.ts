@@ -62,7 +62,6 @@ vt checkout main`,
     await doWithSpinner("Creating new project...", async (spinner) => {
       const clonePath = getClonePath(targetDir, projectName);
 
-      // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       try {

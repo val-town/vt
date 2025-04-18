@@ -262,8 +262,6 @@ export default class VTClient {
     privacy: "public" | "private" | "unlisted";
     description?: string;
   }): Promise<VTClient> {
-    await assertSafeDirectory(rootPath);
-
     // First create the project
     const { newProjectId } = await create({
       sourceDir: rootPath,
@@ -281,6 +279,7 @@ export default class VTClient {
       username,
       projectName,
       rootPath,
+      assertEmtpyDir: false,
     });
   }
 
@@ -355,6 +354,7 @@ export default class VTClient {
    * @param {string} params.projectName - The name of the project to clone
    * @param {number} [params.version] - Optional specific version to clone, defaults to latest
    * @param {string} [params.branchName] - Optional branch name to clone, defaults to main
+   * @param {boolean} [params.assertEmtpyDir] - Whether to assert that the directory is empty
    * @returns {Promise<VTClient>} A new VTClient instance for the cloned project
    */
   public static async clone({
@@ -363,14 +363,18 @@ export default class VTClient {
     projectName,
     version,
     branchName = DEFAULT_BRANCH_NAME,
+    assertEmtpyDir = true,
   }: {
     rootPath: string;
     username: string;
     projectName: string;
     version?: number;
     branchName?: string;
+    assertEmtpyDir?: boolean;
   }): Promise<VTClient> {
-    await assertSafeDirectory(rootPath);
+    if (assertEmtpyDir) {
+      await assertSafeDirectory(rootPath);
+    }
 
     const vt = await VTClient.init({
       rootPath,
