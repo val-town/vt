@@ -8,6 +8,7 @@ import { colors } from "@cliffy/ansi/colors";
 
 export const deleteCmd = new Command()
   .name("delete")
+  .alias("rm")
   .description("Delete a Val Town project")
   .option("-f, --force", "Skip confirmation prompt")
   .example("Delete current project", "vt delete")
