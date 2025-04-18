@@ -79,8 +79,7 @@ export const TypeToTypeStr: Record<ProjectItemType, string> = {
   "directory": "directory",
 };
 
-export const VAL_TOWN_PROJECT_URL_REGEX =
-  /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
+export const VAL_TOWN_PROJECT_URL_REGEX = /val\.town\/x\/([^\/]+)\/([^\/]+)/;
 
 export const RECENT_VERSION_COUNT = 5;
 
