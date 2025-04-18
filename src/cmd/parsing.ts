@@ -1,25 +1,34 @@
 import { VAL_TOWN_PROJECT_URL_REGEX } from "~/consts.ts";
 
 /**
- * Parses a project URI, either username/projectName, projectName (with
- * defaulted username), or `https://www.val.town/x/username/exampleProject`.
+ * Parses a project identifier from various formats:
+ * - username/projectName or @username/projectName
+ * - projectName (using currentUsername)
+ * - Any val.town URL containing /x/username/projectName
  *
- * @param {string} projectUri - The project URI, either a URL or a project URI.
- * @param {string} currentUsername - The fallback username, if the project URI doesn't specify.
- * @returns The ownerName and projectName extracted from the input.
- * @throws An error if the input format is invalid.
+ * @param {string} projectUri - The project identifier to parse
+ * @param {string} currentUsername - Fallback username if not specified
+ * @returns The extracted ownerName and projectName
+ * @throws Error on invalid format
  */
 export function parseProjectUri(
   projectUri: string,
   currentUsername: string,
 ): { ownerName: string; projectName: string } {
-  const urlMatch = projectUri.match(VAL_TOWN_PROJECT_URL_REGEX);
+  // Handle val.town URLs
+  if (projectUri.includes("val.town/")) {
+    const match = projectUri.match(VAL_TOWN_PROJECT_URL_REGEX);
 
-  if (urlMatch) {
-    const [, ownerName, projectName] = urlMatch;
-    return { ownerName, projectName };
+    if (match) {
+      const [, ownerName, projectName] = match;
+      return { ownerName, projectName };
+    }
+
+    // If we get here, it's a val.town URL but not in the expected format
+    throw new Error("Invalid val.town URL format");
   } else {
-    const parts = projectUri.split("/");
+    // Handle non-URL formats
+    const parts = projectUri.replace(/^@/, "").split("/");
 
     let ownerName: string;
     let projectName: string;
@@ -31,7 +40,7 @@ export function parseProjectUri(
       [ownerName, projectName] = parts;
     } else {
       throw new Error(
-        "Invalid project URI. Must be a URL or a URI (username/projectName)",
+        "Invalid project URI. Must be a URL or a URI (username/projectName or @username/projectName)",
       );
     }
 
