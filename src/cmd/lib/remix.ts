@@ -45,15 +45,14 @@ export const remixCmd = new Command()
       unlisted,
       description,
       editorFiles = true,
-      fromProjectUri,
     }: {
-      fromProjectUri?: string;
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
       description?: string;
       editorFiles?: boolean;
     },
+    fromProjectUri?: string,
     newProjectName?: string,
     targetDir?: string,
   ) => {
