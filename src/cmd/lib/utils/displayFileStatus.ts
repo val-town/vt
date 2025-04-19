@@ -99,11 +99,11 @@ export function displayFileStateChanges(
         for (const file of files) {
           output.push(
             "  " +
-              formatStatus(
-                file,
-                includeTypes ? file.type : undefined,
-                maxTypeLength,
-              ),
+            formatStatus(
+              file,
+              includeTypes ? file.type : undefined,
+              maxTypeLength,
+            ),
           );
         }
       }
@@ -128,7 +128,7 @@ export function displayFileStateChanges(
       );
 
       const warningMessages = file.warnings!.map((warning, index) => {
-        const prettyWarning = WARNING_MESSAGES[warning];
+        const prettyWarning = WARNING_MESSAGES[warning] || warning;
         const prefix = index === 0 ? "Error:" : "      ";
         return "      " + colors.yellow(prefix + " " + prettyWarning);
       });
@@ -210,9 +210,8 @@ function formatPathDisplay(file: ItemStatus, styleConfig: {
       `(${(file.similarity * 100).toFixed(2)}%)`,
     );
 
-    return `${oldPathFormatted}${
-      colors.dim(" -> ")
-    }${newPathFormatted} ${similarityText}`;
+    return `${oldPathFormatted}${colors.dim(" -> ")
+      }${newPathFormatted} ${similarityText}`;
   }
 
   return join(

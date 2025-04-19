@@ -12,6 +12,7 @@ import { status } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
+import ValTown from "@valtown/sdk";
 
 export interface PushResult {
   /** Changes made to project items during the push process */
@@ -103,6 +104,7 @@ export async function push(params: PushParams): Promise<PushResult> {
     branchId,
     safeItemStateChanges,
     existingDirs,
+    itemStateChanges,
   );
   const versionAfterDirectories = await getLatestVersion(projectId, branchId);
 
@@ -123,24 +125,34 @@ export async function push(params: PushParams): Promise<PushResult> {
       const isAtRoot = basename(file.path) == file.path;
 
       if (isAtRoot) {
-        return await sdk.projects.files.update(projectId, {
-          branch_id: branchId,
-          name: undefined,
-          parent_id: null,
-          path: file.oldPath,
-        });
+        return await doReqMaybeApplyWarning(
+          () =>
+            sdk.projects.files.update(projectId, {
+              branch_id: branchId,
+              name: undefined,
+              parent_id: null,
+              path: file.oldPath,
+            }),
+          file.path,
+          itemStateChanges,
+        );
       }
 
       // To move the file to the root dir parent_id must be null and the name
       // must be undefined (the api is very picky about this!)
-      return await sdk.projects.files.update(projectId, {
-        branch_id: branchId,
-        name: isAtRoot ? undefined : basename(file.path),
-        // type: file.type as ProjectFileType,
-        // content: file.content,
-        parent_id: parent?.id || null,
-        path: file.oldPath,
-      });
+      return await doReqMaybeApplyWarning(
+        () =>
+          sdk.projects.files.update(projectId, {
+            branch_id: branchId,
+            name: isAtRoot ? undefined : basename(file.path),
+            // type: file.type as ProjectFileType,
+            // content: file.content,
+            parent_id: parent?.id || null,
+            path: file.oldPath,
+          }),
+        file.path,
+        itemStateChanges,
+      );
     });
 
   // Create all new files that were created (we already handled directories)
@@ -148,14 +160,19 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((f) => f.type !== "directory") // Already created directories
     .map(async (file) => {
       // Upload the file
-      return await sdk.projects.files.create(
-        projectId,
-        {
-          path: file.path,
-          content: await Deno.readTextFile(join(targetDir, file.path)),
-          branch_id: branchId,
-          type: file.type as Exclude<ProjectItemType, "directory">,
-        },
+      return await doReqMaybeApplyWarning(
+        () =>
+          sdk.projects.files.create(
+            projectId,
+            {
+              path: file.path,
+              content: file.content!, // It's a file not a dir so this should be defined
+              branch_id: branchId,
+              type: file.type as Exclude<ProjectItemType, "directory">,
+            },
+          ),
+        file.path,
+        itemStateChanges,
       );
     });
 
@@ -163,25 +180,35 @@ export async function push(params: PushParams): Promise<PushResult> {
   const modifiedPromises = safeItemStateChanges.modified
     .filter((file) => file.type !== "directory")
     .map(async (file) => {
-      return await sdk.projects.files.update(
-        projectId,
-        {
-          path: file.path,
-          branch_id: branchId,
-          content: file.content,
-          name: basename(file.path),
-          type: file.type as ProjectFileType,
-        },
+      return await doReqMaybeApplyWarning(
+        () =>
+          sdk.projects.files.update(
+            projectId,
+            {
+              path: file.path,
+              branch_id: branchId,
+              content: file.content,
+              name: basename(file.path),
+              type: file.type as ProjectFileType,
+            },
+          ),
+        file.path,
+        itemStateChanges,
       );
     });
 
   // Delete files that exist on the server but not locally
   const deletedPromises = itemStateChanges.deleted.map(async (file) => {
-    return await sdk.projects.files.delete(projectId, {
-      path: file.path,
-      branch_id: branchId,
-      recursive: true,
-    });
+    return await doReqMaybeApplyWarning(
+      () =>
+        sdk.projects.files.delete(projectId, {
+          path: file.path,
+          branch_id: branchId,
+          recursive: true,
+        }),
+      file.path,
+      itemStateChanges,
+    );
   });
 
   // Wait for all modifications and deletions to complete
@@ -200,6 +227,7 @@ async function createRequiredDirectories(
   branchId: string,
   fileState: ItemStatusManager,
   existingDirs: Set<string>,
+  itemStateChanges: ItemStatusManager,
 ): Promise<void> {
   // Get directories that need to be created
   const dirsToCreate = fileState.created
@@ -234,12 +262,40 @@ async function createRequiredDirectories(
   // Create all necessary directories
   let createdCount = 0;
   for (const path of sortedDirsToCreate) {
-    await sdk.projects.files.create(
-      projectId,
-      { path, type: "directory", branch_id: branchId },
+    await doReqMaybeApplyWarning(
+      () =>
+        sdk.projects.files.create(
+          projectId,
+          { path, type: "directory", branch_id: branchId },
+        ),
+      path,
+      itemStateChanges,
     );
     // Add to existing dirs set after creation
     existingDirs.add(path);
     createdCount++;
+  }
+}
+
+// Executes a request and applies a warning to the item if the request fails.
+async function doReqMaybeApplyWarning<T>(
+  requestFn: () => Promise<T>,
+  itemPath: string,
+  itemStateChanges: ItemStatusManager,
+): Promise<T | undefined> {
+  try {
+    return await requestFn();
+  } catch (e) {
+    if (e instanceof ValTown.APIError) {
+      itemStateChanges.update(itemPath, {
+        warnings: [
+          ...(itemStateChanges.get(itemPath)?.warnings || []),
+          `unknown: ${e.message}`,
+        ],
+      });
+    } else {
+      throw e;
+    }
+    return undefined;
   }
 }

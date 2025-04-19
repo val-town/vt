@@ -1,6 +1,8 @@
 import { levenshteinDistance } from "@std/text";
 import type { ProjectItemType } from "~/types.ts";
 import {
+  MAX_FILE_CHARS,
+  MAX_FILENAME_LENGTH,
   PROJECT_ITEM_NAME_REGEX,
   RENAME_DETECTION_THRESHOLD,
   TYPE_PRIORITY,
@@ -10,7 +12,10 @@ import { hasNullBytes } from "~/utils.ts";
 
 export type ItemWarning =
   | "bad_name"
-  | "is_binary";
+  | "binary"
+  | "empty"
+  | "too_large"
+  | `unknown: ${string}`;
 
 export interface ItemInfo {
   type: ProjectItemType;
@@ -335,6 +340,62 @@ export class ItemStatusManager {
   }
 
   /**
+   * Gets the item with the specified path from any status category.
+   * 
+   * @param path - The path of the item to get
+   * @returns The item with the specified path, or undefined if not found
+   * @throws Error if item with the specified path doesn't exist
+   * */
+  public get(path: string): ItemStatus {
+    if (this.#modified.has(path)) return this.#modified.get(path)!;
+    if (this.#not_modified.has(path)) return this.#not_modified.get(path)!;
+    if (this.#deleted.has(path)) return this.#deleted.get(path)!;
+    if (this.#created.has(path)) return this.#created.get(path)!;
+    if (this.#renamed.has(path)) return this.#renamed.get(path)!;
+
+    throw new Error(`Item with path "${path}" not found`);
+  }
+
+  /**
+   * Updates an existing item with the specified path by applying a partial update.
+   * Preserves existing properties not included in the update.
+   *
+   * @param path - The path of the item to update
+   * @param update - Partial object with properties to update
+   * @returns this - The current ItemStatusManager instance for chaining
+   * @throws Error if item with the specified path doesn't exist
+   */
+  public update(path: string, update: Partial<ItemStatus>): this {
+    // Find the item in any status category
+    let existingItem: ItemStatus | undefined;
+
+    if (this.#modified.has(path)) {
+      existingItem = this.#modified.get(path);
+    } else if (this.#not_modified.has(path)) {
+      existingItem = this.#not_modified.get(path);
+    } else if (this.#deleted.has(path)) {
+      existingItem = this.#deleted.get(path);
+    } else if (this.#created.has(path)) {
+      existingItem = this.#created.get(path);
+    } else if (this.#renamed.has(path)) {
+      existingItem = this.#renamed.get(path);
+    }
+
+    if (!existingItem) {
+      throw new Error(`Item with path "${path}" not found`);
+    }
+
+    // Create a new item by merging existing with update
+    const updatedItem = { ...existingItem, ...update };
+
+    // Remove the old item and insert the updated one
+    this.remove(path);
+    this.insert(updatedItem as ItemStatus);
+
+    return this;
+  }
+
+  /**
    * Check to see if any item in the ItemStateManager is a renamed version of
    * any other item, for every item. Consolidates the items into a single item
    * of renamed state if a rename is detected.
@@ -367,7 +428,7 @@ export class ItemStatusManager {
         if (
           (Math.abs(newItemContent.length - oldItemContent.length) /
             Math.max(newItemContent.length, oldItemContent.length)) >
-            RENAME_DETECTION_THRESHOLD
+          RENAME_DETECTION_THRESHOLD
         ) continue;
 
         // If contents are identical, we've found our match - early break
@@ -591,16 +652,37 @@ export class ItemStatusManager {
 /**
  * Get a list of warnings for a given item at a specific path.
  */
+/**
+ * Analyzes a file or directory and returns an array of warnings based on file characteristics.
+ * 
+ * This function checks for several potential issues:
+ * - Binary content (contains null bytes)
+ * - Invalid filename or length
+ * - Empty files
+ * - Files exceeding maximum allowed size
+ * 
+ * @param path - The filesystem path to check
+ * @returns A Promise that resolves to an array of ItemWarning strings
+ * @throws May throw errors during file system operations
+ */
 export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
   const warnings: ItemWarning[] = [];
 
   const fileInfo = await Deno.stat(path);
+  const fileContent = fileInfo.isDirectory ? "" : await Deno.readTextFile(path)
+    .catch(() => "");
 
   if (!fileInfo.isDirectory && hasNullBytes(await Deno.readTextFile(path))) {
-    warnings.push("is_binary");
+    warnings.push("binary");
   }
-  if (!PROJECT_ITEM_NAME_REGEX.test(basename(path))) {
+  if (path.length > MAX_FILENAME_LENGTH || !PROJECT_ITEM_NAME_REGEX.test(basename(path))) {
     warnings.push("bad_name");
+  }
+  if (fileInfo.size === 0) {
+    warnings.push("empty");
+  }
+  if (fileContent.length > MAX_FILE_CHARS) {
+    warnings.push("too_large");
   }
 
   return warnings;
