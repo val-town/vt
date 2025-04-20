@@ -11,12 +11,13 @@ import { basename } from "@std/path";
 import { hasNullBytes } from "~/utils.ts";
 
 /**
- * Represents possible warning states for a project item.
+ * Possible warning states for a project item.
+ *
  * @property bad_name - The item has an invalid name format
  * @property binary - The item contains binary content
  * @property empty - The item is empty (0 bytes)
  * @property too_large - The item exceeds maximum allowed size
- * @property unknown - An unspecified warning with additional information
+ * @property unknown - An unspecified warning with additional information (e.g. API errors)
  */
 export type ItemWarning =
   | "bad_name"
@@ -42,7 +43,8 @@ export interface ItemInfo {
 }
 
 /**
- * Represents the possible status states of a project item.
+ * The possible status states of a project item.
+ *
  * @property deleted - The item has been removed
  * @property created - The item is newly created
  * @property modified - The item's content has been changed
@@ -396,11 +398,11 @@ export class ItemStatusManager {
 
   /**
    * Gets the item with the specified path from any status category.
-   * 
+   *
    * @param path - The path of the item to get
    * @returns The item with the specified path, or undefined if not found
    * @throws Error if item with the specified path doesn't exist
-   * */
+   */
   public get(path: string): ItemStatus {
     if (this.#modified.has(path)) return this.#modified.get(path)!;
     if (this.#not_modified.has(path)) return this.#not_modified.get(path)!;
@@ -483,7 +485,7 @@ export class ItemStatusManager {
         if (
           (Math.abs(newItemContent.length - oldItemContent.length) /
             Math.max(newItemContent.length, oldItemContent.length)) >
-          RENAME_DETECTION_THRESHOLD
+            RENAME_DETECTION_THRESHOLD
         ) continue;
 
         // If contents are identical, we've found our match - early break
@@ -709,13 +711,13 @@ export class ItemStatusManager {
  */
 /**
  * Analyzes a file or directory and returns an array of warnings based on file characteristics.
- * 
+ *
  * This function checks for several potential issues:
  * - Binary content (contains null bytes)
  * - Invalid filename or length
  * - Empty files
  * - Files exceeding maximum allowed size
- * 
+ *
  * @param path - The filesystem path to check
  * @returns A Promise that resolves to an array of ItemWarning strings
  * @throws May throw errors during file system operations
@@ -734,7 +736,10 @@ export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
   if (!fileInfo.isDirectory && hasNullBytes(await Deno.readTextFile(path))) {
     warnings.push("binary");
   }
-  if (path.length > MAX_FILENAME_LENGTH || !PROJECT_ITEM_NAME_REGEX.test(basename(path))) {
+  if (
+    path.length > MAX_FILENAME_LENGTH ||
+    !PROJECT_ITEM_NAME_REGEX.test(basename(path))
+  ) {
     warnings.push("bad_name");
   }
 

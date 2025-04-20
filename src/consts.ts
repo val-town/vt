@@ -63,14 +63,14 @@ export const ProjectItems = [
 export const JSON_INDENT_SPACES = 4;
 
 export const ProjectItemColors: Record<ProjectItemType, (s: string) => string> =
-{
-  "script": (s: string) => colors.rgb24(s, 0x4287f5),
-  "http": (s: string) => colors.rgb24(s, 0x22c55e),
-  "interval": (s: string) => colors.rgb24(s, 0xd946ef),
-  "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
-  "file": (s: string) => colors.dim(s),
-  "directory": (s: string) => colors.dim(s),
-};
+  {
+    "script": (s: string) => colors.rgb24(s, 0x4287f5),
+    "http": (s: string) => colors.rgb24(s, 0x22c55e),
+    "interval": (s: string) => colors.rgb24(s, 0xd946ef),
+    "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
+    "file": (s: string) => colors.dim(s),
+    "directory": (s: string) => colors.dim(s),
+  };
 
 export const TypeToTypeStr: Record<ProjectItemType, string> = {
   "script": "script",
@@ -102,4 +102,4 @@ export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
 
 export const PROJECT_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
 export const MAX_FILENAME_LENGTH = 80;
-export const MAX_FILE_CHARS = 80_000; 
+export const MAX_FILE_CHARS = 80_000;

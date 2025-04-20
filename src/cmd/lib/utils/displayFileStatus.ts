@@ -99,11 +99,11 @@ export function displayFileStateChanges(
         for (const file of files) {
           output.push(
             "  " +
-            formatStatus(
-              file,
-              includeTypes ? file.type : undefined,
-              maxTypeLength,
-            ),
+              formatStatus(
+                file,
+                includeTypes ? file.type : undefined,
+                maxTypeLength,
+              ),
           );
         }
       }
@@ -210,8 +210,9 @@ function formatPathDisplay(file: ItemStatus, styleConfig: {
       `(${(file.similarity * 100).toFixed(2)}%)`,
     );
 
-    return `${oldPathFormatted}${colors.dim(" -> ")
-      }${newPathFormatted} ${similarityText}`;
+    return `${oldPathFormatted}${
+      colors.dim(" -> ")
+    }${newPathFormatted} ${similarityText}`;
   }
 
   return join(
