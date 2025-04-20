@@ -1,5 +1,5 @@
 import { join, relative } from "@std/path";
-import { copy, exists, walk } from "@std/fs";
+import { copy, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
@@ -122,8 +122,12 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
 
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
-        if (await exists(path)) {
+        try {
           await Deno.remove(path, { recursive: true });
+        } catch (e) {
+          if (e instanceof Deno.errors.NotFound) {
+            // Ignore if the file was already removed
+          } else throw e;
         }
       }));
       return [changes, !dryRun];
