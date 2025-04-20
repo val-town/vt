@@ -127,7 +127,7 @@ async function createFile(
   const fileInfo = await Deno
     .stat(join(originalRoot, path))
     .catch(() => null);
-  
+
   // Skip file if it exists and overwrite is false
   if (!overwrite && fileInfo !== null) {
     // Still add to changes with not_modified status, since we're keeping the file as-is

@@ -67,8 +67,11 @@ export default class VTClient {
    * default val town project.
    */
   public async addEditorTemplate(): Promise<void> {
-    const { editorTemplate } = await this.getConfig().loadConfig()
-    const { ownerName, projectName } = parseProjectUri(editorTemplate, user.username!)
+    const { editorTemplate } = await this.getConfig().loadConfig();
+    const { ownerName, projectName } = parseProjectUri(
+      editorTemplate,
+      user.username!,
+    );
     const templateProject = await sdk.alias.username.projectName.retrieve(
       ownerName,
       projectName,
@@ -85,7 +88,7 @@ export default class VTClient {
       version: templateBranch.version,
       overwrite: false,
       gitignoreRules: [],
-    })
+    });
   }
 
   /**

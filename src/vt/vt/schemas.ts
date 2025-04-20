@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 /**
  * JSON schema for the state.json file for the .vt folder.
@@ -35,7 +36,7 @@ export const VTConfigSchema = z.object({
       z.enum(["true", "false"]).transform((val) => val === "true"),
     ]),
   }).optional(),
-  editorTemplate: z.string() // a project URI
+  editorTemplate: z.string(), // a project URI
 });
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
@@ -43,5 +44,5 @@ export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
   dangerousOperations: {
     confirmation: true,
   },
-  editorTemplate: "wolf/vtEditorFiles",
+  editorTemplate: DEFAULT_EDITOR_TEMPLATE,
 };
