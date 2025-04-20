@@ -1,7 +1,7 @@
 name: VT Testing
 
 on:
-  - push
+  push:
 
 jobs:
   test-linux:
@@ -19,7 +19,7 @@ jobs:
       - name: Run deno format check
         run: deno task fmt:check
 
-      - name: Run deno test script
+      - name: Run deno tests
         uses: nick-fields/retry@v3
         with:
           command: deno task test:lib --parallel && deno task test:cmd
@@ -37,10 +37,12 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Run deno test
+      - name: Run deno tests
         uses: nick-fields/retry@v3
-        run: |
-          deno task test:lib && deno task test:cmd
+        with:
+          command: deno task test:cmd
+          max_attempts: 2
+          timeout_seconds: 2000
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
 
@@ -53,5 +55,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
       - name: Dry run publish package
         run: npx jsr publish --dry-run
