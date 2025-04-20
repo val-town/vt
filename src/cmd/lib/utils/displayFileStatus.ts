@@ -128,7 +128,7 @@ export function displayFileStateChanges(
       );
 
       const warningMessages = file.warnings!.map((warning, index) => {
-        const prettyWarning = WARNING_MESSAGES[warning];
+        const prettyWarning = WARNING_MESSAGES[warning] || warning;
         const prefix = index === 0 ? "Error:" : "      ";
         return "      " + colors.yellow(prefix + " " + prettyWarning);
       });

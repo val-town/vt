@@ -41,7 +41,7 @@ Deno.test({
           "binary file should be detected",
         );
         assertEquals(
-          binaryFile?.warnings?.includes("is_binary"),
+          binaryFile?.warnings?.includes("binary"),
           true,
           "binary file should have is_binary warning",
         );
