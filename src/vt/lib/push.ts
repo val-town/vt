@@ -113,119 +113,114 @@ export async function push(params: PushParams): Promise<PushResult> {
   const versionAfterDirectories = await getLatestVersion(projectId, branchId);
 
   // Define all file operations that will occur
-  const fileOperations = [];
+  const fileOperations: (() => Promise<unknown>)[] = [];
 
   // Renamed files
-  for (
-    const file of safeItemStateChanges.renamed.filter((f) =>
-      f.type !== "directory"
-    )
-  ) {
-    fileOperations.push(async () => {
-      const parent = await getProjectItem(
-        projectId,
-        branchId,
-        versionAfterDirectories,
-        dirname(file.path),
-      );
+  safeItemStateChanges.renamed
+    .filter((f) => f.type !== "directory")
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        const parent = await getProjectItem(
+          projectId,
+          branchId,
+          versionAfterDirectories,
+          dirname(f.path),
+        );
 
-      const isAtRoot = basename(file.path) == file.path;
+        const isAtRoot = basename(f.path) == f.path;
 
-      if (isAtRoot) {
-        await doReqMaybeApplyWarning(
+        if (isAtRoot) {
+          await doReqMaybeApplyWarning(
+            async () =>
+              await sdk.projects.files.update(projectId, {
+                branch_id: branchId,
+                name: undefined,
+                parent_id: null,
+                path: f.oldPath,
+              }),
+            f.path,
+            itemStateChanges,
+          );
+        }
+
+        // To move the file to the root dir parent_id must be null and the name
+        // must be undefined (the api is very picky about this!)
+        return await doReqMaybeApplyWarning(
           async () =>
             await sdk.projects.files.update(projectId, {
               branch_id: branchId,
-              name: undefined,
-              parent_id: null,
-              path: file.oldPath,
+              name: isAtRoot ? undefined : basename(f.path),
+              parent_id: parent?.id || null,
+              path: f.oldPath,
+              content: f.content,
             }),
-          file.path,
+          f.path,
           itemStateChanges,
         );
-      }
-
-      // To move the file to the root dir parent_id must be null and the name
-      // must be undefined (the api is very picky about this!)
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.update(projectId, {
-            branch_id: branchId,
-            name: isAtRoot ? undefined : basename(file.path),
-            parent_id: parent?.id || null,
-            path: file.oldPath,
-            content: file.content,
-          }),
-        file.path,
-        itemStateChanges,
-      );
-    });
-  }
+      })
+    );
 
   // Created files
-  for (
-    const file of safeItemStateChanges.created.filter((f) =>
-      f.type !== "directory"
-    )
-  ) {
-    fileOperations.push(async () => {
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.create(
-            projectId,
-            {
-              path: file.path,
-              content: file.content!, // It's a file not a dir so this should be defined
-              branch_id: branchId,
-              type: file.type as Exclude<ProjectItemType, "directory">,
-            },
-          ),
-        file.path,
-        itemStateChanges,
-      );
-    });
-  }
+  safeItemStateChanges.created
+    .filter((f) => f.type !== "directory")
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        return await doReqMaybeApplyWarning(
+          async () =>
+            await sdk.projects.files.create(
+              projectId,
+              {
+                path: f.path,
+                content: f.content!, // It's a file not a dir so this should be defined
+                branch_id: branchId,
+                type: f.type as Exclude<ProjectItemType, "directory">,
+              },
+            ),
+          f.path,
+          itemStateChanges,
+        );
+      })
+    );
 
   // Modified files
-  for (
-    const file of safeItemStateChanges.modified.filter((f) =>
-      f.type !== "directory"
-    )
-  ) {
-    fileOperations.push(async () => {
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.update(
-            projectId,
-            {
-              path: file.path,
-              branch_id: branchId,
-              content: file.content,
-              name: basename(file.path),
-              type: file.type as ProjectFileType,
-            },
-          ),
-        file.path,
-        itemStateChanges,
-      );
-    });
-  }
+  safeItemStateChanges.modified
+    .filter((f) => f.type !== "directory")
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        return await doReqMaybeApplyWarning(
+          async () =>
+            await sdk.projects.files.update(
+              projectId,
+              {
+                path: f.path,
+                branch_id: branchId,
+                content: f.content,
+                name: basename(f.path),
+                type: f.type as ProjectFileType,
+              },
+            ),
+          f.path,
+          itemStateChanges,
+        );
+      })
+    );
 
   // Deleted files
-  for (const file of itemStateChanges.deleted) {
-    fileOperations.push(async () => {
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.delete(projectId, {
-            path: file.path,
-            branch_id: branchId,
-            recursive: true,
-          }),
-        file.path,
-        itemStateChanges,
-      );
-    });
-  }
+  itemStateChanges.deleted
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        return await doReqMaybeApplyWarning(
+          async () =>
+            await sdk.projects.files.delete(projectId, {
+              path: f.path,
+              branch_id: branchId,
+              recursive: true,
+            }),
+          f.path,
+          itemStateChanges,
+        );
+      })
+    );
 
   // Execute all operations with limited concurrency
   await Array.fromAsync(pooledMap(
