@@ -40,7 +40,7 @@ jobs:
       - name: Run deno tests
         uses: nick-fields/retry@v3
         with:
-          command: deno task test:cmd
+          command: deno task test:cmd --parallel
           max_attempts: 2
           timeout_seconds: 2000
         env:
