@@ -95,7 +95,7 @@ export const cloneCmd = new Command()
           projectName,
           username: ownerName,
         });
-        await vt.addEditorFiles();
+        await vt.addEditorTemplate();
 
         spinner.succeed(
           `Project ${ownerName}/${projectName} cloned to "${

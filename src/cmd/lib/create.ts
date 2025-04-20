@@ -73,7 +73,7 @@ vt checkout main`,
           privacy,
           description,
         });
-        await vt.addEditorFiles();
+        await vt.addEditorTemplate();
 
         spinner.succeed(
           `Created ${privacy} project "${projectName}" in "${

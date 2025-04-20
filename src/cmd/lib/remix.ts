@@ -103,7 +103,7 @@ export const remixCmd = new Command()
           description,
         });
 
-        if (editorFiles) await vt.addEditorFiles();
+        if (editorFiles) await vt.addEditorTemplate();
 
         spinner.succeed(
           `Remixed "@${sourceProjectUsername}/${sourceProjectName}" to ${privacy} project "@${user.username}/${projectName}"`,

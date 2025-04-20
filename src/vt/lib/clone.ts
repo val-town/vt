@@ -35,6 +35,8 @@ export interface CloneParams {
   gitignoreRules?: string[];
   /** If true, don't actually write files, just report what would change */
   dryRun?: boolean;
+  /** If false, don't overwrite existing files. Default is true (overwrite) */
+  overwrite?: boolean;
 }
 
 /**
@@ -52,6 +54,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
     version,
     gitignoreRules,
     dryRun = false,
+    overwrite = true,
   } = params;
   return doAtomically(
     async (tmpDir) => {
@@ -94,6 +97,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
               file,
               itemStateChanges,
               dryRun,
+              overwrite,
             );
           }
         }));
@@ -114,6 +118,7 @@ async function createFile(
   file: ValTown.Projects.FileRetrieveResponse,
   changes: ItemStatusManager,
   dryRun: boolean,
+  overwrite: boolean = true,
 ): Promise<void> {
   const updatedAt = new Date(file.updatedAt);
   const fileType = file.type;
@@ -122,6 +127,20 @@ async function createFile(
   const fileInfo = await Deno
     .stat(join(originalRoot, path))
     .catch(() => null);
+  
+  // Skip file if it exists and overwrite is false
+  if (!overwrite && fileInfo !== null) {
+    // Still add to changes with not_modified status, since we're keeping the file as-is
+    const localContent = await Deno.readTextFile(join(originalRoot, path));
+    await changes.insert({
+      type: fileType,
+      path: file.path,
+      status: "not_modified",
+      mtime: fileInfo.mtime!.getTime(),
+      content: localContent,
+    });
+    return;
+  }
 
   let fileStatus: ItemStatus;
 

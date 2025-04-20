@@ -35,6 +35,7 @@ export const VTConfigSchema = z.object({
       z.enum(["true", "false"]).transform((val) => val === "true"),
     ]),
   }).optional(),
+  editorTemplate: z.string() // a project URI
 });
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
@@ -42,4 +43,5 @@ export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
   dangerousOperations: {
     confirmation: true,
   },
+  editorTemplate: "wolf/vtEditorFiles",
 };
