@@ -2,7 +2,7 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
 Deno.test({
@@ -25,6 +25,8 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await removeAllEditorFiles(fullPath);
+
         await Deno.remove(join(fullPath, ".vtignore"));
         await Deno.remove(join(fullPath, "deno.json"));
 
@@ -58,6 +60,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -80,6 +83,7 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
+        await removeAllEditorFiles(fullPath);
 
         await t.step("make a remote change", async () => {
           // Create a new file remotely
@@ -102,4 +106,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

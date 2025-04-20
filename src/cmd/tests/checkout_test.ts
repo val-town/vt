@@ -229,10 +229,7 @@ Deno.test({
         // Clone the project (defaults to main branch)
         await runVtCommand(["clone", project.name], tmpDir);
         const fullPath = join(tmpDir, project.name);
-
-        await t.step("remove all editor files", async () => {
-          await removeAllEditorFiles(fullPath);
-        });
+        await removeAllEditorFiles(fullPath);
 
         // Ensure the main file exists
         assert(

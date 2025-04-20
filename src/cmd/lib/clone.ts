@@ -13,6 +13,7 @@ export const cloneCmd = new Command()
   .name("clone")
   .description("Clone a val town project")
   .arguments("[projectUri:string] [targetDir:string] [branchName:string]")
+  .option("--no-editor-files", "Clone without editor configuration files")
   .example(
     "Interactive project selection",
     `vt clone`,
@@ -33,8 +34,17 @@ export const cloneCmd = new Command()
     "Clone into a new directory",
     `vt clone username/projectName new-directory`,
   )
+  .example(
+    "Clone without editor files",
+    `vt clone username/projectName --no-editor-files`,
+  )
   .action(
-    async (_, projectUri?: string, targetDir?: string, branchName?: string) => {
+    async (
+      { editorFiles }: { editorFiles: boolean },
+      projectUri?: string,
+      targetDir?: string,
+      branchName?: string,
+    ) => {
       let ownerName: string;
       let projectName: string;
 
@@ -95,7 +105,8 @@ export const cloneCmd = new Command()
           projectName,
           username: ownerName,
         });
-        await vt.addEditorTemplate();
+
+        if (editorFiles) await vt.addEditorTemplate();
 
         spinner.succeed(
           `Project ${ownerName}/${projectName} cloned to "${

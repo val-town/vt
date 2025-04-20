@@ -65,10 +65,7 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
-
-        await t.step("remove all editor files", async () => {
-          await removeAllEditorFiles(fullPath);
-        });
+        await removeAllEditorFiles(fullPath);
 
         await t.step("run push command with no changes", async () => {
           const [output] = await runVtCommand(["push"], fullPath);
