@@ -184,4 +184,3 @@ export async function removeAllEditorFiles(dirPath: string): Promise<void> {
     }
   }
 }
-
