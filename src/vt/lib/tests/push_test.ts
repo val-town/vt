@@ -42,8 +42,9 @@ Deno.test({
               branch.id,
               "subdir/test.txt",
               await getLatestVersion(project.id, branch.id),
-            ), "file should exist in subdir",
-          )
+            ),
+            "file should exist in subdir",
+          );
           assertEquals(firstPush.created.length, 2); // dir and file
         });
 
