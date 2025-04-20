@@ -624,3 +624,107 @@ Deno.test({
   },
   sanitizeResources: false,
 });
+
+Deno.test({
+  name: "test push with file warnings (empty and too large)",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+  },
+  async fn(t) {
+    await doWithNewProject(async ({ project, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Import MAX_FILE_CHARS from consts to ensure test is accurate
+        const { MAX_FILE_CHARS } = await import("~/consts.ts");
+
+        await t.step("create files with warnings", async () => {
+          // Create an empty file (will get "empty" warning)
+          const emptyFilePath = join(tempDir, "empty.txt");
+          await Deno.writeTextFile(emptyFilePath, "");
+
+          // Create a file that's too large (will get "too_large" warning)
+          const largeTxtPath = join(tempDir, "too_large.txt");
+          // Create string that exceeds MAX_FILE_CHARS by a small amount
+          const largeContent = "x".repeat(MAX_FILE_CHARS + 100);
+          await Deno.writeTextFile(largeTxtPath, largeContent);
+
+          // Create a normal file for comparison
+          const normalFilePath = join(tempDir, "normal.txt");
+          await Deno.writeTextFile(normalFilePath, "This is normal content");
+        });
+
+        await t.step("push and verify warnings", async () => {
+          // Push all files
+          const { itemStateChanges } = await push({
+            targetDir: tempDir,
+            projectId: project.id,
+            branchId: branch.id,
+          });
+
+          // Check that warnings were properly detected
+          const emptyFile = itemStateChanges.all().find((item) =>
+            item.path === "empty.txt"
+          );
+          const largeFile = itemStateChanges.all().find((item) =>
+            item.path === "too_large.txt"
+          );
+          const normalFile = itemStateChanges.all().find((item) =>
+            item.path === "normal.txt"
+          );
+
+          assert(emptyFile, "empty file should be in the status");
+          assert(largeFile, "too large file should be in the status");
+          assert(normalFile, "normal file should be in the status");
+
+          assert(
+            emptyFile.warnings?.includes("empty"),
+            "empty file should have 'empty' warning",
+          );
+
+          assert(
+            largeFile.warnings?.includes("too_large"),
+            "large file should have 'too_large' warning",
+          );
+
+          assert(
+            !normalFile.warnings?.length,
+            "normal file should not have warnings",
+          );
+        });
+
+        await t.step("verify only safe files were uploaded", async () => {
+          // Check that only the normal file was actually uploaded to the server
+          const latestVersion = await getLatestVersion(project.id, branch.id);
+
+          // Normal file should exist
+          const normalFileExists = await projectItemExists(
+            project.id,
+            branch.id,
+            "normal.txt",
+            latestVersion,
+          );
+          assert(normalFileExists, "normal file should exist on server");
+
+          // Files with warnings should NOT exist
+          const emptyFileExists = await projectItemExists(
+            project.id,
+            branch.id,
+            "empty.txt",
+            latestVersion,
+          );
+          assert(!emptyFileExists, "empty file should NOT exist on server");
+
+          const largeFileExists = await projectItemExists(
+            project.id,
+            branch.id,
+            "too_large.txt",
+            latestVersion,
+          );
+          assert(!largeFileExists, "too large file should NOT exist on server");
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
