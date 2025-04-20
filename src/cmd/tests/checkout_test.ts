@@ -195,7 +195,7 @@ Deno.test({
 
 Deno.test({
   name: "check out to existing branch",
-  async fn(t) {
+  async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         // Create initial file on main branch
