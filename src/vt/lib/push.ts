@@ -13,6 +13,7 @@ import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
+import { pooledMap } from "@std/async";
 
 export interface PushResult {
   /** Changes made to project items during the push process */
@@ -33,6 +34,8 @@ export interface PushParams {
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
   dryRun?: boolean;
+  /** Maximum number of concurrent operations. Defaults to 10. */
+  concurrencyPoolSize?: number;
 }
 
 /**
@@ -49,6 +52,7 @@ export async function push(params: PushParams): Promise<PushResult> {
     branchId,
     gitignoreRules,
     dryRun = false,
+    concurrencyPoolSize = 10,
   } = params;
   const initialVersion = await getLatestVersion(projectId, branchId);
 
@@ -108,13 +112,16 @@ export async function push(params: PushParams): Promise<PushResult> {
   );
   const versionAfterDirectories = await getLatestVersion(projectId, branchId);
 
-  // Rename files that were renamed locally
-  const renamePromises = safeItemStateChanges.renamed
-    .filter((file) => file.type !== "directory")
-    .map(async (file) => {
-      // We created the parent directory already, but not the file, so we must
-      // query the ID of the parent directory to set it as the new parent of the
-      // item
+  // Define all file operations that will occur
+  const fileOperations = [];
+
+  // Renamed files
+  for (
+    const file of safeItemStateChanges.renamed.filter((f) =>
+      f.type !== "directory"
+    )
+  ) {
+    fileOperations.push(async () => {
       const parent = await getProjectItem(
         projectId,
         branchId,
@@ -145,8 +152,6 @@ export async function push(params: PushParams): Promise<PushResult> {
           await sdk.projects.files.update(projectId, {
             branch_id: branchId,
             name: isAtRoot ? undefined : basename(file.path),
-            // type: file.type as ProjectFileType,
-            // content: file.content,
             parent_id: parent?.id || null,
             path: file.oldPath,
             content: file.content,
@@ -155,12 +160,15 @@ export async function push(params: PushParams): Promise<PushResult> {
         itemStateChanges,
       );
     });
+  }
 
-  // Create all new files that were created (we already handled directories)
-  const createdPromises = safeItemStateChanges.created
-    .filter((f) => f.type !== "directory") // Already created directories
-    .map(async (file) => {
-      // Upload the file
+  // Created files
+  for (
+    const file of safeItemStateChanges.created.filter((f) =>
+      f.type !== "directory"
+    )
+  ) {
+    fileOperations.push(async () => {
       return await doReqMaybeApplyWarning(
         async () =>
           await sdk.projects.files.create(
@@ -176,11 +184,15 @@ export async function push(params: PushParams): Promise<PushResult> {
         itemStateChanges,
       );
     });
+  }
 
-  // Upload files that were modified locally
-  const modifiedPromises = safeItemStateChanges.modified
-    .filter((file) => file.type !== "directory")
-    .map(async (file) => {
+  // Modified files
+  for (
+    const file of safeItemStateChanges.modified.filter((f) =>
+      f.type !== "directory"
+    )
+  ) {
+    fileOperations.push(async () => {
       return await doReqMaybeApplyWarning(
         async () =>
           await sdk.projects.files.update(
@@ -197,28 +209,30 @@ export async function push(params: PushParams): Promise<PushResult> {
         itemStateChanges,
       );
     });
+  }
 
-  // Delete files that exist on the server but not locally
-  const deletedPromises = itemStateChanges.deleted.map(async (file) => {
-    return await doReqMaybeApplyWarning(
-      async () =>
-        await sdk.projects.files.delete(projectId, {
-          path: file.path,
-          branch_id: branchId,
-          recursive: true,
-        }),
-      file.path,
-      itemStateChanges,
-    );
-  });
+  // Deleted files
+  for (const file of itemStateChanges.deleted) {
+    fileOperations.push(async () => {
+      return await doReqMaybeApplyWarning(
+        async () =>
+          await sdk.projects.files.delete(projectId, {
+            path: file.path,
+            branch_id: branchId,
+            recursive: true,
+          }),
+        file.path,
+        itemStateChanges,
+      );
+    });
+  }
 
-  // Wait for all modifications and deletions to complete
-  await Promise.all([
-    ...modifiedPromises,
-    ...deletedPromises,
-    ...renamePromises,
-    ...createdPromises,
-  ]);
+  // Execute all operations with limited concurrency
+  await Array.fromAsync(pooledMap(
+    concurrencyPoolSize,
+    fileOperations,
+    async (op) => await op(),
+  ));
 
   return { itemStateChanges };
 }
