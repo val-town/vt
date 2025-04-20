@@ -12,7 +12,7 @@ import { tty } from "@cliffy/ansi/tty";
 export const cloneCmd = new Command()
   .name("clone")
   .description("Clone a val town project")
-  .arguments("[projectUri:string] [cloneDir:string] [branchName:string]")
+  .arguments("[projectUri:string] [targetDir:string] [branchName:string]")
   .example(
     "Interactive project selection",
     `vt clone`,
@@ -34,7 +34,7 @@ export const cloneCmd = new Command()
     `vt clone username/projectName new-directory`,
   )
   .action(
-    async (_, projectUri?: string, cloneDir?: string, branchName?: string) => {
+    async (_, projectUri?: string, targetDir?: string, branchName?: string) => {
       let ownerName: string;
       let projectName: string;
 
@@ -88,7 +88,7 @@ export const cloneCmd = new Command()
 
       return await doWithSpinner("Cloning project...", async (spinner) => {
         branchName = branchName || DEFAULT_BRANCH_NAME;
-        const clonePath = getClonePath(cloneDir, projectName);
+        const clonePath = getClonePath(targetDir, projectName);
 
         const vt = await VTClient.clone({
           rootPath: clonePath,

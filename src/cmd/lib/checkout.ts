@@ -50,7 +50,7 @@ export const checkoutCmd = new Command()
     `vt checkout main --dry-run`,
   )
   .action(
-    (
+    async (
       { branch, force, dryRun }: {
         branch?: string;
         force?: boolean;
@@ -58,7 +58,7 @@ export const checkoutCmd = new Command()
       },
       existingBranchName?: string,
     ) => {
-      doWithSpinner(
+      await doWithSpinner(
         dryRun
           ? "Checking for changes that would occur..."
           : "Checking out branch...",

@@ -2,15 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/denoland/deno/348900b8b79f4a434cab4c74b3bc8d4d2fa8ee74/cli/schemas/config-file.v1.json",
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
-  "version": "0.1.20",
+  "version": "0.1.23",
   "exports": "./vt.ts",
   "license": "MIT",
   "tasks": {
     "run": "./vt.ts",
-    "test": "deno task test:cmd && sleep 10 && deno task test:lib",
-    "test:workflow": "deno task test:cmd && deno task test:lib",
+    "test": "deno task test:lib --parallel && deno task test:cmd",
     "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
-    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
+    "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/vt/lib",
     "check": "env DENO_NO_PROMPT=1 deno check .",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },

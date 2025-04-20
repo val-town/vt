@@ -44,7 +44,9 @@ export const STATUS_STYLES: Record<
 
 export const WARNING_MESSAGES: Record<ItemWarning, string> = {
   "bad_name": "Invalid file name",
-  "is_binary": "File has binary content",
+  "binary": "File has binary content",
+  "empty": "File is empty",
+  "too_large": "File is too large",
 };
 
 export const DEFAULT_VAL_TYPE = "script";
@@ -79,8 +81,7 @@ export const TypeToTypeStr: Record<ProjectItemType, string> = {
   "directory": "directory",
 };
 
-export const VAL_TOWN_PROJECT_URL_REGEX =
-  /^http[s]?:\/\/www\.val\.town\/x\/([^\/]+)\/([^\/]+)$/;
+export const VAL_TOWN_PROJECT_URL_REGEX = /val\.town\/x\/([^\/]+)\/([^\/]+)/;
 
 export const RECENT_VERSION_COUNT = 5;
 
@@ -100,3 +101,5 @@ export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
 };
 
 export const PROJECT_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
+export const MAX_FILENAME_LENGTH = 80;
+export const MAX_FILE_CHARS = 80_000;
