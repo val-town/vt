@@ -126,8 +126,8 @@ export async function push(params: PushParams): Promise<PushResult> {
 
       if (isAtRoot) {
         await doReqMaybeApplyWarning(
-          () =>
-            sdk.projects.files.update(projectId, {
+          async () =>
+            await sdk.projects.files.update(projectId, {
               branch_id: branchId,
               name: undefined,
               parent_id: null,
@@ -141,8 +141,8 @@ export async function push(params: PushParams): Promise<PushResult> {
       // To move the file to the root dir parent_id must be null and the name
       // must be undefined (the api is very picky about this!)
       return await doReqMaybeApplyWarning(
-        () =>
-          sdk.projects.files.update(projectId, {
+        async () =>
+          await sdk.projects.files.update(projectId, {
             branch_id: branchId,
             name: isAtRoot ? undefined : basename(file.path),
             // type: file.type as ProjectFileType,
@@ -162,8 +162,8 @@ export async function push(params: PushParams): Promise<PushResult> {
     .map(async (file) => {
       // Upload the file
       return await doReqMaybeApplyWarning(
-        () =>
-          sdk.projects.files.create(
+        async () =>
+          await sdk.projects.files.create(
             projectId,
             {
               path: file.path,
@@ -182,8 +182,8 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((file) => file.type !== "directory")
     .map(async (file) => {
       return await doReqMaybeApplyWarning(
-        () =>
-          sdk.projects.files.update(
+        async () =>
+          await sdk.projects.files.update(
             projectId,
             {
               path: file.path,
@@ -201,8 +201,8 @@ export async function push(params: PushParams): Promise<PushResult> {
   // Delete files that exist on the server but not locally
   const deletedPromises = itemStateChanges.deleted.map(async (file) => {
     return await doReqMaybeApplyWarning(
-      () =>
-        sdk.projects.files.delete(projectId, {
+      async () =>
+        await sdk.projects.files.delete(projectId, {
           path: file.path,
           branch_id: branchId,
           recursive: true,

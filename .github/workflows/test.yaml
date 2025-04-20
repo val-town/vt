@@ -20,12 +20,11 @@ jobs:
         run: deno task fmt:check
 
       - name: Run deno test script
-        uses: Wandalen/wretry.action@v3.8.0
+        uses: nick-fields/retry@v3
         with:
           command: deno task test:lib --parallel && deno task test:cmd
-          attempt_limit: 2
-          attempt_delay: 2000
-          retry_condition: true
+          max_attempts: 2
+          timeout_seconds: 2000
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
 
@@ -39,12 +38,9 @@ jobs:
           deno-version: v2.x
 
       - name: Run deno test
-        uses: Wandalen/wretry.action@v3.8.0
-        with:
-          command: deno task test:lib && deno task test:cmd
-          attempt_limit: 2
-          attempt_delay: 2000
-          retry_condition: true
+        uses: nick-fields/retry@v3
+        run: |
+          deno task test:lib && deno task test:cmd
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
 
