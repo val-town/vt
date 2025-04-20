@@ -1,6 +1,8 @@
 import { levenshteinDistance } from "@std/text";
 import type { ProjectItemType } from "~/types.ts";
 import {
+  MAX_FILE_CHARS,
+  MAX_FILENAME_LENGTH,
   PROJECT_ITEM_NAME_REGEX,
   RENAME_DETECTION_THRESHOLD,
   TYPE_PRIORITY,
@@ -8,18 +10,47 @@ import {
 import { basename } from "@std/path";
 import { hasNullBytes } from "~/utils.ts";
 
+/**
+ * Possible warning states for a project item.
+ *
+ * @property bad_name - The item has an invalid name format
+ * @property binary - The item contains binary content
+ * @property empty - The item is empty (0 bytes)
+ * @property too_large - The item exceeds maximum allowed size
+ * @property unknown - An unspecified warning with additional information (e.g. API errors)
+ */
 export type ItemWarning =
   | "bad_name"
-  | "is_binary";
+  | "binary"
+  | "empty"
+  | "too_large"
+  | `unknown: ${string}`;
 
+/**
+ * Base information about a project item.
+ */
 export interface ItemInfo {
+  /** The type of the project item (e.g., "file", "directory") */
   type: ProjectItemType;
+  /** The file path of the item */
   path: string;
+  /** The modification timestamp of the item */
   mtime: number;
+  /** The content of the item (not applicable for directories) */
   content?: string; // directories don't have content
+  /** List of warnings associated with this item, if any */
   warnings?: ItemWarning[];
 }
 
+/**
+ * The possible status states of a project item.
+ *
+ * @property deleted - The item has been removed
+ * @property created - The item is newly created
+ * @property modified - The item's content has been changed
+ * @property not_modified - The item exists but has not been changed
+ * @property renamed - The item has been moved/renamed (also implies modification)
+ */
 export type ItemStatusState =
   | "deleted"
   | "created"
@@ -27,33 +58,64 @@ export type ItemStatusState =
   | "not_modified"
   | "renamed";
 
+/**
+ * Base interface for all item status types, combining item information with status.
+ */
 export interface BaseItemStatus extends ItemInfo {
+  /** The current status state of the item */
   status: ItemStatusState;
 }
 
+/**
+ * An item that has been modified either locally or remotely.
+ */
 export type ModifiedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been modified */
   status: "modified";
+  /** Specifies whether the modification happened locally or remotely */
   where: "local" | "remote";
 };
 
+/**
+ * An item that exists but has not been modified.
+ */
 export type NotModifiedItemStatus = BaseItemStatus & {
+  /** Indicates this item exists but has not been modified */
   status: "not_modified";
 };
 
+/**
+ * An item that has been deleted.
+ */
 export type DeletedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been deleted */
   status: "deleted";
 };
 
+/**
+ * An item that has been newly created.
+ */
 export type CreatedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been newly created */
   status: "created";
 };
 
+/**
+ * An item that has been renamed or moved from a different path.  Note that
+ * renamed items should also be assumed to be modified (different file content).
+ */
 export type RenamedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been renamed/moved */
   status: "renamed";
+  /** The original path of the item before it was renamed */
   oldPath: string;
+  /** A value between 0-1 indicating how similar the content is to the original */
   similarity: number;
 };
 
+/**
+ * Union type of all possible item status types.
+ */
 export type ItemStatus =
   | ModifiedItemStatus
   | NotModifiedItemStatus
@@ -335,6 +397,62 @@ export class ItemStatusManager {
   }
 
   /**
+   * Gets the item with the specified path from any status category.
+   *
+   * @param path - The path of the item to get
+   * @returns The item with the specified path, or undefined if not found
+   * @throws Error if item with the specified path doesn't exist
+   */
+  public get(path: string): ItemStatus {
+    if (this.#modified.has(path)) return this.#modified.get(path)!;
+    if (this.#not_modified.has(path)) return this.#not_modified.get(path)!;
+    if (this.#deleted.has(path)) return this.#deleted.get(path)!;
+    if (this.#created.has(path)) return this.#created.get(path)!;
+    if (this.#renamed.has(path)) return this.#renamed.get(path)!;
+
+    throw new Error(`Item with path "${path}" not found`);
+  }
+
+  /**
+   * Updates an existing item with the specified path by applying a partial update.
+   * Preserves existing properties not included in the update.
+   *
+   * @param path - The path of the item to update
+   * @param update - Partial object with properties to update
+   * @returns this - The current ItemStatusManager instance for chaining
+   * @throws Error if item with the specified path doesn't exist
+   */
+  public update(path: string, update: Partial<ItemStatus>): this {
+    // Find the item in any status category
+    let existingItem: ItemStatus | undefined;
+
+    if (this.#modified.has(path)) {
+      existingItem = this.#modified.get(path);
+    } else if (this.#not_modified.has(path)) {
+      existingItem = this.#not_modified.get(path);
+    } else if (this.#deleted.has(path)) {
+      existingItem = this.#deleted.get(path);
+    } else if (this.#created.has(path)) {
+      existingItem = this.#created.get(path);
+    } else if (this.#renamed.has(path)) {
+      existingItem = this.#renamed.get(path);
+    }
+
+    if (!existingItem) {
+      throw new Error(`Item with path "${path}" not found`);
+    }
+
+    // Create a new item by merging existing with update
+    const updatedItem = { ...existingItem, ...update };
+
+    // Remove the old item and insert the updated one
+    this.remove(path);
+    this.insert(updatedItem as ItemStatus);
+
+    return this;
+  }
+
+  /**
    * Check to see if any item in the ItemStateManager is a renamed version of
    * any other item, for every item. Consolidates the items into a single item
    * of renamed state if a rename is detected.
@@ -591,16 +709,47 @@ export class ItemStatusManager {
 /**
  * Get a list of warnings for a given item at a specific path.
  */
+/**
+ * Analyzes a file or directory and returns an array of warnings based on file characteristics.
+ *
+ * This function checks for several potential issues:
+ * - Binary content (contains null bytes)
+ * - Invalid filename or length
+ * - Empty files
+ * - Files exceeding maximum allowed size
+ *
+ * @param path - The filesystem path to check
+ * @returns A Promise that resolves to an array of ItemWarning strings
+ * @throws May throw errors during file system operations
+ */
 export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
   const warnings: ItemWarning[] = [];
 
   const fileInfo = await Deno.stat(path);
+  const fileContent = fileInfo.isDirectory ? "" : await Deno.readTextFile(path)
+    .catch(() => "");
+
+  // Weird deno issue where sometimes a directory isn't counted as one
+  const isDirectory = fileInfo.isDirectory ||
+    (!fileInfo.isDirectory && fileContent === undefined);
 
   if (!fileInfo.isDirectory && hasNullBytes(await Deno.readTextFile(path))) {
-    warnings.push("is_binary");
+    warnings.push("binary");
   }
-  if (!PROJECT_ITEM_NAME_REGEX.test(basename(path))) {
+  if (
+    basename(path).length > MAX_FILENAME_LENGTH ||
+    !PROJECT_ITEM_NAME_REGEX.test(basename(path))
+  ) {
     warnings.push("bad_name");
+  }
+
+  if (!isDirectory) {
+    if (fileInfo.size === 0) {
+      warnings.push("empty");
+    }
+    if (fileContent.length > MAX_FILE_CHARS) {
+      warnings.push("too_large");
+    }
   }
 
   return warnings;
