@@ -2,7 +2,7 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { deadline } from "@std/async";
@@ -122,6 +122,8 @@ Deno.test({
           fullPath = join(tmpDir, project.name);
           originalFilePath = join(fullPath, "original.txt");
 
+          await removeAllEditorFiles(fullPath);
+
           assert(
             await exists(originalFilePath),
             "original file should exist after clone",
@@ -193,7 +195,7 @@ Deno.test({
 
 Deno.test({
   name: "check out to existing branch",
-  async fn() {
+  async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         // Create initial file on main branch
@@ -227,6 +229,10 @@ Deno.test({
         // Clone the project (defaults to main branch)
         await runVtCommand(["clone", project.name], tmpDir);
         const fullPath = join(tmpDir, project.name);
+
+        await t.step("remove all editor files", async () => {
+          await removeAllEditorFiles(fullPath);
+        });
 
         // Ensure the main file exists
         assert(
