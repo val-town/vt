@@ -198,10 +198,8 @@ async function getLocalFiles({
       // Store the path and its modification time
       const localStat = await Deno.stat(entry.path);
 
-      // It seems like it might be a Deno bug, but sometimes we will try to
-      // read a file and will get an "it is a directory" error.
-      const fileContent = await Deno.readTextFile(entry.path)
-        .catch((_e) => undefined);
+      const fileContent = entry.isFile ? await Deno.readTextFile(entry.path)
+        .catch((_e) => undefined) : undefined;
       const isDirectory = entry.isDirectory || fileContent === undefined;
 
       return {
