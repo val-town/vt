@@ -737,7 +737,7 @@ export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
     warnings.push("binary");
   }
   if (
-    path.length > MAX_FILENAME_LENGTH ||
+    basename(path).length > MAX_FILENAME_LENGTH ||
     !PROJECT_ITEM_NAME_REGEX.test(basename(path))
   ) {
     warnings.push("bad_name");
