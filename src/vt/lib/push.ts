@@ -125,14 +125,13 @@ export async function push(params: PushParams): Promise<PushResult> {
       const isAtRoot = basename(file.path) == file.path;
 
       if (isAtRoot) {
-        return await doReqMaybeApplyWarning(
+        await doReqMaybeApplyWarning(
           () =>
             sdk.projects.files.update(projectId, {
               branch_id: branchId,
               name: undefined,
               parent_id: null,
               path: file.oldPath,
-              content: file.content,
             }),
           file.path,
           itemStateChanges,

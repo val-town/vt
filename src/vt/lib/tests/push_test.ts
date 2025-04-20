@@ -56,7 +56,7 @@ Deno.test({
           assertEquals(secondPush.renamed[0].path, "test.txt");
         });
 
-        await t.step("verify file exists at new location", async () => {
+        await t.step("ensure push is idempotent", async () => {
           // Push again with no changes
           const { itemStateChanges: thirdPush } = await push({
             targetDir: tempDir,
