@@ -22,7 +22,7 @@ jobs:
       - name: Run deno test script
         uses: Wandalen/wretry.action@v3.8.0
         with:
-          command: deno task test:workflow
+          command: deno task test:lib --parallel && deno task test:cmd
           attempt_limit: 2
           attempt_delay: 2000
           retry_condition: true
@@ -41,7 +41,7 @@ jobs:
       - name: Run deno test
         uses: Wandalen/wretry.action@v3.8.0
         with:
-          command: deno task test
+          command: deno task test:lib && deno task test:cmd
           attempt_limit: 2
           attempt_delay: 2000
           retry_condition: true
