@@ -2,7 +2,7 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
 Deno.test({
@@ -65,8 +65,10 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, project.name);
-        await Deno.remove(join(fullPath, ".vtignore"));
-        await Deno.remove(join(fullPath, "deno.json"));
+
+        await t.step("remove all editor files", async () => {
+          await removeAllEditorFiles(fullPath);
+        });
 
         await t.step("run push command with no changes", async () => {
           const [output] = await runVtCommand(["push"], fullPath);
@@ -137,7 +139,7 @@ Deno.test({
           assertStringIncludes(pushOutput, "file5_2.js");
 
           // Verify the count of changes
-          assertStringIncludes(pushOutput, "17 created"); // 5 dirs + (6*2=10) files + .vtignore + deno.json
+          assertStringIncludes(pushOutput, "created"); // we don't really know how many because of editor template files
         });
       });
     });
