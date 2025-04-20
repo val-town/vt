@@ -10,6 +10,14 @@ import {
 import { basename } from "@std/path";
 import { hasNullBytes } from "~/utils.ts";
 
+/**
+ * Represents possible warning states for a project item.
+ * @property bad_name - The item has an invalid name format
+ * @property binary - The item contains binary content
+ * @property empty - The item is empty (0 bytes)
+ * @property too_large - The item exceeds maximum allowed size
+ * @property unknown - An unspecified warning with additional information
+ */
 export type ItemWarning =
   | "bad_name"
   | "binary"
@@ -17,14 +25,30 @@ export type ItemWarning =
   | "too_large"
   | `unknown: ${string}`;
 
+/**
+ * Base information about a project item.
+ */
 export interface ItemInfo {
+  /** The type of the project item (e.g., "file", "directory") */
   type: ProjectItemType;
+  /** The file path of the item */
   path: string;
+  /** The modification timestamp of the item */
   mtime: number;
+  /** The content of the item (not applicable for directories) */
   content?: string; // directories don't have content
+  /** List of warnings associated with this item, if any */
   warnings?: ItemWarning[];
 }
 
+/**
+ * Represents the possible status states of a project item.
+ * @property deleted - The item has been removed
+ * @property created - The item is newly created
+ * @property modified - The item's content has been changed
+ * @property not_modified - The item exists but has not been changed
+ * @property renamed - The item has been moved/renamed (also implies modification)
+ */
 export type ItemStatusState =
   | "deleted"
   | "created"
@@ -32,33 +56,64 @@ export type ItemStatusState =
   | "not_modified"
   | "renamed";
 
+/**
+ * Base interface for all item status types, combining item information with status.
+ */
 export interface BaseItemStatus extends ItemInfo {
+  /** The current status state of the item */
   status: ItemStatusState;
 }
 
+/**
+ * An item that has been modified either locally or remotely.
+ */
 export type ModifiedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been modified */
   status: "modified";
+  /** Specifies whether the modification happened locally or remotely */
   where: "local" | "remote";
 };
 
+/**
+ * An item that exists but has not been modified.
+ */
 export type NotModifiedItemStatus = BaseItemStatus & {
+  /** Indicates this item exists but has not been modified */
   status: "not_modified";
 };
 
+/**
+ * An item that has been deleted.
+ */
 export type DeletedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been deleted */
   status: "deleted";
 };
 
+/**
+ * An item that has been newly created.
+ */
 export type CreatedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been newly created */
   status: "created";
 };
 
+/**
+ * An item that has been renamed or moved from a different path.  Note that
+ * renamed items should also be assumed to be modified (different file content).
+ */
 export type RenamedItemStatus = BaseItemStatus & {
+  /** Indicates this item has been renamed/moved */
   status: "renamed";
+  /** The original path of the item before it was renamed */
   oldPath: string;
+  /** A value between 0-1 indicating how similar the content is to the original */
   similarity: number;
 };
 
+/**
+ * Union type of all possible item status types.
+ */
 export type ItemStatus =
   | ModifiedItemStatus
   | NotModifiedItemStatus
@@ -672,17 +727,24 @@ export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
   const fileContent = fileInfo.isDirectory ? "" : await Deno.readTextFile(path)
     .catch(() => "");
 
+  // Weird deno issue where sometimes a directory isn't counted as one
+  const isDirectory = fileInfo.isDirectory ||
+    (!fileInfo.isDirectory && fileContent === undefined);
+
   if (!fileInfo.isDirectory && hasNullBytes(await Deno.readTextFile(path))) {
     warnings.push("binary");
   }
   if (path.length > MAX_FILENAME_LENGTH || !PROJECT_ITEM_NAME_REGEX.test(basename(path))) {
     warnings.push("bad_name");
   }
-  if (fileInfo.size === 0) {
-    warnings.push("empty");
-  }
-  if (fileContent.length > MAX_FILE_CHARS) {
-    warnings.push("too_large");
+
+  if (!isDirectory) {
+    if (fileInfo.size === 0) {
+      warnings.push("empty");
+    }
+    if (fileContent.length > MAX_FILE_CHARS) {
+      warnings.push("too_large");
+    }
   }
 
   return warnings;
