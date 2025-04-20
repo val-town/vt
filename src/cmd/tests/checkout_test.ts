@@ -286,6 +286,8 @@ Deno.test({
 
         // Clone the project
         await runVtCommand(["clone", project.name], tmpDir);
+        await removeAllEditorFiles(tmpDir);
+
         const fullPath = join(tmpDir, project.name);
 
         // Create a new branch with checkout -b
