@@ -52,8 +52,7 @@ export interface RemixParams {
 /**
  * Remixes an existing Val Town project to a new Val Town project.
  *
- * @param {RemixParams} params Options for remix operation.
- *
+ * @param params Options for remix operation.
  * @returns Promise that resolves with a CheckoutResult containing information about the
  * newly created project and the changes made during the remix operation.
  */

@@ -19,7 +19,7 @@ export function getClonePath(
 /**
  * Clean and transform error messages
  *
- * @param error - The error to be processed
+ * @param error The error to be processed
  * @returns A cleaned error message
  */
 export function sanitizeErrors(error: unknown): string {
@@ -29,9 +29,7 @@ export function sanitizeErrors(error: unknown): string {
     return cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1);
   }
 
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
 
   // For any other type of error, convert to string
   return String(error);
@@ -40,12 +38,13 @@ export function sanitizeErrors(error: unknown): string {
 /**
  * Execute a function with a spinner, ensuring it stops after execution.
  *
+ * @template T The return type of the callback function
  * @param spinnerText - Initial spinner text
  * @param callback - Function to execute with the spinner
- * @param options - Optional configuration for spinner behavior
- * @param options.autostart - Whether to start the spinner automatically (default: true)
- * @param options.cleanError - Function to clean error messages (default: sanitizeErrors)
- * @param options.exitOnError - Whether to exit on error (default: true)
+ * @param Optional configuration for spinner behavior
+ * @param options.autostart Whether to start the spinner automatically
+ * @param Function to clean error messages
+ * @param options.exitOnError Whether to exit on error
  * @returns The result of the callback function
  */
 export async function doWithSpinner<T>(
@@ -72,7 +71,6 @@ export async function doWithSpinner<T>(
 
     return await callback(spinner);
   } catch (e) {
-    console.log(e);
     // Use the provided or default error cleaning function
     const cleanedErrorMessage = cleanError(e);
 

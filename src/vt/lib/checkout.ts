@@ -64,15 +64,16 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 
 /**
  * Checks out a specific existing branch of a project.
+ *
  * @param params Options for the checkout operation.
- * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information.
+ * @returns Promise that resolves with checkout information.
  */
 export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
   * Creates a new branch from a project's branch and checks it out.
   * @param params Options for the checkout operation.
-  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
+  * @returns Promise that resolves with checkout information (including the new branch
  details).
   */
 export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;

@@ -6,8 +6,8 @@ import { VAL_TOWN_PROJECT_URL_REGEX } from "~/consts.ts";
  * - projectName (using currentUsername)
  * - Any val.town URL containing /x/username/projectName
  *
- * @param {string} projectUri - The project identifier to parse
- * @param {string} currentUsername - Fallback username if not specified
+ * @param projectUri - The project identifier to parse
+ * @param currentUsername - Fallback username if not specified
  * @returns The extracted ownerName and projectName
  * @throws Error on invalid format
  */

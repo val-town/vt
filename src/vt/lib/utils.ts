@@ -92,7 +92,7 @@ export async function doAtomically<T>(
  * 1. First, it compares modification timestamps as a quick heuristic
  * 2. If timestamps suggest a change, it performs a full content comparison
  *
- * @returns {boolean} True if the file has been modified, false otherwise
+ * @returns True if the file has been modified, false otherwise
  */
 export function isFileModified({
   srcContent,

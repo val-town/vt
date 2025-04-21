@@ -25,12 +25,12 @@ import type { ProjectItemType } from "~/types.ts";
  * 3. If the file does not match the val extension criteria (.ts + optional
  *    identifier), return "file".
  *
- * @param {string} projectId - The ID of the project
- * @param {Object} options - Options for determining the file type
- * @param {string} options.branchId - The ID of the branch
- * @param {number} [options.version] - The version of the project (optional, defaults to latest)
- * @param {string} options.filePath - The path of the val or file to get the type of
- * @returns {Promise<ProjectItemType>} The val file type
+ * @param projectId - The ID of the project
+ * @param options - Options for determining the file type
+ * @param options.branchId - The ID of the branch
+ * @param [options.version] - The version of the project (optional, defaults to latest)
+ * @param options.filePath - The path of the val or file to get the type of
+ * @returns The val file type
  */
 export async function getProjectItemType(
   projectId: string,
@@ -83,9 +83,9 @@ export async function getProjectItemType(
  * If rootDir is provided, and the path is a directory, then it checks if all
  * paths downward are ignored.
  *
- * @param {string} pathToCheck - Path to check
- * @param {string[]} gitignoreRules - Array of gitignore rules to check against
- * @returns {Promise<boolean>} True if the path should be ignored
+ * @param pathToCheck - Path to check
+ * @param gitignoreRules - Array of gitignore rules to check against
+ * @returns True if the path should be ignored
  */
 export function shouldIgnore(
   pathToCheck: string,

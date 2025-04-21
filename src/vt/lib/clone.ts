@@ -174,7 +174,7 @@ async function createFile(
   }
 
   // Track file status
-  await changes.insert(fileStatus);
+  changes.insert(fileStatus);
 
   // Stop here for dry runs
   if (dryRun) return;

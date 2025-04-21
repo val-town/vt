@@ -36,7 +36,7 @@ import { create } from "~/vt/lib/create.ts";
  * With a VTClient you can do things like clone a val town project, or
  * pull/push a val town project.
  *
- * @param {string} rootPath - The root path of the VT directory
+ * @param rootPath - The root path of the VT directory
  */
 export default class VTClient {
   readonly #meta: VTMeta;
@@ -48,7 +48,7 @@ export default class VTClient {
   /**
    * Returns the VTMeta instance for this client.
    *
-   * @returns {VTMeta} The VTMeta instance.
+   * @returns The VTMeta instance.
    */
   public getMeta(): VTMeta {
     return this.#meta;
@@ -57,7 +57,7 @@ export default class VTClient {
   /**
    * Returns a new VTConfig object init-ed at this VTClient's rootPath.
    *
-   * @returns {VTConfig} The VTConfig instance.
+   * @returns The VTConfig instance.
    */
   public getConfig(): VTConfig {
     return new VTConfig(this.rootPath);
@@ -66,8 +66,8 @@ export default class VTClient {
   /**
    * Adds editor configuration files to the target directory.
    *
-   * @param {object} options - Options for adding editor files
-   * @param {boolean} options.noDenoJson - Whether to skip adding deno.json
+   * @param options Options for adding editor files
+   * @param options.noDenoJson Whether to skip adding deno.json
    * @returns {Promise<void>}
    */
   public async addEditorFiles(
@@ -164,7 +164,7 @@ export default class VTClient {
    *
    * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 1000ms)
    * @param {number} gracePeriod - Time in milliseconds to wait after a push before processing new events (default: 250ms)
-   * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
+   * @returns {Promise<void>} A promise that resolves when the watcher is stopped.
    */
   public async watch(
     callback: (fileState: ItemStatusManager) => void | Promise<void>,

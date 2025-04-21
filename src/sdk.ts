@@ -8,17 +8,17 @@ const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
 /**
  * Checks if a project exists.
  *
- * @param {string} projectId - The ID of the project to check
- * @returns {Promise<boolean>} Promise resolving to true if the project exists, false otherwise
+ * @param projectId - The ID of the project to check
+ * @returns Promise resolving to true if the project exists, false otherwise
  */
 export async function projectExists(projectId: string): Promise<boolean>;
 /**
  * Checks if a project exists.
  *
- * @param {object} options - Project identification options
- * @param {string} options.username - The username of the project owner
- * @param {string} options.projectName - The name of the project to check
- * @returns {Promise<boolean>} Promise resolving to true if the project exists, false otherwise
+ * @param options Project identification options
+ * @param options.username The username of the project owner
+ * @param options.projectName The name of the project to check
+ * @returns Promise resolving to true if the project exists, false otherwise
  */
 export async function projectExists(options: {
   username: string;
@@ -49,9 +49,9 @@ export async function projectExists(
 /**
  * Checks if a branch with the given name exists in a project.
  *
- * @param {string} projectId - The ID of the project to check
- * @param {string} branchName - The name of the branch to check for
- * @returns {Promise<boolean>} Promise resolving to true if the branch exists, false otherwise
+ * @param projectId - The ID of the project to check
+ * @param branchName - The name of the branch to check for
+ * @returns Promise resolving to true if the branch exists, false otherwise
  */
 export async function branchExists(
   projectId: string,
@@ -66,10 +66,10 @@ export async function branchExists(
 /**
  * Converts a branch name to its corresponding branch ID for a given project.
  *
- * @param {string} projectId - The ID of the project containing the branch
- * @param {string} branchName - The name of the branch to look up
- * @returns {Promise} Promise resolving to the branch ID
- * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
+ * @param projectId - The ID of the project containing the branch
+ * @param branchName - The name of the branch to look up
+ * @returns Promise resolving to the branch ID
+ * @throws {Error} If branch is not found or if the API request fails
  */
 export async function branchNameToBranch(
   projectId: string,
@@ -79,17 +79,17 @@ export async function branchNameToBranch(
     if (branch.name == branchName) return branch;
   }
 
-  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in project`);
+  throw new Error(`Branch "${branchName}" not found in project`);
 }
 
 /**
  * Checks if a file exists at the specified path in a project
  *
- * @param {string} projectId - The ID of the project containing the file
- * @param {string} filePath - The file path to check
- * @param {string} branchId - The ID of the project branch to reference
- * @param {number} version - The version of the project to check
- * @returns {Promise<boolean>} Promise resolving to true if the file exists, false otherwise
+ * @param projectId - The ID of the project containing the file
+ * @param filePath - The file path to check
+ * @param branchId - The ID of the project branch to reference
+ * @param version - The version of the project to check
+ * @returns Promise resolving to true if the file exists, false otherwise
  */
 export async function projectItemExists(
   projectId: string,
@@ -110,12 +110,12 @@ export async function projectItemExists(
 /**
  * Converts a file path to its corresponding project item for a given project.
  *
- * @param {string} projectId - The ID of the project containing the file
- * @param {object} options - The options object
- * @param {string} options.branchId - The ID of the project branch to reference
- * @param {number} [options.version] - The version of the project for the file being found (optional)
- * @param {string} options.filePath - The file path to locate
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
+ * @param projectId - The ID of the project containing the file
+ * @param options - The options object
+ * @param options.branchId - The ID of the project branch to reference
+ * @param [options.version] - The version of the project for the file being found (optional)
+ * @param options.filePath - The file path to locate
+ * @returns Promise resolving to the file data or undefined if not found
  */
 export const getProjectItem = memoize(async (
   projectId: string,
@@ -135,14 +135,14 @@ export const getProjectItem = memoize(async (
 /**
   * Lists all file paths in a project with pagination support.
   *
-  * @param {string} projectId The ID of the project.
-  * @param {Object} params The parameters for listing project items.
-  * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for
+  * @param projectId The ID of the project.
+  * @param params The parameters for listing project items.
+  * @param params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for
  root.
-  * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
-  * @param {number} [params.version] - The version of the project. Defaults to latest.
-  * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
-  * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
+  * @param [params.branch_id] The ID of the project branch to reference. Defaults to main.
+  * @param [params.version] - The version of the project. Defaults to latest.
+  * @param [params.options.recursive] Whether to recursively list files in subdirectories.
+  * @returns Promise resolving to a Set of file paths.
   */
 export const listProjectItems = memoize(async (
   projectId: string,

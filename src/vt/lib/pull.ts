@@ -30,9 +30,6 @@ export interface PullParams {
 /**
  * Pulls latest changes from a Val Town project into a vt folder.
  *
- * @param {PullParams} params Options for pull operation.
- *
- * @description
  * After a pull:
  * - All files from the remote project exist at the remote's version's location locally
  * - Local files that match gitignore rules are preserved at their current path
@@ -41,6 +38,7 @@ export interface PullParams {
  * Files that are removed:
  * - Files that previously existed in the remote project but were deleted
  *
+ * @param params Options for pull operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export function pull(params: PullParams): Promise<ItemStatusManager> {

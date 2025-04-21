@@ -21,7 +21,7 @@ export default class VTConfig {
   /**
    * Creates an instance of VTConfig.
    *
-   * @param {string} localConfigPath - The path where the local configuration is stored.
+   * @param localConfigPath Path where the local configuration is stored.
    */
   #localConfigPath: string;
 
@@ -32,7 +32,7 @@ export default class VTConfig {
   /**
    * Gets the full path to the local configuration file.
    *
-   * @returns {string} The full file path as a string.
+   * @returns The full file path as a string.
    */
   public getLocalConfigPath(): string {
     return path.join(
@@ -45,25 +45,25 @@ export default class VTConfig {
   /**
    * Whether a local configuration file exists.
    *
-   * @raises {Promise<boolean>} A promise that resolves to true if the file exists, false otherwise.
+   * @returns Promise that resolves to true if the file exists, false otherwise.
    */
   public async localConfigExists(): Promise<boolean> {
     return await exists(this.getLocalConfigPath());
   }
 
   /**
-   * Gets the full path to the global configuration file.
+   * The full path to the global configuration file.
    *
-   * @returns {string} The full file path as a string.
+   * @returns The full file path to the global configuration file.
    */
   public getGlobalConfigPath(): string {
     return path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME);
   }
 
   /**
-   * Gets the full path to all configuration files, in decreasing precedence.
+   * The full path to all configuration files, in decreasing precedence.
    *
-   * @returns {Promise<string[]>} Array of full file paths as strings.
+   * @returns Array of full file paths as strings.
    */
   public async getConfigFilePaths(): Promise<string[]> {
     const localPath = this.getLocalConfigPath();
@@ -83,9 +83,8 @@ export default class VTConfig {
   /**
    * Loads and merges all configuration files.
    *
-   * @returns {Promise<z.infer<typeof VTConfigSchema>>} A promise that resolves with the merged configuration.
-   * @throws {Error} Will throw an error if the files cannot be read or parsed.
-   * @throws {z.ZodError} Will throw a validation error if the merged config doesn't match the schema.
+   * @returns Promise that resolves with the merged configuration.
+   * @throws {Error} If files cannot be read or parsed.
    */
   public async loadConfig(): Promise<z.infer<typeof VTConfigSchema>> {
     const configPaths = await this.getConfigFilePaths();
@@ -114,11 +113,12 @@ export default class VTConfig {
   /**
    * Saves configuration to the local configuration file.
    *
-   * @param {Record<string, unknown>} config - The configuration to save.
-   * @throws {Error} Will throw an error if the file cannot be written.
-   * @throws {z.ZodError} Will throw a validation error if the config doesn't match the schema.
+   * @param config The configuration to save.
+   * @returns Promise that resolves with the validated configuration.
    */
-  public async saveLocalConfig(config: Record<string, unknown>) {
+  public async saveLocalConfig(
+    config: Record<string, unknown>,
+  ): Promise<z.infer<typeof VTConfigSchema>> {
     // Validate the configuration against the schema
     const validatedConfig = VTConfigSchema.strict().parse(config);
 
@@ -137,13 +137,12 @@ export default class VTConfig {
   /**
    * Saves configuration to the global configuration file.
    *
-   * @param {Record<string, unknown>} config - The configuration to save.
-   * @throws {Error} Will throw an error if the file cannot be written.
-   * @throws {z.ZodError} Will throw a validation error if the config doesn't match the schema.
+   * @param config Configuration to save.
+   * @returns A promise that resolves with the validated configuration.
    */
   public async saveGlobalConfig(
     config: Record<string, unknown>,
-  ) {
+  ): Promise<z.infer<typeof VTConfigSchema>> {
     // Validate the configuration against the schema
     const validatedConfig = VTConfigSchema.strict().parse(config);
 
@@ -163,8 +162,10 @@ export default class VTConfig {
 /**
  * Create the global VTConfig file (~/.config/vt/config.yaml) if it doesn't
  * exist.
+ *
+ * @returns A promise that resolves when the config file is ensured.
  */
-export async function ensureGlobalVtConfig() {
+export async function ensureGlobalVtConfig(): Promise<void> {
   const configFilePath = path.join(GLOBAL_VT_CONFIG_PATH, VT_CONFIG_FILE_NAME);
 
   if (!await exists(configFilePath)) {

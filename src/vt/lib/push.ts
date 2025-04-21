@@ -39,7 +39,7 @@ export interface PushParams {
  * Pushes latest changes from a vt folder into a Val Town project. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
- * @param {PushParams} params Options for push operation.
+ * @param params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export async function push(params: PushParams): Promise<PushResult> {
