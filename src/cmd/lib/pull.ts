@@ -62,7 +62,7 @@ export const pullCmd = new Command()
           } else {
             prepareForResult = () =>
               tty
-                .eraseLines(dangerousChanges.split("\n").length + 2);
+                .eraseLines(dangerousChanges.split("\n").length + 3);
           }
         }
 
