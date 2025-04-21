@@ -40,3 +40,5 @@ if (import.meta.main) {
   await ensureApiKey();
   await startVt();
 }
+
+export * from "./mod.ts";

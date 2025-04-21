@@ -1,16 +1,21 @@
-import { clone } from "~/vt/lib/clone.ts";
+import {
+  checkout,
+  clone,
+  create,
+  pull,
+  push,
+  remix,
+  status,
+} from "~/vt/lib/mod.ts";
 import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/lib/pull.ts";
-import { push } from "~/vt/lib/push.ts";
 import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join, relative } from "@std/path";
-import {
-  type BaseCheckoutParams,
-  type BranchCheckoutParams,
-  checkout,
-  type CheckoutResult,
-  type ForkCheckoutParams,
+import type {
+  BaseCheckoutParams,
+  BranchCheckoutParams,
+  CheckoutResult,
+  ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
 import sdk, { branchNameToBranch, getLatestVersion, user } from "~/sdk.ts";
 import {
@@ -19,15 +24,12 @@ import {
   META_FOLDER_NAME,
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
-import { status } from "~/vt/lib/status.ts";
 import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
-import { remix } from "~/vt/lib/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";
-import { create } from "~/vt/lib/create.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
