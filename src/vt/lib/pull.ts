@@ -9,6 +9,11 @@ import {
   ItemStatusManager,
 } from "~/vt/lib/ItemStatusManager.ts";
 
+/** Result of pull operation  */
+export interface PushResult {
+  itemStateChanges: ItemStatusManager;
+}
+
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.
  */
@@ -41,7 +46,7 @@ export interface PullParams {
  * @param params Options for pull operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull(params: PullParams): Promise<ItemStatusManager> {
+export function pull(params: PullParams): Promise<PushResult> {
   const {
     targetDir,
     projectId,
@@ -124,7 +129,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
           await Deno.remove(path, { recursive: true });
         }
       }));
-      return [changes, !dryRun];
+      return [{ itemStateChanges: changes }, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },
   );

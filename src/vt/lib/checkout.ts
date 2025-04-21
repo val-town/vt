@@ -197,7 +197,7 @@ async function handleBranchCheckout(
       );
 
       // Clone the target branch into the temporary directory
-      const pullResult = await pull({
+      const { itemStateChanges: pullResult } = await pull({
         targetDir: tmpDir,
         projectId: params.projectId,
         branchId: toBranch.id,

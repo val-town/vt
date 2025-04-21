@@ -14,7 +14,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
 
-/** Changes made to project items during the push process */
+/** Result of push operation  */
 export interface PushResult {
   itemStateChanges: ItemStatusManager;
 }

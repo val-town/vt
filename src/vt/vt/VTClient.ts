@@ -449,7 +449,7 @@ export default class VTClient {
     options?: Partial<Parameters<typeof pull>[0]>,
   ): Promise<ItemStatusManager> {
     return await this.getMeta().doWithVtState(async (vtState) => {
-      const result = await pull({
+      const { itemStateChanges: result } = await pull({
         ...{
           targetDir: this.rootPath,
           projectId: vtState.project.id,
