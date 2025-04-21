@@ -14,8 +14,8 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
 
+/** Changes made to project items during the push process */
 export interface PushResult {
-  /** Changes made to project items during the push process */
   itemStateChanges: ItemStatusManager;
 }
 
@@ -55,7 +55,7 @@ export async function push(params: PushParams): Promise<PushResult> {
   assert(await exists(targetDir), "target directory doesn't exist");
 
   // Retrieve the status
-  const itemStateChanges = await status({
+  const { itemStateChanges } = await status({
     targetDir,
     projectId,
     branchId,

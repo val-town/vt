@@ -4,7 +4,6 @@ import sdk, { getLatestVersion } from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 
 Deno.test({
   name: "test status detects binary files",
@@ -22,7 +21,7 @@ Deno.test({
         await Deno.writeFile(binaryFilePath, binaryData);
 
         // Run status check
-        const statusResult = await status({
+        const { itemStateChanges: statusResult } = await status({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -67,7 +66,7 @@ Deno.test({
         await Deno.writeTextFile(invalidFilePath, "content");
 
         // Run status check
-        const statusResult = await status({
+        const { itemStateChanges: statusResult } = await status({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -140,7 +139,7 @@ Deno.test({
 
         await t.step("varify status layout", async () => {
           // Run status check
-          const result: ItemStatusManager = await status({
+          const { itemStateChanges: statusResult } = await status({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,
@@ -148,16 +147,16 @@ Deno.test({
           });
 
           // Test file that exists in both places but was modified locally
-          assertEquals(result.modified.length, 1);
-          assertEquals(result.modified[0].path, remoteFile1);
+          assertEquals(statusResult.modified.length, 1);
+          assertEquals(statusResult.modified[0].path, remoteFile1);
 
           // Test local-only file (should be created)
-          assertEquals(result.created.length, 1);
-          assertEquals(result.created[0].path, localOnlyFile);
+          assertEquals(statusResult.created.length, 1);
+          assertEquals(statusResult.created[0].path, localOnlyFile);
 
           // Test file missing locally (should be deleted)
-          assertEquals(result.deleted.length, 1);
-          assertEquals(result.deleted[0].path, remoteFile2);
+          assertEquals(statusResult.deleted.length, 1);
+          assertEquals(statusResult.deleted[0].path, remoteFile2);
         });
       });
     });
@@ -178,7 +177,7 @@ Deno.test({
       await doWithTempDir(async (tempDir) => {
         await Deno.mkdir(join(tempDir, "empty_dir"));
 
-        const statusResult = await status({
+        const { itemStateChanges: statusResult } = await status({
           targetDir: tempDir,
           projectId: project.id,
           branchId: branch.id,
@@ -262,7 +261,7 @@ Deno.test({
 
         await t.step("run a status check on the current state", async () => {
           // Run status check
-          const statusResult = await status({
+          const { itemStateChanges: statusResult } = await status({
             targetDir: tempDir,
             projectId: project.id,
             branchId: branch.id,

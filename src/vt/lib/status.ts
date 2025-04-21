@@ -14,6 +14,11 @@ import {
 } from "~/vt/lib/ItemStatusManager.ts";
 import { join } from "@std/path";
 
+/** Result of status operation  */
+export interface StatusResult {
+  itemStateChanges: ItemStatusManager;
+}
+
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
  */
@@ -38,7 +43,7 @@ export interface StatusParams {
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status(params: StatusParams): Promise<ItemStatusManager> {
+export async function status(params: StatusParams): Promise<StatusResult> {
   const {
     targetDir,
     projectId,
@@ -141,7 +146,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  return result.consolidateRenames();
+  return { itemStateChanges: result.consolidateRenames() };
 }
 
 async function getProjectFiles({

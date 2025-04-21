@@ -426,13 +426,15 @@ export default class VTClient {
       // Use provided branchId or fall back to the current branch from state
       const targetBranchId = branchId || vtState.branch.id;
 
-      return status({
+      const { itemStateChanges } = await status({
         targetDir: this.rootPath,
         projectId: vtState.project.id,
         branchId: targetBranchId,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
         version: await getLatestVersion(vtState.project.id, targetBranchId),
       });
+
+      return itemStateChanges;
     });
   }
 
