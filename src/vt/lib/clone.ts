@@ -6,8 +6,8 @@ import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
 import { doAtomically, isFileModified } from "~/vt/lib/utils/misc.ts";
 import {
-ItemStatusManager,
   type ItemStatus,
+  ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
