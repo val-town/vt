@@ -135,31 +135,51 @@ export async function gracefulRecursiveCopy(
     preserveTimestamps?: boolean;
   } = { overwrite: false, preserveTimestamps: false },
 ): Promise<{ failed: string[] }> {
-  const failed: string[] = [];
+  // Collect all entries using Array.fromAsync
+  const entries = await Array.fromAsync(walk(src));
 
-  for await (const entry of walk(src)) {
+  // Process directories first (synchronously) to ensure they exist
+  const dirEntries = entries.filter((entry) => entry.isDirectory);
+  for (const entry of dirEntries) {
     const relPath = relative(src, entry.path);
     const dstPath = join(dst, relPath);
-
     try {
-      if (entry.isDirectory) {
-        await ensureDir(dstPath);
-      } else if (entry.isFile) {
-        const entryStat = await Deno.stat(entry.path);
-        await ensureDir(join(dstPath, ".."));
-        await Deno.copyFile(entry.path, dstPath);
-        if (entryStat.mtime && options.preserveTimestamps) {
-          await Deno.utime(
-            dstPath,
-            entryStat.atime || entryStat.mtime,
-            entryStat.mtime,
-          );
-        }
-      }
+      await ensureDir(dstPath);
     } catch {
-      failed.push(entry.path);
+      // Skip reporting directory failures as they'll be caught during file operations
     }
   }
+
+  // Then process all files concurrently with Promise.all
+  const fileEntries = entries.filter((entry) => entry.isFile);
+  const copyResults = await Promise.all(
+    fileEntries.map(async (entry) => {
+      const relPath = relative(src, entry.path);
+      const dstPath = join(dst, relPath);
+
+      try {
+        await ensureDir(join(dstPath, ".."));
+        await Deno.copyFile(entry.path, dstPath);
+
+        if (options.preserveTimestamps) {
+          const entryStat = await Deno.stat(entry.path);
+          if (entryStat.mtime) {
+            await Deno.utime(
+              dstPath,
+              entryStat.atime || entryStat.mtime,
+              entryStat.mtime,
+            );
+          }
+        }
+        return null; // Success
+      } catch {
+        return entry.path; // Failed path
+      }
+    }),
+  );
+
+  // Filter out successful operations (null values) to get the failed paths
+  const failed = copyResults.filter(Boolean) as string[];
 
   return { failed };
 }

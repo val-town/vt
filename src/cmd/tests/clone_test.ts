@@ -3,7 +3,7 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
-import { doWithTempDir } from "../../vt/lib/utils/doWithTempDir.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import type { ProjectFileType } from "~/types.ts";
 import { deadline, delay } from "@std/async";

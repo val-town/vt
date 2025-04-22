@@ -1,7 +1,7 @@
 import { join } from "@std/path";
 import stripAnsi from "strip-ansi";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
-import { doWithTempDir } from "../../vt/lib/utils/doWithTempDir.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.

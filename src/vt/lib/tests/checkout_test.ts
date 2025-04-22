@@ -5,7 +5,7 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
-import { doWithTempDir } from "../utils/doWithTempDir.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test cross branch checkout",
