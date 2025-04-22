@@ -182,8 +182,10 @@ export function randomProjectName(label = "") {
 }
 
 /**
- * The owner of the API key used to auth the current ValTown instance.
+ * Get the owner of the API key used to auth the current ValTown instance.
  */
-export const user = await sdk.me.profile.retrieve();
+export const getCurrentUser = memoize(async () => {
+  return await sdk.me.profile.retrieve();
+});
 
 export default sdk;

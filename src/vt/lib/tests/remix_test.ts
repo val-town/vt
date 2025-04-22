@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { user } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
@@ -15,6 +15,8 @@ Deno.test({
     env: true,
   },
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithNewProject(async ({ project }) => {
       // Create an HTTP val in the source project
       const httpValName = "foo_http";
@@ -180,6 +182,8 @@ Deno.test({
     env: true,
   },
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithNewProject(async ({ project }) => {
       // Create a few files in the source project
       await sdk.projects.files.create(

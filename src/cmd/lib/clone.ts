@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { user } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
@@ -35,6 +35,8 @@ export const cloneCmd = new Command()
   )
   .action(
     async (_, projectUri?: string, targetDir?: string, branchName?: string) => {
+      const user = await getCurrentUser();
+
       let ownerName: string;
       let projectName: string;
 
