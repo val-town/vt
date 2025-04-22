@@ -1,14 +1,14 @@
 import sdk, { listProjectItems } from "~/sdk.ts";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir, exists } from "@std/fs";
-import { doAtomically, isFileModified } from "./utils/misc.ts";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
+import { doAtomically, isFileModified } from "~/vt/lib/utils/misc.ts";
 import {
+ItemStatusManager,
   type ItemStatus,
-  ItemStatusManager,
-} from "./utils/ItemStatusManager.ts";
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * Result of a clone operation.
@@ -75,7 +75,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
 
             // If the directory is new mark it as created
             if (!(await exists(join(targetDir, file.path)))) {
-              await itemStateChanges.insert({
+              itemStateChanges.insert({
                 type: "directory",
                 path: file.path,
                 status: "created",
@@ -174,7 +174,7 @@ async function createFile(
   }
 
   // Track file status
-  await changes.insert(fileStatus);
+  changes.insert(fileStatus);
 
   // Stop here for dry runs
   if (dryRun) return;

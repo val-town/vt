@@ -5,8 +5,8 @@ import { join, relative } from "@std/path";
 import { exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import { ItemStatusManager } from "./utils/ItemStatusManager.ts";
-import { doAtomically, gracefulRecursiveCopy } from "./utils/misc.ts";
+import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 
 /**
  * Result of a checkout operation containing branch information and file

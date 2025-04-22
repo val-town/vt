@@ -2,7 +2,6 @@ import sdk, { listProjectItems } from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import { isFileModified } from "./utils/misc.ts";
 import {
   type CreatedItemStatus,
   type DeletedItemStatus,
@@ -11,8 +10,9 @@ import {
   ItemStatusManager,
   type ModifiedItemStatus,
   type NotModifiedItemStatus,
-} from "./utils/ItemStatusManager.ts";
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 import { join } from "@std/path";
+import { isFileModified } from "~/vt/lib/utils/misc.ts";
 
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
