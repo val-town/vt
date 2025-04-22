@@ -1,4 +1,4 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithTempDir } from "../utils/doWithTempDir.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";

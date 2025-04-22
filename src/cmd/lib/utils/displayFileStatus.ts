@@ -2,7 +2,7 @@ import { colors } from "@cliffy/ansi/colors";
 import type {
   ItemStatus,
   ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "../../../vt/lib/utils/ItemStatusManager.ts";
 import {
   ProjectItemColors,
   STATUS_STYLES,

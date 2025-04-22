@@ -2,12 +2,12 @@ import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import { doAtomically } from "~/vt/lib/utils.ts";
+import { doAtomically } from "./utils/misc.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "./utils/ItemStatusManager.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.

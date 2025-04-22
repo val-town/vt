@@ -20,7 +20,7 @@ import {
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import type { ItemStatusManager } from "../lib/utils/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";

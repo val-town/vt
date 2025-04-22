@@ -1,5 +1,5 @@
 import { runVtCommand } from "~/cmd/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithTempDir } from "../../vt/lib/utils/doWithTempDir.ts";
 import { assertStringIncludes } from "@std/assert";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 

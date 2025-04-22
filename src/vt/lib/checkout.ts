@@ -2,11 +2,11 @@ import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
 import { join, relative } from "@std/path";
-import { copy, exists, walk } from "@std/fs";
+import { exists, walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
-import { doAtomically } from "~/vt/lib/utils.ts";
+import { ItemStatusManager } from "./utils/ItemStatusManager.ts";
+import { doAtomically, gracefulRecursiveCopy } from "./utils/misc.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -155,10 +155,9 @@ async function handleBranchCheckout(
 ): Promise<CheckoutResult> {
   return await doAtomically(
     async (tmpDir) => {
-      // Copy over the current state for accurate delta tracking
-      await copy(params.targetDir, tmpDir, {
-        preserveTimestamps: true,
+      await gracefulRecursiveCopy(params.targetDir, tmpDir, {
         overwrite: true,
+        preserveTimestamps: true,
       });
 
       const fileStateChanges = new ItemStatusManager();

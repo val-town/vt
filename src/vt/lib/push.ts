@@ -1,7 +1,7 @@
 import {
   getItemWarnings,
   ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "./utils/ItemStatusManager.ts";
 import type { ProjectFileType, ProjectItemType } from "~/types.ts";
 import sdk, {
   getLatestVersion,

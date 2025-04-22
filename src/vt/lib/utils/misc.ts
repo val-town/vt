@@ -1,4 +1,5 @@
-import { copy, ensureDir, exists } from "@std/fs";
+import { ensureDir, exists, walk } from "@std/fs";
+import { join, relative } from "@std/path";
 
 /**
  * Creates a temporary directory and returns it with a cleanup function.
@@ -29,27 +30,6 @@ export async function withTempDir(
 }
 
 /**
- * Executes an operation in a temporary directory and ensures cleanup.
- *
- * @param op - Function that takes a temporary directory path and returns a Promise
- * @param options - Options for the operation
- * @param options.prefix - Optional prefix for the temporary directory name (defaults to "vt_")
- * @returns Promise that resolves to the result of the operation
- */
-export async function doWithTempDir<T>(
-  op: (tmpDir: string) => Promise<T>,
-  options: { prefix?: string } = { prefix: "vt_" },
-): Promise<T> {
-  const { tempDir, cleanup } = await withTempDir(options);
-
-  try {
-    return await op(tempDir);
-  } finally {
-    await cleanup();
-  }
-}
-
-/**
   * Create a directory atomically by first doing logic to create it in a temp
   * directory, and then moving it to a destination afterwards.
   *
@@ -74,7 +54,7 @@ export async function doAtomically<T>(
 
     if (copyBack) {
       await ensureDir(targetDir);
-      await copy(tempDir, targetDir, {
+      await gracefulRecursiveCopy(tempDir, targetDir, {
         overwrite: true,
         preserveTimestamps: true,
       });
@@ -110,4 +90,76 @@ export function isFileModified({
 
   // If mtime indicates a possible change, check content
   return srcContent !== dstContent;
+}
+
+/**
+ * Executes an operation in a temporary directory and ensures cleanup.
+ *
+ * @param op - Function that takes a temporary directory path and returns a Promise
+ * @param options - Options for the operation
+ * @param options.prefix - Optional prefix for the temporary directory name (defaults to "vt_")
+ * @returns Promise that resolves to the result of the operation
+ */
+
+export async function doWithTempDir<T>(
+  op: (tmpDir: string) => Promise<T>,
+  options: { prefix?: string } = { prefix: "vt_" },
+): Promise<T> {
+  const { tempDir, cleanup } = await withTempDir(options);
+
+  try {
+    return await op(tempDir);
+  } finally {
+    await cleanup();
+  }
+}
+
+/**
+ * Recursively copies files and directories from `src` to `dst`.
+ *
+ * Any errors during copying (e.g. permission issues, file locks) are caught and stored,
+ * and the function continues processing remaining files.
+ *
+ * @param src Source directory path
+ * @param dst Destination directory path
+ * @param options Options for the copy operation
+ * @param options.overwrite Whether to overwrite existing files (default: false)
+ * @param options.preserveTimestamps Whether to preserve file timestamps (default: true)
+ * @returns An object containing a list of file paths that failed to copy
+ */
+export async function gracefulRecursiveCopy(
+  src: string,
+  dst: string,
+  options: {
+    overwrite?: boolean;
+    preserveTimestamps?: boolean;
+  } = { overwrite: false, preserveTimestamps: false },
+): Promise<{ failed: string[] }> {
+  const failed: string[] = [];
+
+  for await (const entry of walk(src)) {
+    const relPath = relative(src, entry.path);
+    const dstPath = join(dst, relPath);
+
+    try {
+      if (entry.isDirectory) {
+        await ensureDir(dstPath);
+      } else if (entry.isFile) {
+        const entryStat = await Deno.stat(entry.path);
+        await ensureDir(join(dstPath, ".."));
+        await Deno.copyFile(entry.path, dstPath);
+        if (entryStat.mtime && options.preserveTimestamps) {
+          await Deno.utime(
+            dstPath,
+            entryStat.atime || entryStat.mtime,
+            entryStat.mtime,
+          );
+        }
+      }
+    } catch {
+      failed.push(entry.path);
+    }
+  }
+
+  return { failed };
 }

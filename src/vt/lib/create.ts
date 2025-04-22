@@ -1,6 +1,6 @@
 import { push } from "~/vt/lib/push.ts";
 import sdk, { branchNameToBranch } from "~/sdk.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import type { ItemStatusManager } from "./utils/ItemStatusManager.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { ensureDir } from "@std/fs";

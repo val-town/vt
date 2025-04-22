@@ -2,7 +2,7 @@ import { colors } from "@cliffy/ansi/colors";
 import type { ProjectItemType } from "~/types.ts";
 import { join } from "@std/path";
 import xdg from "xdg-portable";
-import type { ItemWarning } from "~/vt/lib/ItemStatusManager.ts";
+import type { ItemWarning } from "./vt/lib/utils/ItemStatusManager.ts";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";

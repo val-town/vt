@@ -3,7 +3,7 @@ import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
 import sdk, { randomProjectName, user } from "~/sdk.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithTempDir } from "../../vt/lib/utils/doWithTempDir.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { dirIsEmpty } from "~/utils.ts";
 
