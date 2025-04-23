@@ -1,5 +1,4 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs";
@@ -7,6 +6,7 @@ import { delay, retry } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { getLatestVersion, listValItems } from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "simulate a watch",

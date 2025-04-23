@@ -1,9 +1,9 @@
 import { push } from "~/vt/lib/push.ts";
 import sdk, { branchNameToBranch } from "~/sdk.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import type { ValPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
+import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * Result of a checkout operation containing branch information and file

@@ -1,13 +1,13 @@
 import { join, relative } from "@std/path";
-import { copy, exists, walk } from "@std/fs";
 import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listValItems } from "~/sdk.ts";
-import { doAtomically } from "~/vt/lib/utils.ts";
-import { clone } from "~/vt/lib/clone.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "~/vt/lib/utils/ItemStatusManager.ts";
+import { walk } from "@std/fs";
+import { clone } from "~/vt/lib/clone.ts";
+import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town val into a vt folder.
@@ -60,7 +60,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
       // dry run the purpose here is to ensure that clone reports back the
       // proper status for modified files (e.g. if they existed and would be
       // changed then they're modified)
-      await copy(targetDir, tmpDir, {
+      await gracefulRecursiveCopy(targetDir, tmpDir, {
         preserveTimestamps: true,
         overwrite: true,
       });
@@ -122,8 +122,10 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
 
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
-        if (await exists(path)) {
+        try {
           await Deno.remove(path, { recursive: true });
+        } catch (e) {
+          if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
       return [changes, !dryRun];

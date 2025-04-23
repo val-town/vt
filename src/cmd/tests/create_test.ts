@@ -3,9 +3,9 @@ import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
 import sdk, { randomValName, user } from "~/sdk.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { dirIsEmpty } from "~/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "create val with existing directory name",

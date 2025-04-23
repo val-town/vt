@@ -1,14 +1,14 @@
 import sdk, { listValItems } from "~/sdk.ts";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir, exists } from "@std/fs";
-import { doAtomically, isFileModified } from "~/vt/lib/utils.ts";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
+import { doAtomically, isFileModified } from "~/vt/lib/utils/misc.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * Result of a clone operation.

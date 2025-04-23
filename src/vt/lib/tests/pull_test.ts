@@ -1,10 +1,10 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test typical pulling",

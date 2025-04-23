@@ -1,9 +1,9 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test moving file from subdirectory to root",
@@ -743,6 +743,138 @@ Deno.test({
           );
           assert(!largeFileExists, "too large file should NOT exist on server");
         });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "test push with read-only files",
+  permissions: {
+    read: true,
+    write: true,
+    net: true,
+    env: true,
+  },
+  async fn(t) {
+    await doWithNewVal(async ({ val, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        // Create multiple files - some will be made read-only
+        const normalFilePath = join(tempDir, "writable.txt");
+        const readOnlyFilePath = join(tempDir, "readonly.txt");
+        const anotherFilePath = join(tempDir, "another.txt");
+
+        await t.step("create initial files and push", async () => {
+          // Create the files with initial content
+          await Deno.writeTextFile(normalFilePath, "writable file content");
+          await Deno.writeTextFile(readOnlyFilePath, "readonly file content");
+          await Deno.writeTextFile(anotherFilePath, "another file content");
+
+          // First push to establish files on the server
+          const { itemStateChanges: initialPush } = await push({
+            targetDir: tempDir,
+            valId: val.id,
+            branchId: branch.id,
+          });
+
+          // Verify all files were created successfully
+          assertEquals(
+            initialPush.created.length,
+            3,
+            "all three files should be created",
+          );
+
+          // Make one file read-only (no write permission)
+          await Deno.chmod(readOnlyFilePath, 0o444);
+        });
+
+        await t.step("modify writable files and push again", async () => {
+          // Modify only the writable files
+          await Deno.writeTextFile(normalFilePath, "updated writable content");
+          await Deno.writeTextFile(anotherFilePath, "updated another content");
+
+          // Try to push all changes
+          const { itemStateChanges: secondPush } = await push({
+            targetDir: tempDir,
+            valId: val.id,
+            branchId: branch.id,
+          });
+
+          // Verify push succeeded with correct file states
+          // We expect the read-only file to be in not_modified state
+          // and the two writable files to be in modified state
+          const readOnlyFile = secondPush.all()
+            .find((item) => item.path === "readonly.txt");
+          const writableFile = secondPush.all()
+            .find((item) => item.path === "writable.txt");
+          const anotherFile = secondPush.all()
+            .find((item) => item.path === "another.txt");
+
+          assert(readOnlyFile, "read-only file should be in status results");
+          assert(writableFile, "writable file should be in status results");
+          assert(anotherFile, "another file should be in status results");
+
+          assertEquals(
+            readOnlyFile.status,
+            "not_modified",
+            "read-only file should be not modified",
+          );
+          assertEquals(
+            writableFile.status,
+            "modified",
+            "writable file should be modified",
+          );
+          assertEquals(
+            anotherFile.status,
+            "modified",
+            "another file should be modified",
+          );
+        });
+
+        await t.step("verify server state after push", async () => {
+          // Check content on the server to verify the push succeeded
+          const writableContent = await sdk.vals.files
+            .getContent(val.id, {
+              path: "writable.txt",
+              branch_id: branch.id,
+            })
+            .then((resp) => resp.text());
+
+          const readOnlyContent = await sdk.vals.files
+            .getContent(val.id, {
+              path: "readonly.txt",
+              branch_id: branch.id,
+            })
+            .then((resp) => resp.text());
+
+          const anotherContent = await sdk.vals.files
+            .getContent(val.id, {
+              path: "another.txt",
+              branch_id: branch.id,
+            })
+            .then((resp) => resp.text());
+
+          // Verify the content matches what we expect
+          assertEquals(
+            writableContent,
+            "updated writable content",
+            "Writable file content should be updated on server",
+          );
+          assertEquals(
+            readOnlyContent,
+            "readonly file content",
+            "read-only file content should remain unchanged",
+          );
+          assertEquals(
+            anotherContent,
+            "updated another content",
+            "another file content should be updated on server",
+          );
+        });
+
+        // Clean up by making the file writable again for proper deletion
+        await Deno.chmod(readOnlyFilePath, 0o666);
       });
     });
   },

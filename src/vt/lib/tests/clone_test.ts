@@ -1,5 +1,5 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import sdk from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";

@@ -1,7 +1,3 @@
-import {
-  getItemWarnings,
-  ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
 import type { ValFileType, ValItemType } from "~/types.ts";
 import sdk, { getLatestVersion, getValItem, listValItems } from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
@@ -10,6 +6,10 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
 import { pooledMap } from "@std/async";
+import {
+  getItemWarnings,
+  ItemStatusManager,
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 
 export interface PushResult {
   /** Changes made to val items during the push process */

@@ -476,8 +476,8 @@ export class ItemStatusManager {
         // Content is empty if either is a directory, so we can use ! here
         // since we already checked that
         // The creation should always be local (since we are detecting a local rename)
-        const newItemContent = newItem.content!;
-        const oldItemContent = oldItem.content!;
+        const newItemContent = newItem.content || "";
+        const oldItemContent = oldItem.content || "";
 
         // If newItemContent differs in length by more than
         // RENAME_DETECTION_THRESHOLD% of oldItemContent, skip it since it

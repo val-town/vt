@@ -1,12 +1,11 @@
-import sdk from "~/sdk.ts";
+import sdk, { listValItems } from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
-import { join, relative } from "@std/path";
-import { copy, exists, walk } from "@std/fs";
 import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import { listValItems } from "~/sdk.ts";
-import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
-import { doAtomically } from "~/vt/lib/utils.ts";
+import { join, relative } from "@std/path";
+import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
+import { walk } from "@std/fs";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -155,10 +154,9 @@ async function handleBranchCheckout(
 ): Promise<CheckoutResult> {
   return await doAtomically(
     async (tmpDir) => {
-      // Copy over the current state for accurate delta tracking
-      await copy(params.targetDir, tmpDir, {
-        preserveTimestamps: true,
+      await gracefulRecursiveCopy(params.targetDir, tmpDir, {
         overwrite: true,
+        preserveTimestamps: true,
       });
 
       const fileStateChanges = new ItemStatusManager();
@@ -244,8 +242,10 @@ async function handleBranchCheckout(
 
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
-        if (await exists(path)) {
+        try {
           await Deno.remove(path, { recursive: true });
+        } catch (e) {
+          if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
 

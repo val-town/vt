@@ -1,10 +1,10 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { user } from "~/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import { remix } from "~/vt/lib/remix.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "remix preserves HTTP val type",

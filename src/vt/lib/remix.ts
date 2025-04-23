@@ -1,4 +1,3 @@
-import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { create } from "~/vt/lib/create.ts";
 import sdk, {
@@ -6,8 +5,9 @@ import sdk, {
   getLatestVersion,
   listValItems,
 } from "~/sdk.ts";
-import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
+import { doAtomically } from "~/vt/lib/utils/misc.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_VAL_PRIVACY } from "~/consts.ts";
+import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import type { ValPrivacy } from "~/types.ts";
 
 /**
