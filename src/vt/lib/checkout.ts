@@ -244,7 +244,14 @@ async function handleBranchCheckout(
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
         if (await exists(path)) {
-          await Deno.remove(path, { recursive: true });
+          try {
+            await Deno.remove(path, { recursive: true });
+          } catch (e) {
+            if (e instanceof Deno.errors.NotFound) {
+              // Ignore if the file was already deleted
+            }
+            throw e;
+          }
         }
       }));
 
