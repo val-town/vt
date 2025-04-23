@@ -247,10 +247,7 @@ async function handleBranchCheckout(
           try {
             await Deno.remove(path, { recursive: true });
           } catch (e) {
-            if (e instanceof Deno.errors.NotFound) {
-              // Ignore if the file was already deleted
-            }
-            throw e;
+            if (!(e instanceof Deno.errors.NotFound)) throw e;
           }
         }
       }));
