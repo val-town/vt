@@ -36,7 +36,7 @@ export const VTConfigSchema = z.object({
       z.enum(["true", "false"]).transform((val) => val === "true"),
     ]),
   }).optional(),
-  editorTemplate: z.string(), // a project URI
+  editorTemplate: z.string().optional(), // a project URI
 });
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {

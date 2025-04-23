@@ -4,6 +4,9 @@ import VTClient from "~/vt/vt/VTClient.ts";
 import { user } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
+import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
+import { Confirm } from "@cliffy/prompt";
+import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
   .name("create")
@@ -50,11 +53,13 @@ vt checkout main`,
       private: isPrivate,
       unlisted,
       description,
+      editorFiles,
     }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
       description?: string;
+      editorFiles?: boolean;
     },
     projectName: string,
     targetDir?: string,
@@ -73,7 +78,16 @@ vt checkout main`,
           privacy,
           description,
         });
-        await vt.addEditorTemplate();
+
+        if (editorFiles) {
+          spinner.stop();
+          const { editorTemplate } = await vt.getConfig().loadConfig();
+          const confirmed = await Confirm.prompt(
+            ensureAddEditorFiles(editorTemplate ?? DEFAULT_EDITOR_TEMPLATE),
+          );
+          if (confirmed) await vt.addEditorTemplate();
+          console.log();
+        }
 
         spinner.succeed(
           `Created ${privacy} project "${projectName}" in "${

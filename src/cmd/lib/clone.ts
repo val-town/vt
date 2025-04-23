@@ -2,12 +2,14 @@ import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
 import sdk, { user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { tty } from "@cliffy/ansi/tty";
+import { Confirm } from "@cliffy/prompt";
+import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
 
 export const cloneCmd = new Command()
   .name("clone")
@@ -106,7 +108,15 @@ export const cloneCmd = new Command()
           username: ownerName,
         });
 
-        if (editorFiles) await vt.addEditorTemplate();
+        if (editorFiles) {
+          spinner.stop();
+          const { editorTemplate } = await vt.getConfig().loadConfig();
+          const confirmed = await Confirm.prompt(
+            ensureAddEditorFiles(editorTemplate ?? DEFAULT_EDITOR_TEMPLATE),
+          );
+          if (confirmed) await vt.addEditorTemplate();
+          console.log();
+        }
 
         spinner.succeed(
           `Project ${ownerName}/${projectName} cloned to "${

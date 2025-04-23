@@ -14,6 +14,7 @@ import {
 import sdk, { branchNameToBranch, getLatestVersion, user } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
+  DEFAULT_EDITOR_TEMPLATE,
   FIRST_VERSION_NUMBER,
   META_FOLDER_NAME,
 } from "~/consts.ts";
@@ -69,7 +70,7 @@ export default class VTClient {
   public async addEditorTemplate(): Promise<void> {
     const { editorTemplate } = await this.getConfig().loadConfig();
     const { ownerName, projectName } = parseProjectUri(
-      editorTemplate,
+      editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
       user.username!,
     );
     const templateProject = await sdk.alias.username.projectName.retrieve(
