@@ -4,9 +4,7 @@ import stripAnsi from "strip-ansi";
 import {
   DEFAULT_BRANCH_NAME,
   DEFAULT_EDITOR_TEMPLATE,
-  ENTRYPOINT_NAME,
 } from "~/consts.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import sdk, {
   branchNameToBranch,
@@ -14,6 +12,8 @@ import sdk, {
   listProjectItems,
   user,
 } from "~/sdk.ts";
+import { ENTRYPOINT_NAME } from "~/consts.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.

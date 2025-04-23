@@ -19,7 +19,6 @@ import {
   META_FOLDER_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
@@ -27,6 +26,7 @@ import VTConfig from "~/vt/VTConfig.ts";
 import { remix } from "~/vt/lib/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { create } from "~/vt/lib/create.ts";
+import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 
 /**
@@ -398,7 +398,7 @@ export default class VTClient {
    * Delete the val town project.
    */
   public async delete(): Promise<void> {
-    // Don't need to use doWithConfig since the config will get distructed
+    // Don't need to use doWithConfig since the config will get destructed
     const vtState = await this.getMeta().loadVtState();
 
     // Delete the project
