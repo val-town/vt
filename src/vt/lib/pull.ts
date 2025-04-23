@@ -1,5 +1,5 @@
 import { join, relative } from "@std/path";
-import { exists, walk } from "@std/fs";
+import { walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
