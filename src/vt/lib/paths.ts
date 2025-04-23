@@ -3,16 +3,16 @@ import {
   FIRST_VERSION_NUMBER,
   RECENT_VERSION_COUNT,
 } from "~/consts.ts";
-import { getProjectItem } from "~/sdk.ts";
+import { getValItem } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
-import type { ProjectItemType } from "~/types.ts";
+import type { ValItemType } from "~/types.ts";
 
 /**
- * Determine the type of a project file.
+ * Determine the type of a val file.
  *
- * This function attempts to determine the type of a file within a project
+ * This function attempts to determine the type of a file within a val
  * based on its existing state on the server or its filename. The process...
- * 1. Check if the file already exists in the project at the specified path.
+ * 1. Check if the file already exists in the val at the specified path.
  *    Check at the current version, or at a few versions back, in case the file
  *    was deleted but then recreated, so we preserve the type.
  * 2. If the file does not exist, determine its type based on its file extension:
@@ -25,26 +25,26 @@ import type { ProjectItemType } from "~/types.ts";
  * 3. If the file does not match the val extension criteria (.ts + optional
  *    identifier), return "file".
  *
- * @param {string} projectId - The ID of the project
+ * @param {string} valId - The ID of the val
  * @param {Object} options - Options for determining the file type
  * @param {string} options.branchId - The ID of the branch
- * @param {number} [options.version] - The version of the project (optional, defaults to latest)
+ * @param {number} [options.version] - The version of the val (optional, defaults to latest)
  * @param {string} options.filePath - The path of the val or file to get the type of
- * @returns {Promise<ProjectItemType>} The val file type
+ * @returns {Promise<ValItemType>} The val file type
  */
-export async function getProjectItemType(
-  projectId: string,
+export async function getvalItemType(
+  valId: string,
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ProjectItemType> {
+): Promise<ValItemType> {
   // Preserve the type if the file was deleted recently and then recreated
   for (
     let i = version || FIRST_VERSION_NUMBER;
     i > (version || FIRST_VERSION_NUMBER) - RECENT_VERSION_COUNT;
     i--
   ) {
-    const type = await getProjectItem(projectId, branchId, version, filePath)
+    const type = await getValItem(valId, branchId, version, filePath)
       .then((resp) => resp?.type);
 
     if (type === undefined) continue;

@@ -1,5 +1,5 @@
-import sdk, { listProjectItems } from "~/sdk.ts";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import sdk, { listValItems } from "~/sdk.ts";
+import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 import { isFileModified } from "~/vt/lib/utils.ts";
@@ -15,13 +15,13 @@ import {
 import { join } from "@std/path";
 
 /**
- * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
+ * Parameters for scanning a directory and determining the status of files compared to the Val Town val.
  */
 export interface StatusParams {
   /** The directory to scan for changes. */
   targetDir: string;
-  /** The Val Town project ID. */
-  projectId: string;
+  /** The Val Town val ID. */
+  valId: string;
   /** Branch ID to check against. */
   branchId: string;
   /** The version to check the status against. Defaults to the latest version. */
@@ -32,7 +32,7 @@ export interface StatusParams {
 
 /**
  * Scans a directory and determines the status of all files compared to the Val
- * Town project on the website. Reports status for files as modified, not
+ * Town val on the website. Reports status for files as modified, not
  * modified, deleted, or created.
  *
  * @param params Options for status operation.
@@ -41,7 +41,7 @@ export interface StatusParams {
 export async function status(params: StatusParams): Promise<ItemStatusManager> {
   const {
     targetDir,
-    projectId,
+    valId,
     branchId,
     version,
     gitignoreRules,
@@ -50,27 +50,27 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
 
   // Get all files
   const localFiles = await getLocalFiles({
-    projectId,
+    valId,
     branchId,
     version,
     targetDir,
     gitignoreRules,
   });
-  const projectFiles = await getProjectFiles({
-    projectId,
+  const valFiles = await getvalFiles({
+    valId,
     branchId,
     version,
     gitignoreRules,
   });
-  const projectFileMap = new Map(projectFiles.map((file) => [file.path, file]));
+  const valFileMap = new Map(valFiles.map((file) => [file.path, file]));
 
-  // Compare local files against project files
+  // Compare local files against val files
   for (const localFile of localFiles) {
-    const projectFileInfo = projectFileMap.get(localFile.path);
+    const valFileInfo = valFileMap.get(localFile.path);
     const localFilePath = join(targetDir, localFile.path);
 
-    if (projectFileInfo === undefined) {
-      // File exists locally but not in project - it's created
+    if (valFileInfo === undefined) {
+      // File exists locally but not in val - it's created
       const createdFileState: CreatedItemStatus = {
         status: "created",
         type: localFile.type,
@@ -87,8 +87,8 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
         const isModified = isFileModified({
           srcContent: localFile.content!, // We know it isn't a dir, so there should be content
           srcMtime: localFile.mtime,
-          dstContent: projectFileInfo.content!,
-          dstMtime: projectFileInfo.mtime,
+          dstContent: valFileInfo.content!,
+          dstMtime: valFileInfo.mtime,
         });
 
         if (isModified) {
@@ -96,7 +96,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
             type: localFile.type,
             path: localFile.path,
             status: "modified",
-            where: localStat.mtime!.getTime() > projectFileInfo.mtime
+            where: localStat.mtime!.getTime() > valFileInfo.mtime
               ? "local"
               : "remote",
             mtime: localStat.mtime!.getTime(),
@@ -127,15 +127,15 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  // Check for files that exist in project but not locally
-  for (const projectFile of projectFiles) {
-    if (!localFiles.find((f) => f.path === projectFile.path)) {
+  // Check for files that exist in val but not locally
+  for (const valFile of valFiles) {
+    if (!localFiles.find((f) => f.path === valFile.path)) {
       const deletedFileState: DeletedItemStatus = {
-        type: projectFile.type,
-        path: projectFile.path,
+        type: valFile.type,
+        path: valFile.path,
         status: "deleted",
-        mtime: projectFile.mtime,
-        content: projectFile.content,
+        mtime: valFile.mtime,
+        content: valFile.content,
       };
       result.insert(deletedFileState);
     }
@@ -144,19 +144,19 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
   return result.consolidateRenames();
 }
 
-async function getProjectFiles({
-  projectId,
+async function getvalFiles({
+  valId,
   branchId,
   version,
   gitignoreRules,
 }: {
-  projectId: string;
+  valId: string;
   branchId: string;
   version: number;
   gitignoreRules?: string[];
 }): Promise<ItemInfo[]> {
   return Promise.all(
-    (await listProjectItems(projectId, branchId, version))
+    (await listValItems(valId, branchId, version))
       .filter((file) => !shouldIgnore(file.path, gitignoreRules))
       .map(async (file): Promise<ItemInfo> => ({
         path: file.path,
@@ -164,7 +164,7 @@ async function getProjectFiles({
         mtime: new Date(file.updatedAt).getTime(),
         content: file.type === "directory"
           ? undefined
-          : await sdk.vals.files.getContent(projectId, {
+          : await sdk.vals.files.getContent(valId, {
             path: file.path,
             branch_id: branchId,
             version,
@@ -174,13 +174,13 @@ async function getProjectFiles({
 }
 
 async function getLocalFiles({
-  projectId,
+  valId,
   branchId,
   version,
   targetDir,
   gitignoreRules,
 }: {
-  projectId: string;
+  valId: string;
   branchId: string;
   version: number;
   targetDir: string;
@@ -206,8 +206,8 @@ async function getLocalFiles({
 
       return {
         path: relativePath,
-        type: (entry.isDirectory ? "directory" : await getProjectItemType(
-          projectId,
+        type: (entry.isDirectory ? "directory" : await getvalItemType(
+          valId,
           branchId,
           version,
           relativePath,

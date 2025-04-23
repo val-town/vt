@@ -1,4 +1,4 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
@@ -9,10 +9,10 @@ Deno.test({
   name: "status command with local changes",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create a file and clone the project", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create a file and clone the val", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "test.js",
               content: "console.log('Initial content');",
@@ -21,10 +21,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
         await Deno.remove(join(fullPath, ".vtignore"));
         await Deno.remove(join(fullPath, "deno.json"));
 
@@ -64,10 +64,10 @@ Deno.test({
   name: "status command with remote changes",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create a file and clone the project", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create a file and clone the val", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial content');",
@@ -76,15 +76,15 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("make a remote change", async () => {
           // Create a new file remotely
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "remote-file.js",
               content: "console.log('Remote file');",

@@ -10,7 +10,7 @@ import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
 export const pullCmd = new Command()
   .name("pull")
-  .description("Pull the latest changes for a val town project")
+  .description("Pull the latest changes for a val town val")
   .example("Pull the latest changes", "vt pull")
   .option("-f, --force", "Force the pull even if there are unpushed changes")
   .option(

@@ -3,8 +3,8 @@ import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
 import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import { listProjectItems } from "~/sdk.ts";
+import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { listValItems } from "~/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 
@@ -32,8 +32,8 @@ export interface CheckoutResult {
 export type BaseCheckoutParams = {
   /** The directory where the branch will be checked out */
   targetDir: string;
-  /** The ID of the project */
-  projectId: string;
+  /** The ID of the val */
+  valId: string;
   /** If true, simulates the checkout without making changes */
   dryRun?: boolean;
   /** A list of gitignore rules. */
@@ -63,14 +63,14 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 };
 
 /**
- * Checks out a specific existing branch of a project.
+ * Checks out a specific existing branch of a val.
  * @param params Options for the checkout operation.
  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information.
  */
 export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
-  * Creates a new branch from a project's branch and checks it out.
+  * Creates a new branch from a val's branch and checks it out.
   * @param params Options for the checkout operation.
   * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
  details).
@@ -103,14 +103,14 @@ async function handleForkCheckout(
   const fromBranch:
     | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
     | null = await sdk.vals.branches.retrieve(
-      params.projectId,
+      params.valId,
       params.forkedFromId,
     );
 
   // Create the new branch if not a dry run
   const toBranch = (!params.dryRun)
     ? await sdk.vals.branches.create(
-      params.projectId,
+      params.valId,
       {
         branchId: params.forkedFromId,
         name: params.name,
@@ -119,8 +119,8 @@ async function handleForkCheckout(
     : null;
 
   // Ensure everything is marked as not changed
-  await listProjectItems(
-    params.projectId,
+  await listValItems(
+    params.valId,
     fromBranch.id,
     fromBranch.version,
   ).then((items) =>
@@ -167,20 +167,20 @@ async function handleBranchCheckout(
       let toBranch:
         | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
         | null = await sdk.vals.branches.retrieve(
-          params.projectId,
+          params.valId,
           params.toBranchId,
         );
       toBranch.version = params.toBranchVersion || toBranch.version;
 
       // Get the source branch info
       const fromBranch = await sdk.vals.branches.retrieve(
-        params.projectId,
+        params.valId,
         params.fromBranchId,
       );
 
       const fromFiles = new Set(
-        await listProjectItems(
-          params.projectId,
+        await listValItems(
+          params.valId,
           fromBranch.id,
           fromBranch.version,
         ).then((resp) => resp.map((item) => item.path)),
@@ -188,8 +188,8 @@ async function handleBranchCheckout(
 
       // Get files from the target branch
       const toFiles = new Set(
-        await listProjectItems(
-          params.projectId,
+        await listValItems(
+          params.valId,
           toBranch.id,
           toBranch.version,
         ).then((resp) => resp.map((item) => item.path)),
@@ -198,7 +198,7 @@ async function handleBranchCheckout(
       // Clone the target branch into the temporary directory
       const pullResult = await pull({
         targetDir: tmpDir,
-        projectId: params.projectId,
+        valId: params.valId,
         branchId: toBranch.id,
         version: toBranch.version,
         gitignoreRules: params.gitignoreRules,
@@ -224,8 +224,8 @@ async function handleBranchCheckout(
           fileStateChanges.insert({
             path: relativePath,
             status: "deleted",
-            type: stat.isDirectory ? "directory" : await getProjectItemType(
-              params.projectId,
+            type: stat.isDirectory ? "directory" : await getvalItemType(
+              params.valId,
               fromBranch.id,
               fromBranch.version,
               relativePath,

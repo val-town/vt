@@ -1,11 +1,11 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
-import sdk, { randomProjectName, user } from "~/sdk.ts";
+import sdk, { randomValName, user } from "~/sdk.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
-import type { ProjectFileType } from "~/types.ts";
+import type { ValFileType } from "~/types.ts";
 import { deadline, delay } from "@std/async";
 
 Deno.test({
@@ -19,30 +19,30 @@ Deno.test({
   },
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
+      await doWithNewVal(async ({ val, branch }) => {
         const customDenoJson = '{"tasks":{"custom":"echo test"}}';
         const customVtignore = "custom_ignore_pattern";
 
         await t.step("set up custom config files", async () => {
           // Create custom deno.json
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "deno.json",
               content: customDenoJson,
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file" as ValFileType,
             },
           );
 
           // Create custom .vtignore
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: ".vtignore",
               content: customVtignore,
               branch_id: branch.id,
-              type: "file" as ProjectFileType,
+              type: "file" as ValFileType,
             },
           );
         });
@@ -51,7 +51,7 @@ Deno.test({
           const cloneDir = join(tmpDir, "config-clone");
           await runVtCommand([
             "clone",
-            project.name,
+            val.name,
             cloneDir,
           ], tmpDir);
 
@@ -82,7 +82,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "clone a newly created project",
+  name: "clone a newly created val",
   permissions: {
     read: true,
     write: true,
@@ -92,11 +92,11 @@ Deno.test({
   },
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("set up the project structure", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("set up the val structure", async () => {
           // Create the directory first
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "foo",
               branch_id: branch.id,
@@ -106,7 +106,7 @@ Deno.test({
 
           // Create empty test.js file
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "test.js",
               content: "",
@@ -117,7 +117,7 @@ Deno.test({
 
           // Create test_inner.js with content
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "foo/test_inner.js",
               content:
@@ -128,11 +128,11 @@ Deno.test({
           );
         });
 
-        await t.step("clone the project and assert the structure", async () => {
+        await t.step("clone the val and assert the structure", async () => {
           const cloneDir = join(tmpDir, "cloned");
           const [output] = await runVtCommand([
             "clone",
-            project.name,
+            val.name,
             cloneDir,
           ], tmpDir);
           assertStringIncludes(output, "cloned to");
@@ -173,37 +173,37 @@ Deno.test({
   },
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      const projectName = randomProjectName("clone_test");
+      const valName = randomValName("clone_test");
 
       try {
-        await t.step("create a new project", async () => {
+        await t.step("create a new val", async () => {
           await runVtCommand([
             "create",
-            projectName,
+            valName,
             join(tmpDir, "unused_" + crypto.randomUUID()),
           ], tmpDir);
         });
 
-        const targetDir = join(tmpDir, "test-project-dir");
+        const targetDir = join(tmpDir, "test-val-dir");
 
-        await t.step("clone the new project", async () => {
+        await t.step("clone the new val", async () => {
           const [output] = await runVtCommand([
             "clone",
-            projectName,
+            valName,
             targetDir,
           ], tmpDir);
 
           assertStringIncludes(
             output,
-            `Project ${user.username!}/${projectName} cloned to`,
+            `Val ${user.username!}/${valName} cloned to`,
           );
 
-          assert(await exists(targetDir), "project directory was not created");
+          assert(await exists(targetDir), "val directory was not created");
         });
       } finally {
         const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
-          projectName,
+          valName,
         );
         await sdk.vals.delete(id);
       }
@@ -213,7 +213,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "clone command with inexistant project",
+  name: "clone command with inexistant val",
   permissions: {
     read: true,
     write: true,
@@ -225,17 +225,17 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       const [out] = await runVtCommand([
         "clone",
-        "nonexistentproject123456",
+        "nonexistentval123456",
       ], tmpDir);
 
-      assertStringIncludes(out, "Project not found");
+      assertStringIncludes(out, "Val not found");
     });
   },
   sanitizeResources: false,
 });
 
 Deno.test({
-  name: "interactive clone with no project URI",
+  name: "interactive clone with no val URI",
   permissions: {
     read: true,
     write: true,
@@ -246,7 +246,7 @@ Deno.test({
   fn: async (t: Deno.TestContext) => {
     const testPromise = (async () => {
       await doWithTempDir(async (tmpDir) => {
-        await doWithNewProject(async ({ project }) => {
+        await doWithNewVal(async ({ val }) => {
           let outputLines: string[];
           let cloneChild: Deno.ChildProcess;
 
@@ -257,9 +257,9 @@ Deno.test({
               tmpDir,
             );
 
-            // Send the project name followed by Enter
+            // Send the val name followed by Enter
             const stdin = cloneChild.stdin.getWriter();
-            await stdin.write(new TextEncoder().encode(project.name + "\n"));
+            await stdin.write(new TextEncoder().encode(val.name + "\n"));
             stdin.releaseLock();
 
             await delay(1000); // Wait for the process to handle input
@@ -273,10 +273,10 @@ Deno.test({
               "clone process should exit with code 0",
             );
 
-            // Verify the project directory exists
+            // Verify the val directory exists
             assert(
-              await exists(join(tmpDir, project.name)),
-              "project directory was not created",
+              await exists(join(tmpDir, val.name)),
+              "val directory was not created",
             );
 
             // Verify output contains cloning confirmation

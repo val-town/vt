@@ -1,36 +1,36 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import type ValTown from "@valtown/sdk";
-import type { ProjectFileType } from "~/types.ts";
+import type { ValFileType } from "~/types.ts";
 
 Deno.test({
   name: "branch list command shows all branches",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch: mainBranch }) => {
+      await doWithNewVal(async ({ val, branch: mainBranch }) => {
         let fullPath: string;
 
         await t.step("create additional branches", async () => {
           // Create a feature branch
           await sdk.vals.branches.create(
-            project.id,
+            val.id,
             { name: "feature", branchId: mainBranch.id },
           );
 
           // Create a development branch
           await sdk.vals.branches.create(
-            project.id,
+            val.id,
             { name: "development", branchId: mainBranch.id },
           );
         });
 
-        await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
-          fullPath = join(tmpDir, project.name);
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
+          fullPath = join(tmpDir, val.name);
         });
 
         await t.step("list branches and verify output", async () => {
@@ -56,32 +56,32 @@ Deno.test({
   name: "branch delete command removes a branch",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch: mainBranch }) => {
+      await doWithNewVal(async ({ val, branch: mainBranch }) => {
         let fullPath: string;
         let featureBranch: ValTown.Vals.BranchListResponse;
 
         await t.step("create feature branch", async () => {
           // Create a feature branch
           featureBranch = await sdk.vals.branches.create(
-            project.id,
+            val.id,
             { name: "feature-to-delete", branchId: mainBranch.id },
           );
 
           // Create a file on feature branch to verify it's real
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "feature-file.js",
               content: "console.log('Feature branch file');",
               branch_id: featureBranch.id,
-              type: "file" as ProjectFileType,
+              type: "file" as ValFileType,
             },
           );
         });
 
-        await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
-          fullPath = join(tmpDir, project.name);
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
+          fullPath = join(tmpDir, val.name);
         });
 
         await t.step(
@@ -119,12 +119,12 @@ Deno.test({
   name: "branch delete command fails when trying to delete current branch",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
+      await doWithNewVal(async ({ val }) => {
         let fullPath: string;
 
-        await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
-          fullPath = join(tmpDir, project.name);
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
+          fullPath = join(tmpDir, val.name);
         });
 
         await t.step("try to delete the current branch", async () => {
@@ -148,12 +148,12 @@ Deno.test({
   name: "branch command handles non-existent branch deletion",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
+      await doWithNewVal(async ({ val }) => {
         let fullPath: string;
 
-        await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
-          fullPath = join(tmpDir, project.name);
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
+          fullPath = join(tmpDir, val.name);
         });
 
         await t.step("try to delete a non-existent branch", async () => {

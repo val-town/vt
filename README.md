@@ -1,6 +1,6 @@
 # Val Town CLI
 
-VT is a cli to work with projects in the [Val Town](https://val.town) platform.
+VT is a cli to work with Vals in the [Val Town](https://val.town) platform.
 
 ```
 Usage:   vt    
@@ -13,19 +13,19 @@ Options:
 
 Commands:
 
-  clone     [projectUri] [cloneDir] [branchName]           - Clone a val town project                              
-  push                                                     - Push local changes to a val town project              
-  pull                                                     - Pull the latest changes for a val town project        
+  clone     [valUri] [cloneDir] [branchName]           - Clone a val town val                              
+  push                                                     - Push local changes to a val town val              
+  pull                                                     - Pull the latest changes for a val town val        
   status                                                   - Show the working tree status                          
   branch                                                   - List or delete branches                               
   checkout  [existingBranchName]                           - Check out a different branch                          
   watch                                                    - Watch for changes and automatically sync with Val Town
-  browse                                                   - Open a project in a web browser                       
-  create    <projectName> [targetDir]                      - Create a new Val Town project                         
-  remix     <fromProjectUri> [newProjectName] [targetDir]  - Remix a Val Town project                              
+  browse                                                   - Open a val in a web browser                       
+  create    <valName> [targetDir]                      - Create a new Val Town val                         
+  remix     <fromvalUri> [newvalName] [targetDir]  - Remix a Val Town val                              
   config                                                   - Manage vt configuration                               
-  delete                                                   - Delete a Val Town project                             
-  list                                                     - List all your Val Town projects
+  delete                                                   - Delete a Val Town val                             
+  list                                                     - List all your Val Town vals
 ```
 
 ## Installation
@@ -47,10 +47,10 @@ To authenticate with `val.town`, just run `vt`, and you should get the dialog
 ```
 Welcome to the Val Town CLI!
 
-  VT is a companion CLI to interface with Val Town projects.
+  VT is a companion CLI to interface with Val Town vals.
 
   With this CLI, you can:
-  - Create and manage Val Town projects
+  - Create and manage Val Town vals
   - Push and pull changes between your local system and Val Town
   - Watch a directory to keep it automatically synced with Val Town
   - And more!
@@ -60,12 +60,12 @@ Welcome to the Val Town CLI!
 ? Would you like to open val.town/settings/api in a browser to get an API key? (y/n) ›
 ```
 
-Respond yes, and ensure you select to create an API key with user read & project
+Respond yes, and ensure you select to create an API key with user read & val
 read+write permissions.
 
 Alternatively, you can set the `VAL_TOWN_API_KEY` environment variable to
 authenticate. Either as an environment variable, or place it in a .env in your
-project.
+val.
 
 Now you can run `vt` again to confirm everything is working:
 
@@ -80,24 +80,24 @@ vt 0.0.11
 Let's walk through a complete workflow to get you familiar with the Val Town
 CLI.
 
-First, let's remix a nice starting project.
+First, let's remix a nice starting val.
 
 ```bash
 $ vt remix std/reactHonoStarter myNewWebsite
 
-√ Remixed "@std/reactHonoStarter" to public project "@you/myNewWebsite"
+√ Remixed "@std/reactHonoStarter" to public val "@you/myNewWebsite"
 
 $ cd myNewWebsite
 ```
 
-![Your new project!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
+![Your new val!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
 
-Alternatively, you can use `vt create` to create a new empty project. If you
-don't specify a path, the name of the project will automatically be used.
+Alternatively, you can use `vt create` to create a new empty val. If you don't
+specify a path, the name of the val will automatically be used.
 
-When you `remix`, `create`, or `clone` a project, `vt` creates a `.vt` that
-tracks your project metadata. You can think of this like `.git`, it is not meant
-to be manually edited and is used for internal bookkeeping.
+When you `remix`, `create`, or `clone` a val, `vt` creates a `.vt` that tracks
+your val metadata. You can think of this like `.git`, it is not meant to be
+manually edited and is used for internal bookkeeping.
 
 `vt` also creates an ignore file, `.vtignore`, which works like `.gitignore`,
 and a `deno.json`. By having a `deno.json`, your editor will be able to make use
@@ -111,10 +111,10 @@ guide and find how to configure yours.
 
 ![Making changes](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
 
-Let's start editing our project! Fire up your favorite editor, and then make a
+Let's start editing our val! Fire up your favorite editor, and then make a
 change to `README.md`.
 
-Now, let's upload this file to your project with `vt push`
+Now, let's upload this file to your val with `vt push`
 
 ```bash
 Pushed:
@@ -133,7 +133,7 @@ The `deno.json` and `.vtignore` by default get tracked in Val Town. If you don't
 want this behavior, then you can delete them and add `deno.json` and `.vtignore`
 to the `.vtignore`(the `.vtignore` will respect itself being ignored!).
 
-![Browse the project on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
+![Browse the val on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
 
 Now run `vt browse` to see your file in the Val Town website UI. We advise you
 use `vt` in conjunction with the Val Town website. The CLI can do a lot, but not

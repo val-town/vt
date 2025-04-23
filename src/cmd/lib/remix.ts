@@ -1,29 +1,29 @@
 import { Command } from "@cliffy/command";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { projectExists, user } from "~/sdk.ts";
+import { user, valExists } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { parseProjectUri } from "~/cmd/parsing.ts";
+import { parseValUrl } from "~/cmd/parsing.ts";
 import { randomIntegerBetween } from "@std/random";
 
 export const remixCmd = new Command()
   .name("remix")
-  .description("Remix a Val Town project")
+  .description("Remix a Val Town val")
   .arguments(
-    "<fromProjectUri:string> [newProjectName:string] [targetDir:string]",
+    "<fromvalUri:string> [newvalName:string] [targetDir:string]",
   )
-  .option("--public", "Remix as public project (default)", {
+  .option("--public", "Remix as public val (default)", {
     conflicts: ["private", "unlisted"],
   })
-  .option("--private", "Remix as private project", {
+  .option("--private", "Remix as private val", {
     conflicts: ["public", "unlisted"],
   })
-  .option("--unlisted", "Remix as unlisted project", {
+  .option("--unlisted", "Remix as unlisted val", {
     conflicts: ["public", "private"],
   })
   .option("--no-editor-files", "Skip creating editor configuration files")
-  .option("-d, --description <desc:string>", "Project description")
+  .option("-d, --description <desc:string>", "Val description")
   .example(
     "Bootstrap a website",
     `
@@ -45,36 +45,36 @@ export const remixCmd = new Command()
       description?: string;
       editorFiles?: boolean;
     },
-    fromProjectUri: string,
-    newProjectName?: string,
+    fromvalUri: string,
+    newvalName?: string,
     targetDir?: string,
   ) => {
-    await doWithSpinner("Remixing Val Town project...", async (spinner) => {
-      // Parse the project uri for the project we are remixing
+    await doWithSpinner("Remixing Val Town val...", async (spinner) => {
+      // Parse the val uri for the val we are remixing
       const {
-        ownerName: sourceProjectUsername,
-        projectName: sourceProjectName,
-      } = parseProjectUri(
-        fromProjectUri,
+        ownerName: sourcevalUsername,
+        valName: sourcevalName,
+      } = parseValUrl(
+        fromvalUri,
         user.username!,
       );
 
-      // Determine project name based on input or generate one if needed
-      let projectName: string;
-      if (newProjectName) {
+      // Determine val name based on input or generate one if needed
+      let valName: string;
+      if (newvalName) {
         // Use explicitly provided name
-        projectName = newProjectName;
+        valName = newvalName;
       } else if (
-        !await projectExists({
-          projectName: sourceProjectName,
+        !await valExists({
+          valName: sourcevalName,
           username: user.username!,
         })
       ) {
-        // Use source project name if it doesn't already exist
-        projectName = sourceProjectName;
+        // Use source val name if it doesn't already exist
+        valName = sourcevalName;
       } else {
         // Generate a unique name with random suffix
-        projectName = `${sourceProjectName}_remix_${
+        valName = `${sourcevalName}_remix_${
           randomIntegerBetween(10000, 99999)
         }`;
       }
@@ -83,10 +83,10 @@ export const remixCmd = new Command()
       let rootPath: string;
       if (targetDir) {
         // Use explicitly provided target directory
-        rootPath = join(Deno.cwd(), targetDir, projectName);
+        rootPath = join(Deno.cwd(), targetDir, valName);
       } else {
-        // Default to current directory + project name
-        rootPath = join(Deno.cwd(), projectName);
+        // Default to current directory + val name
+        rootPath = join(Deno.cwd(), valName);
       }
 
       // Determine privacy setting (defaults to public)
@@ -96,21 +96,21 @@ export const remixCmd = new Command()
         // Use the remix function with updated signature
         const vt = await VTClient.remix({
           rootPath,
-          srcProjectUsername: sourceProjectUsername,
-          srcProjectName: sourceProjectName,
-          dstProjectName: projectName,
-          dstProjectPrivacy: privacy,
+          srcValUsername: sourcevalUsername,
+          srcValName: sourcevalName,
+          dstValName: valName,
+          dstValPrivacy: privacy,
           description,
         });
 
         if (editorFiles) await vt.addEditorFiles();
 
         spinner.succeed(
-          `Remixed "@${sourceProjectUsername}/${sourceProjectName}" to ${privacy} project "@${user.username}/${projectName}"`,
+          `Remixed "@${sourcevalUsername}/${sourcevalName}" to ${privacy} val "@${user.username}/${valName}"`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {
-          throw new Error(`Project name "${projectName}" already exists`);
+          throw new Error(`Val name "${valName}" already exists`);
         } else throw error;
       }
     });

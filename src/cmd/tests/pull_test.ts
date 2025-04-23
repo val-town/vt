@@ -1,4 +1,4 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
@@ -9,12 +9,12 @@ Deno.test({
   name: "pull command with no changes",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
-        await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
+      await doWithNewVal(async ({ val }) => {
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
         await Deno.remove(join(fullPath, ".vtignore"));
         await Deno.remove(join(fullPath, "deno.json"));
 
@@ -32,17 +32,17 @@ Deno.test({
   name: "pull command with dry run option",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("clone the project", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("clone the val", async () => {
           await runVtCommand([
             "clone",
-            project.name,
+            val.name,
           ], tmpDir);
         });
 
         await t.step("make a remote change", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "remote-new.js",
               content: "console.log('Added remotely');",
@@ -55,7 +55,7 @@ Deno.test({
         await t.step("run pull command with dry run option", async () => {
           const [output] = await runVtCommand(
             ["pull", "--dry-run"],
-            join(tmpDir, project.name),
+            join(tmpDir, val.name),
           );
           assertStringIncludes(output, "that would be pulled");
         });

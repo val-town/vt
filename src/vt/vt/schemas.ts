@@ -4,10 +4,10 @@ import { z } from "zod";
  * JSON schema for the state.json file for the .vt folder.
  *
  * Contains required metadata for operations that require context about the val
- * town directory you are in, like the project that it represents.
+ * town directory you are in, like the val that it represents.
  */
 export const VTStateSchema = z.object({
-  project: z.object({
+  val: z.object({
     id: z.string().uuid(),
   }),
   branch: z.object({

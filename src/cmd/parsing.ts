@@ -1,49 +1,49 @@
-import { VAL_TOWN_PROJECT_URL_REGEX } from "~/consts.ts";
+import { VAL_TOWN_VAL_URL_REGEX } from "~/consts.ts";
 
 /**
- * Parses a project identifier from various formats:
- * - username/projectName or @username/projectName
- * - projectName (using currentUsername)
- * - Any val.town URL containing /x/username/projectName
+ * Parses a val identifier from various formats:
+ * - username/valName or @username/valName
+ * - valName (using currentUsername)
+ * - Any val.town URL containing /x/username/valName
  *
- * @param {string} projectUri - The project identifier to parse
+ * @param {string} valUri - The val identifier to parse
  * @param {string} currentUsername - Fallback username if not specified
- * @returns The extracted ownerName and projectName
+ * @returns The extracted ownerName and valName
  * @throws Error on invalid format
  */
-export function parseProjectUri(
-  projectUri: string,
+export function parseValUrl(
+  valUri: string,
   currentUsername: string,
-): { ownerName: string; projectName: string } {
+): { ownerName: string; valName: string } {
   // Handle val.town URLs
-  if (projectUri.includes("val.town/")) {
-    const match = projectUri.match(VAL_TOWN_PROJECT_URL_REGEX);
+  if (valUri.includes("val.town/")) {
+    const match = valUri.match(VAL_TOWN_VAL_URL_REGEX);
 
     if (match) {
-      const [, ownerName, projectName] = match;
-      return { ownerName, projectName };
+      const [, ownerName, valName] = match;
+      return { ownerName, valName };
     }
 
     // If we get here, it's a val.town URL but not in the expected format
     throw new Error("Invalid val.town URL format");
   } else {
     // Handle non-URL formats
-    const parts = projectUri.replace(/^@/, "").split("/");
+    const parts = valUri.replace(/^@/, "").split("/");
 
     let ownerName: string;
-    let projectName: string;
+    let valName: string;
 
     if (parts.length === 1) {
       ownerName = currentUsername;
-      projectName = parts[0];
+      valName = parts[0];
     } else if (parts.length === 2) {
-      [ownerName, projectName] = parts;
+      [ownerName, valName] = parts;
     } else {
       throw new Error(
-        "Invalid project URI. Must be a URL or a URI (username/projectName or @username/projectName)",
+        "Invalid val URI. Must be a URL or a URI (username/valName or @username/valName)",
       );
     }
 
-    return { ownerName, projectName };
+    return { ownerName, valName };
   }
 }

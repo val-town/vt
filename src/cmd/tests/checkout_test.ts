@@ -1,4 +1,4 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
@@ -6,17 +6,17 @@ import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { deadline } from "@std/async";
-import type { ProjectFileType } from "~/types.ts";
+import type { ValFileType } from "~/types.ts";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch: mainBranch }) => {
-        await t.step("set up the state of the project", async () => {
+      await doWithNewVal(async ({ val, branch: mainBranch }) => {
+        await t.step("set up the state of the val", async () => {
           // Create initial file on main branch
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "main-file.js",
               content: "console.log('Initial content');",
@@ -27,13 +27,13 @@ Deno.test({
 
           // Create a feature branch
           const featureBranch = await sdk.vals.branches.create(
-            project.id,
+            val.id,
             { name: "feature-branch", branchId: mainBranch.id },
           );
 
           // Add a file to feature branch
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "feature-file.js",
               content: "console.log('Feature branch file');",
@@ -43,15 +43,15 @@ Deno.test({
           );
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
-        await t.step("clone the project and modify it", async () => {
-          // Clone the project (defaults to main branch)
-          await runVtCommand(["clone", project.name], tmpDir);
+        await t.step("clone the val and modify it", async () => {
+          // Clone the val (defaults to main branch)
+          await runVtCommand(["clone", val.name], tmpDir);
 
           // Make a remote change to main branch after cloning
           await sdk.vals.files.update(
-            project.id,
+            val.id,
             {
               branch_id: mainBranch.id,
               path: "main-file.js",
@@ -100,14 +100,14 @@ Deno.test({
   name: "checkout -b preserves local unpushed changes",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch: mainBranch }) => {
+      await doWithNewVal(async ({ val, branch: mainBranch }) => {
         let fullPath: string;
         let originalFilePath: string;
         let newFilePath: string;
 
         await t.step("create file on main branch", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "original.txt",
               content: "original content",
@@ -117,9 +117,9 @@ Deno.test({
           );
         });
 
-        await t.step("clone project and make local changes", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
-          fullPath = join(tmpDir, project.name);
+        await t.step("clone val and make local changes", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
+          fullPath = join(tmpDir, val.name);
           originalFilePath = join(fullPath, "original.txt");
 
           assert(
@@ -195,10 +195,10 @@ Deno.test({
   name: "check out to existing branch",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
+      await doWithNewVal(async ({ val, branch }) => {
         // Create initial file on main branch
         await sdk.vals.files.create(
-          project.id,
+          val.id,
           {
             path: "main-file.js",
             content: "console.log('Main branch file');",
@@ -209,13 +209,13 @@ Deno.test({
 
         // Create a new branch using SDK
         const newBranch = await sdk.vals.branches.create(
-          project.id,
+          val.id,
           { name: "feature-branch", branchId: branch.id },
         );
 
         // Create a file on the new branch
         await sdk.vals.files.create(
-          project.id,
+          val.id,
           {
             path: "feature-file.js",
             content: "console.log('Feature branch file');",
@@ -224,9 +224,9 @@ Deno.test({
           },
         );
 
-        // Clone the project (defaults to main branch)
-        await runVtCommand(["clone", project.name], tmpDir);
-        const fullPath = join(tmpDir, project.name);
+        // Clone the val (defaults to main branch)
+        await runVtCommand(["clone", val.name], tmpDir);
+        const fullPath = join(tmpDir, val.name);
 
         // Ensure the main file exists
         assert(
@@ -269,10 +269,10 @@ Deno.test({
   name: "create new branch with -b",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
+      await doWithNewVal(async ({ val, branch }) => {
         // Create initial file on main branch
         await sdk.vals.files.create(
-          project.id,
+          val.id,
           {
             path: "main-file.js",
             content: "console.log('Main branch file');",
@@ -281,9 +281,9 @@ Deno.test({
           },
         );
 
-        // Clone the project
-        await runVtCommand(["clone", project.name], tmpDir);
-        const fullPath = join(tmpDir, project.name);
+        // Clone the val
+        await runVtCommand(["clone", val.name], tmpDir);
+        const fullPath = join(tmpDir, val.name);
 
         // Create a new branch with checkout -b
         const [checkoutOutput] = await runVtCommand([
@@ -341,17 +341,17 @@ Deno.test({
     await deadline(
       (async () => {
         return await doWithTempDir(async (tmpDir) => {
-          await doWithNewProject(async ({ project, branch }) => {
+          await doWithNewVal(async ({ val, branch }) => {
             let fullPath: string;
 
             await t.step("create initial file on main branch", async () => {
               await sdk.vals.files.create(
-                project.id,
+                val.id,
                 {
                   path: "shared-file.js",
                   content: "console.log('Original content');",
                   branch_id: branch.id,
-                  type: "file" as ProjectFileType,
+                  type: "file" as ValFileType,
                 },
               );
             });
@@ -361,13 +361,13 @@ Deno.test({
               async () => {
                 // Create a feature branch
                 const featureBranch = await sdk.vals.branches.create(
-                  project.id,
+                  val.id,
                   { name: "feature", branchId: branch.id },
                 );
 
                 // Modify the file on feature branch
                 await sdk.vals.files.update(
-                  project.id,
+                  val.id,
                   {
                     branch_id: featureBranch.id,
                     path: "shared-file.js",
@@ -377,10 +377,10 @@ Deno.test({
               },
             );
 
-            await t.step("clone project and modify file locally", async () => {
-              // Clone the project (defaults to main branch)
-              await runVtCommand(["clone", project.name], tmpDir);
-              fullPath = join(tmpDir, project.name);
+            await t.step("clone val and modify file locally", async () => {
+              // Clone the val (defaults to main branch)
+              await runVtCommand(["clone", val.name], tmpDir);
+              fullPath = join(tmpDir, val.name);
 
               // Modify the shared file locally while on main branch
               await Deno.writeTextFile(
@@ -433,10 +433,10 @@ Deno.test({
   name: "checkout to current branch shows 'already on branch' message",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
+      await doWithNewVal(async ({ val, branch }) => {
         // Create initial file on main branch
         await sdk.vals.files.create(
-          project.id,
+          val.id,
           {
             path: "main-file.js",
             content: "console.log('Main branch file');",
@@ -445,9 +445,9 @@ Deno.test({
           },
         );
 
-        // Clone the project (defaults to main branch)
-        await runVtCommand(["clone", project.name], tmpDir);
-        const fullPath = join(tmpDir, project.name);
+        // Clone the val (defaults to main branch)
+        await runVtCommand(["clone", val.name], tmpDir);
+        const fullPath = join(tmpDir, val.name);
 
         // Try checking out to main branch while already on main
         const [checkoutOutput] = await runVtCommand([

@@ -1,7 +1,7 @@
 import { join, relative } from "@std/path";
 import { copy, exists, walk } from "@std/fs";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import { listProjectItems } from "~/sdk.ts";
+import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { listValItems } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import {
@@ -10,13 +10,13 @@ import {
 } from "~/vt/lib/ItemStatusManager.ts";
 
 /**
- * Parameters for pulling latest changes from a Val Town project into a vt folder.
+ * Parameters for pulling latest changes from a Val Town val into a vt folder.
  */
 export interface PullParams {
-  /** The vt project root directory. */
+  /** The vt val root directory. */
   targetDir: string;
-  /** The id of the project to download from. */
-  projectId: string;
+  /** The id of the val to download from. */
+  valId: string;
   /** The branch ID to download file content from. */
   branchId: string;
   /** The version to pull. Defaults to latest version. */
@@ -28,25 +28,25 @@ export interface PullParams {
 }
 
 /**
- * Pulls latest changes from a Val Town project into a vt folder.
+ * Pulls latest changes from a Val Town val into a vt folder.
  *
  * @param {PullParams} params Options for pull operation.
  *
  * @description
  * After a pull:
- * - All files from the remote project exist at the remote's version's location locally
+ * - All files from the remote val exist at the remote's version's location locally
  * - Local files that match gitignore rules are preserved at their current path
  * - Untracked local files that were never pushed are preserved
  *
  * Files that are removed:
- * - Files that previously existed in the remote project but were deleted
+ * - Files that previously existed in the remote val but were deleted
  *
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export function pull(params: PullParams): Promise<ItemStatusManager> {
   const {
     targetDir,
-    projectId,
+    valId,
     branchId,
     version,
     gitignoreRules = [],
@@ -65,12 +65,12 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
         overwrite: true,
       });
 
-      // Clone all the files from the project into the temp dir. This
+      // Clone all the files from the val into the temp dir. This
       // implicitly will overwrite files with the current version on the
       // server.
       const { itemStateChanges: cloneChanges } = await clone({
         targetDir: tmpDir,
-        projectId,
+        valId,
         branchId,
         version,
         gitignoreRules,
@@ -81,12 +81,12 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
       changes.merge(cloneChanges);
 
       // Get list of files from the server
-      const projectItems = await listProjectItems(
-        projectId,
+      const valItems = await listValItems(
+        valId,
         branchId,
         version,
       );
-      const projectItemsSet = new Set(projectItems.map((file) => file.path));
+      const valItemsSet = new Set(valItems.map((file) => file.path));
 
       // Scan the temp directory to identify files that should be deleted
       const pathsToDelete: string[] = [];
@@ -97,14 +97,14 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
 
         if (shouldIgnore(relativePath, gitignoreRules)) continue;
         if (relativePath === "" || entry.path === tmpDir) continue;
-        if (projectItemsSet.has(relativePath)) continue;
+        if (valItemsSet.has(relativePath)) continue;
 
         const stat = await Deno.stat(entry.path);
         const fileStatus: ItemStatus = {
           path: relativePath,
           status: "deleted",
-          type: stat.isDirectory ? "directory" : await getProjectItemType(
-            projectId,
+          type: stat.isDirectory ? "directory" : await getvalItemType(
+            valId,
             branchId,
             version,
             relativePath,

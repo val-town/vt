@@ -1,7 +1,7 @@
 import { push } from "~/vt/lib/push.ts";
 import sdk, { branchNameToBranch } from "~/sdk.ts";
 import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
-import type { ProjectPrivacy } from "~/types.ts";
+import type { ValPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
 
@@ -10,43 +10,43 @@ import { ensureDir } from "@std/fs";
  * changes.
  */
 interface CreateResponse {
-  /** The state of the files that were pushed to the new project. */
+  /** The state of the files that were pushed to the new val. */
   itemStateChanges: ItemStatusManager;
-  /** The ID of the newly created project. */
-  newProjectId: string;
-  /** The ID of the new branch created in the new project. */
+  /** The ID of the newly created val. */
+  newValId: string;
+  /** The ID of the new branch created in the new val. */
   newBranchId: string;
 }
 
 /**
- * Parameters for creating a new Val Town project from a local directory.
+ * Parameters for creating a new Val Town val from a local directory.
  */
 export interface CreateParams {
-  /** The root directory containing the files to upload to the new project. */
+  /** The root directory containing the files to upload to the new val. */
   sourceDir: string;
-  /** The name for the new project. */
-  projectName: string;
-  /** Optional project description. Defaults to that of the project being remixed. */
+  /** The name for the new val. */
+  valName: string;
+  /** Optional val description. Defaults to that of the val being remixed. */
   description?: string;
-  /** Privacy setting for the project. Defaults to that of the project being remixed. */
-  privacy?: ProjectPrivacy;
+  /** Privacy setting for the val. Defaults to that of the val being remixed. */
+  privacy?: ValPrivacy;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
 }
 
 /**
- * Creates a new Val Town project from a local directory.
+ * Creates a new Val Town val from a local directory.
  *
  * @param {CreateParams} params Options for create operation.
  *
- * @returns Promise that resolves with changes that were applied during the push operation and the new project ID.
+ * @returns Promise that resolves with changes that were applied during the push operation and the new val ID.
  */
 export async function create(
   params: CreateParams,
 ): Promise<CreateResponse> {
   const {
     sourceDir,
-    projectName,
+    valName,
     description = "",
     privacy = "private",
     gitignoreRules,
@@ -54,28 +54,28 @@ export async function create(
 
   await ensureDir(sourceDir);
 
-  // Create a new project in Val Town
-  const newProject = await sdk.vals.create({
-    name: projectName,
+  // Create a new val in Val Town
+  const newval = await sdk.vals.create({
+    name: valName,
     description,
     privacy,
   });
   const newBranch = await branchNameToBranch(
-    newProject.id,
+    newval.id,
     DEFAULT_BRANCH_NAME,
   );
 
-  // Push the local directory contents to the new project
+  // Push the local directory contents to the new val
   const { itemStateChanges } = await push({
     targetDir: sourceDir,
-    projectId: newProject.id,
+    valId: newval.id,
     branchId: newBranch.id,
     gitignoreRules,
   });
 
   return {
     itemStateChanges: itemStateChanges,
-    newProjectId: newProject.id,
+    newValId: newval.id,
     newBranchId: newBranch.id,
   };
 }

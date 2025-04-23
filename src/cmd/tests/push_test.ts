@@ -1,4 +1,4 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
@@ -9,11 +9,11 @@ Deno.test({
   name: "push command output",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create initial file and clone the project", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create initial file and clone the val", async () => {
           // Create initial file
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
@@ -22,10 +22,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("make a local change", async () => {
           // Create new file
@@ -59,12 +59,12 @@ Deno.test({
   name: "push command with no changes",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
-        await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
+      await doWithNewVal(async ({ val }) => {
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
         await Deno.remove(join(fullPath, ".vtignore"));
         await Deno.remove(join(fullPath, "deno.json"));
 
@@ -82,11 +82,11 @@ Deno.test({
   name: "push command stress test with 10 recursive dirs and 20 files",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create initial file and clone the project", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create initial file and clone the val", async () => {
           // Create initial file
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
@@ -95,10 +95,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step(
           "create deep directory structure with multiple files",
@@ -149,11 +149,11 @@ Deno.test({
   name: "push command fails with binary file",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create initial file and clone the project", async () => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create initial file and clone the val", async () => {
           // Create initial file
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
@@ -162,10 +162,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("create a binary file", async () => {
           // Create binary file with null bytes

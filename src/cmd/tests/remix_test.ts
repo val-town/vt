@@ -1,4 +1,4 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import sdk, { user } from "~/sdk.ts";
@@ -11,41 +11,41 @@ Deno.test({
   name: "remix command basic functionality",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
-        // Create a source project to remix
-        const sourceProjectName = project.name;
-        const remixedProjectName = `${sourceProjectName}_remixed`;
+      await doWithNewVal(async ({ val }) => {
+        // Create a source val to remix
+        const sourcevalName = val.name;
+        const remixedvalName = `${sourcevalName}_remixed`;
 
-        await t.step("remix the project", async () => {
+        await t.step("remix the val", async () => {
           const [output] = await runVtCommand([
             "remix",
-            `${user.username}/${sourceProjectName}`,
-            remixedProjectName,
+            `${user.username}/${sourcevalName}`,
+            remixedvalName,
           ], tmpDir);
 
           assertStringIncludes(
             output,
-            `Remixed "@${user.username}/${sourceProjectName}" to public project "@${user.username}/${remixedProjectName}"`,
+            `Remixed "@${user.username}/${sourcevalName}" to public val "@${user.username}/${remixedvalName}"`,
           );
 
-          // Verify the remixed project directory exists
-          const remixedProjectPath = join(tmpDir, remixedProjectName);
+          // Verify the remixed val directory exists
+          const remixedvalPath = join(tmpDir, remixedvalName);
           assert(
-            await exists(remixedProjectPath),
-            "remixed project directory should exist",
+            await exists(remixedvalPath),
+            "remixed val directory should exist",
           );
 
           // Verify it has the .vt metadata folder
           assert(
-            await exists(join(remixedProjectPath, META_FOLDER_NAME)),
-            "remixed project should have .vt metadata folder",
+            await exists(join(remixedvalPath, META_FOLDER_NAME)),
+            "remixed val should have .vt metadata folder",
           );
         });
 
-        // Clean up the remixed project
+        // Clean up the remixed val
         const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
-          remixedProjectName,
+          remixedvalName,
         );
         await sdk.vals.delete(id);
       });
@@ -58,54 +58,54 @@ Deno.test({
   name: "remix command with privacy options",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
-        const sourceProjectName = project.name;
+      await doWithNewVal(async ({ val }) => {
+        const sourcevalName = val.name;
 
-        await t.step("remix as private project", async () => {
-          const privateProjectName = `${sourceProjectName}_private`;
+        await t.step("remix as private val", async () => {
+          const privatevalName = `${sourcevalName}_private`;
           const [output] = await runVtCommand([
             "remix",
-            `${user.username}/${sourceProjectName}`,
-            privateProjectName,
+            `${user.username}/${sourcevalName}`,
+            privatevalName,
             "--private",
           ], tmpDir);
 
           assertStringIncludes(
             output,
-            `to private project`,
-            "output should indicate private project",
+            `to private val`,
+            "output should indicate private val",
           );
 
           // Clean up
           try {
             const { id } = await sdk.alias.username.valName.retrieve(
               user.username!,
-              privateProjectName,
+              privatevalName,
             );
             await sdk.vals.delete(id);
           } catch (e) {
-            console.error("Failed to clean up private project:", e);
+            console.error("Failed to clean up private val:", e);
           }
         });
 
-        await t.step("remix as unlisted project", async () => {
-          const unlistedProjectName = `${sourceProjectName}_unlisted`;
+        await t.step("remix as unlisted val", async () => {
+          const unlistedvalName = `${sourcevalName}_unlisted`;
           const [output] = await runVtCommand([
             "remix",
-            `${user.username}/${sourceProjectName}`,
-            unlistedProjectName,
+            `${user.username}/${sourcevalName}`,
+            unlistedvalName,
             "--unlisted",
           ], tmpDir);
 
           assertStringIncludes(
             output,
-            `to unlisted project`,
-            "output should indicate unlisted project",
+            `to unlisted val`,
+            "output should indicate unlisted val",
           );
 
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            unlistedProjectName,
+            unlistedvalName,
           );
           await sdk.vals.delete(id);
         });
@@ -119,29 +119,29 @@ Deno.test({
   name: "remix command with no-editor-files option",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
-        const sourceProjectName = project.name;
-        const remixedProjectName = `${sourceProjectName}_no_editor_files`;
+      await doWithNewVal(async ({ val }) => {
+        const sourcevalName = val.name;
+        const remixedvalName = `${sourcevalName}_no_editor_files`;
 
         await t.step("remix without editor files", async () => {
           await runVtCommand([
             "remix",
-            `${user.username}/${sourceProjectName}`,
-            remixedProjectName,
+            `${user.username}/${sourcevalName}`,
+            remixedvalName,
             "--no-editor-files",
           ], tmpDir);
 
-          const remixedProjectPath = join(tmpDir, remixedProjectName);
+          const remixedvalPath = join(tmpDir, remixedvalName);
 
           // Check that editor files don't exist
           assert(
-            !(await exists(join(remixedProjectPath, ".vscode"))),
+            !(await exists(join(remixedvalPath, ".vscode"))),
             ".vscode directory should not exist",
           );
 
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            remixedProjectName,
+            remixedvalName,
           );
           await sdk.vals.delete(id);
         });
@@ -154,22 +154,22 @@ Deno.test({
 Deno.test({
   name: "remix command preserves HTTP type",
   async fn(t) {
-    // Create a temp dir for the source project
+    // Create a temp dir for the source val
     await doWithTempDir(async (srcTmpDir) => {
       // Create a temp dir for the remix destination
       await doWithTempDir(async (destTmpDir) => {
-        await doWithNewProject(async ({ project }) => {
-          const sourceProjectName = project.name;
-          const remixedProjectName = `${sourceProjectName}_http_preserved`;
+        await doWithNewVal(async ({ val }) => {
+          const sourcevalName = val.name;
+          const remixedvalName = `${sourcevalName}_http_preserved`;
 
-          // Clone the project to the source directory
+          // Clone the val to the source directory
           await runVtCommand([
             "clone",
-            `${user.username}/${sourceProjectName}`,
+            `${user.username}/${sourcevalName}`,
             srcTmpDir,
           ], ".");
 
-          // Create an HTTP val in the source project
+          // Create an HTTP val in the source val
           const httpValName = "foo_http";
           const httpValPath = join(srcTmpDir, `${httpValName}.ts`);
 
@@ -183,24 +183,24 @@ Deno.test({
           // Push the changes to sync the HTTP val
           await runVtCommand(["push"], srcTmpDir, { autoConfirm: true });
 
-          // Remix the project
-          await t.step("remix project with HTTP val", async () => {
+          // Remix the val
+          await t.step("remix val with HTTP val", async () => {
             await runVtCommand([
               "remix",
-              `${user.username}/${sourceProjectName}`,
-              remixedProjectName,
+              `${user.username}/${sourcevalName}`,
+              remixedvalName,
             ], destTmpDir);
 
-            // Check that the HTTP val exists in the remixed project
-            const remixedProjectPath = join(destTmpDir, remixedProjectName);
+            // Check that the HTTP val exists in the remixed val
+            const remixedvalPath = join(destTmpDir, remixedvalName);
             const remixedHttpValPath = join(
-              remixedProjectPath,
+              remixedvalPath,
               `${httpValName}.ts`,
             );
 
             assert(
               await exists(remixedHttpValPath),
-              "HTTP val file should exist in remixed project",
+              "HTTP val file should exist in remixed val",
             );
 
             // Check the file content to ensure it's still an HTTP val
@@ -212,10 +212,10 @@ Deno.test({
             );
           });
 
-          // Clean up the remixed project
+          // Clean up the remixed val
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            remixedProjectName,
+            remixedvalName,
           );
           await sdk.vals.delete(id);
         });

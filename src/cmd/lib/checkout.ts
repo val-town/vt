@@ -68,7 +68,7 @@ export const checkoutCmd = new Command()
 
           // Get the current branch data
           const currentBranchData = await sdk.vals.branches.retrieve(
-            vtState.project.id,
+            vtState.val.id,
             vtState.branch.id,
           );
 
@@ -86,13 +86,13 @@ export const checkoutCmd = new Command()
 
             if (isNewBranch) {
               // Early exit if they are trying to make a new branch on a
-              // project that they don't own
-              const projectToPush = await sdk.vals.retrieve(
-                vtState.project.id,
+              // val that they don't own
+              const valToPush = await sdk.vals.retrieve(
+                vtState.val.id,
               );
-              if (projectToPush.author.id !== user.id) {
+              if (valToPush.author.id !== user.id) {
                 throw new Error(
-                  "You are not the owner of this projecta, you cannot make a new branch.",
+                  "You are not the owner of this vala, you cannot make a new branch.",
                 );
               }
             }
@@ -188,7 +188,7 @@ export const checkoutCmd = new Command()
                 // Ask for confirmation to proceed despite dirty state
                 const shouldProceed = await Confirm.prompt({
                   message: colors.yellow(
-                    "Project has unpushed changes. " +
+                    "Val has unpushed changes. " +
                       "Do you want to proceed with checkout anyway?",
                   ),
                   default: false,
@@ -272,7 +272,7 @@ export const checkoutCmd = new Command()
                 );
               } else if (e.status === 404 && existingBranchName) {
                 throw new Error(
-                  `Branch "${existingBranchName}" does not exist in project. ` +
+                  `Branch "${existingBranchName}" does not exist in val. ` +
                     toListBranchesCmd,
                 );
               }

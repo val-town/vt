@@ -1,5 +1,5 @@
 import { doWithTempDir } from "~/vt/lib/utils.ts";
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
@@ -15,7 +15,7 @@ Deno.test({
     env: true,
   },
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await t.step("test pulling files", async (t) => {
         // Create a test file on the server
         const vtFilePath = "test.txt";
@@ -23,7 +23,7 @@ Deno.test({
 
         await t.step("create initial file", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: vtFilePath,
               content: fileContent,
@@ -36,9 +36,9 @@ Deno.test({
         await doWithTempDir(async (tempDir) => {
           await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
+            version: await getLatestVersion(val.id, branch.id),
           });
 
           await t.step("verify pulled file", async () => {
@@ -66,7 +66,7 @@ Deno.test({
 
             // Update file on server
             await sdk.vals.files.update(
-              project.id,
+              val.id,
               {
                 path: vtFilePath,
                 content: updatedContent,
@@ -77,7 +77,7 @@ Deno.test({
             // Pull updates
             await pull({
               targetDir: tempDir,
-              projectId: project.id,
+              valId: val.id,
               branchId: branch.id,
               version: 2,
             });
@@ -95,7 +95,7 @@ Deno.test({
           await t.step("delete file on server", async () => {
             // Delete file on server
             await sdk.vals.files.delete(
-              project.id,
+              val.id,
               {
                 path: vtFilePath,
                 branch_id: branch.id,
@@ -106,7 +106,7 @@ Deno.test({
             // Pull updates
             await pull({
               targetDir: tempDir,
-              projectId: project.id,
+              valId: val.id,
               branchId: branch.id,
               version: 3,
             });
@@ -134,7 +134,7 @@ Deno.test({
     net: true,
   },
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a test file on the server
         const vtFilePath = "remote.txt";
@@ -142,7 +142,7 @@ Deno.test({
 
         // Create remote file
         await sdk.vals.files.create(
-          project.id,
+          val.id,
           {
             path: vtFilePath,
             content: "Remote file",
@@ -158,7 +158,7 @@ Deno.test({
         // Pull with gitignore rules
         await pull({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
           gitignoreRules: ["*.log"],
           version: 1,
@@ -201,7 +201,7 @@ Deno.test({
     net: true,
   },
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a test file on the server
         const vtFilePath = "server-file.txt";
@@ -209,7 +209,7 @@ Deno.test({
 
         await t.step("create file on server", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: vtFilePath,
               content: fileContent,
@@ -223,7 +223,7 @@ Deno.test({
           // Run pull with dryRun option
           const fileStateChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             dryRun: true,
             version: 1,
@@ -254,7 +254,7 @@ Deno.test({
         // Now actually pull the file so we can test modifications
         await pull({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
           version: 1,
         });
@@ -263,7 +263,7 @@ Deno.test({
           // Update file on server
           const updatedContent = "This file has been updated on the server";
           await sdk.vals.files.update(
-            project.id,
+            val.id,
             {
               path: vtFilePath,
               content: updatedContent,
@@ -274,7 +274,7 @@ Deno.test({
           // Run pull with dryRun option
           const fileStateChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             dryRun: true,
             version: 2,
@@ -316,14 +316,14 @@ Deno.test({
     env: true,
   },
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create nested directories on the server
         const nestedDirPath = "parent/child/grandchild";
 
         await t.step("create nested directories on server", async () => {
           await sdk.vals.files.create(
-            project.id,
+            val.id,
             {
               path: nestedDirPath,
               branch_id: branch.id,
@@ -333,10 +333,10 @@ Deno.test({
         });
 
         await t.step("pull that creates directories", async () => {
-          // Pull the project to the temp directory
+          // Pull the val to the temp directory
           const firstPullChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             version: 1,
           });
@@ -362,7 +362,7 @@ Deno.test({
           // Pull again - should not detect changes
           const secondPullChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             version: 2,
           });

@@ -1,17 +1,17 @@
 import { levenshteinDistance } from "@std/text";
-import type { ProjectItemType } from "~/types.ts";
+import type { ValItemType } from "~/types.ts";
 import {
   MAX_FILE_CHARS,
   MAX_FILENAME_LENGTH,
-  PROJECT_ITEM_NAME_REGEX,
   RENAME_DETECTION_THRESHOLD,
   TYPE_PRIORITY,
+  VAL_ITEM_NAME_REGEX,
 } from "~/consts.ts";
 import { basename } from "@std/path";
 import { hasNullBytes } from "~/utils.ts";
 
 /**
- * Possible warning states for a project item.
+ * Possible warning states for a val item.
  *
  * @property bad_name - The item has an invalid name format
  * @property binary - The item contains binary content
@@ -27,11 +27,11 @@ export type ItemWarning =
   | `unknown: ${string}`;
 
 /**
- * Base information about a project item.
+ * Base information about a val item.
  */
 export interface ItemInfo {
-  /** The type of the project item (e.g., "file", "directory") */
-  type: ProjectItemType;
+  /** The type of the val item (e.g., "file", "directory") */
+  type: ValItemType;
   /** The file path of the item */
   path: string;
   /** The modification timestamp of the item */
@@ -43,7 +43,7 @@ export interface ItemInfo {
 }
 
 /**
- * The possible status states of a project item.
+ * The possible status states of a val item.
  *
  * @property deleted - The item has been removed
  * @property created - The item is newly created
@@ -738,7 +738,7 @@ export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
   }
   if (
     basename(path).length > MAX_FILENAME_LENGTH ||
-    !PROJECT_ITEM_NAME_REGEX.test(basename(path))
+    !VAL_ITEM_NAME_REGEX.test(basename(path))
   ) {
     warnings.push("bad_name");
   }

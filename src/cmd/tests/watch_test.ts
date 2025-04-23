@@ -1,11 +1,11 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils.ts";
 import { join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay, retry } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import { getLatestVersion, listValItems } from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
@@ -13,33 +13,33 @@ Deno.test({
   fn: async (t) => {
     await retry(async () => {
       await doWithTempDir(async (tmpDir) => {
-        await doWithNewProject(async ({ project, branch }) => {
-          let projectDir: string;
+        await doWithNewVal(async ({ val, branch }) => {
+          let valDir: string;
           let vt: VTClient;
           let watchChild: Deno.ChildProcess;
           let outputLines: string[];
           const createTimes: { path: string; time: number }[] = [];
 
           await t.step(
-            "setup by cloneing project and starting watch process",
+            "setup by cloneing val and starting watch process",
             async () => {
-              // Clone the empty project
-              await runVtCommand(["clone", project.name], tmpDir);
+              // Clone the empty val
+              await runVtCommand(["clone", val.name], tmpDir);
 
-              // Get project directory path
-              projectDir = join(tmpDir, project.name);
+              // Get val directory path
+              valDir = join(tmpDir, val.name);
               assert(
-                await exists(projectDir),
-                "project directory should exist after clone",
+                await exists(valDir),
+                "val directory should exist after clone",
               );
 
               // Create VTClient instance for direct API operations
-              vt = VTClient.from(projectDir);
+              vt = VTClient.from(valDir);
 
               // Start the watch process with a short debounce
               [outputLines, watchChild] = streamVtCommand(
                 ["watch", "-d", "750"],
-                projectDir,
+                valDir,
               );
 
               // Wait for the watch process to start
@@ -55,7 +55,7 @@ Deno.test({
               async () => {
                 // Create 10 files in rapid succession
                 for (let i = 0; i <= 10; i++) {
-                  const filePath = join(projectDir!, `rapid-file-${i}.js`);
+                  const filePath = join(valDir!, `rapid-file-${i}.js`);
                   await Deno.writeTextFile(
                     filePath,
                     `console.log('Rapid file ${i}');`,
@@ -76,10 +76,10 @@ Deno.test({
 
             await t.step("verify files were synced correctly", async () => {
               // Verify all files were synced
-              const projectItemsAfterBatch = await listProjectItems(
-                project.id,
+              const valItemsAfterBatch = await listValItems(
+                val.id,
                 branch.id,
-                await getLatestVersion(project.id, branch.id),
+                await getLatestVersion(val.id, branch.id),
               );
 
               // Get status to verify all files are synced
@@ -88,11 +88,11 @@ Deno.test({
               // Check that all rapid files exist
               for (let i = 0; i <= 10; i++) {
                 // The file should exist
-                const fileExists = projectItemsAfterBatch
+                const fileExists = valItemsAfterBatch
                   .some((item) => item.path === `rapid-file-${i}.js`);
                 assert(
                   fileExists,
-                  `rapid-file-${i}.js should exist in the project`,
+                  `rapid-file-${i}.js should exist in the val`,
                 );
 
                 // All rapid files should have "not_modified" status
