@@ -2,10 +2,10 @@ import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { dirIsEmpty } from "~/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import sdk, { getCurrentUser, randomProjectName } from "~/sdk.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
   name: "create project with existing directory name",
