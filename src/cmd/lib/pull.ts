@@ -31,7 +31,7 @@ export const pullCmd = new Command()
         let prepareForResult = () => {};
         if (
           fileStateChanges.deleted.length > 0 ||
-          fileStateChanges.modified.length > 0 && !forceconsole.log
+          fileStateChanges.modified.length > 0 && !force
         ) {
           spinner.stop();
 

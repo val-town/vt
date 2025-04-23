@@ -1,7 +1,6 @@
 import { join } from "@std/path";
 import { z } from "zod";
-import xdg from "xdg-portable";
-import { META_IGNORE_FILE_NAME } from "~/consts.ts";
+import { GLOBAL_VT_CONFIG_PATH, META_IGNORE_FILE_NAME } from "~/consts.ts";
 
 /**
  * JSON schema for the state.json file for the .vt folder.
@@ -51,7 +50,7 @@ export const VTConfigSchema = z.object({
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
   apiKey: null,
-  globalIgnoreFiles: [join(xdg.config(), META_IGNORE_FILE_NAME)],
+  globalIgnoreFiles: [join(GLOBAL_VT_CONFIG_PATH, META_IGNORE_FILE_NAME)],
   dangerousOperations: {
     confirmation: true,
   },
