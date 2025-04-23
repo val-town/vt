@@ -24,7 +24,6 @@ import {
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
@@ -32,6 +31,7 @@ import VTConfig from "~/vt/VTConfig.ts";
 import { remix } from "~/vt/lib/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { create } from "~/vt/lib/create.ts";
+import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes

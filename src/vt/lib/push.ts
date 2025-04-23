@@ -1,7 +1,3 @@
-import {
-  getItemWarnings,
-  ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
 import type { ProjectFileType, ProjectItemType } from "~/types.ts";
 import sdk, {
   getLatestVersion,
@@ -13,6 +9,10 @@ import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
+import {
+  getItemWarnings,
+  ItemStatusManager,
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 import { pooledMap } from "@std/async";
 
 export interface PushResult {

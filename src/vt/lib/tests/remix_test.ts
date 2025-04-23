@@ -1,4 +1,4 @@
-import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk, { getCurrentUser } from "~/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
