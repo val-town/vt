@@ -1,4 +1,3 @@
-import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { create } from "~/vt/lib/create.ts";
 import sdk, {
@@ -6,9 +5,10 @@ import sdk, {
   getLatestVersion,
   listProjectItems,
 } from "~/sdk.ts";
-import { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_PROJECT_PRIVACY } from "~/consts.ts";
 import type { ProjectPrivacy } from "~/types.ts";
+import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { doAtomically } from "~/vt/lib/utils/misc.ts";
 
 /**
  * Result of remixing a project.

@@ -1,8 +1,4 @@
 import { colors } from "@cliffy/ansi/colors";
-import type {
-  ItemStatus,
-  ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
 import {
   ProjectItemColors,
   STATUS_STYLES,
@@ -11,6 +7,10 @@ import {
 } from "~/consts.ts";
 import type { ProjectItemType } from "~/types.ts";
 import { basename, dirname, join } from "@std/path";
+import type {
+  ItemStatus,
+  ItemStatusManager,
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * Displays file changes and summary information from a FileStateChanges

@@ -1,13 +1,13 @@
 import { join, relative } from "@std/path";
-import { copy, exists, walk } from "@std/fs";
+import { walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
-import { doAtomically } from "~/vt/lib/utils.ts";
 import { clone } from "~/vt/lib/clone.ts";
+import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /** Result of pull operation  */
 export interface PushResult {
@@ -63,7 +63,7 @@ export function pull(params: PullParams): Promise<PushResult> {
       // dry run the purpose here is to ensure that clone reports back the
       // proper status for modified files (e.g. if they existed and would be
       // changed then they're modified)
-      await copy(targetDir, tmpDir, {
+      await gracefulRecursiveCopy(targetDir, tmpDir, {
         preserveTimestamps: true,
         overwrite: true,
       });
@@ -125,8 +125,10 @@ export function pull(params: PullParams): Promise<PushResult> {
 
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
-        if (await exists(path)) {
+        try {
           await Deno.remove(path, { recursive: true });
+        } catch (e) {
+          if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
       return [{ itemStateChanges: changes }, !dryRun];

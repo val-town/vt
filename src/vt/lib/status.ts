@@ -2,7 +2,6 @@ import sdk, { listProjectItems } from "~/sdk.ts";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
-import { isFileModified } from "~/vt/lib/utils.ts";
 import {
   type CreatedItemStatus,
   type DeletedItemStatus,
@@ -11,8 +10,9 @@ import {
   ItemStatusManager,
   type ModifiedItemStatus,
   type NotModifiedItemStatus,
-} from "~/vt/lib/ItemStatusManager.ts";
+} from "~/vt/lib/utils/ItemStatusManager.ts";
 import { join } from "@std/path";
+import { isFileModified } from "~/vt/lib/utils/misc.ts";
 
 /** Result of status operation  */
 export interface StatusResult {

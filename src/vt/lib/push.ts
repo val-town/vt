@@ -1,7 +1,3 @@
-import {
-  getItemWarnings,
-  ItemStatusManager,
-} from "~/vt/lib/ItemStatusManager.ts";
 import type { ProjectFileType, ProjectItemType } from "~/types.ts";
 import sdk, {
   getLatestVersion,
@@ -13,6 +9,11 @@ import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
+import {
+  getItemWarnings,
+  ItemStatusManager,
+} from "~/vt/lib/utils/ItemStatusManager.ts";
+import { pooledMap } from "@std/async";
 
 /** Result of push operation  */
 export interface PushResult {
@@ -33,6 +34,8 @@ export interface PushParams {
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
   dryRun?: boolean;
+  /** Maximum number of concurrent operations. Defaults to 10. */
+  concurrencyPoolSize?: number;
 }
 
 /**
@@ -49,6 +52,7 @@ export async function push(params: PushParams): Promise<PushResult> {
     branchId,
     gitignoreRules,
     dryRun = false,
+    concurrencyPoolSize = 10,
   } = params;
   const initialVersion = await getLatestVersion(projectId, branchId);
 
@@ -108,117 +112,122 @@ export async function push(params: PushParams): Promise<PushResult> {
   );
   const versionAfterDirectories = await getLatestVersion(projectId, branchId);
 
-  // Rename files that were renamed locally
-  const renamePromises = safeItemStateChanges.renamed
-    .filter((file) => file.type !== "directory")
-    .map(async (file) => {
-      // We created the parent directory already, but not the file, so we must
-      // query the ID of the parent directory to set it as the new parent of the
-      // item
-      const parent = await getProjectItem(
-        projectId,
-        branchId,
-        versionAfterDirectories,
-        dirname(file.path),
-      );
+  // Define all file operations that will occur
+  const fileOperations: (() => Promise<unknown>)[] = [];
 
-      const isAtRoot = basename(file.path) == file.path;
+  // Renamed files
+  safeItemStateChanges.renamed
+    .filter((f) => f.type !== "directory")
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        const parent = await getProjectItem(
+          projectId,
+          branchId,
+          versionAfterDirectories,
+          dirname(f.path),
+        );
 
-      if (isAtRoot) {
-        await doReqMaybeApplyWarning(
+        const isAtRoot = basename(f.path) == f.path;
+
+        if (isAtRoot) {
+          await doReqMaybeApplyWarning(
+            async () =>
+              await sdk.projects.files.update(projectId, {
+                branch_id: branchId,
+                name: undefined,
+                parent_id: null,
+                path: f.oldPath,
+              }),
+            f.path,
+            itemStateChanges,
+          );
+        }
+
+        // To move the file to the root dir parent_id must be null and the name
+        // must be undefined (the api is very picky about this!)
+        return await doReqMaybeApplyWarning(
           async () =>
             await sdk.projects.files.update(projectId, {
               branch_id: branchId,
-              name: undefined,
-              parent_id: null,
-              path: file.oldPath,
+              name: isAtRoot ? undefined : basename(f.path),
+              parent_id: parent?.id || null,
+              path: f.oldPath,
+              content: f.content,
             }),
-          file.path,
+          f.path,
           itemStateChanges,
         );
-      }
-
-      // To move the file to the root dir parent_id must be null and the name
-      // must be undefined (the api is very picky about this!)
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.update(projectId, {
-            branch_id: branchId,
-            name: isAtRoot ? undefined : basename(file.path),
-            // type: file.type as ProjectFileType,
-            // content: file.content,
-            parent_id: parent?.id || null,
-            path: file.oldPath,
-            content: file.content,
-          }),
-        file.path,
-        itemStateChanges,
-      );
-    });
-
-  // Create all new files that were created (we already handled directories)
-  const createdPromises = safeItemStateChanges.created
-    .filter((f) => f.type !== "directory") // Already created directories
-    .map(async (file) => {
-      // Upload the file
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.create(
-            projectId,
-            {
-              path: file.path,
-              content: file.content!, // It's a file not a dir so this should be defined
-              branch_id: branchId,
-              type: file.type as Exclude<ProjectItemType, "directory">,
-            },
-          ),
-        file.path,
-        itemStateChanges,
-      );
-    });
-
-  // Upload files that were modified locally
-  const modifiedPromises = safeItemStateChanges.modified
-    .filter((file) => file.type !== "directory")
-    .map(async (file) => {
-      return await doReqMaybeApplyWarning(
-        async () =>
-          await sdk.projects.files.update(
-            projectId,
-            {
-              path: file.path,
-              branch_id: branchId,
-              content: file.content,
-              name: basename(file.path),
-              type: file.type as ProjectFileType,
-            },
-          ),
-        file.path,
-        itemStateChanges,
-      );
-    });
-
-  // Delete files that exist on the server but not locally
-  const deletedPromises = itemStateChanges.deleted.map(async (file) => {
-    return await doReqMaybeApplyWarning(
-      async () =>
-        await sdk.projects.files.delete(projectId, {
-          path: file.path,
-          branch_id: branchId,
-          recursive: true,
-        }),
-      file.path,
-      itemStateChanges,
+      })
     );
-  });
 
-  // Wait for all modifications and deletions to complete
-  await Promise.all([
-    ...modifiedPromises,
-    ...deletedPromises,
-    ...renamePromises,
-    ...createdPromises,
-  ]);
+  // Created files
+  safeItemStateChanges.created
+    .filter((f) => f.type !== "directory")
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        return await doReqMaybeApplyWarning(
+          async () =>
+            await sdk.projects.files.create(
+              projectId,
+              {
+                path: f.path,
+                content: f.content!, // It's a file not a dir so this should be defined
+                branch_id: branchId,
+                type: f.type as Exclude<ProjectItemType, "directory">,
+              },
+            ),
+          f.path,
+          itemStateChanges,
+        );
+      })
+    );
+
+  // Modified files
+  safeItemStateChanges.modified
+    .filter((f) => f.type !== "directory")
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        return await doReqMaybeApplyWarning(
+          async () =>
+            await sdk.projects.files.update(
+              projectId,
+              {
+                path: f.path,
+                branch_id: branchId,
+                content: f.content,
+                name: basename(f.path),
+                type: f.type as ProjectFileType,
+              },
+            ),
+          f.path,
+          itemStateChanges,
+        );
+      })
+    );
+
+  // Deleted files
+  itemStateChanges.deleted
+    .forEach((f) =>
+      fileOperations.push(async () => {
+        return await doReqMaybeApplyWarning(
+          async () =>
+            await sdk.projects.files.delete(projectId, {
+              path: f.path,
+              branch_id: branchId,
+              recursive: true,
+            }),
+          f.path,
+          itemStateChanges,
+        );
+      })
+    );
+
+  // Execute all operations with limited concurrency
+  await Array.fromAsync(pooledMap(
+    concurrencyPoolSize,
+    fileOperations,
+    async (op) => await op(),
+  ));
 
   return { itemStateChanges };
 }
