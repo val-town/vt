@@ -3,6 +3,7 @@ import { Secret } from "@cliffy/prompt/secret";
 import { colors } from "@cliffy/ansi/colors";
 import open from "open";
 import {
+  DEFAULT_WRAP_AMOUNT,
   GET_API_KEY_URL,
   GLOBAL_VT_CONFIG_PATH,
   VT_README_URL,
@@ -22,11 +23,11 @@ function welcomeToVt(): void {
   console.log(wrap(
     colors.bold("VT") +
       " is a companion CLI to interface with Val Town projects.",
-    { width: 80 },
+    { width: DEFAULT_WRAP_AMOUNT },
   ));
   console.log();
 
-  console.log(wrap("With this CLI, you can:", { width: 80 }));
+  console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_AMOUNT }));
 
   [
     "Create and manage Val Town projects",

@@ -10,6 +10,9 @@ import { printYaml } from "~/cmd/styles.ts";
 import { fromError } from "zod-validation-error";
 import z from "zod";
 import { colors } from "@cliffy/ansi/colors";
+import { DEFAULT_WRAP_AMOUNT, GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
+import { join } from "@std/path";
+import wrap from "word-wrap";
 
 function showConfigOptions() {
   // deno-lint-ignore no-explicit-any
@@ -37,6 +40,32 @@ function showConfigOptions() {
   printYaml(stringifyYaml(jsonSchema["properties"]));
 }
 
+export const configWhereCmd = new Command()
+  .name("where")
+  .description("Show the config file locations")
+  .action(async () => {
+    // Find project root, if in a Val Town project
+    let vtRoot: string | undefined = undefined;
+    try {
+      vtRoot = await findVtRoot(Deno.cwd());
+    } catch (_) {
+      // ignore not found
+    }
+
+    // Local config is always in <root>/.vt/config.yaml
+    const localConfigPath = vtRoot
+      ? join(vtRoot, ".vt", "config.yaml")
+      : undefined;
+
+    // Just print the resolved paths, always global first, then local if it exists
+    if (GLOBAL_VT_CONFIG_PATH) {
+      console.log(GLOBAL_VT_CONFIG_PATH);
+    }
+    if (localConfigPath) {
+      console.log(localConfigPath);
+    }
+  });
+
 export const configSetCmd = new Command()
   .description("Set a configuration value")
   .option("--global", "Set in the global configuration")
@@ -63,11 +92,11 @@ export const configSetCmd = new Command()
 
         const config = await vtConfig.loadConfig();
         const updatedConfig = setNestedProperty(config, key, value);
-        const oldProperty = getNestedProperty(config, key, value) as
+        const oldProperty = getNestedProperty(config, key, null) as
           | string
-          | undefined;
+          | null;
 
-        if (oldProperty && oldProperty === value) {
+        if (oldProperty !== null && oldProperty.toString() === value) {
           throw new Error(
             `Property ${colors.bold(key)} is already set to ${
               colors.bold(oldProperty)
@@ -101,7 +130,9 @@ export const configSetCmd = new Command()
           if (e instanceof z.ZodError) {
             throw new Error(
               "Invalid input provided! \n" +
-                colors.red(fromError(e).toString()),
+                wrap(colors.red(fromError(e).toString()), {
+                  width: DEFAULT_WRAP_AMOUNT,
+                }),
             );
           } else throw e;
         }
@@ -112,6 +143,7 @@ export const configSetCmd = new Command()
 export const configGetCmd = new Command()
   .description("Get a configuration value")
   .arguments("[key]")
+  .alias("show")
   .action(async (_: unknown, key?: string) => {
     await doWithSpinner("Retreiving configuration...", async (spinner) => {
       // Check if we're in a Val Town project directory
@@ -157,4 +189,5 @@ export const configCmd = new Command()
   .description("Manage vt configuration")
   .command("set", configSetCmd)
   .command("get", configGetCmd)
+  .command("where", configWhereCmd)
   .command("options", configOptionsCmd);

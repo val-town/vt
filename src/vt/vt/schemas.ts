@@ -1,4 +1,7 @@
+import { join } from "@std/path";
 import { z } from "zod";
+import xdg from "xdg-portable";
+import { META_IGNORE_FILE_NAME } from "~/consts.ts";
 
 /**
  * JSON schema for the state.json file for the .vt folder.
@@ -29,6 +32,15 @@ export const VTConfigSchema = z.object({
       message: "API key must be exactly 33 characters long when provided",
     })
     .nullable(),
+  globalIgnoreFiles: z.preprocess(
+    (input) => {
+      if (typeof input === "string") {
+        return input.split(",").map((s) => s.trim()).filter(Boolean);
+      }
+      return input;
+    },
+    z.array(z.string()),
+  ).optional(),
   dangerousOperations: z.object({
     confirmation: z.union([
       z.boolean(),
@@ -39,6 +51,7 @@ export const VTConfigSchema = z.object({
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
   apiKey: null,
+  globalIgnoreFiles: [join(xdg.config(), META_IGNORE_FILE_NAME)],
   dangerousOperations: {
     confirmation: true,
   },
