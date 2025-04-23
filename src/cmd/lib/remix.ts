@@ -9,17 +9,17 @@ import { randomIntegerBetween } from "@std/random";
 
 export const remixCmd = new Command()
   .name("remix")
-  .description("Remix a Val Town val")
+  .description("Remix a Val")
   .arguments(
     "<fromvalUri:string> [newvalName:string] [targetDir:string]",
   )
-  .option("--public", "Remix as public val (default)", {
+  .option("--public", "Remix as public Val (default)", {
     conflicts: ["private", "unlisted"],
   })
-  .option("--private", "Remix as private val", {
+  .option("--private", "Remix as private Val", {
     conflicts: ["public", "unlisted"],
   })
-  .option("--unlisted", "Remix as unlisted val", {
+  .option("--unlisted", "Remix as unlisted Val", {
     conflicts: ["public", "private"],
   })
   .option("--no-editor-files", "Skip creating editor configuration files")

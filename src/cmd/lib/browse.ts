@@ -8,7 +8,7 @@ import { delay } from "@std/async";
 
 export const browseCmd = new Command()
   .name("browse")
-  .description("Open a val in a web browser")
+  .description("Open a Val's main page in a web browser")
   .option("--no-browser", "Print destination url instead of opening browser")
   .action(async ({ browser }: { browser?: boolean }) => {
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));

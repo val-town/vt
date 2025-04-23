@@ -7,15 +7,15 @@ import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 
 export const createCmd = new Command()
   .name("create")
-  .description("Create a new Val Town val")
+  .description("Create a new Val")
   .arguments("<valName:string> [targetDir:string]")
-  .option("--public", "Create as public val (default)", {
+  .option("--public", "Create as public Val (default)", {
     conflicts: ["private", "unlisted"],
   })
-  .option("--private", "Create as private val", {
+  .option("--private", "Create as private Val", {
     conflicts: ["public", "unlisted"],
   })
-  .option("--unlisted", "Create as unlisted val", {
+  .option("--unlisted", "Create as unlisted Val", {
     conflicts: ["public", "private"],
   })
   .option("--no-editor-files", "Skip creating editor configuration files")

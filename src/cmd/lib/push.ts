@@ -11,7 +11,7 @@ const nothingNewToPushMsg =
 
 export const pushCmd = new Command()
   .name("push")
-  .description("Push local changes to a val town val")
+  .description("Push local changes to a Val")
   .example("Push local changes", "vt push")
   .option(
     "-d, --dry-run",

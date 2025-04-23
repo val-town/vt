@@ -11,10 +11,10 @@ import { tty } from "@cliffy/ansi/tty";
 
 export const cloneCmd = new Command()
   .name("clone")
-  .description("Clone a val town val")
+  .description("Clone a Val")
   .arguments("[valUri:string] [targetDir:string] [branchName:string]")
   .example(
-    "Interactive val selection",
+    "Interactive Val selection",
     `vt clone`,
   )
   .example(

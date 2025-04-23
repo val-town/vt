@@ -33,8 +33,8 @@ import { create } from "~/vt/lib/create.ts";
  * The VTClient class is an abstraction on a VT directory that exposes
  * functionality for git command executation on the folder.
  *
- * With a VTClient you can do things like clone a val town val, or
- * pull/push a val town val.
+ * With a VTClient you can do things like clone a val town Val, or
+ * pull/push a Val Town Val.
  *
  * @param {string} rootPath - The root path of the VT directory
  */

@@ -8,7 +8,7 @@ import { colors } from "@cliffy/ansi/colors";
 
 export const deleteCmd = new Command()
   .name("delete")
-  .description("Delete a Val Town val")
+  .description("Delete the current Val")
   .option("-f, --force", "Skip confirmation prompt")
   .example("Delete current val", "vt delete")
   .action(async ({ force }: { force?: boolean }) => {
