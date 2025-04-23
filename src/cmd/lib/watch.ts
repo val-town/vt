@@ -22,7 +22,7 @@ export const watchCmd = new Command()
 
       // Get initial branch information for display
       const state = await vt.getMeta().loadVtState();
-      const currentBranch = await sdk.projects.branches.retrieve(
+      const currentBranch = await sdk.vals.branches.retrieve(
         state.project.id,
         state.branch.id,
       );

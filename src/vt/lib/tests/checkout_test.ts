@@ -17,11 +17,11 @@ Deno.test({
   },
   async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
-      let featureBranch: ValTown.Projects.BranchCreateResponse;
+      let featureBranch: ValTown.Vals.BranchCreateResponse;
 
       await t.step("create files on main and feature branches", async () => {
         // Create a file on main branch
-        await sdk.projects.files.create(project.id, {
+        await sdk.vals.files.create(project.id, {
           path: "main.txt",
           content: "file on main branch",
           branch_id: mainBranch.id,
@@ -29,13 +29,13 @@ Deno.test({
         });
 
         // Create a new branch from main
-        featureBranch = await sdk.projects.branches.create(
+        featureBranch = await sdk.vals.branches.create(
           project.id,
           { branchId: mainBranch.id, name: "feature" },
         );
 
         // Add a file to the feature branch
-        await sdk.projects.files.create(project.id, {
+        await sdk.vals.files.create(project.id, {
           path: "feature.txt",
           content: "file on feature branch",
           branch_id: featureBranch.id,
@@ -110,7 +110,7 @@ Deno.test({
   async fn() {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(project.id, {
         path: "main.txt",
         content: "main branch content",
         branch_id: mainBranch.id,
@@ -194,7 +194,7 @@ Deno.test({
   async fn() {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(project.id, {
         path: "main.txt",
         content: "file on main branch",
         branch_id: mainBranch.id,
@@ -202,13 +202,13 @@ Deno.test({
       });
 
       // Create a new branch from main
-      const featureBranch = await sdk.projects.branches.create(
+      const featureBranch = await sdk.vals.branches.create(
         project.id,
         { branchId: mainBranch.id, name: "feature" },
       );
 
       // Add a file to feature branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(project.id, {
         path: "feature-only.txt",
         content: "file on feature branch only",
         branch_id: featureBranch.id,
@@ -301,11 +301,11 @@ Deno.test({
   async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a feature branch
-      const featureBranch = await sdk.projects.branches
+      const featureBranch = await sdk.vals.branches
         .create(project.id, { name: "feature" });
 
       await t.step("add file to feature branch", async () => {
-        await sdk.projects.files.create(project.id, {
+        await sdk.vals.files.create(project.id, {
           path: "feature.txt",
           content: "feature content",
           branch_id: featureBranch.id,
@@ -379,7 +379,7 @@ Deno.test({
   async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(project.id, {
         path: "main.txt",
         content: "file on main branch",
         branch_id: mainBranch.id,
@@ -484,7 +484,7 @@ Deno.test({
   async fn(t) {
     await doWithNewProject(async ({ project, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(project.id, {
         path: "original.txt",
         content: "original content",
         branch_id: mainBranch.id,
@@ -551,14 +551,14 @@ Deno.test({
         // Verify we can push the changes to the new branch
         await t.step("push changes to new branch", async () => {
           // Push changes to the new branch (this would be a separate operation in real usage)
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(project.id, {
             path: "new-file.txt",
             content: "new file content",
             branch_id: result.toBranch!.id,
             type: "file",
           });
 
-          await sdk.projects.files.update(project.id, {
+          await sdk.vals.files.update(project.id, {
             path: "original.txt",
             content: "modified content",
             branch_id: result.toBranch!.id,

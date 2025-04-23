@@ -12,7 +12,7 @@ Deno.test({
   async fn(c) {
     const emptyDirProjectName = "emptyDir" + randomProjectName();
     const nonEmptyDirProjectName = "nonEmptyDir" + randomProjectName();
-    let emptyDirProject: ValTown.Projects.ProjectCreateResponse | null = null;
+    let emptyDirProject: ValTown.Val | null = null;
 
     await doWithTempDir(async (tmpDir) => {
       await c.step(
@@ -24,7 +24,7 @@ Deno.test({
 
           // Should succeed with empty directory
           await runVtCommand(["create", emptyDirProjectName], tmpDir);
-          emptyDirProject = await sdk.alias.username.projectName.retrieve(
+          emptyDirProject = await sdk.alias.username.valName.retrieve(
             user.username!,
             emptyDirProjectName,
           );
@@ -33,7 +33,7 @@ Deno.test({
 
           // Clean up
           if (emptyDirProject) {
-            await sdk.projects.delete(emptyDirProject.id);
+            await sdk.vals.delete(emptyDirProject.id);
             emptyDirProject = null;
           }
         },
@@ -72,14 +72,14 @@ Deno.test({
 
 Deno.test("new project in specific directory", async (c) => {
   const newProjectName = randomProjectName();
-  let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
+  let newProject: ValTown.Val | null = null;
 
   try {
     await doWithTempDir(async (tmpDir) => {
       await c.step("create a new project", async () => {
         await runVtCommand(["create", newProjectName], tmpDir);
 
-        newProject = await sdk.alias.username.projectName.retrieve(
+        newProject = await sdk.alias.username.valName.retrieve(
           user.username!,
           newProjectName,
         );
@@ -97,13 +97,13 @@ Deno.test("new project in specific directory", async (c) => {
     });
   } finally {
     // @ts-ignore newProject is defined but something went wrong
-    await sdk.projects.delete(newProject.id);
+    await sdk.vals.delete(newProject.id);
   }
 });
 
 Deno.test("create new private project", async (c) => {
   const newProjectName = randomProjectName();
-  let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
+  let newProject: ValTown.Val | null = null;
 
   try {
     await doWithTempDir(async (tmpDir) => {
@@ -114,7 +114,7 @@ Deno.test("create new private project", async (c) => {
           "--private",
         ], tmpDir);
 
-        newProject = await sdk.alias.username.projectName.retrieve(
+        newProject = await sdk.alias.username.valName.retrieve(
           user.username!,
           newProjectName,
         );
@@ -137,13 +137,13 @@ Deno.test("create new private project", async (c) => {
     });
   } finally {
     // @ts-ignore newProject is defined but something went wrong
-    if (newProject) await sdk.projects.delete(newProject.id);
+    if (newProject) await sdk.vals.delete(newProject.id);
   }
 });
 
 Deno.test("create new project in current working directory", async (c) => {
   const newProjectName = randomProjectName();
-  let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
+  let newProject: ValTown.Val | null = null;
 
   try {
     await doWithTempDir(async (tmpDir) => {
@@ -154,7 +154,7 @@ Deno.test("create new project in current working directory", async (c) => {
           newProjectName,
         ], tmpDir);
 
-        newProject = await sdk.alias.username.projectName.retrieve(
+        newProject = await sdk.alias.username.valName.retrieve(
           user.username!,
           newProjectName,
         );
@@ -175,6 +175,6 @@ Deno.test("create new project in current working directory", async (c) => {
     });
   } finally {
     // @ts-ignore newProject is defined but something went wrong
-    if (newProject) await sdk.projects.delete(newProject.id);
+    if (newProject) await sdk.vals.delete(newProject.id);
   }
 });

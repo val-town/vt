@@ -22,7 +22,7 @@ export async function doWithNewProject<T>(
   ) => Promise<T>,
 ): Promise<T> {
   // Create a blank project with a random name
-  const project = await sdk.projects.create({
+  const project = await sdk.vals.create({
     name: randomProjectName(),
     description: "This is a test project",
     privacy: "public",
@@ -35,6 +35,6 @@ export async function doWithNewProject<T>(
     // Execute the provided operation with project info
     return await op({ project, branch });
   } finally {
-    await sdk.projects.delete(project.id);
+    await sdk.vals.delete(project.id);
   }
 }

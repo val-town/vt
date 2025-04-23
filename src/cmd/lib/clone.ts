@@ -44,7 +44,7 @@ export const cloneCmd = new Command()
           "Loading projects...",
           async (spinner) => {
             const allProjects = [];
-            for await (const project of sdk.me.projects.list({})) {
+            for await (const project of sdk.me.vals.list({})) {
               allProjects.push(project);
             }
             spinner.stop();

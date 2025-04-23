@@ -12,7 +12,7 @@ Deno.test({
       await doWithNewProject(async ({ project, branch }) => {
         await t.step("create initial file and clone the project", async () => {
           // Create initial file
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "initial.js",
@@ -85,7 +85,7 @@ Deno.test({
       await doWithNewProject(async ({ project, branch }) => {
         await t.step("create initial file and clone the project", async () => {
           // Create initial file
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "initial.js",
@@ -152,7 +152,7 @@ Deno.test({
       await doWithNewProject(async ({ project, branch }) => {
         await t.step("create initial file and clone the project", async () => {
           // Create initial file
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "initial.js",

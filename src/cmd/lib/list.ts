@@ -12,7 +12,7 @@ export const listCmd = new Command()
     const myProjects = await doWithSpinner(
       "Loading project list...",
       async (spinner) => {
-        const myProjects = await Array.fromAsync(sdk.me.projects.list({}));
+        const myProjects = await Array.fromAsync(sdk.me.vals.list({}));
         spinner.stop();
         return myProjects;
       },

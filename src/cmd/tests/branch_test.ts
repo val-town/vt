@@ -16,13 +16,13 @@ Deno.test({
 
         await t.step("create additional branches", async () => {
           // Create a feature branch
-          await sdk.projects.branches.create(
+          await sdk.vals.branches.create(
             project.id,
             { name: "feature", branchId: mainBranch.id },
           );
 
           // Create a development branch
-          await sdk.projects.branches.create(
+          await sdk.vals.branches.create(
             project.id,
             { name: "development", branchId: mainBranch.id },
           );
@@ -58,17 +58,17 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch: mainBranch }) => {
         let fullPath: string;
-        let featureBranch: ValTown.Projects.BranchListResponse;
+        let featureBranch: ValTown.Vals.BranchListResponse;
 
         await t.step("create feature branch", async () => {
           // Create a feature branch
-          featureBranch = await sdk.projects.branches.create(
+          featureBranch = await sdk.vals.branches.create(
             project.id,
             { name: "feature-to-delete", branchId: mainBranch.id },
           );
 
           // Create a file on feature branch to verify it's real
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "feature-file.js",

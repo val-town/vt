@@ -73,7 +73,7 @@ export async function remix(
     srcProjectId,
     params.srcBranchId ?? DEFAULT_BRANCH_NAME,
   );
-  const srcProject = await sdk.projects.retrieve(srcProjectId);
+  const srcProject = await sdk.vals.retrieve(srcProjectId);
 
   const description = (params.description ?? srcProject.description) || "";
   const privacy = (params.privacy ?? srcProject.privacy) ||
@@ -110,7 +110,7 @@ export async function remix(
         await getLatestVersion(srcProjectId, srcBranch.id),
       )).map(async (item) => {
         if (item.type === "directory") return;
-        await sdk.projects.files.update(newProjectId, {
+        await sdk.vals.files.update(newProjectId, {
           path: item.path,
           type: item.type,
           branch_id: newBranchId,

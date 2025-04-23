@@ -41,7 +41,7 @@ Deno.test({
         });
 
         await t.step("make a remote change", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "remote-new.js",

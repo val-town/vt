@@ -31,11 +31,11 @@ export async function projectExists(
     if (typeof projectIdOrOptions === "string") {
       // Project ID provided
       const projectId = projectIdOrOptions;
-      await sdk.projects.retrieve(projectId);
+      await sdk.vals.retrieve(projectId);
     } else {
       // Username and project name provided
       const { username, projectName } = projectIdOrOptions;
-      await sdk.alias.username.projectName.retrieve(username, projectName);
+      await sdk.alias.username.valName.retrieve(username, projectName);
     }
     return true;
   } catch (error) {
@@ -57,7 +57,7 @@ export async function branchExists(
   projectId: string,
   branchName: string,
 ): Promise<boolean> {
-  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+  for await (const branch of sdk.vals.branches.list(projectId, {})) {
     if (branch.name == branchName) return true;
   }
   return false;
@@ -74,8 +74,8 @@ export async function branchExists(
 export async function branchNameToBranch(
   projectId: string,
   branchName: string,
-): Promise<ValTown.Projects.Branches.BranchListResponse> {
-  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+): Promise<ValTown.Vals.Branches.BranchListResponse> {
+  for await (const branch of sdk.vals.branches.list(projectId, {})) {
     if (branch.name == branchName) return branch;
   }
 
@@ -115,14 +115,14 @@ export async function projectItemExists(
  * @param {string} options.branchId - The ID of the project branch to reference
  * @param {number} [options.version] - The version of the project for the file being found (optional)
  * @param {string} options.filePath - The file path to locate
- * @returns {Promise<ValTown.Projects.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
+ * @returns {Promise<ValTown.Vals.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
  */
 export const getProjectItem = memoize(async (
   projectId: string,
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
+): Promise<ValTown.Vals.FileRetrieveResponse | undefined> => {
   const projectItems = await listProjectItems(projectId, branchId, version);
 
   for (const filepath of projectItems) {
@@ -142,21 +142,21 @@ export const getProjectItem = memoize(async (
   * @param {string} [params.branch_id] The ID of the project branch to reference. Defaults to main.
   * @param {number} [params.version] - The version of the project. Defaults to latest.
   * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
-  * @returns {Promise<ValTown.Projects.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
+  * @returns {Promise<ValTown.Vals.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
   */
 export const listProjectItems = memoize(async (
   projectId: string,
   branchId: string,
   version: number,
-): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
-  const files: ValTown.Projects.FileRetrieveResponse[] = [];
+): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
+  const files: ValTown.Vals.FileRetrieveResponse[] = [];
 
   branchId = branchId ||
     (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
 
   for await (
-    const file of sdk.projects.files.retrieve(projectId, {
+    const file of sdk.vals.files.retrieve(projectId, {
       path: "",
       branch_id: branchId,
       version,
@@ -171,7 +171,7 @@ export const listProjectItems = memoize(async (
  * Get the latest version of a branch.
  */
 export async function getLatestVersion(projectId: string, branchId: string) {
-  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
+  return (await sdk.vals.branches.retrieve(projectId, branchId)).version;
 }
 
 /**

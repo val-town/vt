@@ -15,7 +15,7 @@ Deno.test({
       await doWithNewProject(async ({ project, branch: mainBranch }) => {
         await t.step("set up the state of the project", async () => {
           // Create initial file on main branch
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "main-file.js",
@@ -26,13 +26,13 @@ Deno.test({
           );
 
           // Create a feature branch
-          const featureBranch = await sdk.projects.branches.create(
+          const featureBranch = await sdk.vals.branches.create(
             project.id,
             { name: "feature-branch", branchId: mainBranch.id },
           );
 
           // Add a file to feature branch
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "feature-file.js",
@@ -50,7 +50,7 @@ Deno.test({
           await runVtCommand(["clone", project.name], tmpDir);
 
           // Make a remote change to main branch after cloning
-          await sdk.projects.files.update(
+          await sdk.vals.files.update(
             project.id,
             {
               branch_id: mainBranch.id,
@@ -106,7 +106,7 @@ Deno.test({
         let newFilePath: string;
 
         await t.step("create file on main branch", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "original.txt",
@@ -197,7 +197,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         // Create initial file on main branch
-        await sdk.projects.files.create(
+        await sdk.vals.files.create(
           project.id,
           {
             path: "main-file.js",
@@ -208,13 +208,13 @@ Deno.test({
         );
 
         // Create a new branch using SDK
-        const newBranch = await sdk.projects.branches.create(
+        const newBranch = await sdk.vals.branches.create(
           project.id,
           { name: "feature-branch", branchId: branch.id },
         );
 
         // Create a file on the new branch
-        await sdk.projects.files.create(
+        await sdk.vals.files.create(
           project.id,
           {
             path: "feature-file.js",
@@ -271,7 +271,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         // Create initial file on main branch
-        await sdk.projects.files.create(
+        await sdk.vals.files.create(
           project.id,
           {
             path: "main-file.js",
@@ -345,7 +345,7 @@ Deno.test({
             let fullPath: string;
 
             await t.step("create initial file on main branch", async () => {
-              await sdk.projects.files.create(
+              await sdk.vals.files.create(
                 project.id,
                 {
                   path: "shared-file.js",
@@ -360,13 +360,13 @@ Deno.test({
               "create and modify file on feature branch",
               async () => {
                 // Create a feature branch
-                const featureBranch = await sdk.projects.branches.create(
+                const featureBranch = await sdk.vals.branches.create(
                   project.id,
                   { name: "feature", branchId: branch.id },
                 );
 
                 // Modify the file on feature branch
-                await sdk.projects.files.update(
+                await sdk.vals.files.update(
                   project.id,
                   {
                     branch_id: featureBranch.id,
@@ -435,7 +435,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         // Create initial file on main branch
-        await sdk.projects.files.create(
+        await sdk.vals.files.create(
           project.id,
           {
             path: "main-file.js",

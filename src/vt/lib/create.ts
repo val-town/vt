@@ -55,7 +55,7 @@ export async function create(
   await ensureDir(sourceDir);
 
   // Create a new project in Val Town
-  const newProject = await sdk.projects.create({
+  const newProject = await sdk.vals.create({
     name: projectName,
     description,
     privacy,

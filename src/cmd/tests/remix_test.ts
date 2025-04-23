@@ -43,11 +43,11 @@ Deno.test({
         });
 
         // Clean up the remixed project
-        const { id } = await sdk.alias.username.projectName.retrieve(
+        const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
           remixedProjectName,
         );
-        await sdk.projects.delete(id);
+        await sdk.vals.delete(id);
       });
     });
   },
@@ -78,11 +78,11 @@ Deno.test({
 
           // Clean up
           try {
-            const { id } = await sdk.alias.username.projectName.retrieve(
+            const { id } = await sdk.alias.username.valName.retrieve(
               user.username!,
               privateProjectName,
             );
-            await sdk.projects.delete(id);
+            await sdk.vals.delete(id);
           } catch (e) {
             console.error("Failed to clean up private project:", e);
           }
@@ -103,11 +103,11 @@ Deno.test({
             "output should indicate unlisted project",
           );
 
-          const { id } = await sdk.alias.username.projectName.retrieve(
+          const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
             unlistedProjectName,
           );
-          await sdk.projects.delete(id);
+          await sdk.vals.delete(id);
         });
       });
     });
@@ -139,11 +139,11 @@ Deno.test({
             ".vscode directory should not exist",
           );
 
-          const { id } = await sdk.alias.username.projectName.retrieve(
+          const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
             remixedProjectName,
           );
-          await sdk.projects.delete(id);
+          await sdk.vals.delete(id);
         });
       });
     });
@@ -213,11 +213,11 @@ Deno.test({
           });
 
           // Clean up the remixed project
-          const { id } = await sdk.alias.username.projectName.retrieve(
+          const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
             remixedProjectName,
           );
-          await sdk.projects.delete(id);
+          await sdk.vals.delete(id);
         });
       });
     });

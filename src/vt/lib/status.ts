@@ -164,7 +164,7 @@ async function getProjectFiles({
         mtime: new Date(file.updatedAt).getTime(),
         content: file.type === "directory"
           ? undefined
-          : await sdk.projects.files.getContent(projectId, {
+          : await sdk.vals.files.getContent(projectId, {
             path: file.path,
             branch_id: branchId,
             version,

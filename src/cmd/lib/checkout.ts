@@ -67,7 +67,7 @@ export const checkoutCmd = new Command()
           const vtState = await vt.getMeta().loadVtState();
 
           // Get the current branch data
-          const currentBranchData = await sdk.projects.branches.retrieve(
+          const currentBranchData = await sdk.vals.branches.retrieve(
             vtState.project.id,
             vtState.branch.id,
           );
@@ -87,7 +87,7 @@ export const checkoutCmd = new Command()
             if (isNewBranch) {
               // Early exit if they are trying to make a new branch on a
               // project that they don't own
-              const projectToPush = await sdk.projects.retrieve(
+              const projectToPush = await sdk.vals.retrieve(
                 vtState.project.id,
               );
               if (projectToPush.author.id !== user.id) {

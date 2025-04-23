@@ -22,7 +22,7 @@ Deno.test({
         const fileContent = "This is a test file";
 
         await t.step("create initial file", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: vtFilePath,
@@ -65,7 +65,7 @@ Deno.test({
             const updatedContent = "This is an updated test file";
 
             // Update file on server
-            await sdk.projects.files.update(
+            await sdk.vals.files.update(
               project.id,
               {
                 path: vtFilePath,
@@ -94,11 +94,12 @@ Deno.test({
 
           await t.step("delete file on server", async () => {
             // Delete file on server
-            await sdk.projects.files.delete(
+            await sdk.vals.files.delete(
               project.id,
               {
                 path: vtFilePath,
                 branch_id: branch.id,
+                recursive: true,
               },
             );
 
@@ -140,7 +141,7 @@ Deno.test({
         const ignoredFilePath = "ignored.log";
 
         // Create remote file
-        await sdk.projects.files.create(
+        await sdk.vals.files.create(
           project.id,
           {
             path: vtFilePath,
@@ -207,7 +208,7 @@ Deno.test({
         const fileContent = "This is a server file";
 
         await t.step("create file on server", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: vtFilePath,
@@ -261,7 +262,7 @@ Deno.test({
         await t.step("test dry run for modified files", async () => {
           // Update file on server
           const updatedContent = "This file has been updated on the server";
-          await sdk.projects.files.update(
+          await sdk.vals.files.update(
             project.id,
             {
               path: vtFilePath,
@@ -321,7 +322,7 @@ Deno.test({
         const nestedDirPath = "parent/child/grandchild";
 
         await t.step("create nested directories on server", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: nestedDirPath,

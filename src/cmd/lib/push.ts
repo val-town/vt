@@ -26,7 +26,7 @@ export const pushCmd = new Command()
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
         const vtState = await vt.getMeta().loadVtState();
-        const projectToPush = await sdk.projects.retrieve(vtState.project.id);
+        const projectToPush = await sdk.vals.retrieve(vtState.project.id);
         if (projectToPush.author.id !== user.id) {
           throw new Error(
             "You are not the owner of this project, you cannot push." +

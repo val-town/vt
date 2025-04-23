@@ -25,7 +25,7 @@ Deno.test({
 
         await t.step("set up custom config files", async () => {
           // Create custom deno.json
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "deno.json",
@@ -36,7 +36,7 @@ Deno.test({
           );
 
           // Create custom .vtignore
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: ".vtignore",
@@ -95,7 +95,7 @@ Deno.test({
       await doWithNewProject(async ({ project, branch }) => {
         await t.step("set up the project structure", async () => {
           // Create the directory first
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "foo",
@@ -105,7 +105,7 @@ Deno.test({
           );
 
           // Create empty test.js file
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "test.js",
@@ -116,7 +116,7 @@ Deno.test({
           );
 
           // Create test_inner.js with content
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "foo/test_inner.js",
@@ -201,11 +201,11 @@ Deno.test({
           assert(await exists(targetDir), "project directory was not created");
         });
       } finally {
-        const { id } = await sdk.alias.username.projectName.retrieve(
+        const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
           projectName,
         );
-        await sdk.projects.delete(id);
+        await sdk.vals.delete(id);
       }
     });
   },

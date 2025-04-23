@@ -118,7 +118,7 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
-    const projectId = await sdk.alias.username.projectName.retrieve(
+    const projectId = await sdk.alias.username.valName.retrieve(
       username,
       projectName,
     )
@@ -130,7 +130,7 @@ export default class VTClient {
     const branch = await branchNameToBranch(projectId, branchName);
 
     version = version ??
-      (await sdk.projects.branches.retrieve(projectId, branch.id)).version;
+      (await sdk.vals.branches.retrieve(projectId, branch.id)).version;
 
     const vt = new VTClient(rootPath);
 
@@ -317,7 +317,7 @@ export default class VTClient {
     await assertSafeDirectory(rootPath);
 
     // Get the source project ID from username and project name
-    const sourceProject = await sdk.alias.username.projectName.retrieve(
+    const sourceProject = await sdk.alias.username.valName.retrieve(
       srcProjectUsername,
       srcProjectName,
     );
@@ -398,11 +398,11 @@ export default class VTClient {
    * Delete the val town project.
    */
   public async delete(): Promise<void> {
-    // Don't need to use doWithConfig since the config will get distructed
+    // Don't need to use doWithConfig since the config will get destructed
     const vtState = await this.getMeta().loadVtState();
 
     // Delete the project
-    await sdk.projects.delete(vtState.project.id);
+    await sdk.vals.delete(vtState.project.id);
 
     // De-init the directory
     await Deno.remove(

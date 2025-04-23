@@ -18,7 +18,7 @@ Deno.test({
     await doWithNewProject(async ({ project }) => {
       // Create an HTTP val in the source project
       const httpValName = "foo_http";
-      await sdk.projects.files.create(
+      await sdk.vals.files.create(
         project.id,
         {
           path: `${httpValName}.ts`,
@@ -66,9 +66,9 @@ Deno.test({
           );
 
           // Verify the file type was preserved
-          const remixedFile = await sdk.projects.files.retrieve(
+          const remixedFile = await sdk.vals.files.retrieve(
             result.toProjectId,
-            { path: `${httpValName}.ts` },
+            { path: `${httpValName}.ts`, recursive: true },
           ).then((resp) => resp.data[0]);
 
           assertEquals(
@@ -79,11 +79,11 @@ Deno.test({
         });
 
         // Clean up the remixed project
-        const { id } = await sdk.alias.username.projectName.retrieve(
+        const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
           remixedProjectName,
         );
-        await sdk.projects.delete(id);
+        await sdk.vals.delete(id);
       });
     });
   },
@@ -113,7 +113,7 @@ Deno.test({
         });
 
         // Verify the project was created with private visibility
-        const remixedProject = await sdk.projects.retrieve(result.toProjectId);
+        const remixedProject = await sdk.vals.retrieve(result.toProjectId);
 
         assertEquals(
           remixedProject.privacy,
@@ -122,7 +122,7 @@ Deno.test({
         );
 
         // Clean up
-        await sdk.projects.delete(remixedProject.id);
+        await sdk.vals.delete(remixedProject.id);
       });
     });
   },
@@ -155,7 +155,7 @@ Deno.test({
         });
 
         // Verify the description was set correctly
-        const remixedProject = await sdk.projects.retrieve(result.toProjectId);
+        const remixedProject = await sdk.vals.retrieve(result.toProjectId);
 
         assertEquals(
           remixedProject.description,
@@ -164,7 +164,7 @@ Deno.test({
         );
 
         // Clean up
-        await sdk.projects.delete(remixedProject.id);
+        await sdk.vals.delete(remixedProject.id);
       });
     });
   },
@@ -182,7 +182,7 @@ Deno.test({
   async fn(t) {
     await doWithNewProject(async ({ project }) => {
       // Create a few files in the source project
-      await sdk.projects.files.create(
+      await sdk.vals.files.create(
         project.id,
         {
           path: "regular.ts",
@@ -191,7 +191,7 @@ Deno.test({
         },
       );
 
-      await sdk.projects.files.create(
+      await sdk.vals.files.create(
         project.id,
         {
           path: "nested/file.txt",
@@ -243,7 +243,7 @@ Deno.test({
           );
 
           // Verify the project exists on Val Town
-          const remixedProject = await sdk.projects.retrieve(
+          const remixedProject = await sdk.vals.retrieve(
             result.toProjectId,
           );
 
@@ -255,11 +255,11 @@ Deno.test({
         });
 
         // Clean up the remixed project
-        const { id } = await sdk.alias.username.projectName.retrieve(
+        const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
           remixedProjectName,
         );
-        await sdk.projects.delete(id);
+        await sdk.vals.delete(id);
       });
     });
   },

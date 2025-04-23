@@ -11,7 +11,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         await t.step("create a file and clone the project", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "test.js",
@@ -66,7 +66,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project, branch }) => {
         await t.step("create a file and clone the project", async () => {
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "initial.js",
@@ -83,7 +83,7 @@ Deno.test({
 
         await t.step("make a remote change", async () => {
           // Create a new file remotely
-          await sdk.projects.files.create(
+          await sdk.vals.files.create(
             project.id,
             {
               path: "remote-file.js",

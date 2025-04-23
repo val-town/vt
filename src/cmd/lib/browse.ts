@@ -14,7 +14,7 @@ export const browseCmd = new Command()
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
     const state = await vt.getMeta().loadVtState();
-    const branch = await sdk.projects.branches.retrieve(
+    const branch = await sdk.vals.branches.retrieve(
       state.project.id,
       state.branch.id,
     );

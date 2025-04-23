@@ -111,7 +111,7 @@ async function createFile(
   projectId: string,
   branchId: string,
   version: number | undefined = undefined,
-  file: ValTown.Projects.FileRetrieveResponse,
+  file: ValTown.Vals.FileRetrieveResponse,
   changes: ItemStatusManager,
   dryRun: boolean,
 ): Promise<void> {
@@ -140,7 +140,7 @@ async function createFile(
 
     // Get its content for modification checking
     const localContent = await Deno.readTextFile(join(originalRoot, path));
-    const projectContent = await sdk.projects.files.getContent(projectId, {
+    const projectContent = await sdk.vals.files.getContent(projectId, {
       path,
       branch_id: branchId,
       version,
@@ -186,7 +186,7 @@ async function createFile(
   if (fileStatus.status === "not_modified") {
     await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
   } else {
-    const content = await sdk.projects.files.getContent(
+    const content = await sdk.vals.files.getContent(
       projectId,
       { path: file.path, branch_id: branchId, version },
     ).then((resp) => resp.text());

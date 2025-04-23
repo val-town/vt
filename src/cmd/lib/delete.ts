@@ -19,7 +19,7 @@ export const deleteCmd = new Command()
       const vtState = await meta.loadVtState();
 
       // Get project name for display
-      const project = await sdk.projects.retrieve(vtState.project.id);
+      const project = await sdk.vals.retrieve(vtState.project.id);
       const projectName = project.name;
 
       // Confirm deletion unless --force is used

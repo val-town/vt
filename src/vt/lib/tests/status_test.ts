@@ -111,14 +111,14 @@ Deno.test({
         const localOnlyFile = "local.txt";
 
         await t.step("create a local and remote layout", async () => {
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(project.id, {
             path: remoteFile1,
             content: "Remote file 1",
             branch_id: branch.id,
             type: "file",
           });
 
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(project.id, {
             path: remoteFile2,
             content: "Remote file 2",
             branch_id: branch.id,
@@ -233,14 +233,14 @@ Deno.test({
           await Deno.writeTextFile(oldPathB, "differentContent");
 
           // Push original files to remote
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(project.id, {
             path: "folder/oldA.txt",
             content: "content",
             branch_id: branch.id,
             type: "file",
           });
 
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(project.id, {
             path: "folder/oldB.txt",
             content: "differentContent",
             branch_id: branch.id,

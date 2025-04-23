@@ -14,12 +14,12 @@ import { doAtomically } from "~/vt/lib/utils.ts";
  */
 export interface CheckoutResult {
   /** The source branch */
-  fromBranch: ValTown.Projects.BranchCreateResponse;
+  fromBranch: ValTown.Vals.BranchCreateResponse;
   /**
    * The target branch or null if it was a dry run and you were forking to a
    * new branch, since a dry run won't create a new branch
    */
-  toBranch: ValTown.Projects.BranchCreateResponse | null;
+  toBranch: ValTown.Vals.BranchCreateResponse | null;
   /** Whether a new branch was created during checkout */
   createdNew: boolean;
   /** Changes made to files during the checkout process */
@@ -101,15 +101,15 @@ async function handleForkCheckout(
 
   // Get the source branch info
   const fromBranch:
-    | Awaited<ReturnType<typeof sdk.projects.branches.retrieve>>
-    | null = await sdk.projects.branches.retrieve(
+    | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
+    | null = await sdk.vals.branches.retrieve(
       params.projectId,
       params.forkedFromId,
     );
 
   // Create the new branch if not a dry run
   const toBranch = (!params.dryRun)
-    ? await sdk.projects.branches.create(
+    ? await sdk.vals.branches.create(
       params.projectId,
       {
         branchId: params.forkedFromId,
@@ -165,15 +165,15 @@ async function handleBranchCheckout(
 
       // Get the target branch info
       let toBranch:
-        | Awaited<ReturnType<typeof sdk.projects.branches.retrieve>>
-        | null = await sdk.projects.branches.retrieve(
+        | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
+        | null = await sdk.vals.branches.retrieve(
           params.projectId,
           params.toBranchId,
         );
       toBranch.version = params.toBranchVersion || toBranch.version;
 
       // Get the source branch info
-      const fromBranch = await sdk.projects.branches.retrieve(
+      const fromBranch = await sdk.vals.branches.retrieve(
         params.projectId,
         params.fromBranchId,
       );

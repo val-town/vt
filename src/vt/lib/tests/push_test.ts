@@ -113,11 +113,11 @@ Deno.test({
         });
 
         // Get original file IDs
-        const file1 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/file1.ts" })
+        const file1 = await sdk.vals.files
+          .retrieve(project.id, { path: "project/file1.ts", recursive: true })
           .then((resp) => resp.data[0]);
-        const file2 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/file2.ts" })
+        const file2 = await sdk.vals.files
+          .retrieve(project.id, { path: "project/file2.ts", recursive: true })
           .then((resp) => resp.data[0]);
 
         // Delete both files and create two new files with the same content
@@ -151,11 +151,17 @@ Deno.test({
         );
 
         // Verify new files have different IDs than original files
-        const newFile1 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/newfile1.ts" })
+        const newFile1 = await sdk.vals.files
+          .retrieve(project.id, {
+            path: "project/newfile1.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
-        const newFile2 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/newfile2.ts" })
+        const newFile2 = await sdk.vals.files
+          .retrieve(project.id, {
+            path: "project/newfile2.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
 
         assert(
@@ -205,8 +211,8 @@ Deno.test({
         });
 
         // Get the original file ID
-        const originalFile = await sdk.projects.files
-          .retrieve(project.id, { path: "test_cron.ts" })
+        const originalFile = await sdk.vals.files
+          .retrieve(project.id, { path: "test_cron.ts", recursive: true })
           .then((resp) => resp.data[0]);
 
         await t.step("move file to subdirectory", async () => {
@@ -248,8 +254,11 @@ Deno.test({
           );
 
           // Verify the file ID is preserved (same file)
-          const movedFile = await sdk.projects.files
-            .retrieve(project.id, { path: "subdir/moved_file.ts" })
+          const movedFile = await sdk.vals.files
+            .retrieve(project.id, {
+              path: "subdir/moved_file.ts",
+              recursive: true,
+            })
             .then((resp) => resp.data[0]);
           assertEquals(
             originalFile.id,
@@ -286,7 +295,7 @@ Deno.test({
           });
 
           // Pull and assert that the creation worked
-          const originalFileContent = await sdk.projects.files
+          const originalFileContent = await sdk.vals.files
             .getContent(project.id, {
               path: vtFilePath,
               branch_id: branch.id,
@@ -307,7 +316,7 @@ Deno.test({
           });
 
           // Pull and assert that the modification worked
-          const newFileContent = await sdk.projects.files
+          const newFileContent = await sdk.vals.files
             .getContent(project.id, {
               path: vtFilePath,
               branch_id: branch.id,
@@ -365,8 +374,11 @@ Deno.test({
         });
 
         // Get the id of the original file
-        const originalFile = await sdk.projects.files
-          .retrieve(project.id, { path: "project/original.ts" })
+        const originalFile = await sdk.vals.files
+          .retrieve(project.id, {
+            path: "project/original.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
 
         // Rename file without changing content
@@ -390,9 +402,9 @@ Deno.test({
         assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Verify file ID is preserved (same file)
-        const renamedFile = await sdk.projects.files.retrieve(
+        const renamedFile = await sdk.vals.files.retrieve(
           project.id,
-          { path: "project/renamed.ts" },
+          { path: "project/renamed.ts", recursive: true },
         ).then((resp) => resp.data[0]);
         assertEquals(originalFile.id, renamedFile.id);
 
@@ -438,8 +450,11 @@ Deno.test({
         });
 
         // Get the id of the original file
-        const originalFile = await sdk.projects.files
-          .retrieve(project.id, { path: "project/old.http.ts" })
+        const originalFile = await sdk.vals.files
+          .retrieve(project.id, {
+            path: "project/old.http.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
 
         await t.step("rename the file and push changes", async () => {
@@ -465,9 +480,9 @@ Deno.test({
 
         await t.step("verify file content, type, and uuid", async () => {
           // Verify file ID is preserved (same file)
-          const renamedFile = await sdk.projects.files.retrieve(
+          const renamedFile = await sdk.vals.files.retrieve(
             project.id,
-            { path: "project/new.tsx" },
+            { path: "project/new.tsx", recursive: true },
           ).then((resp) => resp.data[0]);
           assertEquals(originalFile.id, renamedFile.id);
 
@@ -475,7 +490,7 @@ Deno.test({
           assertEquals(renamedFile.type, "http");
 
           // Verify content is preserved
-          const content = await sdk.projects.files
+          const content = await sdk.vals.files
             .getContent(project.id, {
               path: "project/new.tsx",
               branch_id: branch.id,

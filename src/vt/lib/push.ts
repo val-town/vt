@@ -132,10 +132,10 @@ export async function push(params: PushParams): Promise<PushResult> {
         if (isAtRoot) {
           await doReqMaybeApplyWarning(
             async () =>
-              await sdk.projects.files.update(projectId, {
+              await sdk.vals.files.update(projectId, {
                 branch_id: branchId,
                 name: undefined,
-                parent_id: null,
+                parent_path: null,
                 path: f.oldPath,
               }),
             f.path,
@@ -147,10 +147,10 @@ export async function push(params: PushParams): Promise<PushResult> {
         // must be undefined (the api is very picky about this!)
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.update(projectId, {
+            await sdk.vals.files.update(projectId, {
               branch_id: branchId,
               name: isAtRoot ? undefined : basename(f.path),
-              parent_id: parent?.id || null,
+              parent_path: parent?.path || null,
               path: f.oldPath,
               content: f.content,
             }),
@@ -167,7 +167,7 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.create(
+            await sdk.vals.files.create(
               projectId,
               {
                 path: f.path,
@@ -189,7 +189,7 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.update(
+            await sdk.vals.files.update(
               projectId,
               {
                 path: f.path,
@@ -211,7 +211,7 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.delete(projectId, {
+            await sdk.vals.files.delete(projectId, {
               path: f.path,
               branch_id: branchId,
               recursive: true,
@@ -274,7 +274,7 @@ async function createRequiredDirectories(
   for (const path of sortedDirsToCreate) {
     await doReqMaybeApplyWarning(
       () =>
-        sdk.projects.files.create(
+        sdk.vals.files.create(
           projectId,
           { path, type: "directory", branch_id: branchId },
         ),
