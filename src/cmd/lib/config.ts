@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import VTConfig from "~/vt/VTConfig.ts";
+import VTConfig, { globalConfig } from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { getNestedProperty, setNestedProperty } from "~/utils.ts";
@@ -13,6 +13,8 @@ import { colors } from "@cliffy/ansi/colors";
 import { DEFAULT_WRAP_AMOUNT, GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
 import { join } from "@std/path";
 import wrap from "word-wrap";
+import { openEditorAt } from "~/cmd/lib/utils/openEditorAt.ts";
+import { Select } from "@cliffy/prompt";
 
 function showConfigOptions() {
   // deno-lint-ignore no-explicit-any
@@ -144,6 +146,8 @@ export const configGetCmd = new Command()
   .description("Get a configuration value")
   .arguments("[key]")
   .alias("show")
+  .example("Display current configuration", "vt config get")
+  .example("Display the API key", "vt config get apiKey")
   .action(async (_: unknown, key?: string) => {
     await doWithSpinner("Retreiving configuration...", async (spinner) => {
       // Check if we're in a Val Town project directory
@@ -177,6 +181,41 @@ export const configGetCmd = new Command()
     });
   });
 
+export const configIgnoreCmd = new Command()
+  .name("ignore")
+  .description("Edit or display the global vtignore file")
+  .option("--no-editor", "Do not open the editor, just display the file path")
+  .action(async ({ editor }: { editor?: boolean }) => {
+    const { globalIgnoreFiles } = await globalConfig.loadConfig();
+
+    if (!globalIgnoreFiles || globalIgnoreFiles.length === 0) {
+      console.log("No global ignore files found");
+      Deno.exit(1);
+    }
+
+    let globalIgnorePath: string;
+
+    if (globalIgnoreFiles.length === 1) {
+      globalIgnorePath = globalIgnoreFiles[0];
+    } else {
+      // Use Select prompt if multiple files are available
+      globalIgnorePath = await Select.prompt({
+        message: "Select a vtignore file to edit or display",
+        options: globalIgnoreFiles.map((file) => ({ name: file, value: file })),
+      });
+    }
+
+    if (!editor) console.log(globalIgnorePath);
+    else {
+      const editor = Deno.env.get("EDITOR");
+      if (editor) {
+        await openEditorAt(globalIgnorePath);
+      } else {
+        console.log(globalIgnorePath);
+      }
+    }
+  });
+
 export const configOptionsCmd = new Command()
   .name("options")
   .description("List all available configuration options")
@@ -189,5 +228,6 @@ export const configCmd = new Command()
   .description("Manage vt configuration")
   .command("set", configSetCmd)
   .command("get", configGetCmd)
+  .command("ignore", configIgnoreCmd)
   .command("where", configWhereCmd)
   .command("options", configOptionsCmd);
