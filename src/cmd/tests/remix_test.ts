@@ -1,5 +1,5 @@
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk, { user } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
