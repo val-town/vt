@@ -4,7 +4,7 @@ VT is a cli to work with Vals in the [Val Town](https://val.town) platform.
 
 ```
 Usage:   vt    
-Version: 0.1.19
+Version: 0.1.23
 
 Options:
 
@@ -13,19 +13,19 @@ Options:
 
 Commands:
 
-  clone     [valUri] [cloneDir] [branchName]           - Clone a val town val                              
-  push                                                     - Push local changes to a val town val              
-  pull                                                     - Pull the latest changes for a val town val        
-  status                                                   - Show the working tree status                          
-  branch                                                   - List or delete branches                               
-  checkout  [existingBranchName]                           - Check out a different branch                          
-  watch                                                    - Watch for changes and automatically sync with Val Town
-  browse                                                   - Open a val in a web browser                       
-  create    <valName> [targetDir]                      - Create a new Val Town val                         
-  remix     <fromvalUri> [newvalName] [targetDir]  - Remix a Val Town val                              
-  config                                                   - Manage vt configuration                               
-  delete                                                   - Delete a Val Town val                             
-  list                                                     - List all your Val Town vals
+  clone     [valUri] [targetDir] [branchName]      - Clone a Val                                           
+  push                                             - Push local changes to a Val                           
+  pull                                             - Pull the latest changes for the current Val           
+  status                                           - Show the working tree status                          
+  branch                                           - List or delete branches                               
+  checkout  [existingBranchName]                   - Check out a different branch                          
+  watch                                            - Watch for changes and automatically sync with Val Town
+  browse                                           - Open a Val's main page in a web browser               
+  create    <valName> [targetDir]                  - Create a new Val                                      
+  remix     <fromvalUri> [newvalName] [targetDir]  - Remix a Val                                           
+  config                                           - Manage vt configuration                               
+  delete                                           - Delete the current Val                                
+  list                                             - List all your Vals
 ```
 
 ## Installation
