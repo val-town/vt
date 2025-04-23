@@ -1,5 +1,5 @@
 import { join, relative } from "@std/path";
-import { exists, walk } from "@std/fs";
+import { walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
@@ -122,8 +122,10 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
 
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
-        if (await exists(path)) {
+        try {
           await Deno.remove(path, { recursive: true });
+        } catch (e) {
+          if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
       return [changes, !dryRun];

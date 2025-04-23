@@ -2,7 +2,7 @@ import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
 import { join, relative } from "@std/path";
-import { exists, walk } from "@std/fs";
+import { walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
@@ -243,15 +243,10 @@ async function handleBranchCheckout(
 
       // Perform the deletions
       await Promise.all(pathsToDelete.map(async (path) => {
-        if (await exists(path)) {
-          try {
-            await Deno.remove(path, { recursive: true });
-          } catch (e) {
-            if (e instanceof Deno.errors.NotFound) {
-              // Ignore if the file was already deleted
-            }
-            throw e;
-          }
+        try {
+          await Deno.remove(path, { recursive: true });
+        } catch (e) {
+          if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
 
