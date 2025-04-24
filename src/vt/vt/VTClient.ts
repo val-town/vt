@@ -12,7 +12,11 @@ import {
   type CheckoutResult,
   type ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import sdk, { branchNameToBranch, getLatestVersion, user } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  getCurrentUser,
+  getLatestVersion,
+} from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   FIRST_VERSION_NUMBER,
@@ -20,7 +24,6 @@ import {
   META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import type { ItemStatusManager } from "~/vt/lib/ItemStatusManager.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
@@ -28,6 +31,7 @@ import VTConfig from "~/vt/VTConfig.ts";
 import { remix } from "~/vt/lib/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { create } from "~/vt/lib/create.ts";
+import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -316,13 +320,11 @@ export default class VTClient {
   }): Promise<VTClient> {
     await assertSafeDirectory(rootPath);
 
-    // Get the source project ID from username and project name
     const sourceProject = await sdk.alias.username.projectName.retrieve(
       srcProjectUsername,
       srcProjectName,
     );
 
-    // Remix the project
     const { toProjectId, toVersion } = await remix({
       targetDir: rootPath,
       srcProjectId: sourceProject.id,
@@ -332,11 +334,11 @@ export default class VTClient {
       privacy: dstProjectPrivacy,
     });
 
-    // Get the project branch
     const branch = await branchNameToBranch(toProjectId, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
-    // Return the new VTClient
+    const user = await getCurrentUser();
+
     return VTClient.init({
       projectName: dstProjectName,
       username: user.username!,
@@ -398,7 +400,7 @@ export default class VTClient {
    * Delete the val town project.
    */
   public async delete(): Promise<void> {
-    // Don't need to use doWithConfig since the config will get distructed
+    // Don't need to use doWithConfig since the config will get destructed
     const vtState = await this.getMeta().loadVtState();
 
     // Delete the project

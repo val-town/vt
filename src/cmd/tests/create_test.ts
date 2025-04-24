@@ -2,14 +2,16 @@ import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
-import sdk, { randomProjectName, user } from "~/sdk.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { dirIsEmpty } from "~/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import sdk, { getCurrentUser, randomProjectName } from "~/sdk.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
   name: "create project with existing directory name",
   async fn(c) {
+    const user = await getCurrentUser();
+
     const emptyDirProjectName = "emptyDir" + randomProjectName();
     const nonEmptyDirProjectName = "nonEmptyDir" + randomProjectName();
     let emptyDirProject: ValTown.Projects.ProjectCreateResponse | null = null;
@@ -71,6 +73,7 @@ Deno.test({
 });
 
 Deno.test("new project in specific directory", async (c) => {
+  const user = await getCurrentUser();
   const newProjectName = randomProjectName();
   let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
 
@@ -102,6 +105,8 @@ Deno.test("new project in specific directory", async (c) => {
 });
 
 Deno.test("create new private project", async (c) => {
+  const user = await getCurrentUser();
+
   const newProjectName = randomProjectName();
   let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
 
@@ -142,6 +147,8 @@ Deno.test("create new private project", async (c) => {
 });
 
 Deno.test("create new project in current working directory", async (c) => {
+  const user = await getCurrentUser();
+
   const newProjectName = randomProjectName();
   let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
 

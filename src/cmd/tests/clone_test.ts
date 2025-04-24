@@ -2,11 +2,11 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
-import sdk, { randomProjectName, user } from "~/sdk.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
-import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
-import type { ProjectFileType } from "~/types.ts";
 import { deadline, delay } from "@std/async";
+import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import sdk, { getCurrentUser, randomProjectName } from "~/sdk.ts";
+import type { ProjectFileType } from "~/types.ts";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
@@ -172,6 +172,8 @@ Deno.test({
     run: true,
   },
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithTempDir(async (tmpDir) => {
       const projectName = randomProjectName("clone_test");
 
