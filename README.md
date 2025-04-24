@@ -1,13 +1,13 @@
 # Val Town CLI
 
-VT is the official CLI to work with projects on the [Val Town](https://val.town)
+`vt` is the official CLI to work with projects on the [Val Town](https://val.town)
 platform.
 
 ![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
 
 ```
 Usage:   vt    
-Version: x.x.xx
+Version: 0.1.23
 
 Options:
 
@@ -16,19 +16,19 @@ Options:
 
 Commands:
 
-  clone     [projectUri] [targetDir] [branchName]          - Clone a val town project
-  push                                                     - Push local changes to a val town project
-  pull                                                     - Pull the latest changes for a val town project
-  status                                                   - Show the working tree status
-  branch                                                   - List or delete branches
-  checkout  [existingBranchName]                           - Check out a different branch
+  clone     [projectUri] [targetDir] [branchName]          - Clone a val town project                              
+  push                                                     - Push local changes to a val town project              
+  pull                                                     - Pull the latest changes for a val town project        
+  status                                                   - Show the working tree status                          
+  branch                                                   - List or delete branches                               
+  checkout  [existingBranchName]                           - Check out a different branch                          
   watch                                                    - Watch for changes and automatically sync with Val Town
-  browse                                                   - Open a project in a web browser
-  create    <projectName> [targetDir]                      - Create a new Val Town project
-  remix     <fromProjectUri> [newProjectName] [targetDir]  - Remix a Val Town project
-  config                                                   - Manage vt configuration
-  delete                                                   - Delete a Val Town project
-  list                                                     - List all your Val Town projects
+  browse                                                   - Open a project in a web browser                       
+  create    <projectName> [targetDir]                      - Create a new Val Town project                         
+  remix     <fromProjectUri> [newProjectName] [targetDir]  - Remix a Val Town project                              
+  config                                                   - Manage vt configuration                               
+  delete                                                   - Delete a Val Town project                             
+  list                                                     - List all your Val Town projects                       
 ```
 
 ## Installation
@@ -113,7 +113,7 @@ If you use some other editor, you'll want to head over to
 guide and find how to configure yours.
 
 If you use packages in your project, your editor may warn you that you do not
-hve those packages installed (or "cached"). Occasionally you'll want to run
+have those packages installed (or "cached"). Occasionally you'll want to run
 `deno cache .` to make sure that all the libraries you use in your Val Town
 project are installed locally.
 
@@ -252,7 +252,7 @@ with `vt config`, and all the ones you've set with `vt config get`.
 
 ## LLMs
 
-Vt lets you use all your favorite local LLM tools like
+`vt` lets you use all your favorite local LLM tools like
 [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview),
 [Cursor](https://www.cursor.com/), and [Windsurf](https://windsurf.com/editor)
 with Val Town.
