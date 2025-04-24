@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import sdk, { user } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
@@ -24,6 +24,7 @@ export const pushCmd = new Command()
         : "Pushing local changes...",
       async (spinner) => {
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+        const user = await getCurrentUser();
 
         const vtState = await vt.getMeta().loadVtState();
         const projectToPush = await sdk.projects.retrieve(vtState.project.id);
