@@ -6,6 +6,7 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 
 export const listCmd = new Command()
   .name("list")
+  .alias("ls")
   .description("List all your Val Town projects")
   .example("List all projects", "vt list")
   .action(async () => {
