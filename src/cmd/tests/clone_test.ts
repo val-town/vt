@@ -251,19 +251,19 @@ Deno.test({
         await doWithNewProject(async ({ project }) => {
           // Start the clone process with no arguments
           const [outputLines, cloneChild] = streamVtCommand(["clone"], tmpDir);
+          await delay(1000);
 
           await t.step("use interactive clone", async () => {
             // Send the project name followed by Enter
-            let stdin = await cloneChild.stdin.getWriter();
+            let stdin = cloneChild.stdin.getWriter();
             await stdin.write(new TextEncoder().encode(project.name + "\n"));
-            await stdin.releaseLock();
-
-            await delay(1000); // Wait for the process to handle input
+            stdin.releaseLock();
+            await delay(1000);
 
             // Then confirm that you want to get the editor files
-            stdin = await cloneChild.stdin.getWriter();
+            stdin = cloneChild.stdin.getWriter();
             await stdin.write(new TextEncoder().encode("y\n"));
-            await stdin.releaseLock();
+            stdin.releaseLock();
 
             // Process should complete
             const { code } = await cloneChild.status;

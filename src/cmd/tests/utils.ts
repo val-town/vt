@@ -77,9 +77,9 @@ export async function runVtCommand(
 
     // Send "y" to automatically confirm prompts
     if (options.autoConfirm) {
-      const stdin = await process.stdin.getWriter();
+      const stdin = process.stdin.getWriter();
       await stdin.write(new TextEncoder().encode("y\n"));
-      await stdin.releaseLock();
+      stdin.releaseLock();
     }
 
     // Close stdin to prevent resource leaks
