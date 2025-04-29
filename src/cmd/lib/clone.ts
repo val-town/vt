@@ -1,20 +1,15 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-<<<<<<< HEAD
-import sdk, { user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
-=======
 import sdk, { getCurrentUser } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
->>>>>>> f4cd9b4 (Prompt When API Key Goes Bad (#117))
-import { parseProjectUri } from "~/cmd/parsing.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { tty } from "@cliffy/ansi/tty";
 import { Confirm } from "@cliffy/prompt";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
+import { parseProjectUri } from "~/cmd/parsing.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const cloneCmd = new Command()
   .name("clone")
@@ -46,18 +41,14 @@ export const cloneCmd = new Command()
     `vt clone username/projectName --no-editor-files`,
   )
   .action(
-<<<<<<< HEAD
     async (
       { editorFiles }: { editorFiles: boolean },
       projectUri?: string,
       targetDir?: string,
       branchName?: string,
     ) => {
-=======
-    async (_, projectUri?: string, targetDir?: string, branchName?: string) => {
       const user = await getCurrentUser();
 
->>>>>>> f4cd9b4 (Prompt When API Key Goes Bad (#117))
       let ownerName: string;
       let projectName: string;
 

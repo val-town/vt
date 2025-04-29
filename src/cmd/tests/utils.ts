@@ -1,16 +1,13 @@
 import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
 import stripAnsi from "strip-ansi";
-import {
-  DEFAULT_BRANCH_NAME,
-  DEFAULT_EDITOR_TEMPLATE,
-} from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import sdk, {
   branchNameToBranch,
+  getCurrentUser,
   getLatestVersion,
   listProjectItems,
-  user,
 } from "~/sdk.ts";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
@@ -147,6 +144,7 @@ export function streamVtCommand(
  * @param dirPath - The directory to clean
  */
 export async function removeAllEditorFiles(dirPath: string): Promise<void> {
+  const user = await getCurrentUser();
   const { ownerName, projectName } = parseProjectUri(
     DEFAULT_EDITOR_TEMPLATE,
     user.username!,

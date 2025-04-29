@@ -72,6 +72,7 @@ export default class VTClient {
    * default val town project.
    */
   public async addEditorTemplate(): Promise<void> {
+    const user = await getCurrentUser();
     const { editorTemplate } = await this.getConfig().loadConfig();
     const { ownerName, projectName } = parseProjectUri(
       editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
