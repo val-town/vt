@@ -3,7 +3,6 @@ import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
-import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join, relative } from "@std/path";
 import {
   type BaseCheckoutParams,
@@ -19,9 +18,9 @@ import sdk, {
 } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
+  DEFAULT_EDITOR_TEMPLATE,
   FIRST_VERSION_NUMBER,
   META_FOLDER_NAME,
-  META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import { exists } from "@std/fs";
@@ -32,10 +31,11 @@ import { remix } from "~/vt/lib/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { create } from "~/vt/lib/create.ts";
 import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { parseProjectUri } from "~/cmd/parsing.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
- * functionality for git command executation on the folder.
+ * functionality for running vt library functions like "clone" or "push."
  *
  * With a VTClient you can do things like clone a val town project, or
  * pull/push a val town project.
@@ -68,32 +68,33 @@ export default class VTClient {
   }
 
   /**
-   * Adds editor configuration files to the target directory.
-   *
-   * @param {object} options - Options for adding editor files
-   * @param {boolean} options.noDenoJson - Whether to skip adding deno.json
-   * @returns {Promise<void>}
+   * Adds editor configuration files to the target directory by "underlaying" a
+   * default val town project.
    */
-  public async addEditorFiles(
-    options?: { noDenoJson?: boolean },
-  ): Promise<void> {
-    // Always add the vt ignore file
-    const metaIgnoreFile = join(this.rootPath, META_IGNORE_FILE_NAME);
-    if (!await exists(metaIgnoreFile)) {
-      await Deno.writeTextFile(
-        join(this.rootPath, META_IGNORE_FILE_NAME),
-        vtIgnore.text,
-      );
-    }
+  public async addEditorTemplate(): Promise<void> {
+    const user = await getCurrentUser();
+    const { editorTemplate } = await this.getConfig().loadConfig();
+    const { ownerName, projectName } = parseProjectUri(
+      editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
+      user.username!,
+    );
+    const templateProject = await sdk.alias.username.projectName.retrieve(
+      ownerName,
+      projectName,
+    );
+    const templateBranch = await branchNameToBranch(
+      templateProject.id,
+      DEFAULT_BRANCH_NAME,
+    );
 
-    // Add deno.json unless explicitly disabled
-    const denoJsonFile = join(this.rootPath, "deno.json");
-    if (!(options?.noDenoJson) && !await exists(denoJsonFile)) {
-      await Deno.writeTextFile(
-        denoJsonFile,
-        JSON.stringify(denoJson, undefined, 2),
-      );
-    }
+    await clone({
+      targetDir: this.rootPath,
+      projectId: templateProject.id,
+      branchId: templateBranch.id,
+      version: templateBranch.version,
+      overwrite: false,
+      gitignoreRules: [],
+    });
   }
 
   /**

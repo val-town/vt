@@ -7,7 +7,7 @@
 
 ```
 Usage:   vt    
-Version: 0.1.23
+Version: x.x.xx
 
 Options:
 
@@ -249,6 +249,13 @@ are in a `.vt` directory, using `vt config set [-g for global]` (otherwise the
 global config is modified). This can be useful if someone shares an API key with
 you so you can collaborate on a project. You can view all configuration options
 with `vt config`, and all the ones you've set with `vt config get`.
+
+Right now, we offer the following configuration options:
+
+- `dangerousOperations.confirmation`: Whether to do confirmations on actions
+  that might cause you to lose local state, like `vt pull`.
+- `editorTemplate`: The project URI for the editor files that you are prompted
+  about when you run a `vt clone`, `vt remix`, or `vt create`.
 
 ## LLMs
 

@@ -6,6 +6,9 @@ import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 import { randomIntegerBetween } from "@std/random";
+import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
+import { Confirm } from "@cliffy/prompt";
+import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const remixCmd = new Command()
   .name("remix")
@@ -105,7 +108,15 @@ export const remixCmd = new Command()
           description,
         });
 
-        if (editorFiles) await vt.addEditorFiles();
+        if (editorFiles) {
+          spinner.stop();
+          const { editorTemplate } = await vt.getConfig().loadConfig();
+          const confirmed = await Confirm.prompt(
+            ensureAddEditorFiles(editorTemplate ?? DEFAULT_EDITOR_TEMPLATE),
+          );
+          if (confirmed) await vt.addEditorTemplate();
+          console.log();
+        }
 
         spinner.succeed(
           `Remixed "@${sourceProjectUsername}/${sourceProjectName}" to ${privacy} project "@${user.username}/${projectName}"`,
