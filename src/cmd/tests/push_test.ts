@@ -2,7 +2,7 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 
 Deno.test({
@@ -61,11 +61,13 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project }) => {
         await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(
+            ["clone", project.name, "--no-editor-files"],
+            tmpDir,
+          );
         });
 
         const fullPath = join(tmpDir, project.name);
-        await removeAllEditorFiles(fullPath);
 
         await t.step("run push command with no changes", async () => {
           const [output] = await runVtCommand(["push"], fullPath);

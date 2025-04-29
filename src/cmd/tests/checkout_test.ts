@@ -2,7 +2,7 @@ import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { deadline } from "@std/async";
@@ -118,11 +118,12 @@ Deno.test({
         });
 
         await t.step("clone project and make local changes", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(
+            ["clone", project.name, "--no-editor-files"],
+            tmpDir,
+          );
           fullPath = join(tmpDir, project.name);
           originalFilePath = join(fullPath, "original.txt");
-
-          await removeAllEditorFiles(fullPath);
 
           assert(
             await exists(originalFilePath),
@@ -227,9 +228,11 @@ Deno.test({
         );
 
         // Clone the project (defaults to main branch)
-        await runVtCommand(["clone", project.name], tmpDir);
+        await runVtCommand(
+          ["clone", project.name, "--no-editor-files"],
+          tmpDir,
+        );
         const fullPath = join(tmpDir, project.name);
-        await removeAllEditorFiles(fullPath);
 
         // Ensure the main file exists
         assert(
@@ -285,8 +288,10 @@ Deno.test({
         );
 
         // Clone the project
-        await runVtCommand(["clone", project.name], tmpDir);
-        await removeAllEditorFiles(tmpDir);
+        await runVtCommand(
+          ["clone", project.name, "--no-editor-files"],
+          tmpDir,
+        );
 
         const fullPath = join(tmpDir, project.name);
 
