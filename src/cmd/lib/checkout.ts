@@ -93,7 +93,7 @@ export const checkoutCmd = new Command()
               );
               if (projectToPush.author.id !== user.id) {
                 throw new Error(
-                  "You are not the owner of this projecta, you cannot make a new branch.",
+                  "You are not the owner of this project, you cannot make a new branch.",
                 );
               }
             }
