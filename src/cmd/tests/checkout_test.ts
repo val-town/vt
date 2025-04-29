@@ -118,7 +118,10 @@ Deno.test({
         });
 
         await t.step("clone project and make local changes", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(
+            ["clone", project.name, "--no-editor-files"],
+            tmpDir,
+          );
           fullPath = join(tmpDir, project.name);
           originalFilePath = join(fullPath, "original.txt");
 
@@ -225,7 +228,10 @@ Deno.test({
         );
 
         // Clone the project (defaults to main branch)
-        await runVtCommand(["clone", project.name], tmpDir);
+        await runVtCommand(
+          ["clone", project.name, "--no-editor-files"],
+          tmpDir,
+        );
         const fullPath = join(tmpDir, project.name);
 
         // Ensure the main file exists
@@ -282,7 +288,11 @@ Deno.test({
         );
 
         // Clone the project
-        await runVtCommand(["clone", project.name], tmpDir);
+        await runVtCommand(
+          ["clone", project.name, "--no-editor-files"],
+          tmpDir,
+        );
+
         const fullPath = join(tmpDir, project.name);
 
         // Create a new branch with checkout -b

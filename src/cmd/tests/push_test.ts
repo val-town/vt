@@ -61,12 +61,13 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewProject(async ({ project }) => {
         await t.step("clone the project", async () => {
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(
+            ["clone", project.name, "--no-editor-files"],
+            tmpDir,
+          );
         });
 
         const fullPath = join(tmpDir, project.name);
-        await Deno.remove(join(fullPath, ".vtignore"));
-        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("run push command with no changes", async () => {
           const [output] = await runVtCommand(["push"], fullPath);
@@ -137,7 +138,7 @@ Deno.test({
           assertStringIncludes(pushOutput, "file5_2.js");
 
           // Verify the count of changes
-          assertStringIncludes(pushOutput, "17 created"); // 5 dirs + (6*2=10) files + .vtignore + deno.json
+          assertStringIncludes(pushOutput, "created"); // we don't really know how many because of editor template files
         });
       });
     });

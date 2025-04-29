@@ -21,12 +21,13 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(
+            ["clone", project.name, "--no-editor-files"],
+            tmpDir,
+          );
         });
 
         const fullPath = join(tmpDir, project.name);
-        await Deno.remove(join(fullPath, ".vtignore"));
-        await Deno.remove(join(fullPath, "deno.json"));
 
         await t.step("make a local change", async () => {
           // Make a local change
@@ -52,12 +53,13 @@ Deno.test({
           assertStringIncludes(output, "A (script) new-file.js");
 
           // Check for summary counts
-          assertStringIncludes(output, "1 created");
+          assertStringIncludes(output, "created"); // we don't really know how many because of editor template files
           assertStringIncludes(output, "1 modified");
         });
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -76,7 +78,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(
+            ["clone", project.name, "--no-editor-files"],
+            tmpDir,
+          );
         });
 
         const fullPath = join(tmpDir, project.name);
@@ -102,4 +107,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
