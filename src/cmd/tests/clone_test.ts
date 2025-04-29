@@ -249,32 +249,30 @@ Deno.test({
     const testPromise = (async () => {
       await doWithTempDir(async (tmpDir) => {
         await doWithNewProject(async ({ project }) => {
-          let outputLines: string[];
-          let cloneChild: Deno.ChildProcess;
+          // Start the clone process with no arguments
+          const [outputLines, cloneChild] = streamVtCommand(["clone"], tmpDir);
 
           await t.step("use interactive clone", async () => {
-            // Start the clone process with no arguments
-            [outputLines, cloneChild] = streamVtCommand(
-              ["clone"],
-              tmpDir,
-            );
-
             // Send the project name followed by Enter
-            const stdin = cloneChild.stdin.getWriter();
+            let stdin = await cloneChild.stdin.getWriter();
             await stdin.write(new TextEncoder().encode(project.name + "\n"));
-            stdin.releaseLock();
+            await stdin.releaseLock();
 
             await delay(1000); // Wait for the process to handle input
+
+            // Then confirm that you want to get the editor files
+            stdin = await cloneChild.stdin.getWriter();
+            await stdin.write(new TextEncoder().encode("y\n"));
+            await stdin.releaseLock();
 
             // Process should complete
             const { code } = await cloneChild.status;
 
             // Check if the clone was successful
-            assert(
-              code === 0,
-              "clone process should exit with code 0",
-            );
+            assert(code === 0, "clone process should exit with code 0");
+          });
 
+          await t.step("check editor files were created", async () => {
             // Verify the project directory exists
             assert(
               await exists(join(tmpDir, project.name)),
@@ -285,6 +283,18 @@ Deno.test({
             assert(
               outputLines.some((line) => line.includes("cloned")),
               "Output should include cloning confirmation",
+            );
+
+            // Verify .vtignore exists
+            assert(
+              await exists(join(tmpDir, project.name, ".vtignore")),
+              ".vtignore should exist",
+            );
+
+            // Verify deno.json exists
+            assert(
+              await exists(join(tmpDir, project.name, "deno.json")),
+              "deno.json should exist",
             );
           });
         });
