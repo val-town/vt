@@ -104,4 +104,4 @@ export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
 export const PROJECT_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
-export const DEFAULT_EDITOR_TEMPLATE = "wolf/vtEditorFiles";
+export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
