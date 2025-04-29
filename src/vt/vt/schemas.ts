@@ -26,8 +26,8 @@ export const VTStateSchema = z.object({
  */
 export const VTConfigSchema = z.object({
   apiKey: z.string()
-    .refine((val) => val === null || val.length === 33, {
-      message: "API key must be exactly 33 characters long when provided",
+    .refine((val) => val === null || val.length === 32 || val.length === 33, {
+      message: "API key must be 32-33 characters long when provided",
     })
     .nullable(),
   dangerousOperations: z.object({

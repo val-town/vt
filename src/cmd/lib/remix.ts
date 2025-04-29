@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { projectExists, user } from "~/sdk.ts";
+import { getCurrentUser, projectExists } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
@@ -53,6 +53,8 @@ export const remixCmd = new Command()
     targetDir?: string,
   ) => {
     await doWithSpinner("Remixing Val Town project...", async (spinner) => {
+      const user = await getCurrentUser();
+
       // Parse the project uri for the project we are remixing
       const {
         ownerName: sourceProjectUsername,

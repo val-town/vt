@@ -43,13 +43,24 @@ function welcomeToVt(): void {
  * The onboarding flow for users using vt for the first time. This handles
  * walking the user through setting their API key and informing them on how to
  * get started.
+ *
+ * @param options Options for the onboarding flow
+ * @param options.showWelcome Whether to show the welcome message
+ * @param options.showApiKeyPrompt Whether to show the API key prompt
+ * @param options.openBrowser Whether to open the browser to get the API key
  */
-export async function onboardFlow(): Promise<void> {
-  welcomeToVt();
-  console.log();
+export async function onboardFlow(
+  options?: { showWelcome?: boolean },
+): Promise<void> {
+  options = options || {};
 
-  console.log("  To get started, you need to authenticate with Val Town.");
-  console.log();
+  if (options.showWelcome) {
+    welcomeToVt();
+    console.log();
+
+    console.log("  To get started, you need to authenticate with Val Town.");
+    console.log();
+  }
 
   const goToWebsite: boolean = await Confirm.prompt({
     message:
