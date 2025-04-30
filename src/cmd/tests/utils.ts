@@ -157,14 +157,14 @@ export async function removeAllEditorFiles(dirPath: string): Promise<void> {
     templateProject.id,
     DEFAULT_BRANCH_NAME,
   );
-  const projectItems = await listValItems(
+  const valItems = await listValItems(
     templateProject.id,
     templateBranch.id,
     await getLatestVersion(templateProject.id, templateBranch.id),
   );
 
-  // Create a Set of relative paths for all files in the template project
-  const templateFilePaths = new Set(projectItems.map((item) => item.path));
+  // Create a Set of relative paths for all files in the template val
+  const templateFilePaths = new Set(valItems.map((item) => item.path));
 
   // Build a list of files to remove using Array.fromAsync with walk and filter
   const filesToRemove = (await Array.fromAsync(walk(dirPath)))
