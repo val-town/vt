@@ -14,7 +14,7 @@ export const remixCmd = new Command()
   .name("remix")
   .description("Remix a Val")
   .arguments(
-    "<fromvalUri:string> [newvalName:string] [targetDir:string]",
+    "<fromvalUri:string> [newValName:string] [targetDir:string]",
   )
   .option("--public", "Remix as public Val (default)", {
     conflicts: ["private", "unlisted"],
@@ -49,7 +49,7 @@ export const remixCmd = new Command()
       editorFiles?: boolean;
     },
     fromvalUri: string,
-    newvalName?: string,
+    newValName?: string,
     targetDir?: string,
   ) => {
     await doWithSpinner("Remixing Val...", async (spinner) => {
@@ -65,9 +65,9 @@ export const remixCmd = new Command()
 
       // Determine val name based on input or generate one if needed
       let valName: string;
-      if (newvalName) {
+      if (newValName) {
         // Use explicitly provided name
-        valName = newvalName;
+        valName = newValName;
       } else if (
         !await valExists({
           valName: sourcevalName,

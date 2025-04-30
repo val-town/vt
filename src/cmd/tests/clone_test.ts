@@ -264,6 +264,7 @@ Deno.test({
             stdin = cloneChild.stdin.getWriter();
             await stdin.write(new TextEncoder().encode("y\n"));
             stdin.releaseLock();
+            await delay(1000);
 
             // Process should complete
             const { code } = await cloneChild.status;
