@@ -175,6 +175,7 @@ Deno.test({
             "clone",
             `${user.username}/${sourcevalName}`,
             srcTmpDir,
+            "--no-editor-files",
           ], ".");
 
           // Create an HTTP val in the source val

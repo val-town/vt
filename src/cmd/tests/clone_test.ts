@@ -252,10 +252,7 @@ Deno.test({
 
         await t.step("use interactive clone", async () => {
           // Start the clone process with no arguments
-          const [lines, child] = streamVtCommand(
-            ["clone"],
-            tmpDir,
-          );
+          const [lines, child] = streamVtCommand(["clone"], tmpDir);
           cloneChild = child;
           outputLines = await lines;
 
