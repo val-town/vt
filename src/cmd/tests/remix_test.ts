@@ -72,6 +72,7 @@ Deno.test({
             `${user.username}/${sourcevalName}`,
             privatevalName,
             "--private",
+            "--no-editor-files",
           ], tmpDir);
 
           assertStringIncludes(
@@ -99,6 +100,7 @@ Deno.test({
             `${user.username}/${sourcevalName}`,
             unlistedvalName,
             "--unlisted",
+            "--no-editor-files",
           ], tmpDir);
 
           assertStringIncludes(
@@ -198,6 +200,7 @@ Deno.test({
               "remix",
               `${user.username}/${sourcevalName}`,
               remixedvalName,
+              "--no-editor-files",
             ], destTmpDir);
 
             // Check that the HTTP val exists in the remixed val
