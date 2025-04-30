@@ -1,9 +1,12 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { user } from "~/sdk.ts";
+import { getCurrentUser } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
+import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
+import { Confirm } from "@cliffy/prompt";
+import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
   .name("create")
@@ -50,16 +53,19 @@ vt checkout main`,
       private: isPrivate,
       unlisted,
       description,
+      editorFiles,
     }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
       description?: string;
+      editorFiles?: boolean;
     },
     valName: string,
     targetDir?: string,
   ) => {
-    await doWithSpinner("Creating new val...", async (spinner) => {
+    await doWithSpinner("Creating new Val...", async (spinner) => {
+      const user = await getCurrentUser();
       const clonePath = getClonePath(targetDir, valName);
 
       // Determine privacy setting (defaults to public)
@@ -73,7 +79,16 @@ vt checkout main`,
           privacy,
           description,
         });
-        await vt.addEditorFiles();
+
+        if (editorFiles) {
+          spinner.stop();
+          const { editorTemplate } = await vt.getConfig().loadConfig();
+          const confirmed = await Confirm.prompt(
+            ensureAddEditorFiles(editorTemplate ?? DEFAULT_EDITOR_TEMPLATE),
+          );
+          if (confirmed) await vt.addEditorTemplate();
+          console.log();
+        }
 
         spinner.succeed(
           `Created ${privacy} val "${valName}" in "${basename(clonePath)}"`,

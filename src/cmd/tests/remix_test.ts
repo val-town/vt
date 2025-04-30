@@ -1,6 +1,6 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk, { user } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
@@ -10,6 +10,8 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 Deno.test({
   name: "remix command basic functionality",
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
         // Create a source val to remix
@@ -57,6 +59,8 @@ Deno.test({
 Deno.test({
   name: "remix command with privacy options",
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
         const sourcevalName = val.name;
@@ -118,6 +122,8 @@ Deno.test({
 Deno.test({
   name: "remix command with no-editor-files option",
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
         const sourcevalName = val.name;
@@ -154,6 +160,8 @@ Deno.test({
 Deno.test({
   name: "remix command preserves HTTP type",
   async fn(t) {
+    const user = await getCurrentUser();
+
     // Create a temp dir for the source val
     await doWithTempDir(async (srcTmpDir) => {
       // Create a temp dir for the remix destination

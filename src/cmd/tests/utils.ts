@@ -1,7 +1,16 @@
-import { join } from "@std/path";
+import { join, relative } from "@std/path";
+import { walk } from "@std/fs";
 import stripAnsi from "strip-ansi";
+import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
+import sdk, {
+  branchNameToBranch,
+  getCurrentUser,
+  getLatestVersion,
+  listValItems,
+} from "~/sdk.ts";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -127,4 +136,49 @@ export function streamVtCommand(
   })();
 
   return [outputLines, process];
+}
+
+/**
+ * Removes all files in a directory that match the files found in the Val relative to the dirPath.
+ *
+ * @param dirPath - The directory to clean
+ */
+export async function removeAllEditorFiles(dirPath: string): Promise<void> {
+  const user = await getCurrentUser();
+  const { ownerName, valName } = parseValUri(
+    DEFAULT_EDITOR_TEMPLATE,
+    user.username!,
+  );
+  const templateProject = await sdk.alias.username.valName.retrieve(
+    ownerName,
+    valName,
+  );
+  const templateBranch = await branchNameToBranch(
+    templateProject.id,
+    DEFAULT_BRANCH_NAME,
+  );
+  const projectItems = await listValItems(
+    templateProject.id,
+    templateBranch.id,
+    await getLatestVersion(templateProject.id, templateBranch.id),
+  );
+
+  // Create a Set of relative paths for all files in the template project
+  const templateFilePaths = new Set(projectItems.map((item) => item.path));
+
+  // Build a list of files to remove using Array.fromAsync with walk and filter
+  const filesToRemove = (await Array.fromAsync(walk(dirPath)))
+    .filter((entry) => templateFilePaths.has(relative(dirPath, entry.path)))
+    .map((entry) => entry.path);
+
+  // Then remove all the files
+  for (const filePath of filesToRemove) {
+    try {
+      await Deno.remove(filePath, { recursive: true });
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        // Ignore if the file was already removed
+      } else throw e;
+    }
+  }
 }

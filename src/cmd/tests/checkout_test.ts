@@ -118,7 +118,7 @@ Deno.test({
         });
 
         await t.step("clone val and make local changes", async () => {
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
           originalFilePath = join(fullPath, "original.txt");
 
@@ -225,7 +225,7 @@ Deno.test({
         );
 
         // Clone the val (defaults to main branch)
-        await runVtCommand(["clone", val.name], tmpDir);
+        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         const fullPath = join(tmpDir, val.name);
 
         // Ensure the main file exists
@@ -282,7 +282,7 @@ Deno.test({
         );
 
         // Clone the val
-        await runVtCommand(["clone", val.name], tmpDir);
+        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         const fullPath = join(tmpDir, val.name);
 
         // Create a new branch with checkout -b

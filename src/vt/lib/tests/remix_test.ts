@@ -1,10 +1,10 @@
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { user } from "~/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import { remix } from "~/vt/lib/remix.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 
 Deno.test({
   name: "remix preserves HTTP val type",
@@ -15,6 +15,8 @@ Deno.test({
     env: true,
   },
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithNewVal(async ({ val }) => {
       // Create an HTTP val in the source val
       const httpValName = "foo_http";
@@ -181,6 +183,8 @@ Deno.test({
   },
   async fn(t) {
     await doWithNewVal(async ({ val }) => {
+      const user = await getCurrentUser();
+
       // Create a few files in the source val
       await sdk.vals.files.create(
         val.id,

@@ -2,14 +2,15 @@ import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
-import sdk, { randomValName, user } from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { dirIsEmpty } from "~/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
   name: "create val with existing directory name",
   async fn(c) {
+    const user = await getCurrentUser();
     const emptyDirValName = "emptyDir" + randomValName();
     const nonEmptyDirValName = "nonEmptyDir" + randomValName();
     let emptyDirVal: ValTown.Val | null = null;
@@ -71,6 +72,7 @@ Deno.test({
 });
 
 Deno.test("new val in specific directory", async (c) => {
+  const user = await getCurrentUser();
   const newValName = randomValName();
   let newVal: ValTown.Val | null = null;
 
@@ -102,6 +104,7 @@ Deno.test("new val in specific directory", async (c) => {
 });
 
 Deno.test("create new private val", async (c) => {
+  const user = await getCurrentUser();
   const newValName = randomValName();
   let newVal: ValTown.Val | null = null;
 
@@ -142,12 +145,12 @@ Deno.test("create new private val", async (c) => {
 });
 
 Deno.test("create new val in current working directory", async (c) => {
+  const user = await getCurrentUser();
   const newValName = randomValName();
   let newVal: ValTown.Val | null = null;
 
   try {
     await doWithTempDir(async (tmpDir) => {
-      // Mock the cwd function to return the temp directory
       await c.step("create a new val in current directory", async () => {
         await runVtCommand([
           "create",

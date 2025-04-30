@@ -112,6 +112,7 @@ export const configSetCmd = new Command()
 export const configGetCmd = new Command()
   .description("Get a configuration value")
   .arguments("[key]")
+  .alias("show")
   .action(async (_: unknown, key?: string) => {
     await doWithSpinner("Retreiving configuration...", async (spinner) => {
       // Check if we're in a Val Town val directory

@@ -6,7 +6,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
-import sdk, { user } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
@@ -65,6 +65,7 @@ export const checkoutCmd = new Command()
         async (spinner) => {
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
           const vtState = await vt.getMeta().loadVtState();
+          const user = await getCurrentUser();
 
           // Get the current branch data
           const currentBranchData = await sdk.vals.branches.retrieve(
@@ -92,7 +93,7 @@ export const checkoutCmd = new Command()
               );
               if (valToPush.author.id !== user.id) {
                 throw new Error(
-                  "You are not the owner of this vala, you cannot make a new branch.",
+                  "You are not the owner of this Val, you cannot make a new branch.",
                 );
               }
             }

@@ -1,7 +1,7 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
@@ -15,8 +15,7 @@ Deno.test({
         });
 
         const fullPath = join(tmpDir, val.name);
-        await Deno.remove(join(fullPath, ".vtignore"));
-        await Deno.remove(join(fullPath, "deno.json"));
+        await removeAllEditorFiles(fullPath);
 
         await t.step("run pull command", async () => {
           const [output] = await runVtCommand(["pull"], fullPath);

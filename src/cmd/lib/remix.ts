@@ -1,11 +1,14 @@
 import { Command } from "@cliffy/command";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { user, valExists } from "~/sdk.ts";
+import { getCurrentUser, valExists } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { parseValUrl } from "~/cmd/parsing.ts";
 import { randomIntegerBetween } from "@std/random";
+import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
+import { Confirm } from "@cliffy/prompt";
+import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const remixCmd = new Command()
   .name("remix")
@@ -49,8 +52,9 @@ export const remixCmd = new Command()
     newvalName?: string,
     targetDir?: string,
   ) => {
-    await doWithSpinner("Remixing Val Town val...", async (spinner) => {
-      // Parse the val uri for the val we are remixing
+    await doWithSpinner("Remixing Val...", async (spinner) => {
+      const user = await getCurrentUser();
+
       const {
         ownerName: sourcevalUsername,
         valName: sourcevalName,
@@ -103,14 +107,22 @@ export const remixCmd = new Command()
           description,
         });
 
-        if (editorFiles) await vt.addEditorFiles();
+        if (editorFiles) {
+          spinner.stop();
+          const { editorTemplate } = await vt.getConfig().loadConfig();
+          const confirmed = await Confirm.prompt(
+            ensureAddEditorFiles(editorTemplate ?? DEFAULT_EDITOR_TEMPLATE),
+          );
+          if (confirmed) await vt.addEditorTemplate();
+          console.log();
+        }
 
         spinner.succeed(
-          `Remixed "@${sourcevalUsername}/${sourcevalName}" to ${privacy} val "@${user.username}/${valName}"`,
+          `Remixed "@${sourcevalUsername}/${sourcevalName}" to ${privacy} Val "@${user.username}/${valName}"`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {
-          throw new Error(`Val name "${valName}" already exists`);
+          throw new Error(`Val "${valName}" already exists`);
         } else throw error;
       }
     });

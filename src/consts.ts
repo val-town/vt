@@ -27,6 +27,7 @@ export const ENTRYPOINT_NAME = "vt.ts";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
 
+export const DEFAULT_WRAP_WIDTH = 80;
 export const MAX_WALK_UP_LEVELS = 100;
 
 export const FIRST_VERSION_NUMBER = 0;
@@ -102,3 +103,4 @@ export const TYPE_PRIORITY: Record<ValItemType, number> = {
 export const VAL_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
+export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";

@@ -1,18 +1,21 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { user } from "~/sdk.ts";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
-import { parseValUrl } from "~/cmd/parsing.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { tty } from "@cliffy/ansi/tty";
+import { Confirm } from "@cliffy/prompt";
+import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
+import { parseValUrl } from "~/cmd/parsing.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const cloneCmd = new Command()
   .name("clone")
   .description("Clone a Val")
   .arguments("[valUri:string] [targetDir:string] [branchName:string]")
+  .option("--no-editor-files", "Clone without editor configuration files")
   .example(
     "Interactive Val selection",
     `vt clone`,
@@ -33,8 +36,19 @@ export const cloneCmd = new Command()
     "Clone into a new directory",
     `vt clone username/valName new-directory`,
   )
+  .example(
+    "Clone without editor files",
+    `vt clone username/valName --no-editor-files`,
+  )
   .action(
-    async (_, valUri?: string, targetDir?: string, branchName?: string) => {
+    async (
+      { editorFiles }: { editorFiles: boolean },
+      valUri?: string,
+      targetDir?: string,
+      branchName?: string,
+    ) => {
+      const user = await getCurrentUser();
+
       let ownerName: string;
       let valName: string;
 
@@ -50,21 +64,21 @@ export const cloneCmd = new Command()
         );
 
         if (vals.length === 0) {
-          console.log(colors.yellow("You don't have any vals yet."));
+          console.log(colors.yellow("You don't have any Vals yet."));
           return;
         }
 
         // Map vals to name format for selection
         const valNames = vals.map((p) => p.name);
 
-        const selectedval = await Input.prompt({
-          message: "Choose a val to clone",
+        const selectedVal = await Input.prompt({
+          message: "Choose a Val to clone",
           list: true,
           info: true,
           suggestions: valNames,
         });
 
-        const val = vals.find((p) => p.name === selectedval);
+        const val = vals.find((p) => p.name === selectedVal);
         if (!val) {
           console.error(colors.red("Val not found"));
           return;
@@ -92,7 +106,16 @@ export const cloneCmd = new Command()
           valName,
           username: ownerName,
         });
-        await vt.addEditorFiles();
+
+        if (editorFiles) {
+          spinner.stop();
+          const { editorTemplate } = await vt.getConfig().loadConfig();
+          const confirmed = await Confirm.prompt(
+            ensureAddEditorFiles(editorTemplate ?? DEFAULT_EDITOR_TEMPLATE),
+          );
+          if (confirmed) await vt.addEditorTemplate();
+          console.log();
+        }
 
         spinner.succeed(
           `Val ${ownerName}/${valName} cloned to "${

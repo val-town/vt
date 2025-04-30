@@ -2,11 +2,10 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
-import sdk, { randomValName, user } from "~/sdk.ts";
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
 import type { ValFileType } from "~/types.ts";
-import { deadline, delay } from "@std/async";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
@@ -172,6 +171,8 @@ Deno.test({
     run: true,
   },
   async fn(t) {
+    const user = await getCurrentUser();
+
     await doWithTempDir(async (tmpDir) => {
       const valName = randomValName("clone_test");
 
@@ -213,7 +214,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "clone command with inexistant val",
+  name: "clone command with inexistent val",
   permissions: {
     read: true,
     write: true,
@@ -244,53 +245,64 @@ Deno.test({
     run: true,
   },
   fn: async (t: Deno.TestContext) => {
-    const testPromise = (async () => {
-      await doWithTempDir(async (tmpDir) => {
-        await doWithNewVal(async ({ val }) => {
-          let outputLines: string[];
-          let cloneChild: Deno.ChildProcess;
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val }) => {
+        let outputLines: string[] = [];
+        let cloneChild: Deno.ChildProcess;
 
-          await t.step("use interactive clone", async () => {
-            // Start the clone process with no arguments
-            [outputLines, cloneChild] = streamVtCommand(
-              ["clone"],
-              tmpDir,
-            );
+        await t.step("use interactive clone", async () => {
+          // Start the clone process with no arguments
+          const [lines, child] = streamVtCommand(
+            ["clone"],
+            tmpDir,
+          );
+          cloneChild = child;
+          outputLines = await lines;
 
-            // Send the val name followed by Enter
-            const stdin = cloneChild.stdin.getWriter();
-            await stdin.write(new TextEncoder().encode(val.name + "\n"));
-            stdin.releaseLock();
+          // Send the val name followed by Enter
+          let stdin = cloneChild.stdin.getWriter();
+          await stdin.write(new TextEncoder().encode(val.name + "\n"));
+          await stdin.ready;
+          await stdin.close();
 
-            await delay(1000); // Wait for the process to handle input
+          // Then confirm that you want to get the editor files
+          stdin = cloneChild.stdin.getWriter();
+          await stdin.write(new TextEncoder().encode("y\n"));
+          await stdin.ready;
+          await stdin.close();
 
-            // Process should complete
-            const { code } = await cloneChild.status;
+          // Process should complete
+          const { code } = await cloneChild.status;
 
-            // Check if the clone was successful
-            assert(
-              code === 0,
-              "clone process should exit with code 0",
-            );
+          // Check if the clone was successful
+          assert(code === 0, "clone process should exit with code 0");
 
-            // Verify the val directory exists
-            assert(
-              await exists(join(tmpDir, val.name)),
-              "val directory was not created",
-            );
+          // Verify the val directory exists
+          assert(
+            await exists(join(tmpDir, val.name)),
+            "val directory was not created",
+          );
 
-            // Verify output contains cloning confirmation
-            assert(
-              outputLines.some((line) => line.includes("cloned")),
-              "Output should include cloning confirmation",
-            );
-          });
+          // Verify output contains cloning confirmation
+          assert(
+            outputLines.some((line) => line.includes("cloned")),
+            "Output should include cloning confirmation",
+          );
+
+          // Verify .vtignore exists
+          assert(
+            await exists(join(tmpDir, val.name, ".vtignore")),
+            ".vtignore should exist",
+          );
+
+          // Verify deno.json exists
+          assert(
+            await exists(join(tmpDir, val.name, "deno.json")),
+            "deno.json should exist",
+          );
         });
       });
-    })();
-
-    // in case input isn't accepted and it hangs waiting for input
-    await deadline(testPromise, 5000);
+    });
   },
   sanitizeResources: false,
 });

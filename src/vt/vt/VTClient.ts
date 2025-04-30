@@ -3,7 +3,6 @@ import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
-import { denoJson, vtIgnore } from "~/vt/vt/editor/mod.ts";
 import { join, relative } from "@std/path";
 import {
   type BaseCheckoutParams,
@@ -12,12 +11,16 @@ import {
   type CheckoutResult,
   type ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import sdk, { branchNameToBranch, getLatestVersion, user } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  getCurrentUser,
+  getLatestVersion,
+} from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
+  DEFAULT_EDITOR_TEMPLATE,
   FIRST_VERSION_NUMBER,
   META_FOLDER_NAME,
-  META_IGNORE_FILE_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
 import { exists } from "@std/fs";
@@ -28,10 +31,11 @@ import { remix } from "~/vt/lib/remix.ts";
 import type { ValPrivacy } from "~/types.ts";
 import { create } from "~/vt/lib/create.ts";
 import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
- * functionality for git command executation on the folder.
+ * functionality for running vt library functions like "clone" or "push."
  *
  * With a VTClient you can do things like clone a val town Val, or
  * pull/push a Val Town Val.
@@ -64,32 +68,33 @@ export default class VTClient {
   }
 
   /**
-   * Adds editor configuration files to the target directory.
-   *
-   * @param {object} options - Options for adding editor files
-   * @param {boolean} options.noDenoJson - Whether to skip adding deno.json
-   * @returns {Promise<void>}
+   * Adds editor configuration files to the target directory by "underlaying" a
+   * default val town val.
    */
-  public async addEditorFiles(
-    options?: { noDenoJson?: boolean },
-  ): Promise<void> {
-    // Always add the vt ignore file
-    const metaIgnoreFile = join(this.rootPath, META_IGNORE_FILE_NAME);
-    if (!await exists(metaIgnoreFile)) {
-      await Deno.writeTextFile(
-        join(this.rootPath, META_IGNORE_FILE_NAME),
-        vtIgnore.text,
-      );
-    }
+  public async addEditorTemplate(): Promise<void> {
+    const user = await getCurrentUser();
+    const { editorTemplate } = await this.getConfig().loadConfig();
+    const { ownerName, valName } = parseValUri(
+      editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
+      user.username!,
+    );
+    const templateProject = await sdk.alias.username.valName.retrieve(
+      ownerName,
+      valName,
+    );
+    const templateBranch = await branchNameToBranch(
+      templateProject.id,
+      DEFAULT_BRANCH_NAME,
+    );
 
-    // Add deno.json unless explicitly disabled
-    const denoJsonFile = join(this.rootPath, "deno.json");
-    if (!(options?.noDenoJson) && !await exists(denoJsonFile)) {
-      await Deno.writeTextFile(
-        denoJsonFile,
-        JSON.stringify(denoJson, undefined, 2),
-      );
-    }
+    await clone({
+      targetDir: this.rootPath,
+      valId: templateProject.id,
+      branchId: templateBranch.id,
+      version: templateBranch.version,
+      overwrite: false,
+      gitignoreRules: [],
+    });
   }
 
   /**
@@ -316,27 +321,25 @@ export default class VTClient {
   }): Promise<VTClient> {
     await assertSafeDirectory(rootPath);
 
-    // Get the source val ID from username and val name
-    const sourceVal = await sdk.alias.username.valName.retrieve(
+    const srcVal = await sdk.alias.username.valName.retrieve(
       srcValUsername,
       srcValName,
     );
 
-    // Remix the val
     const { toValId, toVersion } = await remix({
       targetDir: rootPath,
-      srcValId: sourceVal.id,
+      srcValId: srcVal.id,
       srcBranchId: srcBranchName,
       valName: dstValName,
       description,
       privacy: dstValPrivacy,
     });
 
-    // Get the val branch
     const branch = await branchNameToBranch(toValId, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
-    // Return the new VTClient
+    const user = await getCurrentUser();
+
     return VTClient.init({
       valName: dstValName,
       username: user.username!,
