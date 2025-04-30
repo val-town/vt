@@ -23,6 +23,7 @@ Deno.test({
             "remix",
             `${user.username}/${sourcevalName}`,
             remixedvalName,
+            "--no-editor-files",
           ], tmpDir);
 
           assertStringIncludes(
@@ -77,8 +78,8 @@ Deno.test({
 
           assertStringIncludes(
             output,
-            `to private val`,
-            "output should indicate private val",
+            `to private Val`,
+            "output should indicate private Val",
           );
 
           // Clean up
@@ -93,7 +94,7 @@ Deno.test({
           }
         });
 
-        await t.step("remix as unlisted val", async () => {
+        await t.step("remix as unlisted Val", async () => {
           const unlistedvalName = `${sourcevalName}_unlisted`;
           const [output] = await runVtCommand([
             "remix",
@@ -105,8 +106,8 @@ Deno.test({
 
           assertStringIncludes(
             output,
-            `to unlisted val`,
-            "output should indicate unlisted val",
+            `to unlisted Val`,
+            "output should indicate unlisted Val",
           );
 
           const { id } = await sdk.alias.username.valName.retrieve(
