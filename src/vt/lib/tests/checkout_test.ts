@@ -1,6 +1,6 @@
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk, { branchExists, getLatestVersion } from "~/sdk.ts";
-import { checkout } from "~/vt/lib/checkout.ts";
+import { checkout } from "~/vt/lib/vals/checkout.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";

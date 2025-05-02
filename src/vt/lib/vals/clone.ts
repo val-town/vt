@@ -1,5 +1,5 @@
-import sdk, { listProjectItems } from "~/sdk.ts";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
+import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import { shouldIgnore } from "~/vt/lib/utils/paths.ts";
 import { ensureDir, exists } from "@std/fs";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
@@ -13,7 +13,7 @@ import {
 /**
  * Result of a clone operation.
  */
-export interface CloneResult {
+interface CloneResult {
   /** Changes made to items during the cloning process */
   itemStateChanges: ItemStatusManager;
 }
@@ -22,7 +22,7 @@ export interface CloneResult {
  * Parameters for cloning a project by downloading its files and directories to the specified
  * target directory.
  */
-export interface CloneParams {
+interface CloneParams {
   /** The directory where the project will be cloned */
   targetDir: string;
   /** The id of the project to be cloned */
@@ -30,7 +30,7 @@ export interface CloneParams {
   /** The branch ID of the project to clone */
   branchId: string;
   /** The version to clone. Defaults to latest */
-  version: number;
+  version?: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually write files, just report what would change */
@@ -46,8 +46,8 @@ export interface CloneParams {
  * @param params Options for the clone operation
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone(params: CloneParams): Promise<CloneResult> {
-  const {
+function clone(params: CloneParams): Promise<CloneResult> {
+  let {
     targetDir,
     projectId,
     branchId,
@@ -58,6 +58,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
+      version = version ?? (await getLatestVersion(projectId, branchId));
       const itemStateChanges = new ItemStatusManager();
       const projectItems = await listProjectItems(
         projectId,
@@ -216,3 +217,6 @@ async function createFile(
   // Set the file's mtime to match the source
   await Deno.utime(join(targetRoot, path), updatedAt, updatedAt);
 }
+
+export { clone };
+export type { CloneParams, CloneResult };

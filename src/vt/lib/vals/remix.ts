@@ -1,5 +1,5 @@
-import { clone } from "~/vt/lib/clone.ts";
-import { create } from "~/vt/lib/create.ts";
+import { clone } from "~/vt/lib/vals/clone.ts";
+import { create } from "~/vt/lib/vals/create.ts";
 import sdk, {
   branchNameToBranch,
   getLatestVersion,
@@ -17,7 +17,7 @@ import { doAtomically } from "~/vt/lib/utils/misc.ts";
  * This object contains information about the newly created project and the changes
  * that were made to the local file state during the remix operation.
  */
-export interface RemixResult {
+interface RemixResult {
   /** The ID of the newly created project */
   toProjectId: string;
   /** The version number of the newly created project */
@@ -32,7 +32,7 @@ export interface RemixResult {
 /**
  * Parameters for remixing some Val Town project to a new Val Town project.
  */
-export interface RemixParams {
+interface RemixParams {
   /** The root directory to contain the newly remixed project. */
   targetDir: string;
   /** The id of the project to remix from. */
@@ -57,7 +57,7 @@ export interface RemixParams {
  * @returns Promise that resolves with a CheckoutResult containing information about the
  * newly created project and the changes made during the remix operation.
  */
-export async function remix(
+async function remix(
   params: RemixParams,
 ): Promise<RemixResult> {
   const itemStateChanges = new ItemStatusManager();
@@ -128,3 +128,6 @@ export async function remix(
     }, true];
   }, { targetDir });
 }
+
+export { remix };
+export type { RemixParams, RemixResult };

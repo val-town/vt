@@ -1,9 +1,9 @@
 import sdk from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { pull } from "~/vt/lib/pull.ts";
+import { pull } from "~/vt/lib/vals/pull.ts";
 import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
 import { listProjectItems } from "~/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
@@ -12,7 +12,7 @@ import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
  * Result of a checkout operation containing branch information and file
  * changes.
  */
-export interface CheckoutResult {
+interface CheckoutResult {
   /** The source branch */
   fromBranch: ValTown.Projects.BranchCreateResponse;
   /**
@@ -29,7 +29,7 @@ export interface CheckoutResult {
 /**
  * Base parameters for all checkout operations.
  */
-export type BaseCheckoutParams = {
+type BaseCheckoutParams = {
   /** The directory where the branch will be checked out */
   targetDir: string;
   /** The ID of the project */
@@ -45,7 +45,7 @@ export type BaseCheckoutParams = {
 /**
  * Parameters for checking out an existing branch.
  */
-export type BranchCheckoutParams = BaseCheckoutParams & {
+type BranchCheckoutParams = BaseCheckoutParams & {
   /** The ID of the branch to checkout */
   toBranchId: string;
   /** The ID of the branch we're switching from */
@@ -55,7 +55,7 @@ export type BranchCheckoutParams = BaseCheckoutParams & {
 /**
  * Parameters for creating and checking out a new branch (fork).
  */
-export type ForkCheckoutParams = BaseCheckoutParams & {
+type ForkCheckoutParams = BaseCheckoutParams & {
   /** The branch ID from which to create the fork */
   forkedFromId: string;
   /** The name for the new forked branch */
@@ -64,19 +64,20 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 
 /**
  * Checks out a specific existing branch of a project.
+ *
  * @param params Options for the checkout operation.
- * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information.
+ * @returns A promise that resolves with checkout information.
  */
-export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
+function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
-  * Creates a new branch from a project's branch and checks it out.
-  * @param params Options for the checkout operation.
-  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
- details).
-  */
-export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
-export function checkout(
+ * Creates a new branch from a project's branch and checks it out.
+ *
+ * @param params Options for the checkout operation.
+ * @returns  A promise that resolves with checkout information (including the new branch details).
+ */
+function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
+function checkout(
   params: BranchCheckoutParams | ForkCheckoutParams,
 ): Promise<CheckoutResult> {
   // Determine if we're creating a new branch or checking out an existing one
@@ -91,9 +92,7 @@ export function checkout(
   }
 }
 
-/**
- * Handles creating a new branch (fork) and marking all files as not_modified
- */
+// Handles creating a new branch (fork) and marking all files as not_modified
 async function handleForkCheckout(
   params: ForkCheckoutParams,
 ): Promise<CheckoutResult> {
@@ -147,9 +146,7 @@ async function handleForkCheckout(
   };
 }
 
-/**
- * Handles checking out an existing branch
- */
+// Handles checking out an existing branch
 async function handleBranchCheckout(
   params: BranchCheckoutParams,
 ): Promise<CheckoutResult> {
@@ -263,3 +260,11 @@ async function handleBranchCheckout(
     { targetDir: params.targetDir },
   );
 }
+
+export { checkout };
+export type {
+  BaseCheckoutParams,
+  BranchCheckoutParams,
+  CheckoutResult,
+  ForkCheckoutParams,
+};

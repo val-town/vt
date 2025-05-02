@@ -1,26 +1,31 @@
 import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import { listProjectItems } from "~/sdk.ts";
-import { clone } from "~/vt/lib/clone.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
+import {
+  branchNameToBranch,
+  getLatestVersion,
+  listProjectItems,
+} from "~/sdk.ts";
+import { clone } from "~/vt/lib/vals/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 /**
  * Parameters for pulling latest changes from a Val Town project into a vt folder.
  */
-export interface PullParams {
+interface PullParams {
   /** The vt project root directory. */
   targetDir: string;
   /** The id of the project to download from. */
   projectId: string;
-  /** The branch ID to download file content from. */
-  branchId: string;
+  /** The branch ID to download file content from. Defaults to main. */
+  branchId?: string;
   /** The version to pull. Defaults to latest version. */
-  version: number;
+  version?: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files, just report what would change. */
@@ -28,30 +33,21 @@ export interface PullParams {
 }
 
 /**
- * Pulls latest changes from a Val Town project into a vt folder.
+ * Pulls the latest changes from a Val Town project into a local directory.
  *
  * @param {PullParams} params Options for pull operation.
- *
- * @description
- * After a pull:
- * - All files from the remote project exist at the remote's version's location locally
- * - Local files that match gitignore rules are preserved at their current path
- * - Untracked local files that were never pushed are preserved
- *
- * Files that are removed:
- * - Files that previously existed in the remote project but were deleted
- *
- * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
+ * @returns Promise that resolves with an ItemStatusManager containing information about changes.
  */
-export function pull(params: PullParams): Promise<ItemStatusManager> {
+async function pull(params: PullParams): Promise<ItemStatusManager> {
   const {
     targetDir,
     projectId,
-    branchId,
-    version,
+    branchId = (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)).id,
+    version = await getLatestVersion(projectId, branchId),
     gitignoreRules = [],
     dryRun = false,
   } = params;
+
   return doAtomically(
     async (tmpDir) => {
       const changes = new ItemStatusManager();
@@ -133,3 +129,6 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
     { targetDir, prefix: "vt_pull_" },
   );
 }
+
+export { pull };
+export type { PullParams };

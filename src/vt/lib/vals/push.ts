@@ -1,10 +1,11 @@
 import type { ProjectFileType, ProjectItemType } from "~/types.ts";
 import sdk, {
+  branchNameToBranch,
   getLatestVersion,
   getProjectItem,
   listProjectItems,
 } from "~/sdk.ts";
-import { status } from "~/vt/lib/status.ts";
+import { status } from "~/vt/lib/vals/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
@@ -14,8 +15,9 @@ import {
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { pooledMap } from "@std/async";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
-export interface PushResult {
+interface PushResult {
   /** Changes made to project items during the push process */
   itemStateChanges: ItemStatusManager;
 }
@@ -23,13 +25,13 @@ export interface PushResult {
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town project.
  */
-export interface PushParams {
+interface PushParams {
   /** The vt project root directory. */
   targetDir: string;
   /** The id of the project to upload to. */
   projectId: string;
   /** The branch ID to upload to. */
-  branchId: string;
+  branchId?: string;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
@@ -45,11 +47,11 @@ export interface PushParams {
  * @param {PushParams} params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export async function push(params: PushParams): Promise<PushResult> {
+async function push(params: PushParams): Promise<PushResult> {
   const {
     targetDir,
     projectId,
-    branchId,
+    branchId = (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)).id,
     gitignoreRules,
     dryRun = false,
     concurrencyPoolSize = 10,
@@ -309,3 +311,6 @@ async function doReqMaybeApplyWarning<T>(
     return undefined;
   }
 }
+
+export { push };
+export type { PushParams, PushResult };

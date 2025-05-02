@@ -1,0 +1,28 @@
+Docs
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: '2.x'
+
+      - name: Generate documentation
+        run: deno task doc
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@vr
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs

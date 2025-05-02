@@ -1,8 +1,8 @@
-import { clone } from "~/vt/lib/clone.ts";
+import { clone } from "~/vt/lib/vals/clone.ts";
 import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/lib/pull.ts";
-import { push } from "~/vt/lib/push.ts";
+import { pull } from "~/vt/lib/vals/pull.ts";
+import { push } from "~/vt/lib/vals/push.ts";
 import { join, relative } from "@std/path";
 import {
   type BaseCheckoutParams,
@@ -10,7 +10,7 @@ import {
   checkout,
   type CheckoutResult,
   type ForkCheckoutParams,
-} from "~/vt/lib/checkout.ts";
+} from "~/vt/lib/vals/checkout.ts";
 import sdk, {
   branchNameToBranch,
   getCurrentUser,
@@ -22,14 +22,14 @@ import {
   FIRST_VERSION_NUMBER,
   META_FOLDER_NAME,
 } from "~/consts.ts";
-import { status } from "~/vt/lib/status.ts";
+import { status } from "~/vt/lib/vals/status.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
-import { remix } from "~/vt/lib/remix.ts";
+import { remix } from "~/vt/lib/vals/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";
-import { create } from "~/vt/lib/create.ts";
+import { create } from "~/vt/lib/vals/create.ts";
 import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";
 

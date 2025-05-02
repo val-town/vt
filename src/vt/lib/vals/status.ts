@@ -1,5 +1,5 @@
 import sdk, { listProjectItems } from "~/sdk.ts";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 import {
@@ -17,7 +17,7 @@ import { isFileModified } from "~/vt/lib/utils/misc.ts";
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
  */
-export interface StatusParams {
+interface StatusParams {
   /** The directory to scan for changes. */
   targetDir: string;
   /** The Val Town project ID. */
@@ -38,7 +38,7 @@ export interface StatusParams {
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status(params: StatusParams): Promise<ItemStatusManager> {
+async function status(params: StatusParams): Promise<ItemStatusManager> {
   const {
     targetDir,
     projectId,
@@ -222,3 +222,6 @@ async function getLocalFiles({
   const results = await Promise.all(filePromises);
   return results.filter((item): item is ItemInfo => item !== null);
 }
+
+export { status };
+export type { StatusParams };

@@ -1,7 +1,7 @@
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
-import { pull } from "~/vt/lib/pull.ts";
+import { pull } from "~/vt/lib/vals/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";

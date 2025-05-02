@@ -4,7 +4,7 @@ import sdk, { getCurrentUser } from "~/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
-import { remix } from "~/vt/lib/remix.ts";
+import { remix } from "~/vt/lib/vals/remix.ts";
 
 Deno.test({
   name: "remix preserves HTTP val type",

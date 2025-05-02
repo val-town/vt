@@ -1,4 +1,4 @@
-import { push } from "~/vt/lib/push.ts";
+import { push } from "~/vt/lib/vals/push.ts";
 import sdk, { branchNameToBranch } from "~/sdk.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
@@ -21,7 +21,7 @@ interface CreateResponse {
 /**
  * Parameters for creating a new Val Town project from a local directory.
  */
-export interface CreateParams {
+interface CreateParams {
   /** The root directory containing the files to upload to the new project. */
   sourceDir: string;
   /** The name for the new project. */
@@ -41,7 +41,7 @@ export interface CreateParams {
  *
  * @returns Promise that resolves with changes that were applied during the push operation and the new project ID.
  */
-export async function create(
+async function create(
   params: CreateParams,
 ): Promise<CreateResponse> {
   const {
@@ -79,3 +79,6 @@ export async function create(
     newBranchId: newBranch.id,
   };
 }
+
+export { create };
+export type { CreateParams, CreateResponse };
