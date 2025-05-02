@@ -1,4 +1,4 @@
-import { VTConnector } from "~/companion/src/connect.ts";
+import { VTConnector } from "./connect";
 
 async function main() {
   console.log("Starting the VT Companion Daemon...");
@@ -6,8 +6,10 @@ async function main() {
   const ws = new VTConnector();
   await ws.getWebSocket()
     .then((ws) => {
-      ws.addEventListener("message", (e) => {
-        console.log("Message from server: ", e.data);
+      ws.addEventListener("message", async (e) => {
+        const link = JSON.parse(e.data).link as string;
+        console.log("Received link: ", link);
+        const allTabs = await chrome.tabs.query({})
       });
     })
     .catch((err) =>

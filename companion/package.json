@@ -1,0 +1,20 @@
+{
+  "name": "vt-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "nodemon --watch src --watch build.js --ext js,ts,json,css,html --polling --exec 'npm run build -- --dev'",
+    "dev:chrome": "node scripts/chrome.js"
+  },
+  "dependencies": {
+    "@std/async": "npm:@jsr/std__async@^1.0.12",
+    "esbuild": "^0.25.3"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.318",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.3.3"
+  }
+}

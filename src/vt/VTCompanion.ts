@@ -2,7 +2,7 @@ import {
   MAX_PORT_ATTEMPTS,
   VT_COMPANION_HOST,
   VT_COMPANION_PORT,
-} from "~/companion/consts.ts";
+} from "../../companion/src/consts.ts";
 
 /**
  * VTCompanion is manages a WebSocket server for communication with the VT

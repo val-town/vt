@@ -1,9 +1,9 @@
-import { delay } from "@std/async";
 import {
   MAX_PORT_ATTEMPTS,
   VT_COMPANION_HOST,
   VT_COMPANION_PORT,
-} from "~/companion/consts.ts";
+} from "./consts.ts";
+import { delay } from "@std/async";
 
 export class VTConnector {
   private webSocket: WebSocket | null = null;
@@ -14,7 +14,6 @@ export class VTConnector {
     private readonly basePort = VT_COMPANION_PORT,
     private readonly maxPortAttempts = MAX_PORT_ATTEMPTS,
     private readonly reconnectDelay = 750,
-    private readonly connectionTimeout = 2000,
   ) {
     console.log("VT Connector initialized");
   }
@@ -24,18 +23,12 @@ export class VTConnector {
    */
   async getWebSocket(): Promise<WebSocket> {
     // If we have a working connection, return it
-    if (this.webSocket?.readyState === WebSocket.OPEN) {
-      return this.webSocket;
-    }
+    if (this.webSocket?.readyState === WebSocket.OPEN) return this.webSocket;
 
     // If we're in the process of connecting, wait for it to complete
     if (this.isConnecting) {
-      while (this.isConnecting) {
-        await delay(100);
-      }
-      if (this.webSocket?.readyState === WebSocket.OPEN) {
-        return this.webSocket;
-      }
+      while (this.isConnecting) await delay(100);
+      if (this.webSocket?.readyState === WebSocket.OPEN) return this.webSocket;
     }
 
     // Otherwise initiate a new connection
@@ -141,15 +134,11 @@ export class VTConnector {
     setInterval(() => {
       if (this.webSocket?.readyState === WebSocket.OPEN) {
         this.webSocket.send("keepalive");
-      } else {
-        this.reconnect();
-      }
+      } else this.reconnect();
     });
   }
 
   private async reconnect() {
-    if (!this.isConnecting) {
-      await this.connect();
-    }
+    if (!this.isConnecting) await this.connect();
   }
 }
