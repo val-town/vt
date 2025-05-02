@@ -31,7 +31,7 @@ async function build() {
   const isDev = process.argv.includes("--dev");
 
   await esbuild.build({
-    entryPoints: ["src/daemon.ts"],
+    entryPoints: ["src/worker/daemon.ts"],
     outdir: outputDir,
     bundle: true,
     minify: !isDev,

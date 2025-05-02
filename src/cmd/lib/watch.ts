@@ -19,7 +19,7 @@ export const watchCmd = new Command()
   .option(
     "-d, --debounce-delay <delay:number>",
     "Debounce delay in milliseconds",
-    { default: 1500 },
+    { default: 300 },
   )
   .action(async ({ companion: useCompanion, debounceDelay }) => {
     await doWithSpinner("Starting watch...", async (spinner) => {

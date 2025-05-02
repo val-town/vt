@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "description": "Companion for the Val Town CLI",
   "background": {
-    "service_worker": "daemon.js"
+    "service_worker": "worker/daemon.js"
   },
   "icons": {
     "16": "/assets/logo16.png",

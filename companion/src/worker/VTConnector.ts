@@ -2,7 +2,7 @@ import {
   MAX_PORT_ATTEMPTS,
   VT_COMPANION_HOST,
   VT_COMPANION_PORT,
-} from "./consts.ts";
+} from "../consts.js";
 import { delay } from "@std/async";
 
 export class VTConnector {
@@ -115,7 +115,7 @@ export class VTConnector {
           }
         };
 
-        delay(1000).then(() => {
+        delay(4000).then(() => {
           if (ws.readyState !== WebSocket.OPEN) {
             ws.close();
             reject(new Error(`Connection timeout on port ${port}`));
