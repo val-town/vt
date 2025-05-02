@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/denoland/deno/348900b8b79f4a434cab4c74b3bc8d4d2fa8ee74/cli/schemas/config-file.v1.json",
+  "tasks": {
+    "build": "deno run -A ./build.ts",
+    "dev": "nodemon --watch **/*.ts --exec 'deno task dev:build'",
+    "dev:build": "deno task build --dev",
+    "dev:chrome": "deno run -A ./scripts/chrome.ts"
+  },
+  "types": [
+    "npm:@types/chrome"
+  ],
+  "imports": {
+    "@duesabati/esbuild-deno-plugin": "jsr:@duesabati/esbuild-deno-plugin@^0.2.6",
+    "@std/assert": "jsr:@std/assert@1",
+    "@std/async": "jsr:@std/async@^1.0.12",
+    "@types/chrome": "npm:@types/chrome@^0.0.318",
+    "esbuild": "npm:esbuild@^0.25.3",
+    "nodemon": "npm:nodemon@^3.1.10"
+  }
+}

@@ -1,26 +1,30 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk from "~/sdk.ts";
+import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { displayVersionRange } from "~/cmd/lib/utils/displayVersionRange.ts";
+import VTCompanion from "~/vt/VTCompanion.ts";
 
 export const watchCmd = new Command()
   .name("watch")
   .description("Watch for changes and automatically sync with Val Town")
   .option(
+    "--no-companion",
+    "Disable the companion browser extension WebSocket server",
+  )
+  .option(
     "-d, --debounce-delay <delay:number>",
     "Debounce delay in milliseconds",
     { default: 1500 },
   )
-  .action(async (options) => {
+  .action(async ({ companion: useCompanion, debounceDelay }) => {
     await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-      // Get initial branch information for display
       const state = await vt.getMeta().loadVtState();
       const currentBranch = await sdk.projects.branches.retrieve(
         state.project.id,
@@ -48,6 +52,34 @@ export const watchCmd = new Command()
       console.log();
       console.log(watchingForChangesLine());
 
+      let connectedBefore = false;
+      let companion: VTCompanion | undefined;
+      if (useCompanion) {
+        companion = new VTCompanion({
+          onConnect: () => {
+            if (connectedBefore) {
+              console.log();
+              console.log(
+                colors.yellow(
+                  "Browser companion reconnected to VT. Tabs will reload on changes.",
+                ),
+              );
+              console.log();
+              return;
+            }
+            connectedBefore = true;
+            console.log();
+            console.log(
+              colors.green(
+                "Browser companion connected to VT. Tabs will reload on changes.",
+              ),
+            );
+            console.log();
+          },
+        });
+        companion.start();
+      }
+
       try {
         await vt.watch((fileStateChanges) => {
           try {
@@ -61,10 +93,27 @@ export const watchCmd = new Command()
               console.log();
               console.log(watchingForChangesLine());
             }
+
+            if (companion) {
+              vt.getMeta().loadVtState()
+                .then(async (state) =>
+                  await listProjectItems(
+                    state.project.id,
+                    state.branch.id,
+                    await getLatestVersion(state.project.id, state.branch.id),
+                  )
+                )
+                .then((projectItems) =>
+                  projectItems
+                    .filter((projectItem) => !!projectItem.links.endpoint)
+                    .map((projectItem) => projectItem.links.endpoint)
+                    .forEach((link) => companion.reloadTab(link!))
+                );
+            }
           } catch (e) {
             if (e instanceof Error) console.log(colors.red(e.message));
           }
-        }, options.debounceDelay);
+        }, debounceDelay);
 
         // This line would only execute if watch() completes normally
         console.log(colors.yellow("Watch process ended."));
