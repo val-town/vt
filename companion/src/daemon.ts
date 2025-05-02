@@ -9,7 +9,7 @@ async function main() {
       ws.addEventListener("message", async (e) => {
         const link = JSON.parse(e.data).link as string;
         console.log("Received link: ", link);
-        const allTabs = await chrome.tabs.query({})
+        const allTabs = await chrome.tabs.query({});
       });
     })
     .catch((err) =>

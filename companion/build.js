@@ -1,6 +1,6 @@
-import * as esbuild from 'esbuild';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as esbuild from "esbuild";
+import * as fs from "fs/promises";
+import * as path from "path";
 
 const outputDir = "./dist";
 const publicDir = "./public";
@@ -45,7 +45,7 @@ async function build() {
   esbuild.stop();
 }
 
-build().catch(e => {
+build().catch((e) => {
   console.error(e);
   process.exit(1);
 });
