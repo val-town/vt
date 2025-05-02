@@ -4,7 +4,7 @@ import sdk, {
   branchNameToBranch,
   getLatestVersion,
   listProjectItems,
-} from "~/sdk.ts";
+} from "../../../../utils/sdk.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_PROJECT_PRIVACY } from "~/consts.ts";
 import type { ProjectPrivacy } from "~/types.ts";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";

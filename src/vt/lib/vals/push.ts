@@ -4,7 +4,7 @@ import sdk, {
   getLatestVersion,
   getProjectItem,
   listProjectItems,
-} from "~/sdk.ts";
+} from "../../../../utils/sdk.ts";
 import { status } from "~/vt/lib/vals/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";

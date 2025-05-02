@@ -10,6 +10,7 @@ import { launch } from "./vt.ts";
  * that you can reuse much of the internal syncing functionality of `vt`.
  *
  * Primary library functions include
+ *
  * - {@link checkout} Check out a branch from a Val Town project
  * - {@link clone} Clone a Val Town project to a local directory
  * - {@link create} Create a new Val Town project from local files

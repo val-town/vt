@@ -3,7 +3,7 @@ import sdk, {
   getLatestVersion,
   listProjectItems,
   projectItemExists,
-} from "~/sdk.ts";
+} from "../../../../utils/sdk.ts";
 import { push } from "~/vt/lib/vals/push.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";

@@ -1,10 +1,10 @@
-import sdk from "~/sdk.ts";
+import sdk from "../../../../utils/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/vals/pull.ts";
 import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
 import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
-import { listProjectItems } from "~/sdk.ts";
+import { listProjectItems } from "../../../../utils/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 

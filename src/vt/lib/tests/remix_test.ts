@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "../../../../utils/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";

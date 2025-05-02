@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getCurrentUser, projectExists } from "~/sdk.ts";
+import { getCurrentUser, projectExists } from "../../../utils/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { parseProjectUri } from "~/cmd/parsing.ts";

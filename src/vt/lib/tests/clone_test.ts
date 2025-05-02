@@ -1,6 +1,6 @@
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk from "~/sdk.ts";
+import sdk from "../../../../utils/sdk.ts";
 import { clone } from "~/vt/lib/vals/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";

@@ -1,4 +1,7 @@
-import sdk, { branchNameToBranch, randomProjectName } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  randomProjectName,
+} from "../../../../utils/sdk.ts";
 
 export interface ExpectedProjectInode {
   path: string;

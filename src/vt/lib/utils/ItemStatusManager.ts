@@ -8,7 +8,7 @@ import {
   TYPE_PRIORITY,
 } from "~/consts.ts";
 import { basename } from "@std/path";
-import { hasNullBytes } from "~/utils.ts";
+import { hasNullBytes } from "../../../../utils/misc.ts";
 
 /**
  * Possible warning states for a project item.

@@ -1,4 +1,7 @@
-import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import sdk, {
+  getLatestVersion,
+  listProjectItems,
+} from "../../../../utils/sdk.ts";
 import { shouldIgnore } from "~/vt/lib/utils/paths.ts";
 import { ensureDir, exists } from "@std/fs";
 import { dirname } from "@std/path/dirname";

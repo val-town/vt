@@ -15,7 +15,7 @@ import sdk, {
   branchNameToBranch,
   getCurrentUser,
   getLatestVersion,
-} from "~/sdk.ts";
+} from "../../../utils/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   DEFAULT_EDITOR_TEMPLATE,
@@ -25,7 +25,7 @@ import {
 import { status } from "~/vt/lib/vals/status.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
-import { dirIsEmpty } from "~/utils.ts";
+import { dirIsEmpty } from "../../../utils/misc.ts";
 import VTConfig from "~/vt/VTConfig.ts";
 import { remix } from "~/vt/lib/vals/remix.ts";
 import type { ProjectPrivacy } from "~/types.ts";

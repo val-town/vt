@@ -5,7 +5,7 @@ import {
   branchNameToBranch,
   getLatestVersion,
   listProjectItems,
-} from "~/sdk.ts";
+} from "../../../../utils/sdk.ts";
 import { clone } from "~/vt/lib/vals/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 import {
