@@ -29,7 +29,7 @@ Deno.test({
 
           assertStringIncludes(
             output,
-            `Remixed "@${user.username}/${sourcevalName}" to public val "@${user.username}/${remixedvalName}"`,
+            `Remixed "@${user.username}/${sourcevalName}" to public Val "@${user.username}/${remixedvalName}"`,
           );
 
           // Verify the remixed val directory exists
