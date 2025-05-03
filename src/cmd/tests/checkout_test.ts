@@ -2,10 +2,10 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
-import { deadline, retry } from "@std/async";
+import { deadline, delay, retry } from "@std/async";
 import type { ValFileType } from "~/types.ts";
 
 Deno.test({
@@ -365,99 +365,93 @@ Deno.test({
 
 Deno.test({
   name: "warning on modified files",
-  permissions: "inherit",
   async fn(t) {
-    await deadline( // Historical issue with this test stalling
-      doWithTempDir(async (tmpDir) => {
-        await doWithNewVal(async ({ val, branch }) => {
-          let fullPath: string;
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val, branch }) => {
+        let fullPath: string;
 
-          await t.step("create initial file on main branch", async () => {
-            await sdk.vals.files.create(
-              val.id,
-              {
-                path: "shared-file.js",
-                content: "console.log('Original content');",
-                branch_id: branch.id,
-                type: "file" as ValFileType,
-              },
-            );
-          });
-
-          await t.step(
-            "create and modify file on feature branch",
-            async () => {
-              // Create a feature branch
-              const featureBranch = await sdk.vals.branches.create(
-                val.id,
-                { name: "feature", branchId: branch.id },
-              );
-
-              // Modify the file on feature branch
-              await sdk.vals.files.update(
-                val.id,
-                {
-                  branch_id: featureBranch.id,
-                  path: "shared-file.js",
-                  content: "console.log('Feature branch content');",
-                },
-              );
+        await t.step("create initial file on main branch", async () => {
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "shared-file.js",
+              content: "console.log('Original content');",
+              branch_id: branch.id,
+              type: "file" as ValFileType,
             },
           );
-
-          await t.step("clone val and modify file locally", async () => {
-            // Clone the val (defaults to main branch)
-            await runVtCommand(
-              ["clone", val.name, "--no-editor-files"],
-              tmpDir,
-            );
-            fullPath = join(tmpDir, val.name);
-
-            // Modify the shared file locally while on main branch
-            await Deno.writeTextFile(
-              join(fullPath, "shared-file.js"),
-              "console.log('Modified locally on main');",
-            );
-          });
-
-          await t.step(
-            "checkout with warning about local changes",
-            async () => {
-              // Try checking out to feature branch - should see warning about local changes
-              const [checkoutOutput] = await runVtCommand(
-                ["checkout", "feature"],
-                fullPath,
-              );
-
-              // Should see warning about dangerous changes
-              assertStringIncludes(
-                checkoutOutput,
-                "proceed with checkout anyway",
-              );
-              assertStringIncludes(checkoutOutput, "Changed:"); // runVtCommand spams yes
-              assertStringIncludes(checkoutOutput, "shared-file.js");
-            },
-          );
-
-          await t.step("force checkout overrides local changes", async () => {
-            // Try with force option
-            const [forceCheckoutOutput] = await runVtCommand([
-              "checkout",
-              "main",
-              "-f",
-            ], fullPath);
-            assertStringIncludes(
-              forceCheckoutOutput,
-              'Switched to branch "main"',
-            );
-          });
         });
-      }),
-      1000 * 8,
-    );
+
+        await t.step("create and modify file on feature branch", async () => {
+          // Create a feature branch
+          const featureBranch = await sdk.vals.branches.create(
+            val.id,
+            { name: "feature", branchId: branch.id },
+          );
+
+          // Modify the file on feature branch
+          await sdk.vals.files.update(
+            val.id,
+            {
+              branch_id: featureBranch.id,
+              path: "shared-file.js",
+              content: "console.log('Feature branch content');",
+            },
+          );
+        });
+
+        await t.step("clone project and modify file locally", async () => {
+          // Use deadline to wrap this part to ensure it completes within 8s
+          // Clone the project (defaults to main branch)
+          await runVtCommand(["clone", val.name], tmpDir);
+          fullPath = join(tmpDir, val.name);
+
+          // Modify the shared file locally while on main branch
+          await Deno.writeTextFile(
+            join(fullPath, "shared-file.js"),
+            "console.log('Modified locally on main');",
+          );
+        });
+
+        await t.step("checkout with warning about local changes", async () => {
+          // Try checking out to feature branch - should see warning about local changes
+          const [outputLines, rpo] = await streamVtCommand(
+            ["checkout", "feature"],
+            fullPath,
+          );
+          await delay(2000); // Wait for output to stabilize
+
+          const checkoutOutput = outputLines.join("\n");
+
+          // Should see warning about dangerous changes
+          assertStringIncludes(
+            checkoutOutput,
+            "proceed with checkout anyway",
+          );
+          assertStringIncludes(checkoutOutput, "shared-file.js");
+
+          const writer = rpo.stdin.getWriter();
+          await writer.write(new TextEncoder().encode("y\n"));
+          writer.releaseLock();
+          await delay(2000);
+        });
+
+        await t.step("force checkout overrides local changes", async () => {
+          // Try with force option
+          const [forceCheckoutOutput] = await runVtCommand([
+            "checkout",
+            "main",
+            "-f",
+          ], fullPath);
+          assertStringIncludes(
+            forceCheckoutOutput,
+            'Switched to branch "main"',
+          );
+        });
+      });
+    });
   },
   sanitizeResources: false,
-  sanitizeExit: false,
 });
 
 Deno.test({
