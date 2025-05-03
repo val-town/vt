@@ -35,13 +35,13 @@ Deno.test({
           const remixedvalPath = join(tmpDir, remixedvalName);
           assert(
             await exists(remixedvalPath),
-            "remixed val directory should exist",
+            "remixed Val directory should exist",
           );
 
           // Verify it has the .vt metadata folder
           assert(
             await exists(join(remixedvalPath, META_FOLDER_NAME)),
-            "remixed val should have .vt metadata folder",
+            "remixed Val should have .vt metadata folder",
           );
         });
 
@@ -213,7 +213,7 @@ Deno.test({
 
             assert(
               await exists(remixedHttpValPath),
-              "HTTP val file should exist in remixed val",
+              "HTTP Val file should exist in remixed Val",
             );
 
             // Check the file content to ensure it's still an HTTP val
@@ -221,7 +221,7 @@ Deno.test({
             assertStringIncludes(
               content,
               "export default function handler(req: Request)",
-              "HTTP val signature should be preserved",
+              "HTTP Val signature should be preserved",
             );
           });
 
