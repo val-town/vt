@@ -9,11 +9,7 @@ import { tty } from "@cliffy/ansi/tty";
 import { Confirm } from "@cliffy/prompt";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
 import { parseValUrl } from "~/cmd/parsing.ts";
-import {
-  DEFAULT_BRANCH_NAME,
-  DEFAULT_EDITOR_TEMPLATE,
-  MAX_MY_VAL_RETRIEVAL_LIMIT,
-} from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 import { arrayFromAsyncN } from "~/utils.ts";
 
 export const cloneCmd = new Command()

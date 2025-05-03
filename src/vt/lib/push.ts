@@ -48,7 +48,7 @@ export async function push(params: PushParams): Promise<PushResult> {
     branchId,
     gitignoreRules,
     dryRun = false,
-    concurrencyPoolSize = 10,
+    concurrencyPoolSize = 5,
   } = params;
   const initialVersion = await getLatestVersion(valId, branchId);
 
