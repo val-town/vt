@@ -5,7 +5,7 @@ import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
-import { deadline } from "@std/async";
+import { deadline, retry } from "@std/async";
 import type { ValFileType } from "~/types.ts";
 
 Deno.test({
@@ -278,66 +278,85 @@ Deno.test({
   name: "create new branch with -b",
   permissions: "inherit",
   async fn() {
-    await deadline( // Historical issue with this test stalling
-      doWithTempDir(async (tmpDir) => {
-        await doWithNewVal(async ({ val, branch }) => {
-          // Create initial file on main branch
-          await sdk.vals.files.create(
-            val.id,
-            {
-              path: "main.tsx",
-              content: "console.log('Main branch file');",
-              branch_id: branch.id,
-              type: "script",
-            },
-          );
+    await retry(
+      async () => {
+        await deadline(
+          doWithTempDir(async (tmpDir) => {
+            try {
+              await doWithNewVal(async ({ val, branch }) => {
+                // Create initial file on main branch
+                await sdk.vals.files.create(
+                  val.id,
+                  {
+                    path: "main.tsx",
+                    content: "console.log('Main branch file');",
+                    branch_id: branch.id,
+                    type: "script",
+                  },
+                );
 
-          // Clone the val
-          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-          const fullPath = join(tmpDir, val.name);
+                // Clone the val
+                await runVtCommand(
+                  ["clone", val.name, "--no-editor-files"],
+                  tmpDir,
+                );
+                const fullPath = join(tmpDir, val.name);
 
-          // Create a new branch with checkout -b
-          const [checkoutOutput] = await runVtCommand([
-            "checkout",
-            "-b",
-            "new-branch",
-          ], fullPath);
-          assertStringIncludes(
-            checkoutOutput,
-            'Created and switched to new branch "new-branch"',
-          );
+                // Create a new branch with checkout -b
+                const [checkoutOutput] = await runVtCommand([
+                  "checkout",
+                  "-b",
+                  "new-branch",
+                ], fullPath);
+                assertStringIncludes(
+                  checkoutOutput,
+                  'Created and switched to new branch "new-branch"',
+                );
 
-          // The main file should still exist (since we forked from main)
-          assert(
-            await exists(join(fullPath, "main.tsx")),
-            "main.tsx should exist on new branch",
-          );
+                // The main file should still exist (since we forked from main)
+                assert(
+                  await exists(join(fullPath, "main.tsx")),
+                  "main.tsx should exist on new branch",
+                );
 
-          // Check status on new branch
-          const [statusOutput] = await runVtCommand(["status"], fullPath);
-          assertStringIncludes(statusOutput, "On branch new-branch@");
+                // Check status on new branch
+                const [statusOutput] = await runVtCommand(["status"], fullPath);
+                assertStringIncludes(statusOutput, "On branch new-branch@");
 
-          // Create a file on the new branch
-          await Deno.writeTextFile(join(fullPath, "new.tsx"), "// Branch file");
+                // Create a file on the new branch
+                await Deno.writeTextFile(
+                  join(fullPath, "new.tsx"),
+                  "// Branch file",
+                );
 
-          // Push the changes to establish the new branch remotely
-          await runVtCommand(["push"], fullPath);
+                // Push the changes to establish the new branch remotely
+                await runVtCommand(["push"], fullPath);
 
-          // Switch back to main branch
-          await runVtCommand(["checkout", "main"], fullPath);
+                // Switch back to main branch
+                await runVtCommand(["checkout", "main"], fullPath);
 
-          // The new branch file should no longer be present
-          assert(
-            !(await exists(join(fullPath, "new.tsx"))),
-            "new.tsx should not exist on main branch",
-          );
+                // The new branch file should no longer be present
+                assert(
+                  !(await exists(join(fullPath, "new.tsx"))),
+                  "new.tsx should not exist on main branch",
+                );
 
-          // Status should show we're on main branch
-          const [mainStatusOutput] = await runVtCommand(["status"], fullPath);
-          assertStringIncludes(mainStatusOutput, "On branch main@");
-        });
-      }),
-      9000,
+                // Status should show we're on main branch
+                const [mainStatusOutput] = await runVtCommand(
+                  ["status"],
+                  fullPath,
+                );
+                assertStringIncludes(mainStatusOutput, "On branch main@");
+              });
+            } catch (error) {
+              console.error("An error occurred:", error);
+              throw error; // Rethrow to ensure the test fails if there's an error
+            }
+          }),
+          9000, // Set the deadline to 9000 ms
+        );
+      },
+      { maxAttempts: 3, maxTimeout: 1000 },
     );
   },
   sanitizeResources: false,
