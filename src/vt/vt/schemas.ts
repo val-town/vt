@@ -10,6 +10,9 @@ import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 export const VTStateSchema = z.object({
   val: z.object({
     id: z.string().uuid(),
+  }).optional(),
+  project: z.object({
+    id: z.string().uuid(),
   }),
   branch: z.object({
     id: z.string().uuid(),
@@ -19,7 +22,10 @@ export const VTStateSchema = z.object({
     pid: z.number().gte(0),
     time: z.string().refine((val) => !isNaN(Date.parse(val)), {}),
   }),
-});
+}).transform((data) => ({
+  ...data,
+  val: data.project,
+} as typeof data)); // Silently inject the val field, to prepare for future migration
 
 /**
  * JSON schema for the config.yaml file for configuration storage.

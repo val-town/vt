@@ -271,19 +271,18 @@ Deno.test({
 Deno.test({
   name: "create new branch with -b",
   permissions: "inherit",
-  sanitizeResources: false,
   async fn() {
-    await deadline(
+    await deadline( // Historical issue with this test stalling
       doWithTempDir(async (tmpDir) => {
         await doWithNewVal(async ({ val, branch }) => {
           // Create initial file on main branch
           await sdk.vals.files.create(
             val.id,
             {
-              path: "main-file.js",
+              path: "main.tsx",
               content: "console.log('Main branch file');",
               branch_id: branch.id,
-              type: "file",
+              type: "script",
             },
           );
 
@@ -304,8 +303,8 @@ Deno.test({
 
           // The main file should still exist (since we forked from main)
           assert(
-            await exists(join(fullPath, "main-file.js")),
-            "main-file.js should exist on new branch",
+            await exists(join(fullPath, "main.tsx")),
+            "main.tsx should exist on new branch",
           );
 
           // Check status on new branch
@@ -313,10 +312,7 @@ Deno.test({
           assertStringIncludes(statusOutput, "On branch new-branch@");
 
           // Create a file on the new branch
-          await Deno.writeTextFile(
-            join(fullPath, "new-branch-file.js"),
-            "console.log('New branch file');",
-          );
+          await Deno.writeTextFile(join(fullPath, "new.tsx"), "// Branch file");
 
           // Push the changes to establish the new branch remotely
           await runVtCommand(["push"], fullPath);
@@ -326,8 +322,8 @@ Deno.test({
 
           // The new branch file should no longer be present
           assert(
-            !(await exists(join(fullPath, "new-branch-file.js"))),
-            "new-branch-file.js should not exist on main branch",
+            !(await exists(join(fullPath, "new.tsx"))),
+            "new.tsx should not exist on main branch",
           );
 
           // Status should show we're on main branch
@@ -338,6 +334,7 @@ Deno.test({
       5000,
     );
   },
+  sanitizeResources: false,
 });
 
 Deno.test({

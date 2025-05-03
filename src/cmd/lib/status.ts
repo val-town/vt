@@ -18,7 +18,7 @@ export const statusCmd = new Command()
       const vtState = await vt.getMeta().loadVtState();
 
       const currentBranch = await sdk.vals.branches.retrieve(
-        vtState.val.id,
+        vtState.project.id,
         vtState.branch.id,
       );
 

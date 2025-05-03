@@ -78,18 +78,18 @@ export default class VTClient {
       editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
       user.username!,
     );
-    const templateProject = await sdk.alias.username.valName.retrieve(
+    const templateVal = await sdk.alias.username.valName.retrieve(
       ownerName,
       valName,
     );
     const templateBranch = await branchNameToBranch(
-      templateProject.id,
+      templateVal.id,
       DEFAULT_BRANCH_NAME,
     );
 
     await clone({
       targetDir: this.rootPath,
-      valId: templateProject.id,
+      valId: templateVal.id,
       branchId: templateBranch.id,
       version: templateBranch.version,
       overwrite: false,
@@ -140,7 +140,7 @@ export default class VTClient {
     const vt = new VTClient(rootPath);
 
     await vt.getMeta().saveVtState({
-      val: { id: valId },
+      project: { id: valId },
       branch: { id: branch.id, version: version },
     });
 
@@ -387,7 +387,7 @@ export default class VTClient {
       // Do the clone using the configuration
       await clone({
         targetDir: rootPath,
-        valId: config.val.id,
+        valId: config.project.id,
         branchId: config.branch.id,
         version: config.branch.version,
         gitignoreRules: await vt.getMeta().loadGitignoreRules(),
@@ -405,7 +405,7 @@ export default class VTClient {
     const vtState = await this.getMeta().loadVtState();
 
     // Delete the val
-    await sdk.vals.delete(vtState.val.id);
+    await sdk.vals.delete(vtState.project.id);
 
     // De-init the directory
     await Deno.remove(
@@ -431,10 +431,10 @@ export default class VTClient {
 
       return status({
         targetDir: this.rootPath,
-        valId: vtState.val.id,
+        valId: vtState.project.id,
         branchId: targetBranchId,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
-        version: await getLatestVersion(vtState.val.id, targetBranchId),
+        version: await getLatestVersion(vtState.project.id, targetBranchId),
       });
     });
   }
@@ -453,11 +453,11 @@ export default class VTClient {
       const result = await pull({
         ...{
           targetDir: this.rootPath,
-          valId: vtState.val.id,
+          valId: vtState.project.id,
           branchId: vtState.branch.id,
           gitignoreRules: await this.getMeta().loadGitignoreRules(),
           version: await getLatestVersion(
-            vtState.val.id,
+            vtState.project.id,
             vtState.branch.id,
           ),
         },
@@ -466,7 +466,7 @@ export default class VTClient {
 
       if (options?.dryRun === false) {
         const latestVersion = await getLatestVersion(
-          vtState.val.id,
+          vtState.project.id,
           vtState.branch.id,
         );
 
@@ -492,7 +492,7 @@ export default class VTClient {
           const fileStateChanges = await push({
             ...{
               targetDir: this.rootPath,
-              valId: config.val.id,
+              valId: config.project.id,
               branchId: config.branch.id,
               gitignoreRules: await this.getMeta().loadGitignoreRules(),
             },
@@ -501,7 +501,7 @@ export default class VTClient {
 
           if (!options || options.dryRun === false) {
             config.branch.version = await getLatestVersion(
-              config.val.id,
+              config.project.id,
               config.branch.id,
             );
           }
@@ -541,7 +541,7 @@ export default class VTClient {
       // Common checkout parameters
       const baseParams: BaseCheckoutParams = {
         targetDir: this.rootPath,
-        valId: vtState.val.id,
+        valId: vtState.project.id,
         dryRun: options?.dryRun || false,
         gitignoreRules,
       };
@@ -568,7 +568,7 @@ export default class VTClient {
       } else {
         // Checking out an existing branch
         const checkoutBranch = await branchNameToBranch(
-          vtState.val.id,
+          vtState.project.id,
           branchName,
         );
 

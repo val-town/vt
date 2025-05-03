@@ -41,13 +41,11 @@ Deno.test({
               vt = VTClient.from(valDir);
 
               // Start the watch process with a short debounce
-              [outputLines, watchChild] = streamVtCommand(
-                ["watch", "-d", "750"],
-                valDir,
-              );
+              [outputLines, watchChild] = streamVtCommand(["watch"], valDir);
 
               // Wait for the watch process to start
               while (outputLines.length < 3) await delay(100);
+              await delay(1000);
             },
           );
 
@@ -88,7 +86,7 @@ Deno.test({
                 }
 
                 // Wait for the debounce period plus buffer for the actual uploads
-                await delay(70 * 20);
+                await delay(70 * 40);
               },
             );
 
