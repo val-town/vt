@@ -1,6 +1,6 @@
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import { assertStringIncludes } from "@std/assert";
+import { assertMatch, assertStringIncludes } from "@std/assert";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 
 Deno.test({
@@ -17,7 +17,7 @@ Deno.test({
           assertStringIncludes(output, "Privacy");
           assertStringIncludes(output, "Created");
           assertStringIncludes(output, val.name);
-          assertStringIncludes(output, "Total:");
+          assertMatch(output, /Listed \d+ Vals/);
         });
       });
     });
