@@ -1,0 +1,28 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: "2.x"
+
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      - name: Generate documentation
+        run: deno task doc
+
+      - name: Upload the docs to Val Town Electric
+        run: cd docs && deno run -A https://esm.town/v/wolf/VTDocs/cli/mod.ts upload
+        env:
+          ELECTRIC_ROOT_URL: https://vt-docs.val.run
+          ELECTRIC_MASTER_BEARER: ${{ secrets.ELECTRIC_MASTER_BEARER }}

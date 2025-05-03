@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { Confirm } from "@cliffy/prompt";
-import sdk from "~/sdk.ts";
+import sdk from "../../../utils/sdk.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 

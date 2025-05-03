@@ -3,15 +3,17 @@
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
   "version": "0.1.24",
-  "exports": "./vt.ts",
+  "exports": "./mod.ts",
   "license": "MIT",
   "tasks": {
-    "run": "./vt.ts",
+    "run": "./mod.ts",
     "test": "deno task test:lib --parallel && deno task test:cmd",
     "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
     "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/vt/lib",
     "check": "env DENO_NO_PROMPT=1 deno check .",
-    "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
+    "fmt": "env DENO_NO_PROMPT=1 deno fmt --ignore=docs",
+    "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check",
+    "doc": "deno doc --html --name='vtlib' --output=docs mod.ts"
   },
   "imports": {
     "@std/random": "jsr:@std/random@^0.1.0",

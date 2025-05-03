@@ -2,9 +2,9 @@ import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
-import { dirIsEmpty } from "~/utils.ts";
+import { dirIsEmpty } from "../../../utils/misc.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getCurrentUser, randomProjectName } from "~/sdk.ts";
+import sdk, { getCurrentUser, randomProjectName } from "../../../utils/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({

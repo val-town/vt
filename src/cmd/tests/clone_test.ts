@@ -5,7 +5,7 @@ import { join } from "@std/path";
 import { deadline, delay } from "@std/async";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getCurrentUser, randomProjectName } from "~/sdk.ts";
+import sdk, { getCurrentUser, randomProjectName } from "../../../utils/sdk.ts";
 import type { ProjectFileType } from "~/types.ts";
 
 Deno.test({

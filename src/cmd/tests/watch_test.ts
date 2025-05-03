@@ -5,7 +5,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay, retry } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import { getLatestVersion, listProjectItems } from "../../../utils/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({

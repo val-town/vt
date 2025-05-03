@@ -1,7 +1,7 @@
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
+import sdk from "../../../utils/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";

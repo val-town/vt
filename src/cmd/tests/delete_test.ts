@@ -3,7 +3,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import { runVtCommand, runVtProc } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
-import { projectExists } from "~/sdk.ts";
+import { projectExists } from "../../../utils/sdk.ts";
 import stripAnsi from "strip-ansi";
 import { exists } from "@std/fs";
 import { META_FOLDER_NAME } from "~/consts.ts";

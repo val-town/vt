@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "../../../utils/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 

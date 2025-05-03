@@ -1,4 +1,3 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
 import { API_KEY_KEY } from "~/consts.ts";
@@ -55,7 +54,7 @@ async function startVt() {
   await vt.parse(Deno.args);
 }
 
-if (import.meta.main) {
+export async function launch() {
   await ensureValidApiKey();
   await startVt();
 }

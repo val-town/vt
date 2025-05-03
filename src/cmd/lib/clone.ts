@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "../../../utils/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";

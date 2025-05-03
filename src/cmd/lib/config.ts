@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import VTConfig from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { getNestedProperty, setNestedProperty } from "~/utils.ts";
+import { getNestedProperty, setNestedProperty } from "../../../utils/misc.ts";
 import { stringify as stringifyYaml } from "@std/yaml";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { zodToJsonSchema } from "zod-to-json-schema";

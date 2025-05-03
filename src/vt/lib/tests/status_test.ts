@@ -1,9 +1,9 @@
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import sdk, { getLatestVersion } from "../../../../utils/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { status } from "~/vt/lib/status.ts";
+import { status } from "~/vt/lib/vals/status.ts";
 import type { ItemStatusManager } from "../utils/ItemStatusManager.ts";
 
 Deno.test({

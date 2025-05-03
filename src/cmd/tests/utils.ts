@@ -8,7 +8,7 @@ import sdk, {
   getCurrentUser,
   getLatestVersion,
   listProjectItems,
-} from "~/sdk.ts";
+} from "../../../utils/sdk.ts";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
