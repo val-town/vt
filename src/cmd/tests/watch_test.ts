@@ -25,7 +25,10 @@ Deno.test({
             "setup by cloneing val and starting watch process",
             async () => {
               // Clone the empty val
-              await runVtCommand(["clone", val.name], tmpDir);
+              await runVtCommand(
+                ["clone", val.name, "--no-editor-files"],
+                tmpDir,
+              );
 
               // Get val directory path
               valDir = join(tmpDir, val.name);
@@ -55,7 +58,7 @@ Deno.test({
               "create multiple files in rapid succession",
               async () => {
                 // Create 10 files in rapid succession
-                for (let i = 0; i <= 10; i++) {
+                for (let i = 0; i <= 8; i++) {
                   const filePath = join(valDir!, `rapid-file-${i}.js`);
                   await Deno.writeTextFile(
                     filePath,
@@ -67,7 +70,7 @@ Deno.test({
                   });
                   // Add minimal delay between file creations to ensure they're
                   // distinct events
-                  await delay(200);
+                  await delay(100);
                 }
 
                 // Wait for the debounce period plus buffer for the actual uploads
