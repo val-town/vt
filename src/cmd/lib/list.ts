@@ -10,17 +10,20 @@ const VAL_LIST_BATCH_SIZE = 20;
 export const listCmd = new Command()
   .name("list")
   .arguments("[offset:number]")
+  .option("-a, --all", "List all vals", { default: false })
   .description("List all your Vals")
   .example("List all vals", "vt list")
-  .action(async (_, offset) => {
+  .action(async ({ all: allVals }, offset) => {
+    offset = offset ?? 0;
+
     const [myVals, hasMore] = await doWithSpinner(
       "Loading val list...",
       async (spinner) => {
+        const batchSize = allVals ? Infinity : VAL_LIST_BATCH_SIZE;
         const result = await arrayFromAsyncN(
           sdk.me.vals.list({ offset }),
-          VAL_LIST_BATCH_SIZE,
+          batchSize,
         );
-
         spinner.stop();
         return result;
       },
@@ -35,11 +38,20 @@ export const listCmd = new Command()
     // Display the vals in a table
     const valsTable = Table.from([
       [
+        colors.bold("#"),
         colors.bold("Name"),
         colors.bold("Privacy"),
         colors.bold("Created"),
       ],
-      ...myVals.map((val) => [
+      ...myVals.map((val, i) => [
+        colors.dim(
+          (offset + i).toString().padStart(
+            // Pad the number to the length of the "longest" number in the result
+            (offset + VAL_LIST_BATCH_SIZE)
+              .toString().length,
+            "0",
+          ),
+        ),
         colors.green(val.name),
         val.privacy,
         colors.dim(new Date(val.createdAt).toLocaleDateString()),
@@ -49,6 +61,7 @@ export const listCmd = new Command()
     // If there are more vals, add a note at the bottom
     if (hasMore) {
       valsTable.push([
+        colors.yellow("..."),
         colors.yellow("..."),
         colors.yellow("..."),
         colors.yellow("..."),
