@@ -27,7 +27,7 @@ export const pushCmd = new Command()
         const user = await getCurrentUser();
 
         const vtState = await vt.getMeta().loadVtState();
-        const valToPush = await sdk.vals.retrieve(vtState.project.id);
+        const valToPush = await sdk.vals.retrieve(vtState.val.id);
         if (valToPush.author.id !== user.id) {
           throw new Error(
             "You are not the owner of this val, you cannot push." +

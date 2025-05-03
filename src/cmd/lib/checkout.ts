@@ -69,7 +69,7 @@ export const checkoutCmd = new Command()
 
           // Get the current branch data
           const currentBranchData = await sdk.vals.branches.retrieve(
-            vtState.project.id,
+            vtState.val.id,
             vtState.branch.id,
           );
 
@@ -89,7 +89,7 @@ export const checkoutCmd = new Command()
               // Early exit if they are trying to make a new branch on a
               // val that they don't own
               const valToPush = await sdk.vals.retrieve(
-                vtState.project.id,
+                vtState.val.id,
               );
               if (valToPush.author.id !== user.id) {
                 throw new Error(

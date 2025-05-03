@@ -21,17 +21,17 @@ export const watchCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
-      const state = await vt.getMeta().loadVtState();
+      const vtState = await vt.getMeta().loadVtState();
       const currentBranch = await sdk.vals.branches.retrieve(
-        state.project.id,
-        state.branch.id,
+        vtState.val.id,
+        vtState.branch.id,
       );
 
       spinner.stop();
 
       const versionRangeStr = displayVersionRange(
         FIRST_VERSION_NUMBER,
-        state.branch.version,
+        vtState.branch.version,
         currentBranch.version,
       );
       console.log(

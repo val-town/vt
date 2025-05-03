@@ -8,12 +8,12 @@ import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
  * town directory you are in, like the val that it represents.
  */
 export const VTStateSchema = z.object({
-  val: z.object({
-    id: z.string().uuid(),
-  }).optional(),
   project: z.object({
     id: z.string().uuid(),
-  }),
+  }).optional(),
+  val: z.object({
+    id: z.string().uuid(),
+  }).catch(() => ({ id: "000-0000-0000-0000-000000000000" })), // We never hit the catch block, but we need it to do what a "!" would
   branch: z.object({
     id: z.string().uuid(),
     version: z.number().gte(0),
@@ -22,10 +22,14 @@ export const VTStateSchema = z.object({
     pid: z.number().gte(0),
     time: z.string().refine((val) => !isNaN(Date.parse(val)), {}),
   }),
-}).transform((data) => ({
-  ...data,
-  val: data.project,
-} as typeof data)); // Silently inject the val field, to prepare for future migration
+}).transform((data) => {
+  const result = { ...data };
+  if (data.project) {
+    result.val = structuredClone(data.project);
+    delete result.project;
+  }
+  return result;
+}); // Silently inject the val field, to prepare for future migration
 
 /**
  * JSON schema for the config.yaml file for configuration storage.
