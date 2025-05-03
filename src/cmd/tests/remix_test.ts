@@ -9,6 +9,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "remix command basic functionality",
+  permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 
@@ -59,6 +60,7 @@ Deno.test({
 
 Deno.test({
   name: "remix command with privacy options",
+  permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 
@@ -124,6 +126,7 @@ Deno.test({
 
 Deno.test({
   name: "remix command with no-editor-files option",
+  permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 
@@ -162,6 +165,7 @@ Deno.test({
 
 Deno.test({
   name: "remix command preserves HTTP type",
+  permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 

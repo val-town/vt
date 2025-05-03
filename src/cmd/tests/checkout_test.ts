@@ -10,6 +10,7 @@ import type { ValFileType } from "~/types.ts";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch: mainBranch }) => {
@@ -98,6 +99,7 @@ Deno.test({
 
 Deno.test({
   name: "checkout -b preserves local unpushed changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch: mainBranch }) => {
@@ -193,6 +195,7 @@ Deno.test({
 
 Deno.test({
   name: "check out to existing branch",
+  permissions: "inherit",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
@@ -267,6 +270,7 @@ Deno.test({
 
 Deno.test({
   name: "create new branch with -b",
+  permissions: "inherit",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
@@ -335,6 +339,7 @@ Deno.test({
 
 Deno.test({
   name: "warning on modified files",
+  permissions: "inherit",
   async fn(t) {
     // Put an 8s deadline, since in the past we had an issue with this stalling
     // due to waiting for a user interaction
@@ -431,6 +436,7 @@ Deno.test({
 
 Deno.test({
   name: "checkout to current branch shows 'already on branch' message",
+  permissions: "inherit",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {

@@ -9,6 +9,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "branch list command shows all branches",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch: mainBranch }) => {
@@ -54,6 +55,7 @@ Deno.test({
 
 Deno.test({
   name: "branch delete command removes a branch",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch: mainBranch }) => {
@@ -117,6 +119,7 @@ Deno.test({
 
 Deno.test({
   name: "branch delete command fails when trying to delete current branch",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
@@ -146,6 +149,7 @@ Deno.test({
 
 Deno.test({
   name: "branch command handles non-existent branch deletion",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {

@@ -7,11 +7,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test moving file from subdirectory to root",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tempDir) => {
       await doWithNewVal(async ({ val, branch }) => {
@@ -81,11 +77,7 @@ Deno.test({
 
 Deno.test({
   name: "test ambiguous rename detection with duplicate content",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -176,12 +168,7 @@ Deno.test({
 
 Deno.test({
   name: "test moving file to subdirectory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -270,12 +257,7 @@ Deno.test({
 
 Deno.test({
   name: "test typical pushing",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -346,11 +328,7 @@ Deno.test({
 
 Deno.test({
   name: "test renaming file without content change",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -420,11 +398,7 @@ Deno.test({
 
 Deno.test({
   name: "test renaming file",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -513,11 +487,7 @@ Deno.test({
 
 Deno.test({
   name: "test pushing empty directory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -563,11 +533,7 @@ Deno.test({
 
 Deno.test({
   name: "test dry run push",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -605,11 +571,7 @@ Deno.test({
 
 Deno.test({
   name: "test push with no changes",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -647,11 +609,7 @@ Deno.test({
 
 Deno.test({
   name: "test push with file warnings (empty and too large)",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -751,12 +709,7 @@ Deno.test({
 
 Deno.test({
   name: "test push with read-only files",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {

@@ -9,12 +9,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test cross branch checkout",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       let featureBranch: ValTown.Vals.BranchCreateResponse;
@@ -106,7 +101,7 @@ Deno.test({
 
 Deno.test({
   name: "test branch creation and checkout",
-  permissions: { read: true, write: true, net: true },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
@@ -190,7 +185,7 @@ Deno.test({
 
 Deno.test({
   name: "test untracked files are carried over during checkout",
-  permissions: { read: true, write: true, net: true },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
@@ -298,6 +293,7 @@ Deno.test({
 
 Deno.test({
   name: "file not in target branch should be deleted",
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a feature branch
@@ -371,11 +367,7 @@ Deno.test({
 
 Deno.test({
   name: "test checkout with dryRun",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
@@ -476,11 +468,7 @@ Deno.test({
 
 Deno.test({
   name: "test checkout -b preserves local unpushed changes",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch

@@ -10,6 +10,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "simulate a watch",
+  permissions: "inherit",
   fn: async (t) => {
     await retry(async () => {
       await doWithTempDir(async (tmpDir) => {

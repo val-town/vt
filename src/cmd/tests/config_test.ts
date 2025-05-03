@@ -8,6 +8,7 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 
 Deno.test({
   name: "config set and get in local val",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {

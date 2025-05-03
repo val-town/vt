@@ -8,12 +8,7 @@ import sdk, { getCurrentUser } from "~/sdk.ts";
 
 Deno.test({
   name: "remix preserves HTTP val type",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 
@@ -94,12 +89,7 @@ Deno.test({
 
 Deno.test({
   name: "remix respects privacy settings",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val }) => {
       await doWithTempDir(async (destTmpDir) => {
@@ -133,12 +123,7 @@ Deno.test({
 
 Deno.test({
   name: "remix with custom description",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val }) => {
       await doWithTempDir(async (destTmpDir) => {
@@ -175,12 +160,7 @@ Deno.test({
 
 Deno.test({
   name: "remix basic functionality",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val }) => {
       const user = await getCurrentUser();

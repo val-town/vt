@@ -8,11 +8,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test status detects binary files",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -53,11 +49,7 @@ Deno.test({
 
 Deno.test({
   name: "test status detects files with invalid names",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -98,11 +90,7 @@ Deno.test({
 
 Deno.test({
   name: "test typical file status reporting",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -167,12 +155,7 @@ Deno.test({
 
 Deno.test({
   name: "test status detects empty directory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -210,12 +193,7 @@ Deno.test({
 
 Deno.test({
   name: "test status detects renamed files",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {

@@ -9,12 +9,7 @@ import type { ValFileType } from "~/types.ts";
 
 Deno.test({
   name: "test typical cloning",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await t.step("test cloning files", async (t) => {
@@ -133,11 +128,7 @@ Deno.test({
 
 Deno.test({
   name: "test cloning empty directory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await t.step("test cloning empty directories", async (t) => {

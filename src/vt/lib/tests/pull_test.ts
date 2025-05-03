@@ -8,12 +8,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test typical pulling",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await t.step("test pulling files", async (t) => {
@@ -128,11 +123,7 @@ Deno.test({
 
 Deno.test({
   name: "test pulling with gitignore rules",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -195,11 +186,7 @@ Deno.test({
 
 Deno.test({
   name: "test pulling with dry run",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
@@ -309,12 +296,7 @@ Deno.test({
 
 Deno.test({
   name: "test pulling nested empty directories",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {

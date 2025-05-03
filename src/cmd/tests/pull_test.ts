@@ -7,6 +7,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "pull command with no changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
@@ -29,6 +30,7 @@ Deno.test({
 
 Deno.test({
   name: "pull command with dry run option",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {

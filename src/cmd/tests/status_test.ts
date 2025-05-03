@@ -7,6 +7,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "status command with local changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
@@ -64,6 +65,7 @@ Deno.test({
 
 Deno.test({
   name: "status command with remote changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {

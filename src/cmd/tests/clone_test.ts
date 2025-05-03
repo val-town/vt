@@ -10,13 +10,7 @@ import { deadline, delay } from "@std/async";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
@@ -83,13 +77,7 @@ Deno.test({
 
 Deno.test({
   name: "clone a newly created val",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
@@ -164,13 +152,7 @@ Deno.test({
 
 Deno.test({
   name: "clone command output",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 
@@ -216,13 +198,7 @@ Deno.test({
 
 Deno.test({
   name: "clone command with inexistent val",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  permissions: "inherit",
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       const [out] = await runVtCommand([
@@ -238,13 +214,7 @@ Deno.test({
 
 Deno.test({
   name: "interactive clone with no project URI",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  permissions: "inherit",
   fn: async (t: Deno.TestContext) => {
     const testPromise = (async () => {
       await doWithTempDir(async (tmpDir) => {

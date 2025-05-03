@@ -5,13 +5,7 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 
 Deno.test({
   name: "list command shows vals",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
