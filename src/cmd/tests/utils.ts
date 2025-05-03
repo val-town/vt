@@ -11,6 +11,7 @@ import sdk, {
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
+import { delay } from "@std/async";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -79,6 +80,8 @@ export async function runVtCommand(
     if (options.autoConfirm) {
       const stdin = process.stdin.getWriter();
       await stdin.write(new TextEncoder().encode("y\n"));
+      await delay(200); // Wait for a short time to ensure the input is processed
+      await stdin.write(new TextEncoder().encode("\n"));
       stdin.releaseLock();
     }
 
