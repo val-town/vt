@@ -92,7 +92,11 @@ export async function runVtCommand(
       // Ensure we clear the interval and close the writer when done
       process.status.then(() => {
         clearInterval(intervalId);
-        writer.close();
+        try {
+          writer.close();
+        } catch {
+          // The writer may already be closed
+        }
       });
     }
 
