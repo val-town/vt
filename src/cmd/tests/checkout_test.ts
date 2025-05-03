@@ -48,7 +48,7 @@ Deno.test({
 
         await t.step("clone the val and modify it", async () => {
           // Clone the val (defaults to main branch)
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
 
           // Make a remote change to main branch after cloning
           await sdk.vals.files.update(
@@ -384,7 +384,10 @@ Deno.test({
 
             await t.step("clone val and modify file locally", async () => {
               // Clone the val (defaults to main branch)
-              await runVtCommand(["clone", val.name], tmpDir);
+              await runVtCommand(
+                ["clone", val.name, "--no-editor-files"],
+                tmpDir,
+              );
               fullPath = join(tmpDir, val.name);
 
               // Modify the shared file locally while on main branch
@@ -452,7 +455,7 @@ Deno.test({
         );
 
         // Clone the val (defaults to main branch)
-        await runVtCommand(["clone", val.name], tmpDir);
+        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         const fullPath = join(tmpDir, val.name);
 
         // Try checking out to main branch while already on main

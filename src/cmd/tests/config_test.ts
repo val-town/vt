@@ -18,7 +18,7 @@ Deno.test({
         await t.step("clone a new val to set the config in", async () => {
           // Clone the val
           await runVtCommand(
-            ["clone", val.name],
+            ["clone", val.name, "--no-editor-files"],
             tmpDir,
             { env: { "XDG_CONFIG_HOME": tmpDir } },
           );
