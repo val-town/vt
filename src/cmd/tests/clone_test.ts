@@ -215,9 +215,9 @@ Deno.test({
 Deno.test({
   name: "interactive clone with no project URI",
   permissions: "inherit",
-  fn: async (t: Deno.TestContext) => {
-    const testPromise = (async () => {
-      await doWithTempDir(async (tmpDir) => {
+  fn: async (t) => {
+    await deadline(
+      doWithTempDir(async (tmpDir) => {
         await doWithNewVal(async ({ val }) => {
           // Start the clone process with no arguments
           const [outputLines, cloneChild] = streamVtCommand(["clone"], tmpDir);
@@ -269,11 +269,9 @@ Deno.test({
             );
           });
         });
-      });
-    })();
-
-    // in case input isn't accepted and it hangs waiting for input
-    await deadline(testPromise, 5000);
+      }),
+      5000,
+    );
   },
   sanitizeResources: false,
 });

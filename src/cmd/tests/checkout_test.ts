@@ -271,70 +271,73 @@ Deno.test({
 Deno.test({
   name: "create new branch with -b",
   permissions: "inherit",
-  async fn() {
-    await doWithTempDir(async (tmpDir) => {
-      await doWithNewVal(async ({ val, branch }) => {
-        // Create initial file on main branch
-        await sdk.vals.files.create(
-          val.id,
-          {
-            path: "main-file.js",
-            content: "console.log('Main branch file');",
-            branch_id: branch.id,
-            type: "file",
-          },
-        );
-
-        // Clone the val
-        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-        const fullPath = join(tmpDir, val.name);
-
-        // Create a new branch with checkout -b
-        const [checkoutOutput] = await runVtCommand([
-          "checkout",
-          "-b",
-          "new-branch",
-        ], fullPath);
-        assertStringIncludes(
-          checkoutOutput,
-          'Created and switched to new branch "new-branch"',
-        );
-
-        // The main file should still exist (since we forked from main)
-        assert(
-          await exists(join(fullPath, "main-file.js")),
-          "main-file.js should exist on new branch",
-        );
-
-        // Check status on new branch
-        const [statusOutput] = await runVtCommand(["status"], fullPath);
-        assertStringIncludes(statusOutput, "On branch new-branch@");
-
-        // Create a file on the new branch
-        await Deno.writeTextFile(
-          join(fullPath, "new-branch-file.js"),
-          "console.log('New branch file');",
-        );
-
-        // Push the changes to establish the new branch remotely
-        await runVtCommand(["push"], fullPath);
-
-        // Switch back to main branch
-        await runVtCommand(["checkout", "main"], fullPath);
-
-        // The new branch file should no longer be present
-        assert(
-          !(await exists(join(fullPath, "new-branch-file.js"))),
-          "new-branch-file.js should not exist on main branch",
-        );
-
-        // Status should show we're on main branch
-        const [mainStatusOutput] = await runVtCommand(["status"], fullPath);
-        assertStringIncludes(mainStatusOutput, "On branch main@");
-      });
-    });
-  },
   sanitizeResources: false,
+  async fn() {
+    await deadline(
+      doWithTempDir(async (tmpDir) => {
+        await doWithNewVal(async ({ val, branch }) => {
+          // Create initial file on main branch
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "main-file.js",
+              content: "console.log('Main branch file');",
+              branch_id: branch.id,
+              type: "file",
+            },
+          );
+
+          // Clone the val
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
+          const fullPath = join(tmpDir, val.name);
+
+          // Create a new branch with checkout -b
+          const [checkoutOutput] = await runVtCommand([
+            "checkout",
+            "-b",
+            "new-branch",
+          ], fullPath);
+          assertStringIncludes(
+            checkoutOutput,
+            'Created and switched to new branch "new-branch"',
+          );
+
+          // The main file should still exist (since we forked from main)
+          assert(
+            await exists(join(fullPath, "main-file.js")),
+            "main-file.js should exist on new branch",
+          );
+
+          // Check status on new branch
+          const [statusOutput] = await runVtCommand(["status"], fullPath);
+          assertStringIncludes(statusOutput, "On branch new-branch@");
+
+          // Create a file on the new branch
+          await Deno.writeTextFile(
+            join(fullPath, "new-branch-file.js"),
+            "console.log('New branch file');",
+          );
+
+          // Push the changes to establish the new branch remotely
+          await runVtCommand(["push"], fullPath);
+
+          // Switch back to main branch
+          await runVtCommand(["checkout", "main"], fullPath);
+
+          // The new branch file should no longer be present
+          assert(
+            !(await exists(join(fullPath, "new-branch-file.js"))),
+            "new-branch-file.js should not exist on main branch",
+          );
+
+          // Status should show we're on main branch
+          const [mainStatusOutput] = await runVtCommand(["status"], fullPath);
+          assertStringIncludes(mainStatusOutput, "On branch main@");
+        });
+      }),
+      5000,
+    );
+  },
 });
 
 Deno.test({
