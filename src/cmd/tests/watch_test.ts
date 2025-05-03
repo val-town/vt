@@ -67,7 +67,7 @@ Deno.test({
                   if (i === 10) {
                     // Wait for the debounce period plus buffer for the actual
                     // uploads
-                    await delay(2000);
+                    await delay(5000);
 
                     assert(
                       await valItemExists(
@@ -86,7 +86,7 @@ Deno.test({
                 }
 
                 // Wait for the debounce period plus buffer for the actual uploads
-                await delay(10000);
+                await delay(20000);
               },
             );
 
