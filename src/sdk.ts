@@ -1,5 +1,4 @@
 import ValTown from "@valtown/sdk";
-import "@std/dotenv/load";
 import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
