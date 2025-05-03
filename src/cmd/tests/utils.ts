@@ -11,7 +11,6 @@ import sdk, {
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
-import { delay } from "@std/async";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -61,10 +60,9 @@ export async function runVtCommand(
     confirmPause?: number;
   } = {},
 ): Promise<[string, number]> {
-  const { autoConfirm = false, confirmPause = 50 } = options;
+  const { autoConfirm = true, confirmPause = 1000 } = options;
 
   return await doWithTempDir(async (tmpDir) => {
-    // Configure and spawn the process
     const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
     const command = new Deno.Command(Deno.execPath(), {
       args: ["run", "-A", commandPath, ...args],
@@ -77,20 +75,29 @@ export async function runVtCommand(
 
     const process = command.spawn();
 
-    // Send "y" to automatically confirm prompts
+    // If autoConfirm is enabled, send "yes\n" repeatedly to stdin
     if (autoConfirm) {
-      const stdin = process.stdin.getWriter();
-      await stdin.write(new TextEncoder().encode("y\n"));
-      await delay(confirmPause || 50);
-      await stdin.write(new TextEncoder().encode("\n"));
-      stdin.releaseLock();
+      const writer = process.stdin.getWriter();
+      const yesBuffer = new TextEncoder().encode("yes\n");
+
+      const intervalId = setInterval(async () => {
+        try {
+          await writer.write(yesBuffer);
+        } catch {
+          // If writing fails (e.g., process exited), clear the interval
+          clearInterval(intervalId);
+        }
+      }, confirmPause);
+
+      // Ensure we clear the interval and close the writer when done
+      process.status.then(() => {
+        clearInterval(intervalId);
+        writer.close();
+      });
     }
 
-    // Close stdin to prevent resource leaks
-    await process.stdin.close();
-
-    // Collect and process the output
     const { stdout, stderr, code } = await process.output();
+
     const stdoutText = new TextDecoder().decode(stdout);
     const stderrText = new TextDecoder().decode(stderr);
     const combinedOutput = stdoutText + stderrText;

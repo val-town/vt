@@ -122,6 +122,7 @@ Deno.test({
             "clone",
             val.name,
             cloneDir,
+            "--no-editor-files",
           ], tmpDir);
           assertStringIncludes(output, "cloned to");
 
@@ -175,6 +176,7 @@ Deno.test({
             "clone",
             valName,
             targetDir,
+            "--no-editor-files",
           ], tmpDir);
 
           assertStringIncludes(
@@ -204,6 +206,7 @@ Deno.test({
       const [out] = await runVtCommand([
         "clone",
         "nonexistentval123456",
+        "--no-editor-files",
       ], tmpDir);
 
       assertStringIncludes(out, "Val not found");

@@ -15,7 +15,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
         await t.step("clone the val", async () => {
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         });
 
         const fullPath = join(tmpDir, val.name);
@@ -57,7 +57,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
         await t.step("clone the val", async () => {
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         });
 
         const fullPath = join(tmpDir, val.name);
