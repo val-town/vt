@@ -58,9 +58,10 @@ export async function runVtCommand(
   options: {
     env?: Record<string, string>;
     autoConfirm?: boolean;
+    confirmPause?: number;
   } = {},
 ): Promise<[string, number]> {
-  options = { autoConfirm: true, ...options };
+  const { autoConfirm = false, confirmPause = 50 } = options;
 
   return await doWithTempDir(async (tmpDir) => {
     // Configure and spawn the process
@@ -77,10 +78,10 @@ export async function runVtCommand(
     const process = command.spawn();
 
     // Send "y" to automatically confirm prompts
-    if (options.autoConfirm) {
+    if (autoConfirm) {
       const stdin = process.stdin.getWriter();
       await stdin.write(new TextEncoder().encode("y\n"));
-      await delay(200); // Wait for a short time to ensure the input is processed
+      await delay(confirmPause || 50);
       await stdin.write(new TextEncoder().encode("\n"));
       stdin.releaseLock();
     }

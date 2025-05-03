@@ -348,9 +348,7 @@ Deno.test({
   name: "warning on modified files",
   permissions: "inherit",
   async fn(t) {
-    // Put an 8s deadline, since in the past we had an issue with this stalling
-    // due to waiting for a user interaction
-    await deadline(
+    await deadline( // Historical issue with this test stalling
       doWithTempDir(async (tmpDir) => {
         await doWithNewVal(async ({ val, branch }) => {
           let fullPath: string;
@@ -410,6 +408,7 @@ Deno.test({
               const [checkoutOutput] = await runVtCommand(
                 ["checkout", "feature"],
                 fullPath,
+                { confirmPause: 3000 }, // May take a while to load the other Val branch
               );
 
               // Should see warning about dangerous changes

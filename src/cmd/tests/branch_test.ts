@@ -30,7 +30,7 @@ Deno.test({
         });
 
         await t.step("clone the val", async () => {
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
         });
 
@@ -156,7 +156,7 @@ Deno.test({
         let fullPath: string;
 
         await t.step("clone the val", async () => {
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
         });
 
