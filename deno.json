@@ -8,7 +8,7 @@
   "tasks": {
     "run": "./vt.ts",
     "test": "deno task test:lib --parallel && deno task test:cmd ",
-    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A --parallel ./src/cmd",
+    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A ./src/cmd",
     "test:lib": "env DENO_NO_PROMPT=1 deno test -A ./src/vt/lib",
     "check": "env DENO_NO_PROMPT=1 deno check .",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
