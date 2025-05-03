@@ -57,10 +57,9 @@ export async function runVtCommand(
   options: {
     env?: Record<string, string>;
     autoConfirm?: boolean;
-    confirmPause?: number;
   } = {},
 ): Promise<[string, number]> {
-  const { autoConfirm = true, confirmPause = 1000 } = options;
+  const { autoConfirm = true } = options;
 
   return await doWithTempDir(async (tmpDir) => {
     const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
@@ -87,7 +86,7 @@ export async function runVtCommand(
           // If writing fails (e.g., process exited), clear the interval
           clearInterval(intervalId);
         }
-      }, confirmPause);
+      }, 250);
 
       // Ensure we clear the interval and close the writer when done
       process.status.then(() => {
@@ -95,7 +94,7 @@ export async function runVtCommand(
         try {
           writer.close();
         } catch {
-          // The writer may already be closed
+          // We can ignore the error if the writer is already closed
         }
       });
     }

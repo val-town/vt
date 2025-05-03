@@ -427,7 +427,6 @@ Deno.test({
               const [checkoutOutput] = await runVtCommand(
                 ["checkout", "feature"],
                 fullPath,
-                { confirmPause: 3000 }, // May take a while to load the other Val branch
               );
 
               // Should see warning about dangerous changes
