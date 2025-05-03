@@ -6,7 +6,7 @@ on:
       - "*"
 
 jobs:
-  build:
+  publish-docs:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,25 +21,8 @@ jobs:
       - name: Generate documentation
         run: deno task doc
 
-      - name: Upload static files as artifact
-        id: deployment
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/
-
-  deploy:
-    needs: build
-
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Upload the docs to Val Town Electric
+        run: cd docs && deno run -A https://esm.town/v/wolf/VTDocs/cli/mod.ts upload
+        env:
+          ELECTRIC_ROOT_URL: https://vt-docs.val.run
+          ELECTRIC_MASTER_BEARER: ${{ secrets.ELECTRIC_MASTER_BEARER }}
