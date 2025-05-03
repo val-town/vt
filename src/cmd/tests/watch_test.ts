@@ -47,9 +47,7 @@ Deno.test({
               );
 
               // Wait for the watch process to start
-              while (outputLines.length < 3) {
-                await delay(100);
-              }
+              while (outputLines.length < 3) await delay(100);
             },
           );
 
@@ -58,23 +56,20 @@ Deno.test({
               "create multiple files in rapid succession",
               async () => {
                 // Create 10 files in rapid succession
-                for (let i = 0; i <= 8; i++) {
+                for (let i = 0; i <= 20; i++) {
                   const filePath = join(valDir!, `rapid-file-${i}.js`);
-                  await Deno.writeTextFile(
-                    filePath,
-                    `console.log('Rapid file ${i}');`,
-                  );
+                  await Deno.writeTextFile(filePath, `// 'Rapid file ${i}'`);
                   createTimes.push({
                     path: `rapid-file-${i}.js`,
                     time: Date.now(),
                   });
                   // Add minimal delay between file creations to ensure they're
                   // distinct events
-                  await delay(100);
+                  await delay(70);
                 }
 
                 // Wait for the debounce period plus buffer for the actual uploads
-                await delay(20000); // Probably excessive
+                await delay(70 * 20);
               },
             );
 
@@ -90,10 +85,11 @@ Deno.test({
               const statusAfterBatch = await vt!.status();
 
               // Check that all rapid files exist
-              for (let i = 0; i <= 10; i++) {
+              for (let i = 0; i <= 20; i++) {
                 // The file should exist
                 const fileExists = valItemsAfterBatch
                   .some((item) => item.path === `rapid-file-${i}.js`);
+
                 assert(
                   fileExists,
                   `rapid-file-${i}.js should exist in the val`,
