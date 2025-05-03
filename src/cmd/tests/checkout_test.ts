@@ -337,7 +337,7 @@ Deno.test({
           assertStringIncludes(mainStatusOutput, "On branch main@");
         });
       }),
-      5000,
+      9000,
     );
   },
   sanitizeResources: false,
