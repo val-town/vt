@@ -199,73 +199,76 @@ Deno.test({
   name: "check out to existing branch",
   permissions: "inherit",
   async fn() {
-    await doWithTempDir(async (tmpDir) => {
-      await doWithNewVal(async ({ val, branch }) => {
-        // Create initial file on main branch
-        await sdk.vals.files.create(
-          val.id,
-          {
-            path: "main-file.js",
-            content: "console.log('Main branch file');",
-            branch_id: branch.id,
-            type: "file",
-          },
-        );
+    await deadline(
+      doWithTempDir(async (tmpDir) => {
+        await doWithNewVal(async ({ val, branch }) => {
+          // Create initial file on main branch
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "main-file.js",
+              content: "console.log('Main branch file');",
+              branch_id: branch.id,
+              type: "file",
+            },
+          );
 
-        // Create a new branch using SDK
-        const newBranch = await sdk.vals.branches.create(
-          val.id,
-          { name: "feature-branch", branchId: branch.id },
-        );
+          // Create a new branch using SDK
+          const newBranch = await sdk.vals.branches.create(
+            val.id,
+            { name: "feature-branch", branchId: branch.id },
+          );
 
-        // Create a file on the new branch
-        await sdk.vals.files.create(
-          val.id,
-          {
-            path: "feature-file.js",
-            content: "console.log('Feature branch file');",
-            branch_id: newBranch.id,
-            type: "file",
-          },
-        );
+          // Create a file on the new branch
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "feature-file.js",
+              content: "console.log('Feature branch file');",
+              branch_id: newBranch.id,
+              type: "file",
+            },
+          );
 
-        // Clone the val (defaults to main branch)
-        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-        const fullPath = join(tmpDir, val.name);
+          // Clone the val (defaults to main branch)
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
+          const fullPath = join(tmpDir, val.name);
 
-        // Ensure the main file exists
-        assert(
-          await exists(join(fullPath, "main-file.js")),
-          "main-file.js should exist after clone",
-        );
+          // Ensure the main file exists
+          assert(
+            await exists(join(fullPath, "main-file.js")),
+            "main-file.js should exist after clone",
+          );
 
-        // Feature file should not exist yet
-        assert(
-          !(await exists(join(fullPath, "feature-file.js"))),
-          "feature-file.js should not exist on main branch",
-        );
+          // Feature file should not exist yet
+          assert(
+            !(await exists(join(fullPath, "feature-file.js"))),
+            "feature-file.js should not exist on main branch",
+          );
 
-        // Check out to the feature branch
-        const [checkoutOutput] = await runVtCommand([
-          "checkout",
-          "feature-branch",
-        ], fullPath);
-        assertStringIncludes(
-          checkoutOutput,
-          'Switched to branch "feature-branch"',
-        );
+          // Check out to the feature branch
+          const [checkoutOutput] = await runVtCommand([
+            "checkout",
+            "feature-branch",
+          ], fullPath);
+          assertStringIncludes(
+            checkoutOutput,
+            'Switched to branch "feature-branch"',
+          );
 
-        // Now the feature file should exist
-        assert(
-          await exists(join(fullPath, "feature-file.js")),
-          "feature-file.js should exist after checkout",
-        );
+          // Now the feature file should exist
+          assert(
+            await exists(join(fullPath, "feature-file.js")),
+            "feature-file.js should exist after checkout",
+          );
 
-        // Check status on feature branch
-        const [statusOutput] = await runVtCommand(["status"], fullPath);
-        assertStringIncludes(statusOutput, "On branch feature-branch@");
-      });
-    });
+          // Check status on feature branch
+          const [statusOutput] = await runVtCommand(["status"], fullPath);
+          assertStringIncludes(statusOutput, "On branch feature-branch@");
+        });
+      }),
+      5000,
+    );
   },
   sanitizeResources: false,
   sanitizeExit: false,
