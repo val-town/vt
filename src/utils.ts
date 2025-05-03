@@ -125,3 +125,35 @@ export async function dirIsEmpty(path: string | URL): Promise<boolean> {
 export function hasNullBytes(str: string): boolean {
   return str.includes("\0");
 }
+
+/**
+ * Collects a specified number of items from an asynchronous generator into an array.
+ *
+ * @param asyncGenerator - An asynchronous generator function.
+ * @param N - Number of iterations to perform.
+ * @returns A promise that resolves to an array containing the collected items.
+ */
+export async function arrayFromAsyncN<T>(
+  asyncGenerator: AsyncIterable<T>,
+  N: number,
+): Promise<[T[], boolean]> {
+  const results: T[] = [];
+  const iterator = asyncGenerator[Symbol.asyncIterator]();
+  let count = 0;
+  let hasMore = false;
+
+  while (count < N) {
+    const { value, done } = await iterator.next();
+    if (done) break;
+    results.push(value);
+    count++;
+  }
+
+  // Check if there's at least one more item available
+  if (count === N) {
+    const { done } = await iterator.next();
+    hasMore = !done;
+  }
+
+  return [results, hasMore];
+}

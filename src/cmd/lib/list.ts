@@ -3,23 +3,32 @@ import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
 import sdk from "~/sdk.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
+import { arrayFromAsyncN } from "~/utils.ts";
+
+const VAL_LIST_BATCH_SIZE = 20;
 
 export const listCmd = new Command()
   .name("list")
+  .arguments("[offset:number]")
   .description("List all your Vals")
   .example("List all vals", "vt list")
-  .action(async () => {
-    const myvals = await doWithSpinner(
+  .action(async (_, offset) => {
+    const [myVals, hasMore] = await doWithSpinner(
       "Loading val list...",
       async (spinner) => {
-        const myvals = await Array.fromAsync(sdk.me.vals.list({}));
+        const result = await arrayFromAsyncN(
+          sdk.me.vals.list({ offset }),
+          VAL_LIST_BATCH_SIZE,
+        );
+
         spinner.stop();
-        return myvals;
+        return result;
       },
     );
 
-    if (myvals.length === 0) {
-      console.log(colors.yellow("You don't have any vals yet."));
+    if (myVals.length === 0) {
+      if (!offset) console.log(colors.yellow("You don't have any Vals yet."));
+      else console.log(colors.yellow(`No Vals found at offset ${offset}.`));
       return;
     }
 
@@ -30,16 +39,40 @@ export const listCmd = new Command()
         colors.bold("Privacy"),
         colors.bold("Created"),
       ],
-      ...myvals.map((val) => [
+      ...myVals.map((val) => [
         colors.green(val.name),
         val.privacy,
         colors.dim(new Date(val.createdAt).toLocaleDateString()),
       ]),
     ]);
 
+    // If there are more vals, add a note at the bottom
+    if (hasMore) {
+      valsTable.push([
+        colors.yellow("..."),
+        colors.yellow("..."),
+        colors.yellow("..."),
+      ]);
+    }
+
     console.log(valsTable.toString());
     console.log();
-    console.log(
-      `Total: ${colors.yellow(myvals.length.toString())} vals`,
-    );
+
+    if (hasMore) {
+      const nextOffset = (offset || 0) + VAL_LIST_BATCH_SIZE;
+      console.log(
+        colors.yellow(
+          `Listed ${
+            colors.bold(myVals.length.toString())
+          } Vals, but there are more.\n` +
+            `Use \`vt list <${
+              colors.bold(nextOffset.toString())
+            }>\` to view the next batch.`,
+        ),
+      );
+    } else {
+      console.log(
+        `Listed ${colors.yellow(myVals.length.toString())} Vals.`,
+      );
+    }
   });
