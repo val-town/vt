@@ -4,7 +4,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay, retry } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getLatestVersion, listValItems } from "~/sdk.ts";
+import { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
@@ -63,6 +63,25 @@ Deno.test({
                     path: `rapid-file-${i}.js`,
                     time: Date.now(),
                   });
+
+                  // Half way through, wait a bit, so that an upload gets
+                  // triggered. Then make sure that that upload got triggered.
+                  if (i === 10) {
+                    // Wait for the debounce period plus buffer for the actual
+                    // uploads
+                    await delay(1000);
+
+                    assert(
+                      await valItemExists(
+                        val.id,
+                        branch.id,
+                        `rapid-file-${i - 1}.js`,
+                        await getLatestVersion(val.id, branch.id),
+                      ),
+                      "file should exist in val after upload",
+                    );
+                  }
+
                   // Add minimal delay between file creations to ensure they're
                   // distinct events
                   await delay(70);
