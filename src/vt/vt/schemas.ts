@@ -13,7 +13,10 @@ export const VTStateSchema = z.object({
   }).optional(),
   val: z.object({
     id: z.string().uuid(),
-  }),
+    // Project -> Val migration: This lets old meta.jsons that have a project.id
+    // still parse, and we transform them below. That means this ID is always
+    // populated.
+  }).catch({ id: "" }),
   branch: z.object({
     id: z.string().uuid(),
     version: z.number().gte(0),
