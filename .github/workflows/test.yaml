@@ -44,7 +44,7 @@ jobs:
           max_attempts: 2
           timeout_seconds: 2000
         env:
-          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY_2 }}
 
   test-publish:
     runs-on: ubuntu-latest

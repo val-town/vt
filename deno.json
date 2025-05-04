@@ -7,9 +7,9 @@
   "license": "MIT",
   "tasks": {
     "run": "./vt.ts",
-    "test": "deno task test:lib --parallel && deno task test:cmd ",
-    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --fail-fast ./src/cmd",
-    "test:lib": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks ./src/vt/lib",
+    "test": "deno task test:lib && deno task test:cmd",
+    "test:cmd": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --parallel --fail-fast ./src/cmd",
+    "test:lib": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --parallel ./src/vt/lib",
     "check": "env DENO_NO_PROMPT=1 deno check .",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },
