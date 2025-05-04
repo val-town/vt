@@ -51,11 +51,15 @@ Deno.test({
           // Verify get output
           assertStringIncludes(getOutput, localFakeApiKey);
 
-          // Verify .vt/config.yaml exists in the val directory
+          // Verify .vt/config.yaml exists in the val directory and contains the key
           assert(
             await exists(join(valDir, ".vt", "config.yaml")),
             "Local config file should exist",
           );
+          const configContent = await Deno.readTextFile(
+            join(valDir, ".vt", "config.yaml"),
+          );
+          assertStringIncludes(configContent, `apiKey: ${localFakeApiKey}`);
         });
 
         await t.step("set a fake api key globally", async () => {
@@ -70,7 +74,6 @@ Deno.test({
             setOutput,
             `Set apiKey=${globalFakeApiKey} in global configuration`,
           );
-
           assert(
             await exists(join(tmpDir, "vt", "config.yaml")),
             "Global config file should exist",

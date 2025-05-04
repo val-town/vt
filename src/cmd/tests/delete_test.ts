@@ -41,7 +41,7 @@ Deno.test({
           // Verify the val still exists
           assert(
             await valExists(val.id),
-            "val should still exist",
+            "Val should still exist",
           );
         });
       });
@@ -72,7 +72,7 @@ Deno.test({
           // Verify the val no longer exists
           assert(
             !await valExists(val.id),
-            "val should no longer exist",
+            "Val should no longer exist",
           );
         });
 

@@ -12,7 +12,6 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create initial file and clone the val", async () => {
-          // Create initial file
           await sdk.vals.files.create(
             val.id,
             {
@@ -29,7 +28,6 @@ Deno.test({
         const fullPath = join(tmpDir, val.name);
 
         await t.step("make a local change", async () => {
-          // Create new file
           await Deno.writeTextFile(
             join(fullPath, "pushed.js"),
             "console.log('Pushed file');",
@@ -85,7 +83,6 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create initial file and clone the val", async () => {
-          // Create initial file
           await sdk.vals.files.create(
             val.id,
             {
@@ -125,10 +122,8 @@ Deno.test({
         );
 
         await t.step("push all changes and verify output", async () => {
-          // Run push command
           const [pushOutput] = await runVtCommand(["push"], fullPath);
 
-          // Verify the push was successful
           assertStringIncludes(pushOutput, "Successfully pushed local changes");
 
           // Verify some of the expected directories and files
@@ -153,7 +148,6 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create initial file and clone the val", async () => {
-          // Create initial file
           await sdk.vals.files.create(
             val.id,
             {

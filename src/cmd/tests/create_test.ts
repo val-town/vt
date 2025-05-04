@@ -2,7 +2,6 @@ import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
-import { dirIsEmpty } from "~/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
@@ -48,16 +47,6 @@ Deno.test({
           const nonEmptyDirPath = join(tmpDir, nonEmptyDirValName);
           await Deno.mkdir(nonEmptyDirPath);
           await Deno.writeTextFile(join(nonEmptyDirPath, "file"), "content");
-
-          // Verify it exists and is not empty
-          assert(
-            await exists(nonEmptyDirPath),
-            "non-empty directory should exist",
-          );
-          assert(
-            !await dirIsEmpty(nonEmptyDirPath),
-            "directory should not be empty",
-          );
 
           // Should fail with non-empty directory
           const [_, status] = await runVtCommand([

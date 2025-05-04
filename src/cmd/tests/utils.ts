@@ -111,10 +111,10 @@ export async function runVtCommand(
         if (process.stdin.locked) return;
         try {
           const writer = process.stdin.getWriter();
-          writer.write(new TextEncoder().encode("yes\n"))
-            .catch(() => {
-              // Ignore write errors
-            });
+          writer.write(new TextEncoder().encode("yes"))
+            .then(() => delay(100))
+            .then(() => writer.write(new TextEncoder().encode("\n")))
+            .catch(() => {}); // Ignore errors when writing to stdin
           writer.releaseLock();
         } catch {
           // If getting writer fails (e.g., process exited), clear the interval
@@ -123,7 +123,7 @@ export async function runVtCommand(
             autoConfirmInterval = undefined;
           }
         }
-      }, 500);
+      }, 300);
     }
 
     try {

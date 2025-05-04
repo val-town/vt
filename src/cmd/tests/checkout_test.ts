@@ -12,6 +12,8 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch: mainBranch }) => {
+        const fullPath = join(tmpDir, val.name);
+
         await t.step("set up the state of the val", async () => {
           // Create initial file on main branch
           await sdk.vals.files.create(
@@ -24,13 +26,11 @@ Deno.test({
             },
           );
 
-          // Create a feature branch
           const featureBranch = await sdk.vals.branches.create(
             val.id,
             { name: "feature-branch", branchId: mainBranch.id },
           );
 
-          // Add a file to feature branch
           await sdk.vals.files.create(
             val.id,
             {
@@ -41,8 +41,6 @@ Deno.test({
             },
           );
         });
-
-        const fullPath = join(tmpDir, val.name);
 
         await t.step("clone the val and modify it", async () => {
           // Clone the val (defaults to main branch)
@@ -62,35 +60,36 @@ Deno.test({
           );
         });
 
-        // Now try checking out to feature branch
-        // This should succeed without requiring force flag or showing dirty warning
+        // Now try checking out to feature branch. This should succeed without
+        // requiring force flag or showing dirty warning
         const [checkoutOutput] = await runVtCommand([
           "checkout",
           "feature-branch",
         ], fullPath);
 
         await t.step("check the checkout output", async () => {
-          // Should successfully switch branches without warning about dirty state
           assertStringIncludes(
             checkoutOutput,
             'Switched to branch "feature-branch"',
+            "should successfully switch branches without warning about dirty state",
           );
 
-          // Should not contain warnings about dirty working directory
           assert(
             !checkoutOutput.includes("proceed with checkout anyway"),
-            "Checkout should not warn about dirty working directory with remote changes",
+            "checkout should not warn about dirty working directory with remote changes",
           );
 
-          // Verify we're on feature branch by checking for feature file
           assert(
             await exists(join(fullPath, "feature.ts")),
-            "feature-file.js should exist after checkout",
+            "feature.ts should exist after checkout; we're not on feature branch",
           );
 
-          // Check status to confirm we're on feature branch
           const [statusOutput] = await runVtCommand(["status"], fullPath);
-          assertStringIncludes(statusOutput, "On branch feature-branch@");
+          assertStringIncludes(
+            statusOutput,
+            "On branch feature-branch@",
+            "Check status to confirm we're on feature branch",
+          );
         });
       });
     });
@@ -373,7 +372,6 @@ Deno.test({
           await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
 
-          // Modify the shared file locally while on main branch
           await Deno.writeTextFile(
             join(fullPath, "shared.ts"),
             "// Local modification",
@@ -387,10 +385,10 @@ Deno.test({
             fullPath,
           );
 
-          // Should see warning about dangerous changes
           assertStringIncludes(
             checkoutOutput,
             "proceed with checkout anyway",
+            "should see warning about dangerous changes",
           );
           assertStringIncludes(checkoutOutput, "shared.ts");
         });

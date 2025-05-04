@@ -4,7 +4,6 @@ import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import type ValTown from "@valtown/sdk";
-import type { ValFileType } from "~/types.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
@@ -16,13 +15,11 @@ Deno.test({
         const fullPath = join(tmpDir, val.name);
 
         await t.step("create additional branches", async () => {
-          // Create a feature branch
           await sdk.vals.branches.create(
             val.id,
             { name: "feature", branchId: mainBranch.id },
           );
 
-          // Create a development branch
           await sdk.vals.branches.create(
             val.id,
             { name: "development", branchId: mainBranch.id },
@@ -63,20 +60,18 @@ Deno.test({
         let featureBranch: ValTown.Vals.BranchListResponse;
 
         await t.step("create feature branch", async () => {
-          // Create a feature branch
           featureBranch = await sdk.vals.branches.create(
             val.id,
             { name: "feature-to-delete", branchId: mainBranch.id },
           );
 
-          // Create a file on feature branch to verify it's real
           await sdk.vals.files.create(
             val.id,
             {
-              path: "feature-file.js",
+              path: "feaature.ts",
               content: "console.log('Feature branch file');",
               branch_id: featureBranch.id,
-              type: "file" as ValFileType,
+              type: "script",
             },
           );
         });

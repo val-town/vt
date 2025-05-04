@@ -57,7 +57,6 @@ Deno.test({
             cloneDir,
           ], tmpDir);
 
-          // Verify deno.json content
           const denoJsonContent = await Deno.readTextFile(
             join(cloneDir, "deno.json"),
           );
@@ -67,7 +66,6 @@ Deno.test({
             "custom deno.json should be preserved",
           );
 
-          // Verify .vtignore content
           const vtignoreContent = await Deno.readTextFile(
             join(cloneDir, ".vtignore"),
           );
@@ -90,7 +88,6 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("set up the val structure", async () => {
-          // Create the directory first
           await sdk.vals.files.create(
             val.id,
             {
@@ -100,7 +97,6 @@ Deno.test({
             },
           );
 
-          // Create empty test.js file
           await sdk.vals.files.create(
             val.id,
             {
@@ -111,7 +107,6 @@ Deno.test({
             },
           );
 
-          // Create test_inner.js with content
           await sdk.vals.files.create(
             val.id,
             {
@@ -213,7 +208,7 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       const [out] = await runVtCommand([
         "clone",
-        "nonexistentval123456",
+        randomValName(),
         "--no-editor-files",
       ], tmpDir);
 
