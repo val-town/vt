@@ -16,32 +16,32 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
         // Create a source Val to remix
-        const sourcevalName = val.name;
-        const remixedvalName = `${sourcevalName}_remixed`;
+        const sourceValName = val.name;
+        const remixedValName = `${sourceValName}_remixed`;
 
         await t.step("remix the val", async () => {
           const [output] = await runVtCommand([
             "remix",
-            `${user.username}/${sourcevalName}`,
-            remixedvalName,
+            `${user.username}/${sourceValName}`,
+            remixedValName,
             "--no-editor-files",
           ], tmpDir);
 
           assertStringIncludes(
             output,
-            `Remixed "@${user.username}/${sourcevalName}" to public Val "@${user.username}/${remixedvalName}"`,
+            `Remixed "@${user.username}/${sourceValName}" to public Val "@${user.username}/${remixedValName}"`,
           );
 
           // Verify the remixed Val directory exists
-          const remixedvalPath = join(tmpDir, remixedvalName);
+          const remixedValPath = join(tmpDir, remixedValName);
           assert(
-            await exists(remixedvalPath),
+            await exists(remixedValPath),
             "remixed Val directory should exist",
           );
 
           // Verify it has the .vt metadata folder
           assert(
-            await exists(join(remixedvalPath, META_FOLDER_NAME)),
+            await exists(join(remixedValPath, META_FOLDER_NAME)),
             "remixed Val should have .vt metadata folder",
           );
         });
@@ -49,7 +49,7 @@ Deno.test({
         // Clean up the remixed val
         const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
-          remixedvalName,
+          remixedValName,
         );
         await sdk.vals.delete(id);
       });
@@ -66,14 +66,14 @@ Deno.test({
 
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
-        const sourcevalName = val.name;
+        const sourceValName = val.name;
 
         await t.step("remix as private val", async () => {
-          const privatevalName = `${sourcevalName}_private`;
+          const privateValName = `${sourceValName}_private`;
           const [output] = await runVtCommand([
             "remix",
-            `${user.username}/${sourcevalName}`,
-            privatevalName,
+            `${user.username}/${sourceValName}`,
+            privateValName,
             "--private",
             "--no-editor-files",
           ], tmpDir);
@@ -86,17 +86,17 @@ Deno.test({
 
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            privatevalName,
+            privateValName,
           );
           await sdk.vals.delete(id);
         });
 
         await t.step("remix as unlisted Val", async () => {
-          const unlistedvalName = `${sourcevalName}_unlisted`;
+          const unlistedValName = `${sourceValName}_unlisted`;
           const [output] = await runVtCommand([
             "remix",
-            `${user.username}/${sourcevalName}`,
-            unlistedvalName,
+            `${user.username}/${sourceValName}`,
+            unlistedValName,
             "--unlisted",
             "--no-editor-files",
           ], tmpDir);
@@ -109,7 +109,7 @@ Deno.test({
 
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            unlistedvalName,
+            unlistedValName,
           );
           await sdk.vals.delete(id);
         });
@@ -127,28 +127,28 @@ Deno.test({
 
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
-        const sourcevalName = val.name;
-        const remixedvalName = `${sourcevalName}_no_editor_files`;
+        const sourceValName = val.name;
+        const remixedValName = `${sourceValName}_no_editor_files`;
 
         await t.step("remix without editor files", async () => {
           await runVtCommand([
             "remix",
-            `${user.username}/${sourcevalName}`,
-            remixedvalName,
+            `${user.username}/${sourceValName}`,
+            remixedValName,
             "--no-editor-files",
           ], tmpDir);
 
-          const remixedvalPath = join(tmpDir, remixedvalName);
+          const remixedValPath = join(tmpDir, remixedValName);
 
           // Check that editor files don't exist
           assert(
-            !(await exists(join(remixedvalPath, ".vscode"))),
+            !(await exists(join(remixedValPath, ".vscode"))),
             ".vscode directory should not exist",
           );
 
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            remixedvalName,
+            remixedValName,
           );
           await sdk.vals.delete(id);
         });
@@ -169,13 +169,13 @@ Deno.test({
       // Create a temp dir for the remix destination
       await doWithTempDir(async (destTmpDir) => {
         await doWithNewVal(async ({ val }) => {
-          const sourcevalName = val.name;
-          const remixedvalName = `${sourcevalName}_http_preserved`;
+          const sourceValName = val.name;
+          const remixedValName = `${sourceValName}_http_preserved`;
 
           // Clone the Val to the source directory
           await runVtCommand([
             "clone",
-            `${user.username}/${sourcevalName}`,
+            `${user.username}/${sourceValName}`,
             srcTmpDir,
             "--no-editor-files",
           ], ".");
@@ -198,15 +198,15 @@ Deno.test({
           await t.step("remix Val with HTTP val", async () => {
             await runVtCommand([
               "remix",
-              `${user.username}/${sourcevalName}`,
-              remixedvalName,
+              `${user.username}/${sourceValName}`,
+              remixedValName,
               "--no-editor-files",
             ], destTmpDir);
 
             // Check that the HTTP Val exists in the remixed val
-            const remixedvalPath = join(destTmpDir, remixedvalName);
+            const remixedValPath = join(destTmpDir, remixedValName);
             const remixedHttpValPath = join(
-              remixedvalPath,
+              remixedValPath,
               `${httpValName}.ts`,
             );
 
@@ -227,7 +227,7 @@ Deno.test({
           // Clean up the remixed val
           const { id } = await sdk.alias.username.valName.retrieve(
             user.username!,
-            remixedvalName,
+            remixedValName,
           );
           await sdk.vals.delete(id);
         });

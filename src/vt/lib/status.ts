@@ -1,5 +1,5 @@
 import sdk, { listValItems } from "~/sdk.ts";
-import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 import {
@@ -56,7 +56,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     targetDir,
     gitignoreRules,
   });
-  const valFiles = await getvalFiles({
+  const valFiles = await getValFiles({
     valId,
     branchId,
     version,
@@ -144,7 +144,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
   return result.consolidateRenames();
 }
 
-async function getvalFiles({
+async function getValFiles({
   valId,
   branchId,
   version,
@@ -206,7 +206,7 @@ async function getLocalFiles({
 
       return {
         path: relativePath,
-        type: (entry.isDirectory ? "directory" : await getvalItemType(
+        type: (entry.isDirectory ? "directory" : await getValItemType(
           valId,
           branchId,
           version,

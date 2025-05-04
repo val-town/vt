@@ -27,7 +27,7 @@ Deno.test({
       );
 
       await doWithTempDir(async (destTmpDir) => {
-        const remixedvalName = `${val.name}_remixed`;
+        const remixedValName = `${val.name}_remixed`;
 
         // Remix the val
         await t.step("remix Val with HTTP val", async () => {
@@ -35,7 +35,7 @@ Deno.test({
             targetDir: destTmpDir,
             srcValId: val.id,
             srcBranchId: "main",
-            valName: remixedvalName,
+            valName: remixedValName,
             privacy: "public",
           });
 
@@ -78,7 +78,7 @@ Deno.test({
         // Clean up the remixed val
         const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
-          remixedvalName,
+          remixedValName,
         );
         await sdk.vals.delete(id);
       });
@@ -92,28 +92,28 @@ Deno.test({
   async fn() {
     await doWithNewVal(async ({ val }) => {
       await doWithTempDir(async (destTmpDir) => {
-        const remixedvalName = `${val.name}_private`;
+        const remixedValName = `${val.name}_private`;
 
         // Remix as private val
         const result = await remix({
           targetDir: destTmpDir,
           srcValId: val.id,
           srcBranchId: "main",
-          valName: remixedvalName,
+          valName: remixedValName,
           privacy: "private",
         });
 
         // Verify the Val was created with private visibility
-        const remixedval = await sdk.vals.retrieve(result.toValId);
+        const remixedVal = await sdk.vals.retrieve(result.toValId);
 
         assertEquals(
-          remixedval.privacy,
+          remixedVal.privacy,
           "private",
           "Remixed Val should have private visibility",
         );
 
         // Clean up
-        await sdk.vals.delete(remixedval.id);
+        await sdk.vals.delete(remixedVal.id);
       });
     });
   },
@@ -125,7 +125,7 @@ Deno.test({
   async fn() {
     await doWithNewVal(async ({ val }) => {
       await doWithTempDir(async (destTmpDir) => {
-        const remixedvalName = `${val.name}_with_desc`;
+        const remixedValName = `${val.name}_with_desc`;
         const customDescription =
           "This is a custom description for the remixed val";
 
@@ -134,22 +134,22 @@ Deno.test({
           targetDir: destTmpDir,
           srcValId: val.id,
           srcBranchId: "main",
-          valName: remixedvalName,
+          valName: remixedValName,
           description: customDescription,
           privacy: "public",
         });
 
         // Verify the description was set correctly
-        const remixedval = await sdk.vals.retrieve(result.toValId);
+        const remixedVal = await sdk.vals.retrieve(result.toValId);
 
         assertEquals(
-          remixedval.description,
+          remixedVal.description,
           customDescription,
           "remixed Val should have the custom description",
         );
 
         // Clean up
-        await sdk.vals.delete(remixedval.id);
+        await sdk.vals.delete(remixedVal.id);
       });
     });
   },
@@ -182,7 +182,7 @@ Deno.test({
       );
 
       await doWithTempDir(async (destTmpDir) => {
-        const remixedvalName = `${val.name}_general`;
+        const remixedValName = `${val.name}_general`;
 
         await t.step("general remix test", async () => {
           // Perform the remix
@@ -190,7 +190,7 @@ Deno.test({
             targetDir: destTmpDir,
             srcValId: val.id,
             srcBranchId: "main",
-            valName: remixedvalName,
+            valName: remixedValName,
             privacy: "public",
           });
 
@@ -224,13 +224,13 @@ Deno.test({
           );
 
           // Verify the Val exists on Val Town
-          const remixedval = await sdk.vals.retrieve(
+          const remixedVal = await sdk.vals.retrieve(
             result.toValId,
           );
 
           assertEquals(
-            remixedval.name,
-            remixedvalName,
+            remixedVal.name,
+            remixedValName,
             "val should exist on Val town with correct name",
           );
         });
@@ -238,7 +238,7 @@ Deno.test({
         // Clean up the remixed val
         const { id } = await sdk.alias.username.valName.retrieve(
           user.username!,
-          remixedvalName,
+          remixedValName,
         );
         await sdk.vals.delete(id);
       });

@@ -1,7 +1,7 @@
 import sdk, { listValItems } from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
-import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { join, relative } from "@std/path";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
@@ -222,7 +222,7 @@ async function handleBranchCheckout(
           fileStateChanges.insert({
             path: relativePath,
             status: "deleted",
-            type: stat.isDirectory ? "directory" : await getvalItemType(
+            type: stat.isDirectory ? "directory" : await getValItemType(
               params.valId,
               fromBranch.id,
               fromBranch.version,
