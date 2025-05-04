@@ -11,7 +11,7 @@ const nothingNewToPushMsg =
 
 export const pushCmd = new Command()
   .name("push")
-  .description("Push local changes to a val town project")
+  .description("Push local changes to a Val")
   .example("Push local changes", "vt push")
   .option(
     "-d, --dry-run",
@@ -27,11 +27,12 @@ export const pushCmd = new Command()
         const user = await getCurrentUser();
 
         const vtState = await vt.getMeta().loadVtState();
-        const projectToPush = await sdk.projects.retrieve(vtState.project.id);
-        if (projectToPush.author.id !== user.id) {
+        const valToPush = await sdk.vals.retrieve(vtState.val.id);
+        if (valToPush.author.id !== user.id) {
+          console.log(valToPush.author.id, user.id);
           throw new Error(
-            "You are not the owner of this project, you cannot push." +
-              "\nTo make a PR, go to the website, fork the project, clone the fork, make changes, push them, and then PR on the website.",
+            "You are not the owner of this val, you cannot push." +
+              "\nTo make a PR, go to the website, fork the val, clone the fork, make changes, push them, and then PR on the website.",
           );
         }
 

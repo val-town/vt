@@ -22,7 +22,7 @@ function welcomeToVt(): void {
 
   console.log(wrap(
     colors.bold("VT") +
-      " is a companion CLI to interface with Val Town projects.",
+      " is a companion CLI to interface with Val Town vals.",
     { width: DEFAULT_WRAP_WIDTH },
   ));
   console.log();
@@ -30,7 +30,7 @@ function welcomeToVt(): void {
   console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_WIDTH }));
 
   [
-    "Create and manage Val Town projects",
+    "Create and manage Val Town vals",
     "Push and pull changes between your local system and Val Town",
     "Watch a directory to keep it automatically synced with Val Town",
     "And more!",
@@ -68,7 +68,7 @@ export async function onboardFlow(
   });
 
   if (goToWebsite) {
-    console.log("Ensure you select user read & project read+write permissions");
+    console.log("Ensure you select user read & Val read+write permissions");
     await delay(500);
     await open(GET_API_KEY_URL);
     console.log(`Browser opened to ${GET_API_KEY_URL}`);
@@ -76,7 +76,7 @@ export async function onboardFlow(
     console.log();
     console.log(
       "You can get an API key at " + GET_API_KEY_URL +
-        " with project read/write permissions",
+        " with Val read/write permissions",
     );
   }
 

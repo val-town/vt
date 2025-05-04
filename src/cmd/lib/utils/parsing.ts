@@ -11,7 +11,7 @@ import { VAL_TOWN_VAL_URL_REGEX } from "~/consts.ts";
  * @returns The extracted ownerName and valName
  * @throws Error on invalid format
  */
-export function parseValUrl(
+export function parseValUri(
   valUri: string,
   currentUsername: string,
 ): { ownerName: string; valName: string } {

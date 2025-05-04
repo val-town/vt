@@ -1,19 +1,19 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "push command output",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create initial file and clone the project", async () => {
-          // Create initial file
-          await sdk.projects.files.create(
-            project.id,
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create initial file and clone the val", async () => {
+          await sdk.vals.files.create(
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
@@ -22,13 +22,12 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("make a local change", async () => {
-          // Create new file
           await Deno.writeTextFile(
             join(fullPath, "pushed.js"),
             "console.log('Pushed file');",
@@ -57,17 +56,15 @@ Deno.test({
 
 Deno.test({
   name: "push command with no changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
-        await t.step("clone the project", async () => {
-          await runVtCommand(
-            ["clone", project.name, "--no-editor-files"],
-            tmpDir,
-          );
+      await doWithNewVal(async ({ val }) => {
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("run push command with no changes", async () => {
           const [output] = await runVtCommand(["push"], fullPath);
@@ -81,13 +78,13 @@ Deno.test({
 
 Deno.test({
   name: "push command stress test with 10 recursive dirs and 20 files",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create initial file and clone the project", async () => {
-          // Create initial file
-          await sdk.projects.files.create(
-            project.id,
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create initial file and clone the val", async () => {
+          await sdk.vals.files.create(
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
@@ -96,10 +93,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step(
           "create deep directory structure with multiple files",
@@ -125,10 +122,8 @@ Deno.test({
         );
 
         await t.step("push all changes and verify output", async () => {
-          // Run push command
           const [pushOutput] = await runVtCommand(["push"], fullPath);
 
-          // Verify the push was successful
           assertStringIncludes(pushOutput, "Successfully pushed local changes");
 
           // Verify some of the expected directories and files
@@ -148,13 +143,13 @@ Deno.test({
 
 Deno.test({
   name: "push command fails with binary file",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create initial file and clone the project", async () => {
-          // Create initial file
-          await sdk.projects.files.create(
-            project.id,
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create initial file and clone the val", async () => {
+          await sdk.vals.files.create(
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
@@ -163,10 +158,10 @@ Deno.test({
             },
           );
 
-          await runVtCommand(["clone", project.name], tmpDir);
+          await runVtCommand(["clone", val.name], tmpDir);
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("create a binary file", async () => {
           // Create binary file with null bytes

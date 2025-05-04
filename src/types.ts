@@ -1,4 +1,4 @@
-export type ProjectItemType =
+export type ValItemType =
   | "script"
   | "http"
   | "email"
@@ -6,6 +6,6 @@ export type ProjectItemType =
   | "file"
   | "directory";
 
-export type ProjectFileType = Exclude<ProjectItemType, "directory">;
+export type ValFileType = Exclude<ValItemType, "directory">;
 
-export type ProjectPrivacy = "public" | "unlisted" | "private";
+export type ValPrivacy = "public" | "unlisted" | "private";

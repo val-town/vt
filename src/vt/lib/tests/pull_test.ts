@@ -1,29 +1,24 @@
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test typical pulling",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await t.step("test pulling files", async (t) => {
         // Create a test file on the server
         const vtFilePath = "test.txt";
         const fileContent = "This is a test file";
 
         await t.step("create initial file", async () => {
-          await sdk.projects.files.create(
-            project.id,
+          await sdk.vals.files.create(
+            val.id,
             {
               path: vtFilePath,
               content: fileContent,
@@ -36,9 +31,9 @@ Deno.test({
         await doWithTempDir(async (tempDir) => {
           await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
+            version: await getLatestVersion(val.id, branch.id),
           });
 
           await t.step("verify pulled file", async () => {
@@ -65,8 +60,8 @@ Deno.test({
             const updatedContent = "This is an updated test file";
 
             // Update file on server
-            await sdk.projects.files.update(
-              project.id,
+            await sdk.vals.files.update(
+              val.id,
               {
                 path: vtFilePath,
                 content: updatedContent,
@@ -77,7 +72,7 @@ Deno.test({
             // Pull updates
             await pull({
               targetDir: tempDir,
-              projectId: project.id,
+              valId: val.id,
               branchId: branch.id,
               version: 2,
             });
@@ -94,18 +89,19 @@ Deno.test({
 
           await t.step("delete file on server", async () => {
             // Delete file on server
-            await sdk.projects.files.delete(
-              project.id,
+            await sdk.vals.files.delete(
+              val.id,
               {
                 path: vtFilePath,
                 branch_id: branch.id,
+                recursive: true,
               },
             );
 
             // Pull updates
             await pull({
               targetDir: tempDir,
-              projectId: project.id,
+              valId: val.id,
               branchId: branch.id,
               version: 3,
             });
@@ -122,26 +118,21 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test pulling with gitignore rules",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a test file on the server
         const vtFilePath = "remote.txt";
         const ignoredFilePath = "ignored.log";
 
         // Create remote file
-        await sdk.projects.files.create(
-          project.id,
+        await sdk.vals.files.create(
+          val.id,
           {
             path: vtFilePath,
             content: "Remote file",
@@ -157,7 +148,7 @@ Deno.test({
         // Pull with gitignore rules
         await pull({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
           gitignoreRules: ["*.log"],
           version: 1,
@@ -189,26 +180,21 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test pulling with dry run",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a test file on the server
         const vtFilePath = "server-file.txt";
         const fileContent = "This is a server file";
 
         await t.step("create file on server", async () => {
-          await sdk.projects.files.create(
-            project.id,
+          await sdk.vals.files.create(
+            val.id,
             {
               path: vtFilePath,
               content: fileContent,
@@ -222,7 +208,7 @@ Deno.test({
           // Run pull with dryRun option
           const fileStateChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             dryRun: true,
             version: 1,
@@ -253,7 +239,7 @@ Deno.test({
         // Now actually pull the file so we can test modifications
         await pull({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
           version: 1,
         });
@@ -261,8 +247,8 @@ Deno.test({
         await t.step("test dry run for modified files", async () => {
           // Update file on server
           const updatedContent = "This file has been updated on the server";
-          await sdk.projects.files.update(
-            project.id,
+          await sdk.vals.files.update(
+            val.id,
             {
               path: vtFilePath,
               content: updatedContent,
@@ -273,7 +259,7 @@ Deno.test({
           // Run pull with dryRun option
           const fileStateChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             dryRun: true,
             version: 2,
@@ -303,26 +289,20 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test pulling nested empty directories",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create nested directories on the server
         const nestedDirPath = "parent/child/grandchild";
 
         await t.step("create nested directories on server", async () => {
-          await sdk.projects.files.create(
-            project.id,
+          await sdk.vals.files.create(
+            val.id,
             {
               path: nestedDirPath,
               branch_id: branch.id,
@@ -332,10 +312,10 @@ Deno.test({
         });
 
         await t.step("pull that creates directories", async () => {
-          // Pull the project to the temp directory
+          // Pull the Val to the temp directory
           const firstPullChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             version: 1,
           });
@@ -361,7 +341,7 @@ Deno.test({
           // Pull again - should not detect changes
           const secondPullChanges = await pull({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
             version: 2,
           });
@@ -374,5 +354,4 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });

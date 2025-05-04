@@ -11,9 +11,9 @@ async function listBranches(vt: VTClient) {
   return await doWithSpinner("Loading branches...", async (spinner) => {
     const meta = await vt.getMeta().loadVtState();
 
-    const branches: ValTown.Projects.BranchListResponse[] = [];
+    const branches: ValTown.Vals.BranchListResponse[] = [];
     // deno-fmt-ignore
-    for await (const file of (await sdk.projects.branches.list(meta.project.id, {}))) branches.push(file);
+    for await (const file of (await sdk.vals.branches.list(meta.val.id, {}))) branches.push(file);
 
     const formatter = new Intl.DateTimeFormat("en-US", {
       year: "numeric",
@@ -67,7 +67,7 @@ async function deleteBranch(vt: VTClient, toDeleteName: string) {
 
   await doWithSpinner("Deleting branch...", async (spinner) => {
     const toDeleteBranch = await branchNameToBranch(
-      meta.project.id,
+      meta.val.id,
       toDeleteName,
     );
     if (toDeleteBranch.id === meta.branch.id) {
@@ -76,7 +76,7 @@ async function deleteBranch(vt: VTClient, toDeleteName: string) {
       );
     }
 
-    await sdk.projects.branches.delete(meta.project.id, toDeleteBranch.id);
+    await sdk.vals.branches.delete(meta.val.id, toDeleteBranch.id);
     spinner.succeed(`Branch '${toDeleteName}' has been deleted.`);
   });
 }
