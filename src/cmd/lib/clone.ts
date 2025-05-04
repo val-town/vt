@@ -62,7 +62,6 @@ export const cloneCmd = new Command()
               sdk.me.vals.list({}),
               500,
             );
-            console.log(allVals.slice(0, 5));
             spinner.stop();
             return allVals;
           },

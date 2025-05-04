@@ -1,12 +1,20 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertMatch,
+  assertStringIncludes,
+} from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
-import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
+import {
+  runVtCommand,
+  streamVtCommand,
+  waitForStable,
+} from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
 import type { ValFileType } from "~/types.ts";
-import { deadline, delay } from "@std/async";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
@@ -72,7 +80,6 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
@@ -148,7 +155,6 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
@@ -195,7 +201,6 @@ Deno.test({
       }
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
@@ -212,69 +217,51 @@ Deno.test({
       assertStringIncludes(out, "Val not found");
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "interactive clone with no project URI",
   permissions: "inherit",
   fn: async (t) => {
-    await deadline(
-      doWithTempDir(async (tmpDir) => {
-        await doWithNewVal(async ({ val }) => {
-          // Start the clone process with no arguments
-          const [outputLines, cloneChild] = streamVtCommand(["clone"], tmpDir);
-          await delay(1000);
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val }) => {
+        const fullPath = join(tmpDir, val.name);
 
-          await t.step("use interactive clone", async () => {
-            // Send the val name followed by Enter
-            let stdin = cloneChild.stdin.getWriter();
-            await stdin.write(new TextEncoder().encode(val.name + "\n"));
-            stdin.releaseLock();
-            await delay(1000);
+        const [outputLines, cloneChild] = streamVtCommand(["clone"], tmpDir);
+        await waitForStable(outputLines);
 
-            // Then confirm that you want to get the editor files
-            stdin = cloneChild.stdin.getWriter();
-            await stdin.write(new TextEncoder().encode("y\n"));
-            stdin.releaseLock();
-            await delay(2000);
+        await t.step("use interactive clone", async () => {
+          let stdin = cloneChild.stdin.getWriter();
+          await stdin.write(new TextEncoder().encode(val.name + "\n"));
+          stdin.releaseLock();
+          await waitForStable(outputLines);
 
-            // Process should complete
-            const { code } = await cloneChild.status;
-
-            // Check if the clone was successful
-            assert(code === 0, "clone process should exit with code 0");
-          });
-
-          await t.step("check editor files were created", async () => {
-            // Verify the val directory exists
-            assert(
-              await exists(join(tmpDir, val.name)),
-              "val directory was not created",
-            );
-
-            // Verify output contains cloning confirmation
-            assert(
-              outputLines.some((line) => line.includes("cloned")),
-              "Output should include cloning confirmation",
-            );
-
-            // Verify .vtignore exists
-            assert(
-              await exists(join(tmpDir, val.name, ".vtignore")),
-              ".vtignore should exist",
-            );
-
-            // Verify deno.json exists
-            assert(
-              await exists(join(tmpDir, val.name, "deno.json")),
-              "deno.json should exist",
-            );
-          });
+          stdin = cloneChild.stdin.getWriter();
+          await stdin.write(new TextEncoder().encode("y\n"));
+          await waitForStable(outputLines);
+          stdin.abort();
         });
-      }),
-      5000,
-    );
+        await t.step("check editor files were created", async () => {
+          assert(
+            await exists(fullPath),
+            "val directory was not created",
+          );
+          assertMatch(
+            outputLines.join("\n"),
+            /Val .+\/[^ ]+ cloned to "[^"]+"/,
+          );
+
+          // Verify that the editor files got created (we asked for them)
+          assert(
+            await exists(join(tmpDir, val.name, ".vtignore")),
+            ".vtignore should exist",
+          );
+          assert(
+            await exists(join(tmpDir, val.name, "deno.json")),
+            "deno.json should exist",
+          );
+        });
+      });
+    });
   },
-  sanitizeResources: false,
 });

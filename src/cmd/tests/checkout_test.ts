@@ -5,7 +5,6 @@ import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
-import { delay } from "@std/async";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
@@ -96,7 +95,7 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
+
   sanitizeExit: false,
 });
 
@@ -193,7 +192,7 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
+
   sanitizeExit: false,
 });
 
@@ -269,7 +268,7 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
+
   sanitizeExit: false,
 });
 
@@ -345,7 +344,7 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
+
   sanitizeExit: false,
 });
 
@@ -421,17 +420,13 @@ Deno.test({
             "-f",
           ], fullPath);
 
-          await delay(1000);
-
-          assertStringIncludes(
-            forceCheckoutOutput,
+          assertStringIncludes( forceCheckoutOutput,
             'Switched to branch "main"',
           );
         });
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
@@ -473,6 +468,6 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
+
   sanitizeExit: false,
 });

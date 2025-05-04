@@ -11,7 +11,7 @@ import sdk, {
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
-import { clear } from "node:console";
+import { delay } from "@std/async";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -89,7 +89,12 @@ export async function runVtCommand(
         }
       }
 
-      process.stdin.close();
+      try {
+        process.stdin.abort();
+      } catch (e) {
+        // Ignore errors when closing stdin
+        if (!(e instanceof Error && e.name === "TypeError")) throw e;
+      }
 
       try {
         process.kill();
@@ -106,9 +111,10 @@ export async function runVtCommand(
         if (process.stdin.locked) return;
         try {
           const writer = process.stdin.getWriter();
-          writer.write(new TextEncoder().encode("yes\n")).catch(() => {
-            // Ignore write errors
-          });
+          writer.write(new TextEncoder().encode("yes\n"))
+            .catch(() => {
+              // Ignore write errors
+            });
           writer.releaseLock();
         } catch {
           // If getting writer fails (e.g., process exited), clear the interval
@@ -117,7 +123,7 @@ export async function runVtCommand(
             autoConfirmInterval = undefined;
           }
         }
-      }, 150);
+      }, 500);
     }
 
     try {
@@ -216,6 +222,32 @@ export async function removeAllEditorFiles(dirPath: string): Promise<void> {
       if (e instanceof Deno.errors.NotFound) {
         // Ignore if the file was already removed
       } else throw e;
+    }
+  }
+}
+
+/**
+ * Waits until an array becomes stable (no new entries added) for a specified duration.
+ *
+ * @param array The array to monitor for stability
+ * @param stableTimeMs The time in milliseconds that the array must remain unchanged
+ * @returns A promise that resolves when the array is stable
+ */
+export async function waitForStable<T>(
+  array: T[],
+  stableTimeMs: number = 500,
+): Promise<void> {
+  let lastLength = array.length;
+
+  while (true) {
+    await delay(stableTimeMs);
+
+    if (array.length === lastLength) {
+      // Array is stable, we can exit the loop
+      break;
+    } else {
+      // Array changed during timeout, update length and continue
+      lastLength = array.length;
     }
   }
 }

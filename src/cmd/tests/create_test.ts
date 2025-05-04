@@ -69,7 +69,6 @@ Deno.test({
       );
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
@@ -194,5 +193,4 @@ Deno.test({
       if (newVal) await sdk.vals.delete(newVal.id);
     }
   },
-  sanitizeResources: false,
 });
