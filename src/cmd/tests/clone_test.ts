@@ -219,7 +219,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "interactive clone with no project URI",
+  name: "interactive clone with no Val URI",
   permissions: "inherit",
   fn: async (t) => {
     await doWithTempDir(async (tmpDir) => {

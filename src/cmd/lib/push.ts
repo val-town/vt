@@ -32,7 +32,7 @@ export const pushCmd = new Command()
           console.log(valToPush.author.id, user.id);
           throw new Error(
             "You are not the owner of this val, you cannot push." +
-              "\nTo make a PR, go to the website, fork the val, clone the fork, make changes, push them, and then PR on the website.",
+              "\nTo make a PR, go to the website, fork the Val, clone the fork, make changes, push them, and then PR on the website.",
           );
         }
 
