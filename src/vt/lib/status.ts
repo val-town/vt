@@ -1,4 +1,4 @@
-import sdk, { listValItems } from "~/sdk.ts";
+import { getValItemContent, listValItems } from "~/sdk.ts";
 import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
@@ -164,11 +164,7 @@ async function getValFiles({
         mtime: new Date(file.updatedAt).getTime(),
         content: file.type === "directory"
           ? undefined
-          : await sdk.vals.files.getContent(valId, {
-            path: file.path,
-            branch_id: branchId,
-            version,
-          }).then((resp) => resp.text()),
+          : await getValItemContent(valId, branchId, version, file.path),
       })),
   );
 }
