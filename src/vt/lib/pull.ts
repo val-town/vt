@@ -128,6 +128,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
+
       return [changes, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },

@@ -691,7 +691,13 @@ export class ItemStatusManager {
   /**
    * JSON object representation of the file state.
    */
-  public toJSON() {
+  public toJSON(): {
+    modified: ModifiedItemStatus[];
+    not_modified: NotModifiedItemStatus[];
+    deleted: DeletedItemStatus[];
+    created: CreatedItemStatus[];
+    renamed: RenamedItemStatus[];
+  } {
     return {
       modified: this.modified,
       not_modified: this.not_modified,
