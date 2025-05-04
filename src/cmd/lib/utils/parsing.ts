@@ -6,7 +6,7 @@ import { VAL_TOWN_VAL_URL_REGEX } from "~/consts.ts";
  * - valName (using currentUsername)
  * - Any val.town URL containing /x/username/valName
  *
- * @param {string} valUri - The val identifier to parse
+ * @param {string} valUri - The Val identifier to parse
  * @param {string} currentUsername - Fallback username if not specified
  * @returns The extracted ownerName and valName
  * @throws Error on invalid format

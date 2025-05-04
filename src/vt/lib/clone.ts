@@ -19,15 +19,15 @@ export interface CloneResult {
 }
 
 /**
- * Parameters for cloning a val by downloading its files and directories to the specified
+ * Parameters for cloning a Val by downloading its files and directories to the specified
  * target directory.
  */
 export interface CloneParams {
-  /** The directory where the val will be cloned */
+  /** The directory where the Val will be cloned */
   targetDir: string;
-  /** The id of the val to be cloned */
+  /** The id of the Val to be cloned */
   valId: string;
-  /** The branch ID of the val to clone */
+  /** The branch ID of the Val to clone */
   branchId: string;
   /** The version to clone. Defaults to latest */
   version: number;
@@ -40,7 +40,7 @@ export interface CloneParams {
 }
 
 /**
- * Clones a val by downloading its files and directories to the specified
+ * Clones a Val by downloading its files and directories to the specified
  * target directory.
  *
  * @param params Options for the clone operation
@@ -132,7 +132,7 @@ async function createFile(
   if (!overwrite && fileInfo !== null) {
     // Still add to changes with not_modified status, since we're keeping the file as-is
     const localContent = await Deno.readTextFile(join(originalRoot, path));
-    await changes.insert({
+    changes.insert({
       type: fileType,
       path: file.path,
       status: "not_modified",

@@ -33,7 +33,7 @@ export const remixCmd = new Command()
    vt remix std/reactHonoStarter myNewWebsite
    cd ./myNewWebsite
    vt browse
-   vt watch # syncs changes to val town`,
+   vt watch # syncs changes to Val town`,
   )
   .action(async (
     {
@@ -63,7 +63,7 @@ export const remixCmd = new Command()
         user.username!,
       );
 
-      // Determine val name based on input or generate one if needed
+      // Determine Val name based on input or generate one if needed
       let valName: string;
       if (newValName) {
         // Use explicitly provided name
@@ -74,7 +74,7 @@ export const remixCmd = new Command()
           username: user.username!,
         })
       ) {
-        // Use source val name if it doesn't already exist
+        // Use source Val name if it doesn't already exist
         valName = sourcevalName;
       } else {
         // Generate a unique name with random suffix
@@ -89,7 +89,7 @@ export const remixCmd = new Command()
         // Use explicitly provided target directory
         rootPath = join(Deno.cwd(), targetDir, valName);
       } else {
-        // Default to current directory + val name
+        // Default to current directory + Val name
         rootPath = join(Deno.cwd(), valName);
       }
 

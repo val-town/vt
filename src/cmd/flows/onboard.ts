@@ -68,7 +68,7 @@ export async function onboardFlow(
   });
 
   if (goToWebsite) {
-    console.log("Ensure you select user read & val read+write permissions");
+    console.log("Ensure you select user read & Val read+write permissions");
     await delay(500);
     await open(GET_API_KEY_URL);
     console.log(`Browser opened to ${GET_API_KEY_URL}`);
@@ -76,7 +76,7 @@ export async function onboardFlow(
     console.log();
     console.log(
       "You can get an API key at " + GET_API_KEY_URL +
-        " with val read/write permissions",
+        " with Val read/write permissions",
     );
   }
 

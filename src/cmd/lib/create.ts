@@ -29,7 +29,7 @@ export const createCmd = new Command()
 vt create my-val
 cd ./my-val
 vt browse
-vt watch # syncs changes to val town`,
+vt watch # syncs changes to Val town`,
   )
   .example(
     "Work on an existing val",
@@ -91,7 +91,7 @@ vt checkout main`,
         }
 
         spinner.succeed(
-          `Created ${privacy} val "${valName}" in "${basename(clonePath)}"`,
+          `Created ${privacy} Val "${valName}" in "${basename(clonePath)}"`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {

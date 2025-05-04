@@ -7,7 +7,7 @@ import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
-  name: "create val with existing directory name",
+  name: "create Val with existing directory name",
   permissions: "inherit",
   async fn(c) {
     const user = await getCurrentUser();
@@ -17,7 +17,7 @@ Deno.test({
 
     await doWithTempDir(async (tmpDir) => {
       await c.step(
-        "can create val with name of empty directory",
+        "can create Val with name of empty directory",
         async () => {
           // Create an empty directory
           const emptyDirPath = join(tmpDir, emptyDirValName);
@@ -41,7 +41,7 @@ Deno.test({
       );
 
       await c.step(
-        "cannot create val with name of non-empty directory",
+        "cannot create Val with name of non-empty directory",
         async () => {
           // Create a non-empty directory
           const nonEmptyDirPath = join(tmpDir, nonEmptyDirValName);
@@ -62,7 +62,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "new val in specific directory",
+  name: "new Val in specific directory",
   permissions: "inherit",
   async fn(c) {
     const user = await getCurrentUser();
@@ -84,7 +84,7 @@ Deno.test({
           assertEquals(newVal.author.username, user.username);
         });
 
-        await c.step("make sure the val is cloned", async () => {
+        await c.step("make sure the Val is cloned", async () => {
           assert(
             await exists(join(tmpDir, newValName)),
             "val was not cloned to target",
@@ -130,7 +130,7 @@ Deno.test({
           );
         });
 
-        await c.step("make sure the val is cloned", async () => {
+        await c.step("make sure the Val is cloned", async () => {
           assert(
             await exists(join(tmpDir, newValName)),
             "val was not cloned to target",
@@ -146,7 +146,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "create new val in current working directory",
+  name: "create new Val in current working directory",
   permissions: "inherit",
   async fn(c) {
     const user = await getCurrentUser();
@@ -155,7 +155,7 @@ Deno.test({
 
     try {
       await doWithTempDir(async (tmpDir) => {
-        await c.step("create a new val in current directory", async () => {
+        await c.step("create a new Val in current directory", async () => {
           await runVtCommand([
             "create",
             newValName,
@@ -171,7 +171,7 @@ Deno.test({
         });
 
         await c.step(
-          "make sure the val is cloned to current directory",
+          "make sure the Val is cloned to current directory",
           async () => {
             assert(
               await exists(join(tmpDir, newValName)),

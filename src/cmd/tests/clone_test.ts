@@ -87,7 +87,7 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
-        await t.step("set up the val structure", async () => {
+        await t.step("set up the Val structure", async () => {
           await sdk.vals.files.create(
             val.id,
             {
@@ -119,7 +119,7 @@ Deno.test({
           );
         });
 
-        await t.step("clone the val and assert the structure", async () => {
+        await t.step("clone the Val and assert the structure", async () => {
           const cloneDir = join(tmpDir, "cloned");
           const [output] = await runVtCommand([
             "clone",

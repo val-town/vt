@@ -20,7 +20,7 @@ import { isFileModified } from "~/vt/lib/utils/misc.ts";
 export interface StatusParams {
   /** The directory to scan for changes. */
   targetDir: string;
-  /** The Val Town val ID. */
+  /** The Val Town Val ID. */
   valId: string;
   /** Branch ID to check against. */
   branchId: string;
@@ -32,7 +32,7 @@ export interface StatusParams {
 
 /**
  * Scans a directory and determines the status of all files compared to the Val
- * Town val on the website. Reports status for files as modified, not
+ * Town Val on the website. Reports status for files as modified, not
  * modified, deleted, or created.
  *
  * @param params Options for status operation.
@@ -64,13 +64,13 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
   });
   const valFileMap = new Map(valFiles.map((file) => [file.path, file]));
 
-  // Compare local files against val files
+  // Compare local files against Val files
   for (const localFile of localFiles) {
     const valFileInfo = valFileMap.get(localFile.path);
     const localFilePath = join(targetDir, localFile.path);
 
     if (valFileInfo === undefined) {
-      // File exists locally but not in val - it's created
+      // File exists locally but not in Val - it's created
       const createdFileState: CreatedItemStatus = {
         status: "created",
         type: localFile.type,
@@ -127,7 +127,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  // Check for files that exist in val but not locally
+  // Check for files that exist in Val but not locally
   for (const valFile of valFiles) {
     if (!localFiles.find((f) => f.path === valFile.path)) {
       const deletedFileState: DeletedItemStatus = {

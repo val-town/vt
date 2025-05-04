@@ -17,7 +17,7 @@ export const listCmd = new Command()
     offset = offset ?? 0;
 
     const [myVals, hasMore] = await doWithSpinner(
-      "Loading val list...",
+      "Loading Val list...",
       async (spinner) => {
         const batchSize = allVals ? Infinity : VAL_LIST_BATCH_SIZE;
         const result = await arrayFromAsyncN(

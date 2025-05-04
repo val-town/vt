@@ -53,7 +53,7 @@ export const cloneCmd = new Command()
       let ownerName: string;
       let valName: string;
 
-      // If no val URI is provided, show interactive val selection
+      // If no Val URI is provided, show interactive Val selection
       if (!valUri) {
         const vals = await doWithSpinner(
           "Loading vals...",
@@ -95,7 +95,7 @@ export const cloneCmd = new Command()
         // given
         tty.scrollDown(1);
       } else {
-        // Parse val URI if provided
+        // Parse Val URI if provided
         const parsed = parseValUrl(valUri, user.username!);
         ownerName = parsed.ownerName;
         valName = parsed.valName;

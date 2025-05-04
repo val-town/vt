@@ -18,7 +18,7 @@ export const deleteCmd = new Command()
       const meta = vt.getMeta();
       const vtState = await meta.loadVtState();
 
-      // Get val name for display
+      // Get Val name for display
       const val = await sdk.vals.retrieve(vtState.val.id);
       const valName = val.name;
 
@@ -27,7 +27,7 @@ export const deleteCmd = new Command()
         spinner.stop();
         const shouldDelete = await Confirm.prompt({
           message:
-            `Are you sure you want to delete val "${valName}"? This action cannot be undone.`,
+            `Are you sure you want to delete Val "${valName}"? This action cannot be undone.`,
           default: false,
         });
 

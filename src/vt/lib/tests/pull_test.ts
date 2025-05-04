@@ -312,7 +312,7 @@ Deno.test({
         });
 
         await t.step("pull that creates directories", async () => {
-          // Pull the val to the temp directory
+          // Pull the Val to the temp directory
           const firstPullChanges = await pull({
             targetDir: tempDir,
             valId: val.id,

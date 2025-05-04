@@ -5,7 +5,7 @@ import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
  * JSON schema for the state.json file for the .vt folder.
  *
  * Contains required metadata for operations that require context about the val
- * town directory you are in, like the val that it represents.
+ * town directory you are in, like the Val that it represents.
  */
 export const VTStateSchema = z.object({
   project: z.object({
@@ -29,7 +29,7 @@ export const VTStateSchema = z.object({
     delete result.project;
   }
   return result;
-}); // Silently inject the val field, to prepare for future migration
+}); // Silently inject the Val field, to prepare for future migration
 
 /**
  * JSON schema for the config.yaml file for configuration storage.

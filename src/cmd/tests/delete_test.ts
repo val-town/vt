@@ -38,7 +38,7 @@ Deno.test({
 
           assertStringIncludes(output, "Deletion cancelled");
 
-          // Verify the val still exists
+          // Verify the Val still exists
           assert(
             await valExists(val.id),
             "Val should still exist",
@@ -69,7 +69,7 @@ Deno.test({
             `Val "${val.name}" has been deleted`,
           );
 
-          // Verify the val no longer exists
+          // Verify the Val no longer exists
           assert(
             !await valExists(val.id),
             "Val should no longer exist",

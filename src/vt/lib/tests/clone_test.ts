@@ -48,7 +48,7 @@ Deno.test({
           },
         ];
 
-        await t.step("create val files", async () => {
+        await t.step("create Val files", async () => {
           // Create all files in the val
           for (const file of filesToCreate) {
             // Ensure parent directories exist in path notation
@@ -80,7 +80,7 @@ Deno.test({
 
         await doWithTempDir(async (tempDir) => {
           await t.step("verify cloned files", async () => {
-            // Clone the val to the temp directory
+            // Clone the Val to the temp directory
             await clone({
               targetDir: tempDir,
               valId: val.id,
@@ -143,7 +143,7 @@ Deno.test({
 
         await doWithTempDir(async (tempDir) => {
           await t.step("clone the val", async () => {
-            // Clone the val to the temp directory
+            // Clone the Val to the temp directory
             await clone({
               targetDir: tempDir,
               valId: val.id,

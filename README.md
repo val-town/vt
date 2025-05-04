@@ -85,7 +85,7 @@ First, let's remix a nice starting val.
 ```bash
 $ vt remix std/reactHonoStarter myNewWebsite
 
-√ Remixed "@std/reactHonoStarter" to public val "@you/myNewWebsite"
+√ Remixed "@std/reactHonoStarter" to public Val "@you/myNewWebsite"
 
 $ cd myNewWebsite
 ```
@@ -93,10 +93,10 @@ $ cd myNewWebsite
 ![Your new val!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
 
 Alternatively, you can use `vt create` to create a new empty val. If you don't
-specify a path, the name of the val will automatically be used.
+specify a path, the name of the Val will automatically be used.
 
 When you `remix`, `create`, or `clone` a val, `vt` creates a `.vt` that tracks
-your val metadata. You can think of this like `.git`, it is not meant to be
+your Val metadata. You can think of this like `.git`, it is not meant to be
 manually edited and is used for internal bookkeeping.
 
 `vt` also creates an ignore file, `.vtignore`, which works like `.gitignore`,
@@ -119,7 +119,7 @@ are installed locally.
 Let's start editing our val! Fire up your favorite editor, and then make a
 change to `README.md`.
 
-Now, let's upload this file to your val with `vt push`
+Now, let's upload this file to your Val with `vt push`
 
 ```bash
 Pushed:
@@ -149,7 +149,7 @@ until you run `vt push`. If you don't want this behavior, then you can delete
 them and add `deno.json` and `.vtignore` to the `.vtignore`(the `.vtignore` will
 respect itself being ignored!).
 
-![Browse the val on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
+![Browse the Val on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
 
 Now run `vt browse` to see your file in the Val Town website UI. We advise you
 use `vt` in conjunction with the Val Town website. The CLI can do a lot, but not
@@ -179,7 +179,7 @@ Changes pushed:
 √ Successfully pushed local changes
 ```
 
-Now, if we return to our browser we can see that an http val has been created.
+Now, if we return to our browser we can see that an http Val has been created.
 It's erroring, let's fix that. Write a simple handler to the file:
 
 ```ts
@@ -207,7 +207,7 @@ Oftentimes you'll end up in a workflow that looks like
 4. Repeat
 
 `vt`'s solution to tightening this loop is `vt watch`. With `vt watch`, `vt`
-will automatically run `vt push` when any val files are modified **locally**.
+will automatically run `vt push` when any Val files are modified **locally**.
 
 To get automatic website reloading, check out
 [this live reload middleware](https://www.val.town/x/stevekrouse/live-reload)
@@ -215,7 +215,7 @@ that works by polling Val Town for updates.
 
 ### Branching Out
 
-One common Val Town val workflow is branching out. `vt`'s `checkout` and
+One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 `branch` command work the same as `git`'s.
 
 - `vt checkout <branchName>` checks out the branch as it is on Val Town. You
@@ -231,7 +231,7 @@ One common Val Town val workflow is branching out. `vt`'s `checkout` and
 ### Management
 
 - `vt list` lists all your Val Town vals
-- `vt delete` deletes the current val of the folder you are in (with
+- `vt delete` deletes the current Val of the folder you are in (with
   confirmation).
 
 ## Configuration
@@ -250,7 +250,7 @@ Right now, we offer the following configuration options:
 
 - `dangerousOperations.confirmation`: Whether to do confirmations on actions
   that might cause you to lose local state, like `vt pull`.
-- `editorTemplate`: The val URI for the editor files that you are prompted about
+- `editorTemplate`: The Val URI for the editor files that you are prompted about
   when you run a `vt clone`, `vt remix`, or `vt create`.
 
 ## LLMs

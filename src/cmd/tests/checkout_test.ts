@@ -42,8 +42,8 @@ Deno.test({
           );
         });
 
-        await t.step("clone the val and modify it", async () => {
-          // Clone the val (defaults to main branch)
+        await t.step("clone the Val and modify it", async () => {
+          // Clone the Val (defaults to main branch)
           await runVtCommand(
             ["clone", val.name, "--no-editor-files"],
             tmpDir,
@@ -120,7 +120,7 @@ Deno.test({
           );
         });
 
-        await t.step("clone val and make local changes", async () => {
+        await t.step("clone Val and make local changes", async () => {
           await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
           originalFilePath = join(fullPath, "original.txt");
@@ -229,7 +229,7 @@ Deno.test({
           },
         );
 
-        // Clone the val (defaults to main branch)
+        // Clone the Val (defaults to main branch)
         await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         const fullPath = join(tmpDir, val.name);
 
@@ -429,7 +429,7 @@ Deno.test({
           },
         );
 
-        // Clone the val (defaults to main branch)
+        // Clone the Val (defaults to main branch)
         await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
         const fullPath = join(tmpDir, val.name);
 

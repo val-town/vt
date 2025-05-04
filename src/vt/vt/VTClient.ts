@@ -37,7 +37,7 @@ import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
  * The VTClient class is an abstraction on a VT directory that exposes
  * functionality for running vt library functions like "clone" or "push."
  *
- * With a VTClient you can do things like clone a val town Val, or
+ * With a VTClient you can do things like clone a Val town Val, or
  * pull/push a Val Town Val.
  *
  * @param {string} rootPath - The root path of the VT directory
@@ -69,7 +69,7 @@ export default class VTClient {
 
   /**
    * Adds editor configuration files to the target directory by "underlaying" a
-   * default val town val.
+   * default Val town val.
    */
   public async addEditorTemplate(): Promise<void> {
     const user = await getCurrentUser();
@@ -104,8 +104,8 @@ export default class VTClient {
    * @param {string} rootPath The root path where the VT instance will be initialized
    * @param args The arguments for initialization
    * @param {string} args.rootPath The root path of the VT directory
-   * @param {string} args.username The username of the val owner
-   * @param {number} args.version The version of the val to initialize. -1 for latest version
+   * @param {string} args.username The username of the Val owner
+   * @param {number} args.version The version of the Val to initialize. -1 for latest version
    * @param {string} args.valName The name of the val
    * @param {string} args.branchName The branch name to initialize
    * @returns {Promise<VTClient>} A new VTClient instance
@@ -220,7 +220,7 @@ export default class VTClient {
           // just been a temporary file, but since it no longer exists it
           // isn't our problem.
         } else if (e instanceof ValTown.APIError && e.status === 404) {
-          // The val we're trying to update doesn't exist on the server. This
+          // The Val we're trying to update doesn't exist on the server. This
           // is usually a result of starting a deletion and then trying to
           // delete a second time because of duplicate file system events.
         } else throw e;
@@ -244,12 +244,12 @@ export default class VTClient {
   }
 
   /**
-   * Create a new Val Town val and initialize a VT instance for it.
+   * Create a new Val Town Val and initialize a VT instance for it.
    *
    * @param {Object} options - The options for creating a new val
    * @param {string} options.rootPath - The root path where the VT instance will be initialized
-   * @param {string} options.valName - The name of the val to create
-   * @param {string} options.username - The username of the val owner
+   * @param {string} options.valName - The name of the Val to create
+   * @param {string} options.username - The username of the Val owner
    * @param {'public' | 'private' | 'unlisted'} options.privacy - The privacy setting for the val
    * @param {string} [options.description] - Optional description for the val
    * @returns {Promise<VTClient>} A new VTClient instance
@@ -277,7 +277,7 @@ export default class VTClient {
       description,
     });
 
-    // Get the val branch
+    // Get the Val branch
     const branch = await branchNameToBranch(newValId, DEFAULT_BRANCH_NAME);
     if (!branch) throw new Error(`Branch "${DEFAULT_BRANCH_NAME}" not found`);
 
@@ -290,13 +290,13 @@ export default class VTClient {
   }
 
   /**
-   * Remix an existing Val Town val and initialize a VT instance for it.
+   * Remix an existing Val Town Val and initialize a VT instance for it.
    *
    * @param {Object} options - The options for remixing a val
    * @param {string} options.rootPath - The root path where the VT instance will be initialized
-   * @param {string} options.srcValUsername - The username of the source val owner
-   * @param {string} options.srcValName - The name of the source val to remix
-   * @param {string} [options.srcBranchName] - The branch name of the source val to remix (defaults to main)
+   * @param {string} options.srcValUsername - The username of the source Val owner
+   * @param {string} options.srcValName - The name of the source Val to remix
+   * @param {string} [options.srcBranchName] - The branch name of the source Val to remix (defaults to main)
    * @param {string} options.dstValName - The name for the new remixed val
    * @param {'public' | 'private' | 'unlisted'} options.dstValPrivacy - The privacy setting for the new val
    * @param {string} [options.description] - Optional description for the new val
@@ -350,12 +350,12 @@ export default class VTClient {
   }
 
   /**
-   * Clone a Val Town val into a directory.
+   * Clone a Val Town Val into a directory.
    *
    * @param {object} params - Clone parameters
-   * @param {string} params.rootPath - The directory to clone the val into
-   * @param {string} params.username - The username of the val owner
-   * @param {string} params.valName - The name of the val to clone
+   * @param {string} params.rootPath - The directory to clone the Val into
+   * @param {string} params.username - The username of the Val owner
+   * @param {string} params.valName - The name of the Val to clone
    * @param {number} [params.version] - Optional specific version to clone, defaults to latest
    * @param {string} [params.branchName] - Optional branch name to clone, defaults to main
    * @returns {Promise<VTClient>} A new VTClient instance for the cloned val
@@ -398,7 +398,7 @@ export default class VTClient {
   }
 
   /**
-   * Delete the val town val.
+   * Delete the Val town val.
    */
   public async delete(): Promise<void> {
     // Don't need to use doWithConfig since the config will get destructed
@@ -415,7 +415,7 @@ export default class VTClient {
   }
 
   /**
-   * Get the status of files in the val directory compared to the Val Town
+   * Get the status of files in the Val directory compared to the Val Town
    * val.
    *
    * @param {Object} options - Options for status check
@@ -440,7 +440,7 @@ export default class VTClient {
   }
 
   /**
-   * Pull val town val into a vt directory. Updates all the files in the
+   * Pull Val town Val into a vt directory. Updates all the files in the
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *

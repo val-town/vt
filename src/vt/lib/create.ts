@@ -19,27 +19,27 @@ interface CreateResponse {
 }
 
 /**
- * Parameters for creating a new Val Town val from a local directory.
+ * Parameters for creating a new Val Town Val from a local directory.
  */
 export interface CreateParams {
   /** The root directory containing the files to upload to the new val. */
   sourceDir: string;
   /** The name for the new val. */
   valName: string;
-  /** Optional val description. Defaults to that of the val being remixed. */
+  /** Optional Val description. Defaults to that of the Val being remixed. */
   description?: string;
-  /** Privacy setting for the val. Defaults to that of the val being remixed. */
+  /** Privacy setting for the val. Defaults to that of the Val being remixed. */
   privacy?: ValPrivacy;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
 }
 
 /**
- * Creates a new Val Town val from a local directory.
+ * Creates a new Val Town Val from a local directory.
  *
  * @param {CreateParams} params Options for create operation.
  *
- * @returns Promise that resolves with changes that were applied during the push operation and the new val ID.
+ * @returns Promise that resolves with changes that were applied during the push operation and the new Val ID.
  */
 export async function create(
   params: CreateParams,
@@ -54,7 +54,7 @@ export async function create(
 
   await ensureDir(sourceDir);
 
-  // Create a new val in Val Town
+  // Create a new Val in Val Town
   const newval = await sdk.vals.create({
     name: valName,
     description,

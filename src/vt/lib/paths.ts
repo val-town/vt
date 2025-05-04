@@ -8,11 +8,11 @@ import { compile as compileGitignore } from "gitignore-parser";
 import type { ValItemType } from "~/types.ts";
 
 /**
- * Determine the type of a val file.
+ * Determine the type of a Val file.
  *
  * This function attempts to determine the type of a file within a val
  * based on its existing state on the server or its filename. The process...
- * 1. Check if the file already exists in the val at the specified path.
+ * 1. Check if the file already exists in the Val at the specified path.
  *    Check at the current version, or at a few versions back, in case the file
  *    was deleted but then recreated, so we preserve the type.
  * 2. If the file does not exist, determine its type based on its file extension:
@@ -22,15 +22,15 @@ import type { ValItemType } from "~/types.ts";
  *      - If multiple keywords are found, default to "script".
  *      - Otherwise, return "interval" for "cron", "http" for "http", etc
  *      - Default to "script" if no keywords are found.
- * 3. If the file does not match the val extension criteria (.ts + optional
+ * 3. If the file does not match the Val extension criteria (.ts + optional
  *    identifier), return "file".
  *
  * @param {string} valId - The ID of the val
  * @param {Object} options - Options for determining the file type
  * @param {string} options.branchId - The ID of the branch
- * @param {number} [options.version] - The version of the val (optional, defaults to latest)
- * @param {string} options.filePath - The path of the val or file to get the type of
- * @returns {Promise<ValItemType>} The val file type
+ * @param {number} [options.version] - The version of the Val (optional, defaults to latest)
+ * @param {string} options.filePath - The path of the Val or file to get the type of
+ * @returns {Promise<ValItemType>} The Val file type
  */
 export async function getvalItemType(
   valId: string,
@@ -57,13 +57,13 @@ export async function getvalItemType(
     const isHttp = filePath.includes("http");
     const isEmail = filePath.includes("email");
 
-    // If it's ambiguous then it is a script val by default
+    // If it's ambiguous then it is a script Val by default
     if ([isCron, isHttp, isEmail].filter(Boolean).length > 1) {
       return DEFAULT_VAL_TYPE;
     }
 
     // But otherwise look at the file name and try to figure out what type
-    // of val it is based on whether the file name contains a pattern like
+    // of Val it is based on whether the file name contains a pattern like
     // "cron," etc
     if (isCron) return "interval";
     if (isHttp) return "http";

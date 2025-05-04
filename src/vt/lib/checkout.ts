@@ -31,7 +31,7 @@ export interface CheckoutResult {
 export type BaseCheckoutParams = {
   /** The directory where the branch will be checked out */
   targetDir: string;
-  /** The ID of the val */
+  /** The ID of the Val */
   valId: string;
   /** If true, simulates the checkout without making changes */
   dryRun?: boolean;

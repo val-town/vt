@@ -12,7 +12,7 @@ import {
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 export interface PushResult {
-  /** Changes made to val items during the push process */
+  /** Changes made to Val items during the push process */
   itemStateChanges: ItemStatusManager;
 }
 
@@ -20,9 +20,9 @@ export interface PushResult {
  * Parameters for pushing latest changes from a vt folder into a Val Town val.
  */
 export interface PushParams {
-  /** The vt val root directory. */
+  /** The vt Val root directory. */
   targetDir: string;
-  /** The id of the val to upload to. */
+  /** The id of the Val to upload to. */
   valId: string;
   /** The branch ID to upload to. */
   branchId: string;
@@ -83,7 +83,7 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((item) => item.warnings?.length === 0) // no warnings
     .forEach((item) => safeItemStateChanges.insert(item));
 
-  // Get existing val items to check which directories already exist
+  // Get existing Val items to check which directories already exist
   const existingItems = await listValItems(
     valId,
     branchId,

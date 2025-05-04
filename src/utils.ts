@@ -120,7 +120,7 @@ export async function dirIsEmpty(path: string | URL): Promise<boolean> {
 }
 
 /**
- * Heuristic val town uses to detect whether a file is utf 8.
+ * Heuristic Val town uses to detect whether a file is utf 8.
  */
 export function hasNullBytes(str: string): boolean {
   return str.includes("\0");

@@ -25,7 +25,7 @@ Deno.test({
         const createTimes: { path: string; time: number }[] = [];
 
         await t.step(
-          "setup by cloneing val and starting watch process",
+          "setup by cloneing Val and starting watch process",
           async () => {
             await runVtCommand(
               ["clone", val.name, "--no-editor-files"],
@@ -72,7 +72,7 @@ Deno.test({
                       `rapid-file-${i - 1}.js`,
                       await getLatestVersion(val.id, branch.id),
                     ),
-                    "file should exist in val after upload",
+                    "file should exist in Val after upload",
                   );
                 }
 

@@ -20,7 +20,7 @@ export const browseCmd = new Command()
     );
 
     if (browser) {
-      await doWithSpinner("Opening val url...", async (spinner) => {
+      await doWithSpinner("Opening Val url...", async (spinner) => {
         await open(branch.links.html);
         await delay(150);
         spinner.succeed(`Val url opened in browser:\n${branch.links.html}`);

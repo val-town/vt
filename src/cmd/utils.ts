@@ -3,11 +3,11 @@ import { join } from "@std/path";
 import Kia from "kia";
 
 /**
- * Determines the clone path based on the provided directory and val name
+ * Determines the clone path based on the provided directory and Val name
  *
- * @param specifiedTarget Optional directory where the val should be cloned
- * @param valName Name of the val being cloned
- * @returns The absolute path where the val will be cloned
+ * @param specifiedTarget Optional directory where the Val should be cloned
+ * @param valName Name of the Val being cloned
+ * @returns The absolute path where the Val will be cloned
  */
 export function getClonePath(
   specifiedTarget: string | undefined,

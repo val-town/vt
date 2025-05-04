@@ -15,7 +15,7 @@ Deno.test({
         const localFakeApiKey = crypto.randomUUID().slice(0, 33);
         const globalFakeApiKey = crypto.randomUUID().slice(0, 33);
 
-        await t.step("clone a new val to set the config in", async () => {
+        await t.step("clone a new Val to set the config in", async () => {
           // Clone the val
           await runVtCommand(
             ["clone", val.name, "--no-editor-files"],
@@ -51,7 +51,7 @@ Deno.test({
           // Verify get output
           assertStringIncludes(getOutput, localFakeApiKey);
 
-          // Verify .vt/config.yaml exists in the val directory and contains the key
+          // Verify .vt/config.yaml exists in the Val directory and contains the key
           assert(
             await exists(join(valDir, ".vt", "config.yaml")),
             "Local config file should exist",

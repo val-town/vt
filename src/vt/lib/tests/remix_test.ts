@@ -7,13 +7,13 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { getCurrentUser } from "~/sdk.ts";
 
 Deno.test({
-  name: "remix preserves HTTP val type",
+  name: "remix preserves HTTP Val type",
   permissions: "inherit",
   async fn(t) {
     const user = await getCurrentUser();
 
     await doWithNewVal(async ({ val }) => {
-      // Create an HTTP val in the source val
+      // Create an HTTP Val in the source val
       const httpValName = "foo_http";
       await sdk.vals.files.create(
         val.id,
@@ -30,7 +30,7 @@ Deno.test({
         const remixedvalName = `${val.name}_remixed`;
 
         // Remix the val
-        await t.step("remix val with HTTP val", async () => {
+        await t.step("remix Val with HTTP val", async () => {
           const result = await remix({
             targetDir: destTmpDir,
             srcValId: val.id,
@@ -40,26 +40,26 @@ Deno.test({
           });
 
           // Check that the result contains expected data
-          assert(result.toValId, "Should return a val ID");
+          assert(result.toValId, "Should return a Val ID");
           assert(result.toVersion > 0, "Should return a valid version");
           assert(
             result.fileStateChanges.created.length > 0,
             "Should have created files",
           );
 
-          // Check that the HTTP val exists in the remixed val
+          // Check that the HTTP Val exists in the remixed val
           const remixedHttpValPath = join(destTmpDir, `${httpValName}.ts`);
 
           assert(
             await exists(remixedHttpValPath),
-            "HTTP val file should exist in remixed val",
+            "HTTP Val file should exist in remixed val",
           );
 
           // Check the file content
           const content = await Deno.readTextFile(remixedHttpValPath);
           assert(
             content.includes("export default function handler(req: Request)"),
-            "HTTP val signature should be preserved",
+            "HTTP Val signature should be preserved",
           );
 
           // Verify the file type was preserved
@@ -71,7 +71,7 @@ Deno.test({
           assertEquals(
             remixedFile.type,
             "http",
-            "HTTP val type should be preserved in remixed val",
+            "HTTP Val type should be preserved in remixed val",
           );
         });
 
@@ -103,13 +103,13 @@ Deno.test({
           privacy: "private",
         });
 
-        // Verify the val was created with private visibility
+        // Verify the Val was created with private visibility
         const remixedval = await sdk.vals.retrieve(result.toValId);
 
         assertEquals(
           remixedval.privacy,
           "private",
-          "Remixed val should have private visibility",
+          "Remixed Val should have private visibility",
         );
 
         // Clean up
@@ -145,7 +145,7 @@ Deno.test({
         assertEquals(
           remixedval.description,
           customDescription,
-          "remixed val should have the custom description",
+          "remixed Val should have the custom description",
         );
 
         // Clean up
@@ -205,7 +205,7 @@ Deno.test({
           const nestedFilePath = join(destTmpDir, "nested/file.txt");
           assert(
             await exists(nestedFilePath),
-            "nested file should exist in remixed val with directory structure preserved",
+            "nested file should exist in remixed Val with directory structure preserved",
           );
 
           // Verify file contents were copied correctly
@@ -223,7 +223,7 @@ Deno.test({
             "nested file content should be preserved",
           );
 
-          // Verify the val exists on Val Town
+          // Verify the Val exists on Val Town
           const remixedval = await sdk.vals.retrieve(
             result.toValId,
           );
@@ -231,7 +231,7 @@ Deno.test({
           assertEquals(
             remixedval.name,
             remixedvalName,
-            "val should exist on val town with correct name",
+            "val should exist on Val town with correct name",
           );
         });
 

@@ -87,7 +87,7 @@ export const checkoutCmd = new Command()
 
             if (isNewBranch) {
               // Early exit if they are trying to make a new branch on a
-              // val that they don't own
+              // Val that they don't own
               const valToPush = await sdk.vals.retrieve(
                 vtState.val.id,
               );

@@ -10,12 +10,12 @@ import { clone } from "~/vt/lib/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 
 /**
- * Parameters for pulling latest changes from a Val Town val into a vt folder.
+ * Parameters for pulling latest changes from a Val Town Val into a vt folder.
  */
 export interface PullParams {
-  /** The vt val root directory. */
+  /** The vt Val root directory. */
   targetDir: string;
-  /** The id of the val to download from. */
+  /** The id of the Val to download from. */
   valId: string;
   /** The branch ID to download file content from. */
   branchId: string;
@@ -28,18 +28,18 @@ export interface PullParams {
 }
 
 /**
- * Pulls latest changes from a Val Town val into a vt folder.
+ * Pulls latest changes from a Val Town Val into a vt folder.
  *
  * @param {PullParams} params Options for pull operation.
  *
  * @description
  * After a pull:
- * - All files from the remote val exist at the remote's version's location locally
+ * - All files from the remote Val exist at the remote's version's location locally
  * - Local files that match gitignore rules are preserved at their current path
  * - Untracked local files that were never pushed are preserved
  *
  * Files that are removed:
- * - Files that previously existed in the remote val but were deleted
+ * - Files that previously existed in the remote Val but were deleted
  *
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
@@ -65,7 +65,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
         overwrite: true,
       });
 
-      // Clone all the files from the val into the temp dir. This
+      // Clone all the files from the Val into the temp dir. This
       // implicitly will overwrite files with the current version on the
       // server.
       const { itemStateChanges: cloneChanges } = await clone({

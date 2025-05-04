@@ -52,7 +52,7 @@ export const configSetCmd = new Command()
   .action(
     async ({ global }: { global?: boolean }, key: string, value: string) => {
       await doWithSpinner("Updating configuration...", async (spinner) => {
-        // Check if we're in a Val Town val directory
+        // Check if we're in a Val Town Val directory
         const vtRoot = await findVtRoot(Deno.cwd()).catch((e) => {
           if (e instanceof Deno.errors.NotFound) return undefined;
           else throw e;
@@ -115,7 +115,7 @@ export const configGetCmd = new Command()
   .alias("show")
   .action(async (_: unknown, key?: string) => {
     await doWithSpinner("Retreiving configuration...", async (spinner) => {
-      // Check if we're in a Val Town val directory
+      // Check if we're in a Val Town Val directory
       const vtRoot = await findVtRoot(Deno.cwd()).catch((e) => {
         if (e instanceof Deno.errors.NotFound) return undefined;
         else throw e;

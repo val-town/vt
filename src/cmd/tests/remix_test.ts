@@ -15,7 +15,7 @@ Deno.test({
 
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val }) => {
-        // Create a source val to remix
+        // Create a source Val to remix
         const sourcevalName = val.name;
         const remixedvalName = `${sourcevalName}_remixed`;
 
@@ -32,7 +32,7 @@ Deno.test({
             `Remixed "@${user.username}/${sourcevalName}" to public Val "@${user.username}/${remixedvalName}"`,
           );
 
-          // Verify the remixed val directory exists
+          // Verify the remixed Val directory exists
           const remixedvalPath = join(tmpDir, remixedvalName);
           assert(
             await exists(remixedvalPath),
@@ -172,7 +172,7 @@ Deno.test({
           const sourcevalName = val.name;
           const remixedvalName = `${sourcevalName}_http_preserved`;
 
-          // Clone the val to the source directory
+          // Clone the Val to the source directory
           await runVtCommand([
             "clone",
             `${user.username}/${sourcevalName}`,
@@ -180,7 +180,7 @@ Deno.test({
             "--no-editor-files",
           ], ".");
 
-          // Create an HTTP val in the source val
+          // Create an HTTP Val in the source val
           const httpValName = "foo_http";
           const httpValPath = join(srcTmpDir, `${httpValName}.ts`);
 
@@ -195,7 +195,7 @@ Deno.test({
           await runVtCommand(["push"], srcTmpDir, { autoConfirm: true });
 
           // Remix the val
-          await t.step("remix val with HTTP val", async () => {
+          await t.step("remix Val with HTTP val", async () => {
             await runVtCommand([
               "remix",
               `${user.username}/${sourcevalName}`,
@@ -203,7 +203,7 @@ Deno.test({
               "--no-editor-files",
             ], destTmpDir);
 
-            // Check that the HTTP val exists in the remixed val
+            // Check that the HTTP Val exists in the remixed val
             const remixedvalPath = join(destTmpDir, remixedvalName);
             const remixedHttpValPath = join(
               remixedvalPath,
