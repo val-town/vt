@@ -92,8 +92,7 @@ async function doProfileCase(
             args,
             cwd: dirPath,
           });
-          const {stdout} = await command.output();
-          console.log(new TextDecoder().decode(stdout));
+          await command.output();
         }
       }
     } else {
