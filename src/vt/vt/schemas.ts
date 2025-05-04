@@ -13,7 +13,7 @@ export const VTStateSchema = z.object({
   }).optional(),
   val: z.object({
     id: z.string().uuid(),
-  }).catch(() => ({ id: "000-0000-0000-0000-000000000000" })), // We never hit the catch block, but we need it to do what a "!" would
+  }),
   branch: z.object({
     id: z.string().uuid(),
     version: z.number().gte(0),
