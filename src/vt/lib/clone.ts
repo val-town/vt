@@ -167,10 +167,11 @@ async function createFile(
     );
 
     const modified = isFileModified({
-      srcContent: localContent,
-      srcMtime: localMtime,
-      dstContent: valContent,
-      dstMtime: valMtime,
+      remoteContent: valContent,
+      remoteMtime: valMtime,
+      localContent: localContent,
+      localMtime: localMtime,
+      where: "remote",
     });
 
     if (modified) {

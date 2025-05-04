@@ -85,10 +85,11 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
         const localStat = await Deno.stat(path.join(targetDir, localFile.path));
         // File exists in both places, check if modified
         const isModified = isFileModified({
-          srcContent: localFile.content!, // We know it isn't a dir, so there should be content
-          srcMtime: localFile.mtime,
-          dstContent: valFileInfo.content!,
-          dstMtime: valFileInfo.mtime,
+          localContent: localFile.content!, // We know it isn't a dir, so there should be content
+          localMtime: localFile.mtime,
+          remoteContent: valFileInfo.content!,
+          remoteMtime: valFileInfo.mtime,
+          where: "both",
         });
 
         if (isModified) {

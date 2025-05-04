@@ -75,21 +75,27 @@ export async function doAtomically<T>(
  * @returns {boolean} True if the file has been modified, false otherwise
  */
 export function isFileModified({
-  srcContent,
-  srcMtime,
-  dstContent,
-  dstMtime,
+  localContent,
+  localMtime,
+  remoteContent,
+  remoteMtime,
+  where,
 }: {
-  srcContent: string;
-  srcMtime: number;
-  dstContent: string;
-  dstMtime: number;
+  localContent: string;
+  localMtime: number;
+  remoteContent: string;
+  remoteMtime: number;
+  where: "local" | "remote" | "both";
 }): boolean {
-  // First use the mtime as a heuristic to avoid unnecessary content checks
-  if (srcMtime === dstMtime) return false;
+  // If the local mtime is not newer than the remote mtime, it hasn't changed
+  if (where === "local" && localMtime <= remoteMtime) return false;
+  // Likewise, if the remote mtime is not newer than the local mtime, it hasn't changed
+  if (where === "remote" && remoteMtime <= localMtime) return false;
+  // If both mtime are the same, no need to check content
+  if (where === "both" && localMtime === remoteMtime) return false; 
 
   // If mtime indicates a possible change, check content
-  return srcContent !== dstContent;
+  return localContent !== remoteContent;
 }
 
 /**
