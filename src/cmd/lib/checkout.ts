@@ -253,14 +253,14 @@ export const checkoutCmd = new Command()
                 }),
               );
               // If no changes nothing was printed, so we don't need to log state info
-              if (checkoutResult.fileStateChanges.changes() > 0) console.log();
+              if (checkoutResult.fileStateChanges.changes() > 0) console.log("\n");
 
               // Report the success, which is either a successful switch or a
               // successful fork
               tty.scrollDown(1);
               spinner.succeed(
                 isNewBranch
-                  ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
+                  ? `\nCreated and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
                   : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
               );
             }
