@@ -252,6 +252,7 @@ export default class VTClient {
    * @param {string} options.username - The username of the Val owner
    * @param {'public' | 'private' | 'unlisted'} options.privacy - The privacy setting for the val
    * @param {string} [options.description] - Optional description for the val
+   * @param {boolean} [options.requireEmptyDir] - Whether to require an empty directory (default: true)
    * @returns {Promise<VTClient>} A new VTClient instance
    */
   public static async create({
@@ -260,14 +261,16 @@ export default class VTClient {
     username,
     privacy,
     description,
+    requireEmptyDir = true,
   }: {
     rootPath: string;
     valName: string;
     username: string;
     privacy: "public" | "private" | "unlisted";
     description?: string;
+    requireEmptyDir?: boolean;
   }): Promise<VTClient> {
-    await assertSafeDirectory(rootPath);
+    if (requireEmptyDir) await assertSafeDirectory(rootPath);
 
     // First create the val
     const { newValId: newValId } = await create({
@@ -286,6 +289,7 @@ export default class VTClient {
       username,
       valName,
       rootPath,
+      assertEmtpyDir: false,
     });
   }
 
@@ -366,14 +370,18 @@ export default class VTClient {
     valName,
     version,
     branchName = DEFAULT_BRANCH_NAME,
+    assertEmtpyDir = true,
   }: {
     rootPath: string;
     username: string;
     valName: string;
     version?: number;
     branchName?: string;
+    assertEmtpyDir?: boolean;
   }): Promise<VTClient> {
-    await assertSafeDirectory(rootPath);
+    if (assertEmtpyDir) {
+      await assertSafeDirectory(rootPath);
+    }
 
     const vt = await VTClient.init({
       rootPath,
@@ -609,7 +617,9 @@ async function assertSafeDirectory(rootPath: string) {
   // If the directory exists, that is only OK if it is empty
   if (await exists(rootPath) && !await dirIsEmpty(rootPath)) {
     throw new Error(
-      `"${relative(Deno.cwd(), rootPath)}" already exists and is not empty`,
+      `Directory "${
+        relative(Deno.cwd(), rootPath) || "."
+      }" already exists and is not empty`,
     );
   }
 }

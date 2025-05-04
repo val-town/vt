@@ -42,7 +42,7 @@ Deno.test({
           );
         });
 
-        await t.step("clone the Val and modify it", async () => {
+        await t.step("clone the Val nd modify it", async () => {
           // Clone the Val (defaults to main branch)
           await runVtCommand(
             ["clone", val.name, "--no-editor-files"],
