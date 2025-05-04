@@ -420,7 +420,8 @@ Deno.test({
             "-f",
           ], fullPath);
 
-          assertStringIncludes( forceCheckoutOutput,
+          assertStringIncludes(
+            forceCheckoutOutput,
             'Switched to branch "main"',
           );
         });
