@@ -3,7 +3,7 @@ import { Secret } from "@cliffy/prompt/secret";
 import { colors } from "@cliffy/ansi/colors";
 import open from "open";
 import {
-  DEFAULT_WRAP_AMOUNT,
+  DEFAULT_WRAP_WIDTH,
   GET_API_KEY_URL,
   GLOBAL_VT_CONFIG_PATH,
   VT_README_URL,
@@ -22,15 +22,15 @@ function welcomeToVt(): void {
 
   console.log(wrap(
     colors.bold("VT") +
-      " is a companion CLI to interface with Val Town projects.",
-    { width: DEFAULT_WRAP_AMOUNT },
+      " is a companion CLI to interface with Val Town vals.",
+    { width: DEFAULT_WRAP_WIDTH },
   ));
   console.log();
 
-  console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_AMOUNT }));
+  console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_WIDTH }));
 
   [
-    "Create and manage Val Town projects",
+    "Create and manage Val Town vals",
     "Push and pull changes between your local system and Val Town",
     "Watch a directory to keep it automatically synced with Val Town",
     "And more!",
@@ -43,13 +43,24 @@ function welcomeToVt(): void {
  * The onboarding flow for users using vt for the first time. This handles
  * walking the user through setting their API key and informing them on how to
  * get started.
+ *
+ * @param options Options for the onboarding flow
+ * @param options.showWelcome Whether to show the welcome message
+ * @param options.showApiKeyPrompt Whether to show the API key prompt
+ * @param options.openBrowser Whether to open the browser to get the API key
  */
-export async function onboardFlow(): Promise<void> {
-  welcomeToVt();
-  console.log();
+export async function onboardFlow(
+  options?: { showWelcome?: boolean },
+): Promise<void> {
+  options = options || {};
 
-  console.log("  To get started, you need to authenticate with Val Town.");
-  console.log();
+  if (options.showWelcome) {
+    welcomeToVt();
+    console.log();
+
+    console.log("  To get started, you need to authenticate with Val Town.");
+    console.log();
+  }
 
   const goToWebsite: boolean = await Confirm.prompt({
     message:
@@ -57,7 +68,7 @@ export async function onboardFlow(): Promise<void> {
   });
 
   if (goToWebsite) {
-    console.log("Ensure you select user read & project read+write permissions");
+    console.log("Ensure you select user read & Val read+write permissions");
     await delay(500);
     await open(GET_API_KEY_URL);
     console.log(`Browser opened to ${GET_API_KEY_URL}`);
@@ -65,7 +76,7 @@ export async function onboardFlow(): Promise<void> {
     console.log();
     console.log(
       "You can get an API key at " + GET_API_KEY_URL +
-        " with project read/write permissions",
+        " with Val read/write permissions",
     );
   }
 

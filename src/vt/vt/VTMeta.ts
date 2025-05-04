@@ -13,7 +13,7 @@ import { basename, join } from "@std/path";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
- * to mutate and retreive them. It maintains the state of the vt folder. Used
+ * to mutate and retrieve them. It maintains the state of the vt folder. Used
  * internally by VTClient.
  */
 export default class VTMeta {

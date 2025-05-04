@@ -1,31 +1,51 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
+import "@std/dotenv/load";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
+import { onboardFlow } from "~/cmd/flows/onboard.ts";
+import { API_KEY_KEY } from "~/consts.ts";
+import { colors } from "@cliffy/ansi/colors";
 
 await ensureGlobalVtConfig();
 
-import { onboardFlow } from "~/cmd/flows/onboard.ts";
-import { API_KEY_KEY } from "~/consts.ts";
+async function isApiKeyValid(): Promise<boolean> {
+  const apiKey = Deno.env.get(API_KEY_KEY);
+  if (!apiKey) return false;
 
-async function ensureApiKey() {
-  // Check if API key is already in environment
-  if (Deno.env.get(API_KEY_KEY) === undefined) {
-    // Try to load from config first
-    {
-      const { apiKey } = await globalConfig.loadConfig();
-      if (apiKey) {
-        Deno.env.set(API_KEY_KEY, apiKey);
-        return;
-      }
+  const resp = await fetch("https://api.val.town/v1/me", {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  return resp.status !== 401;
+}
+
+async function ensureValidApiKey() {
+  if (Deno.env.has(API_KEY_KEY) && await isApiKeyValid()) return;
+
+  {
+    const { apiKey } = await globalConfig.loadConfig();
+    if (apiKey) {
+      Deno.env.set(API_KEY_KEY, apiKey);
+
+      // Validate the loaded key
+      if (await isApiKeyValid()) return;
+
+      console.log(
+        colors.red("Your saved API key is no longer valid.") +
+          " This happens when it expires or is revoked.",
+      );
+      console.log();
+      await onboardFlow({ showWelcome: false });
+    } else {
+      console.log("Let's set up your Val Town API key.");
+      await onboardFlow();
     }
+  }
 
-    // Run onboarding to ensure config exists
-    await onboardFlow();
-
-    // Load config again after onboarding
-    {
-      const { apiKey } = await globalConfig.loadConfig();
-      if (apiKey) {
-        Deno.env.set(API_KEY_KEY, apiKey);
+  {
+    const { apiKey } = await globalConfig.loadConfig();
+    if (apiKey) {
+      Deno.env.set(API_KEY_KEY, apiKey);
+      if (await isApiKeyValid()) {
+        return;
       }
     }
   }
@@ -37,6 +57,6 @@ async function startVt() {
 }
 
 if (import.meta.main) {
-  await ensureApiKey();
+  await ensureValidApiKey();
   await startVt();
 }
