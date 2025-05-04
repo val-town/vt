@@ -61,7 +61,7 @@ export async function runVtCommand(
     deadlineMs?: number;
   } = {},
 ): Promise<[string, number]> {
-  const { autoConfirm = true, deadlineMs = 5_000 } = options;
+  const { autoConfirm = true, deadlineMs = 8_000 } = options;
 
   return await doWithTempDir(async (tmpDir) => {
     const process = runVtProc(args, cwd, {

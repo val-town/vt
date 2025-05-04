@@ -14,7 +14,7 @@ async function isApiKeyValid(): Promise<boolean> {
   const resp = await fetch("https://api.val.town/v1/me", {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
-  return resp.ok;
+  return resp.status !== 401;
 }
 
 async function ensureValidApiKey() {
