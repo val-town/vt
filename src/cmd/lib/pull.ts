@@ -48,7 +48,6 @@ export const pullCmd = new Command()
 
           // No need to confirm since they are just doing a dry run
           if (dryRun) return;
-          console.log();
 
           // Ask for confirmation to proceed despite dirty state
           const shouldProceed = await Confirm.prompt({

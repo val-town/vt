@@ -104,3 +104,6 @@ export const VAL_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
 export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
+
+export const AUTH_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+export const AUTH_CACHE_LOCALSTORE_ENTRY = "vt_last_auth_cache";

@@ -1,6 +1,6 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk from "~/sdk.ts";
+import sdk, { getLatestVersion, getValItem } from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -161,6 +161,62 @@ Deno.test({
               "empty directory should be created explicitly",
             );
           });
+        });
+      });
+    });
+  },
+});
+
+Deno.test({
+  name: "test preserving updatedAt time",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithNewVal(async ({ val, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        const filePath = "hello.md";
+        const fileContent = "# Hello World";
+        let originalUpdatedAt: number;
+
+        await t.step("create and upload hello.md", async () => {
+          // Create the hello.md file in the val
+          await sdk.vals.files.create(val.id, {
+            path: filePath,
+            content: fileContent,
+            branch_id: branch.id,
+            type: "file",
+          });
+
+          // Get the updatedAt time after creation
+          const fileInfo = await getValItem(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            filePath,
+          );
+          originalUpdatedAt = new Date(fileInfo!.updatedAt).getTime();
+        });
+
+        await t.step("clone the val", async () => {
+          // Clone the Val to the temp directory
+          await clone({
+            targetDir: tempDir,
+            valId: val.id,
+            branchId: branch.id,
+            version: 7,
+          });
+        });
+
+        await t.step("verify updatedAt time is the same", async () => {
+          // Check the updatedAt time of the cloned file
+          const clonedFilePath = join(tempDir, filePath);
+          const clonedFileInfo = await Deno.stat(clonedFilePath);
+          const clonedUpdatedAt = clonedFileInfo.mtime?.getTime();
+
+          assertEquals(
+            clonedUpdatedAt,
+            originalUpdatedAt,
+            "updatedAt time should be the same after cloning",
+          );
         });
       });
     });

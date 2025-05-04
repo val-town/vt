@@ -23,7 +23,7 @@ import {
   META_FOLDER_NAME,
 } from "~/consts.ts";
 import { status } from "~/vt/lib/status.ts";
-import { exists } from "@std/fs";
+import { exists, walk } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
@@ -173,7 +173,7 @@ export default class VTClient {
    */
   public async watch(
     callback: (fileState: ItemStatusManager) => void | Promise<void>,
-    debounceDelay: number = 1000,
+    debounceDelay: number = 250,
     gracePeriod: number = 250,
   ): Promise<void> {
     // Ensure there are not multiple watchers at once
@@ -200,6 +200,9 @@ export default class VTClient {
 
     const watcher = Deno.watchFs(this.rootPath);
 
+    // Store paths that were accessed after the last call
+    let postLastCallPaths: string[] = [];
+
     // Track if we're currently processing changes
     let inGracePeriod = false;
     const debouncedCallback = debounce(async () => {
@@ -210,9 +213,19 @@ export default class VTClient {
       inGracePeriod = true;
 
       try {
-        const fileState = await this.push();
+        // Ignore paths that were not modified since the last push, since they
+        // won't need to be pushed
+        const fileState = await this.push({
+          gitignoreRules: [
+            ...(await this.getMeta().loadGitignoreRules()),
+            ...(await Array.fromAsync(walk(this.rootPath)))
+              .map((entry) => entry.path)
+              .filter((path) => !postLastCallPaths.includes(path)),
+          ],
+        });
         if (fileState.changes() > 0) {
           await callback(fileState);
+          postLastCallPaths = [];
         }
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
@@ -234,6 +247,8 @@ export default class VTClient {
     // Process events and debounce changes
     for await (const event of watcher) {
       if (event.kind === "access") continue; // Nothing to do
+
+      event.paths.forEach((path) => postLastCallPaths.push(path));
 
       // If we're in a grace period, ignore the event
       if (inGracePeriod) continue;
