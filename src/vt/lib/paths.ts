@@ -32,7 +32,7 @@ import type { ValItemType } from "~/types.ts";
  * @param {string} options.filePath - The path of the Val or file to get the type of
  * @returns {Promise<ValItemType>} The Val file type
  */
-export async function getvalItemType(
+export async function getValItemType(
   valId: string,
   branchId: string,
   version: number,
