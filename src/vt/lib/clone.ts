@@ -171,7 +171,6 @@ async function createFile(
       remoteMtime: valMtime,
       localContent: localContent,
       localMtime: localMtime,
-      where: "remote",
     });
 
     if (modified) {

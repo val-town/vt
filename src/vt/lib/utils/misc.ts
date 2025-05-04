@@ -79,20 +79,13 @@ export function isFileModified({
   localMtime,
   remoteContent,
   remoteMtime,
-  where,
 }: {
   localContent: string;
   localMtime: number;
   remoteContent: string;
   remoteMtime: number;
-  where: "local" | "remote" | "both";
 }): boolean {
-  // If the local mtime is not newer than the remote mtime, it hasn't changed
-  if (where === "local" && localMtime <= remoteMtime) return false;
-  // Likewise, if the remote mtime is not newer than the local mtime, it hasn't changed
-  if (where === "remote" && remoteMtime <= localMtime) return false;
-  // If both mtime are the same, no need to check content
-  if (where === "both" && localMtime === remoteMtime) return false; 
+  if (localMtime === remoteMtime) return false;
 
   // If mtime indicates a possible change, check content
   return localContent !== remoteContent;
