@@ -26,13 +26,13 @@ Deno.test({
           const [output] = await runVtCommand(["remix"], fullPath);
 
           // Check that the output contains the expected pattern
-            assertMatch(
+          assertMatch(
             output,
             new RegExp(
               `Remixed current Val to public Val "@${user
-              .username!}/[\\w_]+"`,
+                .username!}/[\\w_]+"`,
             ),
-            );
+          );
 
           // Extract the actual remixed project name from the output
           const remixPattern = new RegExp(`@${user.username}/([\\w_]+)`);
