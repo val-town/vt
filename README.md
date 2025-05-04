@@ -2,6 +2,8 @@
 
 VT is a cli to work with Vals in the [Val Town](https://val.town) platform.
 
+![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
+
 ```
 Usage:   vt    
 Version:x0.x.xx
@@ -90,7 +92,7 @@ $ vt remix std/reactHonoStarter myNewWebsite
 $ cd myNewWebsite
 ```
 
-![Your new val!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
+![Your new Val!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
 
 Alternatively, you can use `vt create` to create a new empty val. If you don't
 specify a path, the name of the Val will automatically be used.
@@ -230,7 +232,7 @@ One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 
 ### Management
 
-- `vt list` lists all your Val Town vals
+- `vt list` lists all your Val Town Vals
 - `vt delete` deletes the current Val of the folder you are in (with
   confirmation).
 
@@ -240,10 +242,10 @@ One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 `<System Configuration Directory>/vt/config.yaml`. Right now, this file only
 stores your `config.yaml`, and some experimental options.
 
-This config can also be overridden locally for specific vals by, when you are in
+This config can also be overridden locally for specific Vals by, when you are in
 a `.vt` directory, using `vt config set [-g for global]` (otherwise the global
 config is modified). This can be useful if someone shares an API key with you so
-you can collaborate on a val. You can view all configuration options with
+you can collaborate on a Val. You can view all configuration options with
 `vt config`, and all the ones you've set with `vt config get`.
 
 Right now, we offer the following configuration options:
@@ -264,5 +266,5 @@ If you're using local AI tools, you will find it useful providing them
 [OpenTownie's system prompt](https://esm.town/v/stevekrouse/OpenTownie/prompts/system_prompt.txt).
 
 One quirk of `vt` that's a bit different from OpenTownie is that to create http
-vals you need to include `http` in the name of the file. You can amend the
+Vals you need to include `http` in the name of the file. You can amend the
 prompt, or just change the type on the Val Town website after the fact.

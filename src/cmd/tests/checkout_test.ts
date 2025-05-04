@@ -367,8 +367,8 @@ Deno.test({
           );
         });
 
-        await t.step("clone project and modify file locally", async () => {
-          // Clone the project (defaults to main branch)
+        await t.step("clone val and modify file locally", async () => {
+          // Clone the val (defaults to main branch)
           await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
 
