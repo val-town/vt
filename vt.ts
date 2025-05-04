@@ -32,6 +32,7 @@ async function isApiKeyValid(): Promise<boolean> {
     localStorage.setItem(AUTH_CACHE_LOCALSTORE_ENTRY, new Date().toISOString());
     return true;
   }
+
   return resp.status !== 401;
 }
 
