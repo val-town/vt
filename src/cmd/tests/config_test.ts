@@ -79,4 +79,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

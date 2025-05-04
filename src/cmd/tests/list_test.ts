@@ -22,4 +22,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

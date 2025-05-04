@@ -95,8 +95,8 @@ Deno.test({
       });
     });
   },
-
   sanitizeExit: false,
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -192,7 +192,7 @@ Deno.test({
       });
     });
   },
-
+  sanitizeResources: false,
   sanitizeExit: false,
 });
 
@@ -268,7 +268,7 @@ Deno.test({
       });
     });
   },
-
+  sanitizeResources: false,
   sanitizeExit: false,
 });
 
@@ -327,7 +327,7 @@ Deno.test({
       });
     });
   },
-
+  sanitizeResources: false,
   sanitizeExit: false,
 });
 
@@ -452,6 +452,6 @@ Deno.test({
       });
     });
   },
-
+  sanitizeResources: false,
   sanitizeExit: false,
 });

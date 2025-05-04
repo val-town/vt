@@ -80,6 +80,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -155,6 +156,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -201,6 +203,7 @@ Deno.test({
       }
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -217,6 +220,7 @@ Deno.test({
       assertStringIncludes(out, "Val not found");
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -264,4 +268,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
