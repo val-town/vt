@@ -109,21 +109,11 @@ export async function runVtCommand(
     if (autoConfirm) {
       autoConfirmInterval = setInterval(() => {
         if (process.stdin.locked) return;
-        try {
-          const writer = process.stdin.getWriter();
-          writer.write(new TextEncoder().encode("yes"))
-            .then(() => delay(100))
-            .then(() => writer.write(new TextEncoder().encode("\n")))
-            .catch(() => {}); // Ignore errors when writing to stdin
-          writer.releaseLock();
-        } catch {
-          // If getting writer fails (e.g., process exited), clear the interval
-          if (autoConfirmInterval) {
-            clearInterval(autoConfirmInterval);
-            autoConfirmInterval = undefined;
-          }
-        }
-      }, 300);
+        const writer = process.stdin.getWriter();
+        writer.write(new TextEncoder().encode("\b".repeat(10) + "yes\n"))
+          .catch(() => {}); // Ignore errors when writing to stdin
+        writer.releaseLock();
+      }, 100);
     }
 
     try {

@@ -380,10 +380,10 @@ Deno.test({
 
         await t.step("checkout with warning about local changes", async () => {
           // Try checking out to feature branch - should see warning about local changes
-          const [checkoutOutput, _] = await runVtCommand(
-            ["checkout", "feature"],
-            fullPath,
-          );
+          const [checkoutOutput, _] = await runVtCommand([
+            "checkout",
+            "feature",
+          ], fullPath);
 
           assertStringIncludes(
             checkoutOutput,
