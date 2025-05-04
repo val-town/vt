@@ -1,4 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
+import "@std/dotenv/load";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
 import {
@@ -26,11 +27,12 @@ async function isApiKeyValid(): Promise<boolean> {
   const resp = await fetch("https://api.val.town/v1/me", {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
+
   if (resp.ok) {
     localStorage.setItem(AUTH_CACHE_LOCALSTORE_ENTRY, new Date().toISOString());
     return true;
   }
-  return resp.ok;
+  return resp.status !== 401;
 }
 
 async function ensureValidApiKey() {
