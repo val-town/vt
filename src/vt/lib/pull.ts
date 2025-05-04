@@ -1,5 +1,5 @@
 import { join, relative } from "@std/path";
-import { getvalItemType, shouldIgnore } from "~/vt/lib/paths.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { listValItems } from "~/sdk.ts";
 import {
   type ItemStatus,
@@ -103,7 +103,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
         const fileStatus: ItemStatus = {
           path: relativePath,
           status: "deleted",
-          type: stat.isDirectory ? "directory" : await getvalItemType(
+          type: stat.isDirectory ? "directory" : await getValItemType(
             valId,
             branchId,
             version,

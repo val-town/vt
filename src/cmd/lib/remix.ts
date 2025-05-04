@@ -14,7 +14,7 @@ export const remixCmd = new Command()
   .name("remix")
   .description("Remix a Val")
   .arguments(
-    "<fromvalUri:string> [newValName:string] [targetDir:string]",
+    "<fromValUri:string> [newValName:string] [targetDir:string]",
   )
   .option("--public", "Remix as public Val (default)", {
     conflicts: ["private", "unlisted"],
@@ -48,7 +48,7 @@ export const remixCmd = new Command()
       description?: string;
       editorFiles?: boolean;
     },
-    fromvalUri: string,
+    fromValUri: string,
     newValName?: string,
     targetDir?: string,
   ) => {
@@ -56,12 +56,9 @@ export const remixCmd = new Command()
       const user = await getCurrentUser();
 
       const {
-        ownerName: sourcevalUsername,
-        valName: sourcevalName,
-      } = parseValUrl(
-        fromvalUri,
-        user.username!,
-      );
+        ownerName: sourceValUsername,
+        valName: sourceValName,
+      } = parseValUrl(fromValUri, user.username!);
 
       // Determine Val name based on input or generate one if needed
       let valName: string;
@@ -70,15 +67,15 @@ export const remixCmd = new Command()
         valName = newValName;
       } else if (
         !await valExists({
-          valName: sourcevalName,
+          valName: sourceValName,
           username: user.username!,
         })
       ) {
         // Use source Val name if it doesn't already exist
-        valName = sourcevalName;
+        valName = sourceValName;
       } else {
         // Generate a unique name with random suffix
-        valName = `${sourcevalName}_remix_${
+        valName = `${sourceValName}_remix_${
           randomIntegerBetween(10000, 99999)
         }`;
       }
@@ -100,8 +97,8 @@ export const remixCmd = new Command()
         // Use the remix function with updated signature
         const vt = await VTClient.remix({
           rootPath,
-          srcValUsername: sourcevalUsername,
-          srcValName: sourcevalName,
+          srcValUsername: sourceValUsername,
+          srcValName: sourceValName,
           dstValName: valName,
           dstValPrivacy: privacy,
           description,
@@ -118,7 +115,7 @@ export const remixCmd = new Command()
         }
 
         spinner.succeed(
-          `Remixed "@${sourcevalUsername}/${sourcevalName}" to ${privacy} Val "@${user.username}/${valName}"`,
+          `Remixed "@${sourceValUsername}/${sourceValName}" to ${privacy} Val "@${user.username}/${valName}"`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {

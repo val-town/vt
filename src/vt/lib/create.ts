@@ -55,27 +55,27 @@ export async function create(
   await ensureDir(sourceDir);
 
   // Create a new Val in Val Town
-  const newval = await sdk.vals.create({
+  const newVal = await sdk.vals.create({
     name: valName,
     description,
     privacy,
   });
   const newBranch = await branchNameToBranch(
-    newval.id,
+    newVal.id,
     DEFAULT_BRANCH_NAME,
   );
 
   // Push the local directory contents to the new val
   const { itemStateChanges } = await push({
     targetDir: sourceDir,
-    valId: newval.id,
+    valId: newVal.id,
     branchId: newBranch.id,
     gitignoreRules,
   });
 
   return {
     itemStateChanges: itemStateChanges,
-    newValId: newval.id,
+    newValId: newVal.id,
     newBranchId: newBranch.id,
   };
 }
