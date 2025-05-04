@@ -54,7 +54,6 @@ export async function push(params: PushParams): Promise<PushResult> {
 
   assert(await exists(targetDir), "target directory doesn't exist");
 
-  // Retrieve the status
   const itemStateChanges = await status({
     targetDir,
     valId,
@@ -63,7 +62,7 @@ export async function push(params: PushParams): Promise<PushResult> {
     gitignoreRules,
   });
 
-  if (dryRun) return { itemStateChanges: itemStateChanges }; // Exit early if dry run
+  if (dryRun) return { itemStateChanges }; // Exit early if dry run
 
   // Create a filtered down status with everything that is safe to upload
   const safeItemStateChanges = new ItemStatusManager();
