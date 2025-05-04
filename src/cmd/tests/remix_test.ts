@@ -84,16 +84,11 @@ Deno.test({
             "output should indicate private Val",
           );
 
-          // Clean up
-          try {
-            const { id } = await sdk.alias.username.valName.retrieve(
-              user.username!,
-              privatevalName,
-            );
-            await sdk.vals.delete(id);
-          } catch (e) {
-            console.error("Failed to clean up private val:", e);
-          }
+          const { id } = await sdk.alias.username.valName.retrieve(
+            user.username!,
+            privatevalName,
+          );
+          await sdk.vals.delete(id);
         });
 
         await t.step("remix as unlisted Val", async () => {

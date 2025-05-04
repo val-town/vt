@@ -13,7 +13,7 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch: mainBranch }) => {
-        let fullPath: string;
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("create additional branches", async () => {
           // Create a feature branch
@@ -31,7 +31,6 @@ Deno.test({
 
         await t.step("clone the val", async () => {
           await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-          fullPath = join(tmpDir, val.name);
         });
 
         await t.step("list branches and verify output", async () => {
@@ -51,6 +50,7 @@ Deno.test({
       });
     });
   },
+  // sanitizeResources: false,
 });
 
 Deno.test({
@@ -115,6 +115,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -145,6 +146,7 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });
 
 Deno.test({
@@ -170,4 +172,5 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
 });

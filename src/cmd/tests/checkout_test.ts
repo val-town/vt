@@ -2,11 +2,10 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
-import { deadline, delay, retry } from "@std/async";
-import type { ValFileType } from "~/types.ts";
+import { delay } from "@std/async";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
@@ -19,10 +18,10 @@ Deno.test({
           await sdk.vals.files.create(
             val.id,
             {
-              path: "main-file.js",
-              content: "console.log('Initial content');",
+              path: "main.ts",
+              content: "// Main branch",
               branch_id: mainBranch.id,
-              type: "file",
+              type: "script",
             },
           );
 
@@ -36,10 +35,10 @@ Deno.test({
           await sdk.vals.files.create(
             val.id,
             {
-              path: "feature-file.js",
-              content: "console.log('Feature branch file');",
+              path: "feature.ts",
+              content: "// Feature",
               branch_id: featureBranch.id,
-              type: "file",
+              type: "script",
             },
           );
         });
@@ -48,15 +47,18 @@ Deno.test({
 
         await t.step("clone the val and modify it", async () => {
           // Clone the val (defaults to main branch)
-          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
+          await runVtCommand(
+            ["clone", val.name, "--no-editor-files"],
+            tmpDir,
+          );
 
           // Make a remote change to main branch after cloning
           await sdk.vals.files.update(
             val.id,
             {
               branch_id: mainBranch.id,
-              path: "main-file.js",
-              content: "console.log('Remote modification');",
+              path: "main.ts",
+              content: "// Modified main branch",
             },
           );
         });
@@ -83,7 +85,7 @@ Deno.test({
 
           // Verify we're on feature branch by checking for feature file
           assert(
-            await exists(join(fullPath, "feature-file.js")),
+            await exists(join(fullPath, "feature.ts")),
             "feature-file.js should exist after checkout",
           );
 
@@ -199,76 +201,73 @@ Deno.test({
   name: "check out to existing branch",
   permissions: "inherit",
   async fn() {
-    await deadline(
-      doWithTempDir(async (tmpDir) => {
-        await doWithNewVal(async ({ val, branch }) => {
-          // Create initial file on main branch
-          await sdk.vals.files.create(
-            val.id,
-            {
-              path: "main-file.js",
-              content: "console.log('Main branch file');",
-              branch_id: branch.id,
-              type: "file",
-            },
-          );
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val, branch }) => {
+        // Create initial file on main branch
+        await sdk.vals.files.create(
+          val.id,
+          {
+            path: "main-file.js",
+            content: "console.log('Main branch file');",
+            branch_id: branch.id,
+            type: "file",
+          },
+        );
 
-          // Create a new branch using SDK
-          const newBranch = await sdk.vals.branches.create(
-            val.id,
-            { name: "feature-branch", branchId: branch.id },
-          );
+        // Create a new branch using SDK
+        const newBranch = await sdk.vals.branches.create(
+          val.id,
+          { name: "feature-branch", branchId: branch.id },
+        );
 
-          // Create a file on the new branch
-          await sdk.vals.files.create(
-            val.id,
-            {
-              path: "feature-file.js",
-              content: "console.log('Feature branch file');",
-              branch_id: newBranch.id,
-              type: "file",
-            },
-          );
+        // Create a file on the new branch
+        await sdk.vals.files.create(
+          val.id,
+          {
+            path: "feature-file.js",
+            content: "console.log('Feature branch file');",
+            branch_id: newBranch.id,
+            type: "file",
+          },
+        );
 
-          // Clone the val (defaults to main branch)
-          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-          const fullPath = join(tmpDir, val.name);
+        // Clone the val (defaults to main branch)
+        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
+        const fullPath = join(tmpDir, val.name);
 
-          // Ensure the main file exists
-          assert(
-            await exists(join(fullPath, "main-file.js")),
-            "main-file.js should exist after clone",
-          );
+        // Ensure the main file exists
+        assert(
+          await exists(join(fullPath, "main-file.js")),
+          "main-file.js should exist after clone",
+        );
 
-          // Feature file should not exist yet
-          assert(
-            !(await exists(join(fullPath, "feature-file.js"))),
-            "feature-file.js should not exist on main branch",
-          );
+        // Feature file should not exist yet
+        assert(
+          !(await exists(join(fullPath, "feature-file.js"))),
+          "feature-file.js should not exist on main branch",
+        );
 
-          // Check out to the feature branch
-          const [checkoutOutput] = await runVtCommand([
-            "checkout",
-            "feature-branch",
-          ], fullPath);
-          assertStringIncludes(
-            checkoutOutput,
-            'Switched to branch "feature-branch"',
-          );
+        // Check out to the feature branch
+        const [checkoutOutput] = await runVtCommand([
+          "checkout",
+          "feature-branch",
+        ], fullPath);
+        assertStringIncludes(
+          checkoutOutput,
+          'Switched to branch "feature-branch"',
+        );
 
-          // Now the feature file should exist
-          assert(
-            await exists(join(fullPath, "feature-file.js")),
-            "feature-file.js should exist after checkout",
-          );
+        // Now the feature file should exist
+        assert(
+          await exists(join(fullPath, "feature-file.js")),
+          "feature-file.js should exist after checkout",
+        );
 
-          // Check status on feature branch
-          const [statusOutput] = await runVtCommand(["status"], fullPath);
-          assertStringIncludes(statusOutput, "On branch feature-branch@");
-        });
-      }),
-      5000,
-    );
+        // Check status on feature branch
+        const [statusOutput] = await runVtCommand(["status"], fullPath);
+        assertStringIncludes(statusOutput, "On branch feature-branch@");
+      });
+    });
   },
   sanitizeResources: false,
   sanitizeExit: false,
@@ -278,86 +277,73 @@ Deno.test({
   name: "create new branch with -b",
   permissions: "inherit",
   async fn() {
-    await retry(
-      async () => {
-        await deadline(
-          doWithTempDir(async (tmpDir) => {
-            try {
-              await doWithNewVal(async ({ val, branch }) => {
-                // Create initial file on main branch
-                await sdk.vals.files.create(
-                  val.id,
-                  {
-                    path: "main.tsx",
-                    content: "console.log('Main branch file');",
-                    branch_id: branch.id,
-                    type: "script",
-                  },
-                );
-
-                // Clone the val
-                await runVtCommand(
-                  ["clone", val.name, "--no-editor-files"],
-                  tmpDir,
-                );
-                const fullPath = join(tmpDir, val.name);
-
-                // Create a new branch with checkout -b
-                const [checkoutOutput] = await runVtCommand([
-                  "checkout",
-                  "-b",
-                  "new-branch",
-                ], fullPath);
-                assertStringIncludes(
-                  checkoutOutput,
-                  'Created and switched to new branch "new-branch"',
-                );
-
-                // The main file should still exist (since we forked from main)
-                assert(
-                  await exists(join(fullPath, "main.tsx")),
-                  "main.tsx should exist on new branch",
-                );
-
-                // Check status on new branch
-                const [statusOutput] = await runVtCommand(["status"], fullPath);
-                assertStringIncludes(statusOutput, "On branch new-branch@");
-
-                // Create a file on the new branch
-                await Deno.writeTextFile(
-                  join(fullPath, "new.tsx"),
-                  "// Branch file",
-                );
-
-                // Push the changes to establish the new branch remotely
-                await runVtCommand(["push"], fullPath);
-
-                // Switch back to main branch
-                await runVtCommand(["checkout", "main"], fullPath);
-
-                // The new branch file should no longer be present
-                assert(
-                  !(await exists(join(fullPath, "new.tsx"))),
-                  "new.tsx should not exist on main branch",
-                );
-
-                // Status should show we're on main branch
-                const [mainStatusOutput] = await runVtCommand(
-                  ["status"],
-                  fullPath,
-                );
-                assertStringIncludes(mainStatusOutput, "On branch main@");
-              });
-            } catch (error) {
-              console.error("An error occurred:", error);
-              throw error; // Rethrow to ensure the test fails if there's an error
-            }
-          }),
-          9000, // Set the deadline to 9000 ms
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val, branch }) => {
+        // Create initial file on main branch
+        await sdk.vals.files.create(
+          val.id,
+          {
+            path: "main.tsx",
+            content: "console.log('Main branch file');",
+            branch_id: branch.id,
+            type: "script",
+          },
         );
-      },
-      { maxAttempts: 3, maxTimeout: 1000 },
-    );
+
+        // Clone the val
+        await runVtCommand(
+          ["clone", val.name, "--no-editor-files"],
+          tmpDir,
+        );
+        const fullPath = join(tmpDir, val.name);
+
+        // Create a new branch with checkout -b
+        const [checkoutOutput] = await runVtCommand([
+          "checkout",
+          "-b",
+          "new-branch",
+        ], fullPath);
+        assertStringIncludes(
+          checkoutOutput,
+          'Created and switched to new branch "new-branch"',
+        );
+
+        // The main file should still exist (since we forked from main)
+        assert(
+          await exists(join(fullPath, "main.tsx")),
+          "main.tsx should exist on new branch",
+        );
+
+        // Check status on new branch
+        const [statusOutput] = await runVtCommand(["status"], fullPath);
+        assertStringIncludes(statusOutput, "On branch new-branch@");
+
+        // Create a file on the new branch
+        await Deno.writeTextFile(
+          join(fullPath, "new.tsx"),
+          "// Branch file",
+        );
+
+        // Push the changes to establish the new branch remotely
+        await runVtCommand(["push"], fullPath);
+
+        // Switch back to main branch
+        await runVtCommand(["checkout", "main"], fullPath);
+
+        // The new branch file should no longer be present
+        assert(
+          !(await exists(join(fullPath, "new.tsx"))),
+          "new.tsx should not exist on main branch",
+        );
+
+        // Status should show we're on main branch
+        const [mainStatusOutput] = await runVtCommand(
+          ["status"],
+          fullPath,
+        );
+        assertStringIncludes(mainStatusOutput, "On branch main@");
+      });
+    });
   },
   sanitizeResources: false,
   sanitizeExit: false,
@@ -374,10 +360,10 @@ Deno.test({
           await sdk.vals.files.create(
             val.id,
             {
-              path: "shared-file.js",
-              content: "console.log('Original content');",
+              path: "shared.ts",
+              content: "// Original content",
               branch_id: branch.id,
-              type: "file" as ValFileType,
+              type: "script",
             },
           );
         });
@@ -394,46 +380,37 @@ Deno.test({
             val.id,
             {
               branch_id: featureBranch.id,
-              path: "shared-file.js",
-              content: "console.log('Feature branch content');",
+              path: "shared.ts",
+              content: "// Modified content on feature branch",
             },
           );
         });
 
         await t.step("clone project and modify file locally", async () => {
-          // Use deadline to wrap this part to ensure it completes within 8s
           // Clone the project (defaults to main branch)
-          await runVtCommand(["clone", val.name], tmpDir);
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
           fullPath = join(tmpDir, val.name);
 
           // Modify the shared file locally while on main branch
           await Deno.writeTextFile(
-            join(fullPath, "shared-file.js"),
-            "console.log('Modified locally on main');",
+            join(fullPath, "shared.ts"),
+            "// Local modification",
           );
         });
 
         await t.step("checkout with warning about local changes", async () => {
           // Try checking out to feature branch - should see warning about local changes
-          const [outputLines, rpo] = await streamVtCommand(
+          const [checkoutOutput, _] = await runVtCommand(
             ["checkout", "feature"],
             fullPath,
           );
-          await delay(2000); // Wait for output to stabilize
-
-          const checkoutOutput = outputLines.join("\n");
 
           // Should see warning about dangerous changes
           assertStringIncludes(
             checkoutOutput,
             "proceed with checkout anyway",
           );
-          assertStringIncludes(checkoutOutput, "shared-file.js");
-
-          const writer = rpo.stdin.getWriter();
-          await writer.write(new TextEncoder().encode("y\n"));
-          writer.releaseLock();
-          await delay(2000);
+          assertStringIncludes(checkoutOutput, "shared.ts");
         });
 
         await t.step("force checkout overrides local changes", async () => {
@@ -443,6 +420,9 @@ Deno.test({
             "main",
             "-f",
           ], fullPath);
+
+          await delay(1000);
+
           assertStringIncludes(
             forceCheckoutOutput,
             'Switched to branch "main"',

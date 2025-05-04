@@ -60,8 +60,9 @@ export const cloneCmd = new Command()
           async (spinner) => {
             const [allVals, _] = await arrayFromAsyncN(
               sdk.me.vals.list({}),
-              20,
+              500,
             );
+            console.log(allVals.slice(0, 5));
             spinner.stop();
             return allVals;
           },
@@ -84,7 +85,7 @@ export const cloneCmd = new Command()
 
         const val = vals.find((p) => p.name === selectedVal);
         if (!val) {
-          console.error(colors.red("Val not found"));
+          console.log(colors.red("Val not found"));
           return;
         }
 

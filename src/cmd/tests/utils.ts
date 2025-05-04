@@ -11,6 +11,7 @@ import sdk, {
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
+import { clear } from "node:console";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -57,55 +58,77 @@ export async function runVtCommand(
   options: {
     env?: Record<string, string>;
     autoConfirm?: boolean;
+    deadlineMs?: number;
   } = {},
 ): Promise<[string, number]> {
-  const { autoConfirm = true } = options;
+  const { autoConfirm = true, deadlineMs = 5_000 } = options;
 
   return await doWithTempDir(async (tmpDir) => {
-    const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
-    const command = new Deno.Command(Deno.execPath(), {
-      args: ["run", "-A", commandPath, ...args],
-      stdout: "piped",
-      stderr: "piped",
-      stdin: "piped",
-      cwd,
+    const process = runVtProc(args, cwd, {
       env: { XDG_CONFIG_HOME: join(tmpDir, "config"), ...options.env },
     });
 
-    const process = command.spawn();
-
     // If autoConfirm is enabled, send "yes\n" repeatedly to stdin
+    let autoConfirmInterval: number | undefined;
+
+    const cleanup = () => {
+      if (autoConfirmInterval) {
+        clearInterval(autoConfirmInterval);
+        autoConfirmInterval = undefined;
+      }
+
+      clearTimeout(killTimeout);
+
+      if (process.stdin.locked) {
+        // Try to release the lock if possible
+        try {
+          const writer = process.stdin.getWriter();
+          writer.releaseLock();
+        } catch {
+          // Ignore errors when trying to release the lock
+        }
+      }
+
+      process.stdin.close();
+
+      try {
+        process.kill();
+      } catch (e) {
+        // Ignore errors when killing the process if the process is already dead
+        if (!(e instanceof Error && e.name === "TypeError")) throw e;
+      }
+    };
+
+    const killTimeout = setTimeout(cleanup, deadlineMs);
+
     if (autoConfirm) {
-      const writer = process.stdin.getWriter();
-      const yesBuffer = new TextEncoder().encode("yes\n");
-
-      const intervalId = setInterval(async () => {
+      autoConfirmInterval = setInterval(() => {
+        if (process.stdin.locked) return;
         try {
-          await writer.write(yesBuffer);
+          const writer = process.stdin.getWriter();
+          writer.write(new TextEncoder().encode("yes\n")).catch(() => {
+            // Ignore write errors
+          });
+          writer.releaseLock();
         } catch {
-          // If writing fails (e.g., process exited), clear the interval
-          clearInterval(intervalId);
+          // If getting writer fails (e.g., process exited), clear the interval
+          if (autoConfirmInterval) {
+            clearInterval(autoConfirmInterval);
+            autoConfirmInterval = undefined;
+          }
         }
-      }, 250);
-
-      // Ensure we clear the interval and close the writer when done
-      process.status.then(() => {
-        clearInterval(intervalId);
-        try {
-          writer.close();
-        } catch {
-          // We can ignore the error if the writer is already closed
-        }
-      });
+      }, 150);
     }
 
-    const { stdout, stderr, code } = await process.output();
-
-    const stdoutText = new TextDecoder().decode(stdout);
-    const stderrText = new TextDecoder().decode(stderr);
-    const combinedOutput = stdoutText + stderrText;
-
-    return [stripAnsi(combinedOutput), code];
+    try {
+      // Wait for the process to finish
+      const { stdout, code } = await process.output();
+      const stdoutText = new TextDecoder().decode(stdout);
+      return [stripAnsi(stdoutText), code];
+    } finally {
+      // Ensure cleanup happens even if process.output() throws
+      cleanup();
+    }
   });
 }
 

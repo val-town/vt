@@ -253,7 +253,9 @@ export const checkoutCmd = new Command()
                 }),
               );
               // If no changes nothing was printed, so we don't need to log state info
-              if (checkoutResult.fileStateChanges.changes() > 0) console.log("\n");
+              if (checkoutResult.fileStateChanges.changes() > 0) {
+                console.log("\n");
+              }
 
               // Report the success, which is either a successful switch or a
               // successful fork
