@@ -1,8 +1,8 @@
 import { colors } from "@cliffy/ansi/colors";
-import type { ProjectItemType } from "~/types.ts";
+import type { ValItemType } from "~/types.ts";
 import { join } from "@std/path";
 import xdg from "xdg-portable";
-import type { ItemWarning } from "~/vt/lib/ItemStatusManager.ts";
+import type { ItemWarning } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
@@ -19,7 +19,7 @@ export const DEFAULT_IGNORE_PATTERNS: string[] = [
   ".env",
 ];
 
-export const DEFAULT_PROJECT_PRIVACY = "public";
+export const DEFAULT_VAL_PRIVACY = "public";
 export const META_STATE_FILE_NAME = "state.json";
 export const VT_CONFIG_FILE_NAME = "config.yaml";
 export const META_FOLDER_NAME = ".vt";
@@ -27,6 +27,7 @@ export const ENTRYPOINT_NAME = "vt.ts";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
 
+export const DEFAULT_WRAP_WIDTH = 80;
 export const MAX_WALK_UP_LEVELS = 100;
 
 export const FIRST_VERSION_NUMBER = 0;
@@ -51,7 +52,7 @@ export const WARNING_MESSAGES: Record<ItemWarning, string> = {
 
 export const DEFAULT_VAL_TYPE = "script";
 
-export const ProjectItems = [
+export const ValItems = [
   "script",
   "http",
   "email",
@@ -62,17 +63,16 @@ export const ProjectItems = [
 
 export const JSON_INDENT_SPACES = 4;
 
-export const ProjectItemColors: Record<ProjectItemType, (s: string) => string> =
-  {
-    "script": (s: string) => colors.rgb24(s, 0x4287f5),
-    "http": (s: string) => colors.rgb24(s, 0x22c55e),
-    "interval": (s: string) => colors.rgb24(s, 0xd946ef),
-    "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
-    "file": (s: string) => colors.dim(s),
-    "directory": (s: string) => colors.dim(s),
-  };
+export const ValItemColors: Record<ValItemType, (s: string) => string> = {
+  "script": (s: string) => colors.rgb24(s, 0x4287f5),
+  "http": (s: string) => colors.rgb24(s, 0x22c55e),
+  "interval": (s: string) => colors.rgb24(s, 0xd946ef),
+  "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
+  "file": (s: string) => colors.dim(s),
+  "directory": (s: string) => colors.dim(s),
+};
 
-export const TypeToTypeStr: Record<ProjectItemType, string> = {
+export const TypeToTypeStr: Record<ValItemType, string> = {
   "script": "script",
   "http": "http",
   "email": "email",
@@ -81,7 +81,7 @@ export const TypeToTypeStr: Record<ProjectItemType, string> = {
   "directory": "directory",
 };
 
-export const VAL_TOWN_PROJECT_URL_REGEX = /val\.town\/x\/([^\/]+)\/([^\/]+)/;
+export const VAL_TOWN_VAL_URL_REGEX = /val\.town\/x\/([^\/]+)\/([^\/]+)/;
 
 export const RECENT_VERSION_COUNT = 5;
 
@@ -91,7 +91,7 @@ export const RENAME_DETECTION_THRESHOLD = 0.5;
 export const GET_API_KEY_URL = "https://www.val.town/settings/api";
 export const VT_README_URL =
   "https://github.com/val-town/vt/blob/main/README.md";
-export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
+export const TYPE_PRIORITY: Record<ValItemType, number> = {
   "script": 0,
   "email": 1,
   "http": 2,
@@ -100,6 +100,7 @@ export const TYPE_PRIORITY: Record<ProjectItemType, number> = {
   "interval": 5,
 };
 
-export const PROJECT_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
+export const VAL_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
+export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";

@@ -6,7 +6,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
-import sdk, { user } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
@@ -65,10 +65,11 @@ export const checkoutCmd = new Command()
         async (spinner) => {
           const vt = VTClient.from(await findVtRoot(Deno.cwd()));
           const vtState = await vt.getMeta().loadVtState();
+          const user = await getCurrentUser();
 
           // Get the current branch data
-          const currentBranchData = await sdk.projects.branches.retrieve(
-            vtState.project.id,
+          const currentBranchData = await sdk.vals.branches.retrieve(
+            vtState.val.id,
             vtState.branch.id,
           );
 
@@ -86,13 +87,13 @@ export const checkoutCmd = new Command()
 
             if (isNewBranch) {
               // Early exit if they are trying to make a new branch on a
-              // project that they don't own
-              const projectToPush = await sdk.projects.retrieve(
-                vtState.project.id,
+              // Val that they don't own
+              const valToPush = await sdk.vals.retrieve(
+                vtState.val.id,
               );
-              if (projectToPush.author.id !== user.id) {
+              if (valToPush.author.id !== user.id) {
                 throw new Error(
-                  "You are not the owner of this projecta, you cannot make a new branch.",
+                  "You are not the owner of this Val, you cannot make a new branch.",
                 );
               }
             }
@@ -188,7 +189,7 @@ export const checkoutCmd = new Command()
                 // Ask for confirmation to proceed despite dirty state
                 const shouldProceed = await Confirm.prompt({
                   message: colors.yellow(
-                    "Project has unpushed changes. " +
+                    "Val has unpushed changes. " +
                       "Do you want to proceed with checkout anyway?",
                   ),
                   default: false,
@@ -252,14 +253,16 @@ export const checkoutCmd = new Command()
                 }),
               );
               // If no changes nothing was printed, so we don't need to log state info
-              if (checkoutResult.fileStateChanges.changes() > 0) console.log();
+              if (checkoutResult.fileStateChanges.changes() > 0) {
+                console.log("\n");
+              }
 
               // Report the success, which is either a successful switch or a
               // successful fork
               tty.scrollDown(1);
               spinner.succeed(
                 isNewBranch
-                  ? `Created and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
+                  ? `\nCreated and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
                   : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
               );
             }
@@ -272,7 +275,7 @@ export const checkoutCmd = new Command()
                 );
               } else if (e.status === 404 && existingBranchName) {
                 throw new Error(
-                  `Branch "${existingBranchName}" does not exist in project. ` +
+                  `Branch "${existingBranchName}" does not exist in val. ` +
                     toListBranchesCmd,
                 );
               }

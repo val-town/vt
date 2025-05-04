@@ -1,46 +1,47 @@
 import { Command } from "@cliffy/command";
+import ValTown from "@valtown/sdk";
+import { doWithSpinner } from "~/cmd/utils.ts";
+import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
+import sdk, { getCurrentUser, valExists } from "~/sdk.ts";
+import { randomIntegerBetween } from "@std/random";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import sdk, { projectExists, user } from "~/sdk.ts";
-import { APIError } from "@valtown/sdk";
-import { doWithSpinner } from "~/cmd/utils.ts";
-import { parseProjectUri } from "~/cmd/parsing.ts";
-import { randomIntegerBetween } from "@std/random";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 
 export const remixCmd = new Command()
   .name("remix")
-  .description("Remix a Val Town project")
+  .description("Remix a Val")
   .arguments(
-    "[fromProjectUri:string] [newProjectName:string] [targetDir:string]",
+    "[fromValUri:string] [newValName:string] [targetDir:string]",
   )
-  .option("--public", "Remix as public project (default)", {
+  .option("--public", "Remix as public Val (default)", {
     conflicts: ["private", "unlisted"],
   })
-  .option("--private", "Remix as private project", {
+  .option("--private", "Remix as private Val", {
     conflicts: ["public", "unlisted"],
   })
-  .option("--unlisted", "Remix as unlisted project", {
+  .option("--unlisted", "Remix as unlisted Val", {
     conflicts: ["public", "private"],
   })
   .option("--no-editor-files", "Skip creating editor configuration files")
-  .option("-d, --description <desc:string>", "Project description")
+  .option("-d, --description <desc:string>", "Val description")
   .example(
     "Bootstrap a website",
     `
-    vt remix std/reactHonoStarter myNewWebsite
-    cd ./myNewWebsite
-    vt browse
-    vt watch # syncs changes to val town`,
+vt remix std/reactHonoStarter myNewWebsite
+cd ./myNewWebsite
+vt browse
+vt watch # syncs changes to val town`,
   )
   .example(
-    "Remix current project",
+    "Remix current Val",
     `
     vt remix
-    # Creates a remix of the current project`,
+    # Creates a remix of the current Val`,
   )
   .action(async (
     {
+      public: _public,
       private: isPrivate,
       unlisted,
       description,
@@ -52,31 +53,33 @@ export const remixCmd = new Command()
       description?: string;
       editorFiles?: boolean;
     },
-    fromProjectUri?: string,
-    newProjectName?: string,
+    fromValUri?: string,
+    newValName?: string,
     targetDir?: string,
   ) => {
-    await doWithSpinner("Remixing Val Town project...", async (spinner) => {
+    await doWithSpinner("Remixing Val...", async (spinner) => {
       try {
+        const user = await getCurrentUser();
+
         const privacy = isPrivate
           ? "private"
           : unlisted
           ? "unlisted"
           : "public";
 
-        if (fromProjectUri) {
+        if (fromValUri) {
           const {
-            ownerName: sourceProjectUsername,
-            projectName: sourceProjectName,
-          } = parseProjectUri(fromProjectUri, user.username!);
+            ownerName: sourceValUsername,
+            valName: sourceValName,
+          } = parseValUri(fromValUri, user.username!);
 
-          const finalProjectName = newProjectName ??
-            await generateUniqueProjectName(sourceProjectName);
+          const finalValName = newValName ??
+            await generateUniqueProjectName(sourceValName);
 
           await remixSpecificProject({
-            sourceProjectUsername,
-            sourceProjectName,
-            newProjectName: finalProjectName,
+            sourceValUsername,
+            sourceValName,
+            newValName: finalValName,
             targetDir,
             privacy,
             description,
@@ -84,36 +87,33 @@ export const remixCmd = new Command()
           });
 
           spinner.succeed(
-            `Remixed "@${sourceProjectUsername}/${sourceProjectName}" to ${privacy} project "@${user.username}/${finalProjectName}"`,
+            `Remixed "@${sourceValUsername}/${sourceValName}" to ${privacy} Val "@${user.username}/${finalValName}"`,
           );
         } else {
-          // If they do not provide the project uri of the project that they
-          // want to remix, it is assumed that they are trying to remix the
-          // current vt directory and that they expect that the current
-          // directory is already a vt directory
-
           const newProjectName = await remixCurrentDirectory({
             privacy,
             description,
             editorFiles,
+            user,
           });
 
           spinner.succeed(
-            `Remixed current project to ${privacy} project "@${user.username}/${newProjectName}"`,
+            `Remixed current Val to ${privacy} Val "@${user.username}/${newProjectName}"`,
           );
         }
       } catch (e) {
-        if (e instanceof APIError && e.status === 409) {
-          throw new Error(`Project name "${newProjectName}" already exists`);
+        if (e instanceof ValTown.APIError && e.status === 409) {
+          throw new Error(`Val name "${newValName}" already exists`);
         } else throw e;
       }
     });
   });
 
 async function generateUniqueProjectName(baseName: string): Promise<string> {
+  const user = await getCurrentUser();
   if (
-    !await projectExists({
-      projectName: baseName,
+    !await valExists({
+      valName: baseName,
       username: user.username!,
     })
   ) {
@@ -123,62 +123,66 @@ async function generateUniqueProjectName(baseName: string): Promise<string> {
   return `${baseName}_remix_${randomIntegerBetween(10000, 99999)}`;
 }
 
-async function remixSpecificProject(params: {
-  sourceProjectUsername: string;
-  sourceProjectName: string;
-  newProjectName: string;
+async function remixSpecificProject({
+  sourceValUsername,
+  sourceValName,
+  newValName,
+  targetDir,
+  privacy,
+  description,
+  editorFiles,
+}: {
+  sourceValUsername: string;
+  sourceValName: string;
+  newValName: string;
   targetDir?: string;
   privacy: "public" | "private" | "unlisted";
   description?: string;
   editorFiles: boolean;
 }) {
-  const {
-    sourceProjectUsername,
-    sourceProjectName,
-    newProjectName,
-    targetDir,
-    privacy,
-    description,
-    editorFiles,
-  } = params;
-
   const rootPath = targetDir
-    ? join(Deno.cwd(), targetDir, newProjectName)
-    : join(Deno.cwd(), newProjectName);
+    ? join(Deno.cwd(), targetDir, newValName)
+    : join(Deno.cwd(), newValName);
 
   const vt = await VTClient.remix({
     rootPath,
-    srcProjectUsername: sourceProjectUsername,
-    srcProjectName: sourceProjectName,
-    dstProjectName: newProjectName,
-    dstProjectPrivacy: privacy,
+    srcValUsername: sourceValUsername,
+    srcValName: sourceValName,
+    dstValName: newValName,
+    dstValPrivacy: privacy,
     description,
   });
 
-  if (editorFiles) await vt.addEditorFiles();
+  if (editorFiles) await vt.addEditorTemplate();
 }
 
-async function remixCurrentDirectory(params: {
+async function remixCurrentDirectory({
+  privacy,
+  description,
+  editorFiles,
+  user,
+}: {
   privacy: "public" | "private" | "unlisted";
   description?: string;
   editorFiles: boolean;
+  user: ValTown.User;
 }): Promise<string> {
-  const { privacy, description, editorFiles } = params;
-
   const currentVt = VTClient.from(await findVtRoot(Deno.cwd()));
   const vtState = await currentVt.getMeta().loadVtState();
-  const projectId = vtState.project?.id || "project";
-  const project = await sdk.projects.retrieve(projectId);
+  const valId = vtState.val.id;
+  const val = await sdk.vals.retrieve(valId);
 
-  const newProjectName = await generateUniqueProjectName(project.name);
+  const newValName = await generateUniqueProjectName(val.name);
+  console.log("newValName", newValName);
   const newVt = await VTClient.create({
     username: user.username!,
     rootPath: currentVt.rootPath,
-    projectName: newProjectName,
+    valName: newValName,
     privacy,
     description,
+    requireEmptyDir: false,
   });
 
-  if (editorFiles) await newVt.addEditorFiles();
-  return newProjectName;
+  if (editorFiles) await newVt.addEditorTemplate();
+  return newValName;
 }

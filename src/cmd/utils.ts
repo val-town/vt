@@ -3,17 +3,17 @@ import { join } from "@std/path";
 import Kia from "kia";
 
 /**
- * Determines the clone path based on the provided directory and project name
+ * Determines the clone path based on the provided directory and Val name
  *
- * @param specifiedTarget Optional directory where the project should be cloned
- * @param projectName Name of the project being cloned
- * @returns The absolute path where the project will be cloned
+ * @param specifiedTarget Optional directory where the Val should be cloned
+ * @param valName Name of the Val being cloned
+ * @returns The absolute path where the Val will be cloned
  */
 export function getClonePath(
   specifiedTarget: string | undefined,
-  projectName: string,
+  valName: string,
 ): string {
-  return specifiedTarget || join(Deno.cwd(), projectName);
+  return specifiedTarget || join(Deno.cwd(), valName);
 }
 
 /**
@@ -72,7 +72,6 @@ export async function doWithSpinner<T>(
 
     return await callback(spinner);
   } catch (e) {
-    console.log(e);
     // Use the provided or default error cleaning function
     const cleanedErrorMessage = cleanError(e);
 

@@ -1,20 +1,14 @@
 import { runVtCommand } from "~/cmd/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils.ts";
-import { assertStringIncludes } from "@std/assert";
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { assertMatch, assertStringIncludes } from "@std/assert";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 
 Deno.test({
-  name: "list command shows projects",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-    run: true,
-  },
+  name: "list command shows vals",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project }) => {
+      await doWithNewVal(async ({ val }) => {
         await t.step("run list command", async () => {
           const [output] = await runVtCommand(["list"], tmpDir);
 
@@ -22,8 +16,8 @@ Deno.test({
           assertStringIncludes(output, "Name");
           assertStringIncludes(output, "Privacy");
           assertStringIncludes(output, "Created");
-          assertStringIncludes(output, project.name);
-          assertStringIncludes(output, "Total:");
+          assertStringIncludes(output, val.name);
+          assertMatch(output, /Listed \d+ Vals/);
         });
       });
     });
