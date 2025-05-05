@@ -1,4 +1,9 @@
+import { LOG_PREFIX } from "./consts.js";
+
 chrome.runtime.sendMessage({ action: "pageLoaded" }, (response) => {
-  console.log("Response from daemon service worker: ", response);
-  // Broadcast message to wake up the daemon service worker
+  console.log(
+    LOG_PREFIX +
+      "Detected page load on a *.web.val.run page, waking up daemon service worker",
+  );
+  console.log(LOG_PREFIX + response);
 });
