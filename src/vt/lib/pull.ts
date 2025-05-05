@@ -9,6 +9,11 @@ import { walk } from "@std/fs";
 import { clone } from "~/vt/lib/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 
+/** Result of pull operation  */
+export interface PushResult {
+  itemStateChanges: ItemStatusManager;
+}
+
 /**
  * Parameters for pulling latest changes from a Val Town Val into a vt folder.
  */
@@ -30,9 +35,6 @@ export interface PullParams {
 /**
  * Pulls latest changes from a Val Town Val into a vt folder.
  *
- * @param {PullParams} params Options for pull operation.
- *
- * @description
  * After a pull:
  * - All files from the remote Val exist at the remote's version's location locally
  * - Local files that match gitignore rules are preserved at their current path
@@ -41,9 +43,10 @@ export interface PullParams {
  * Files that are removed:
  * - Files that previously existed in the remote Val but were deleted
  *
+ * @param params Options for pull operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull(params: PullParams): Promise<ItemStatusManager> {
+export function pull(params: PullParams): Promise<PushResult> {
   const {
     targetDir,
     valId,
@@ -128,7 +131,7 @@ export function pull(params: PullParams): Promise<ItemStatusManager> {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
-      return [changes, !dryRun];
+      return [{ itemStateChanges: changes }, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },
   );

@@ -37,8 +37,7 @@ export interface CreateParams {
 /**
  * Creates a new Val Town Val from a local directory.
  *
- * @param {CreateParams} params Options for create operation.
- *
+ * @param params Options for create operation.
  * @returns Promise that resolves with changes that were applied during the push operation and the new Val ID.
  */
 export async function create(

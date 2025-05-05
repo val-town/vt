@@ -2,11 +2,12 @@
 
 VT is a cli to work with Vals in the [Val Town](https://val.town) platform.
 
-![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
+`vt` is the official CLI to work with projects on the
+[Val Town](https://val.town) platform.
 
 ```
 Usage:   vt    
-Version:x0.x.xx
+Version: x.x.xx
 
 Options:
 

@@ -2,7 +2,6 @@ import { Command } from "@cliffy/command";
 import sdk, { branchNameToBranch } from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import type ValTown from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -11,9 +10,9 @@ async function listBranches(vt: VTClient) {
   return await doWithSpinner("Loading branches...", async (spinner) => {
     const meta = await vt.getMeta().loadVtState();
 
-    const branches: ValTown.Vals.BranchListResponse[] = [];
-    // deno-fmt-ignore
-    for await (const file of (await sdk.vals.branches.list(meta.val.id, {}))) branches.push(file);
+    const branches = await Array.fromAsync(
+      sdk.vals.branches.list(meta.val.id, {}),
+    );
 
     const formatter = new Intl.DateTimeFormat("en-US", {
       year: "numeric",

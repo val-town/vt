@@ -11,6 +11,7 @@ import {
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 
+/** Result of push operation  */
 export interface PushResult {
   /** Changes made to Val items during the push process */
   itemStateChanges: ItemStatusManager;
@@ -38,7 +39,7 @@ export interface PushParams {
  * Pushes latest changes from a vt folder into a Val Town val. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
- * @param {PushParams} params Options for push operation.
+ * @param params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export async function push(params: PushParams): Promise<PushResult> {
@@ -55,7 +56,7 @@ export async function push(params: PushParams): Promise<PushResult> {
   assert(await exists(targetDir), "target directory doesn't exist");
 
   // Retrieve the status
-  const itemStateChanges = await status({
+  const { itemStateChanges } = await status({
     targetDir,
     valId,
     branchId,
