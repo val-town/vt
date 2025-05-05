@@ -117,6 +117,8 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((f) => f.type !== "directory")
     .forEach((f) =>
       fileOperations.push(async () => {
+        const promises: Promise<unknown>[] = [];
+
         const parent = await getValItem(
           valId,
           branchId,
@@ -124,36 +126,31 @@ export async function push(params: PushParams): Promise<PushResult> {
           dirname(f.path),
         );
 
-        const isAtRoot = basename(f.path) == f.path;
-
-        if (isAtRoot) {
-          await doReqMaybeApplyWarning(
-            async () =>
-              await sdk.vals.files.update(valId, {
-                branch_id: branchId,
-                name: undefined,
-                parent_path: null,
-                path: f.oldPath,
-              }),
-            f.path,
-            itemStateChanges,
-          );
+        // If moving from a folder to the root
+        if (f.oldPath != basename(f.oldPath) && f.path === basename(f.path)) {
+          promises.push(sdk.vals.files.update(valId, {
+            branch_id: branchId,
+            parent_path: parent?.path ?? null,
+            path: f.oldPath,
+          }));
         }
 
         // To move the file to the root dir parent_id must be null and the name
         // must be undefined (the api is very picky about this!)
-        return await doReqMaybeApplyWarning(
+        promises.push(doReqMaybeApplyWarning(
           async () =>
             await sdk.vals.files.update(valId, {
               branch_id: branchId,
-              name: isAtRoot ? undefined : basename(f.path),
-              parent_path: parent?.path || null,
+              name: basename(f.path),
+              parent_path: parent?.path ?? null,
               path: f.oldPath,
               content: f.content,
             }),
           f.path,
           itemStateChanges,
-        );
+        ));
+
+        return Promise.all(promises);
       })
     );
 
