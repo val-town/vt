@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getLatestVersion, listProjectItems } from "~/sdk.ts";
+import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -25,17 +25,18 @@ export const watchCmd = new Command()
     await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
-      const state = await vt.getMeta().loadVtState();
-      const currentBranch = await sdk.projects.branches.retrieve(
-        state.project.id,
-        state.branch.id,
+      // Get initial branch information for display
+      const vtState = await vt.getMeta().loadVtState();
+      const currentBranch = await sdk.vals.branches.retrieve(
+        vtState.val.id,
+        vtState.branch.id,
       );
 
       spinner.stop();
 
       const versionRangeStr = displayVersionRange(
         FIRST_VERSION_NUMBER,
-        state.branch.version,
+        vtState.branch.version,
         currentBranch.version,
       );
       console.log(
@@ -97,16 +98,16 @@ export const watchCmd = new Command()
             if (companion) {
               vt.getMeta().loadVtState()
                 .then(async (state) =>
-                  await listProjectItems(
-                    state.project.id,
+                  await listValItems(
+                    state.val.id,
                     state.branch.id,
-                    await getLatestVersion(state.project.id, state.branch.id),
+                    await getLatestVersion(state.val.id, state.branch.id),
                   )
                 )
                 .then((projectItems) =>
                   projectItems
-                    .filter((projectItem) => !!projectItem.links.endpoint)
-                    .map((projectItem) => projectItem.links.endpoint)
+                    .filter((valItem) => !!valItem.links.endpoint)
+                    .map((valItem) => valItem.links.endpoint)
                     .forEach((link) => companion.reloadTab(link!))
                 );
             }

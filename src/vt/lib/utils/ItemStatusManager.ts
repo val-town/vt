@@ -1,17 +1,17 @@
 import { levenshteinDistance } from "@std/text";
-import type { ProjectItemType } from "~/types.ts";
+import type { ValItemType } from "~/types.ts";
 import {
   MAX_FILE_CHARS,
   MAX_FILENAME_LENGTH,
-  PROJECT_ITEM_NAME_REGEX,
   RENAME_DETECTION_THRESHOLD,
   TYPE_PRIORITY,
+  VAL_ITEM_NAME_REGEX,
 } from "~/consts.ts";
 import { basename } from "@std/path";
 import { hasNullBytes } from "~/utils.ts";
 
 /**
- * Possible warning states for a project item.
+ * Possible warning states for a Val item.
  *
  * @property bad_name - The item has an invalid name format
  * @property binary - The item contains binary content
@@ -27,11 +27,11 @@ export type ItemWarning =
   | `unknown: ${string}`;
 
 /**
- * Base information about a project item.
+ * Base information about a Val item.
  */
 export interface ItemInfo {
-  /** The type of the project item (e.g., "file", "directory") */
-  type: ProjectItemType;
+  /** The type of the Val item (e.g., "file", "directory") */
+  type: ValItemType;
   /** The file path of the item */
   path: string;
   /** The modification timestamp of the item */
@@ -43,7 +43,7 @@ export interface ItemInfo {
 }
 
 /**
- * The possible status states of a project item.
+ * The possible status states of a Val item.
  *
  * @property deleted - The item has been removed
  * @property created - The item is newly created
@@ -137,7 +137,7 @@ export class ItemStatusManager {
   /**
    * Create a new ItemStatusManager.
    *
-   * @param {Partial<ItemStatus>} initialState The initial state of the file status manager. This is a partial object that can contain any of the file states.
+   * @param initialState The initial state of the file status manager. This is a partial object that can contain any of the file states.
    */
   public constructor(
     initialState?: Partial<{
@@ -315,8 +315,8 @@ export class ItemStatusManager {
   /**
    * Removes an item with the specified path from any status category.
    *
-   * @param path - The path of the item to remove
-   * @returns true if the item was found and removed, false otherwise
+   * @param path The path of the item to remove
+   * @returns Whether the item was found and removed
    */
   public remove(path: string): boolean {
     if (this.#modified.has(path)) {
@@ -399,7 +399,7 @@ export class ItemStatusManager {
   /**
    * Gets the item with the specified path from any status category.
    *
-   * @param path - The path of the item to get
+   * @param path The path of the item to get
    * @returns The item with the specified path, or undefined if not found
    * @throws Error if item with the specified path doesn't exist
    */
@@ -561,8 +561,8 @@ export class ItemStatusManager {
    * Files in the source take precedence over existing files with the same path.
    * This acts like a right intersection where source values override existing ones.
    *
-   * @param source - The FileState object to merge from
-   * @returns this - The current FileState instance for chaining
+   * @param source The FileState object to merge from
+   * @returns The current FileState instance for chaining
    */
   public merge(source: ItemStatusManager): this {
     // Collect all paths from the source
@@ -594,7 +594,7 @@ export class ItemStatusManager {
   /**
    * Creates a new FileState with only the entries that pass the given predicate function.
    *
-   * @param predicate - Function that tests each entry. Takes a FileStateEntry and returns a boolean.
+   * @param predicate Function that tests each entry. Takes a FileStateEntry and returns a boolean.
    * @returns A new FileState containing only entries that pass the predicate test
    */
   public filter(
@@ -663,7 +663,7 @@ export class ItemStatusManager {
   /**
    * Checks if a file with the specified path exists in any status category.
    *
-   * @param path - The file path to check
+   * @param path The file path to check
    * @returns True if the path exists in any status, false otherwise
    */
   public has(path: string): boolean {
@@ -691,7 +691,13 @@ export class ItemStatusManager {
   /**
    * JSON object representation of the file state.
    */
-  public toJSON() {
+  public toJSON(): {
+    modified: ModifiedItemStatus[];
+    not_modified: NotModifiedItemStatus[];
+    deleted: DeletedItemStatus[];
+    created: CreatedItemStatus[];
+    renamed: RenamedItemStatus[];
+  } {
     return {
       modified: this.modified,
       not_modified: this.not_modified,
@@ -718,7 +724,7 @@ export class ItemStatusManager {
  * - Empty files
  * - Files exceeding maximum allowed size
  *
- * @param path - The filesystem path to check
+ * @param path The filesystem path to check
  * @returns A Promise that resolves to an array of ItemWarning strings
  * @throws May throw errors during file system operations
  */
@@ -738,7 +744,7 @@ export async function getItemWarnings(path: string): Promise<ItemWarning[]> {
   }
   if (
     basename(path).length > MAX_FILENAME_LENGTH ||
-    !PROJECT_ITEM_NAME_REGEX.test(basename(path))
+    !VAL_ITEM_NAME_REGEX.test(basename(path))
   ) {
     warnings.push("bad_name");
   }

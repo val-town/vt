@@ -1,22 +1,17 @@
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
 import sdk from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
-import type { ProjectFileType } from "~/types.ts";
+import type { ValFileType } from "~/types.ts";
 
 Deno.test({
   name: "test typical cloning",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await t.step("test cloning files", async (t) => {
         const filesToCreate = [
           {
@@ -53,15 +48,15 @@ Deno.test({
           },
         ];
 
-        await t.step("create project files", async () => {
-          // Create all files in the project
+        await t.step("create Val files", async () => {
+          // Create all files in the val
           for (const file of filesToCreate) {
             // Ensure parent directories exist in path notation
             const pathParts = file.path.split("/");
             if (pathParts.length > 1) {
               const dirPath = pathParts.slice(0, -1).join("/");
-              await sdk.projects.files.create(
-                project.id,
+              await sdk.vals.files.create(
+                val.id,
                 {
                   path: dirPath,
                   branch_id: branch.id,
@@ -71,13 +66,13 @@ Deno.test({
             }
 
             // Create the file
-            await sdk.projects.files.create(
-              project.id,
+            await sdk.vals.files.create(
+              val.id,
               {
                 path: file.path,
                 content: file.content,
                 branch_id: branch.id,
-                type: file.type as ProjectFileType,
+                type: file.type as ValFileType,
               },
             );
           }
@@ -85,10 +80,10 @@ Deno.test({
 
         await doWithTempDir(async (tempDir) => {
           await t.step("verify cloned files", async () => {
-            // Clone the project to the temp directory
+            // Clone the Val to the temp directory
             await clone({
               targetDir: tempDir,
-              projectId: project.id,
+              valId: val.id,
               branchId: branch.id,
               version: 7,
             });
@@ -128,35 +123,30 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test cloning empty directory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await t.step("test cloning empty directories", async (t) => {
         const emptyDirPath = "empty/directory";
 
         await t.step("create empty directory", async () => {
           // Create an empty directory to test explicit directory creation
-          await sdk.projects.files.create(
-            project.id,
+          await sdk.vals.files.create(
+            val.id,
             { path: emptyDirPath, branch_id: branch.id, type: "directory" },
           );
         });
 
         await doWithTempDir(async (tempDir) => {
-          await t.step("clone the project", async () => {
-            // Clone the project to the temp directory
+          await t.step("clone the val", async () => {
+            // Clone the Val to the temp directory
             await clone({
               targetDir: tempDir,
-              projectId: project.id,
+              valId: val.id,
               branchId: branch.id,
               version: 1,
             });
@@ -175,5 +165,4 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });

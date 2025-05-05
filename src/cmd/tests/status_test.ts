@@ -1,18 +1,19 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "status command with local changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create a file and clone the project", async () => {
-          await sdk.projects.files.create(
-            project.id,
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create a file and clone the val", async () => {
+          await sdk.vals.files.create(
+            val.id,
             {
               path: "test.js",
               content: "console.log('Initial content');",
@@ -22,12 +23,12 @@ Deno.test({
           );
 
           await runVtCommand(
-            ["clone", project.name, "--no-editor-files"],
+            ["clone", val.name, "--no-editor-files"],
             tmpDir,
           );
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("make a local change", async () => {
           // Make a local change
@@ -64,12 +65,13 @@ Deno.test({
 
 Deno.test({
   name: "status command with remote changes",
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
-        await t.step("create a file and clone the project", async () => {
-          await sdk.projects.files.create(
-            project.id,
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("create a file and clone the val", async () => {
+          await sdk.vals.files.create(
+            val.id,
             {
               path: "initial.js",
               content: "console.log('Initial content');",
@@ -79,17 +81,17 @@ Deno.test({
           );
 
           await runVtCommand(
-            ["clone", project.name, "--no-editor-files"],
+            ["clone", val.name, "--no-editor-files"],
             tmpDir,
           );
         });
 
-        const fullPath = join(tmpDir, project.name);
+        const fullPath = join(tmpDir, val.name);
 
         await t.step("make a remote change", async () => {
           // Create a new file remotely
-          await sdk.projects.files.create(
-            project.id,
+          await sdk.vals.files.create(
+            val.id,
             {
               path: "remote-file.js",
               content: "console.log('Remote file');",

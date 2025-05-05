@@ -1,11 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
 import {
-  ProjectItemColors,
   STATUS_STYLES,
   TypeToTypeStr,
+  ValItemColors,
   WARNING_MESSAGES,
 } from "~/consts.ts";
-import type { ProjectItemType } from "~/types.ts";
+import type { ValItemType } from "~/types.ts";
 import { basename, dirname, join } from "@std/path";
 import type {
   ItemStatus,
@@ -15,15 +15,15 @@ import type {
 /**
  * Displays file changes and summary information from a FileStateChanges
  *
- * @param fileStateChanges - The file state changes, containing modified, created, and deleted files
- * @param options - Display options
- * @param options.headerText - Custom header text to display before file changes
- * @param [options.summaryText="Summary:"] - Text to show before the summary
- * @param options.emptyMessage - Message to show when there are no changes
- * @param [options.showEmpty=true] - Whether to show output when there are no changes
- * @param [options.includeSummary=true] - Whether to display the summary
- * @param [options.includeTypes=true] - Whether to display the (detected) types of the files
- * @param [options.showWarnings=true] - Whether to display warnings associated with files
+ * @param fileStateChanges The file state changes, containing modified, created, and deleted files
+ * @param options Display options
+ * @param options.headerText Custom header text to display before file changes
+ * @param options.summaryText Text to show before the summary
+ * @param options.emptyMessage Message to show when there are no changes
+ * @param options.showEmpty Whether to show output when there are no changes
+ * @param options.includeSummary Whether to display the summary
+ * @param options.includeTypes Whether to display the (detected) types of the files
+ * @param options.showWarnings Whether to display warnings associated with files
  * @returns string The formatted output string
  */
 export function displayFileStateChanges(
@@ -167,7 +167,7 @@ export function displayFileStateChanges(
 
 function formatStatus(
   file: ItemStatus,
-  type?: ProjectItemType,
+  type?: ValItemType,
   maxTypeLength: number = 0,
 ): string {
   const styleConfig = STATUS_STYLES[file.status];
@@ -188,9 +188,7 @@ function formatStatus(
   return parts.join(" ");
 }
 
-/**
- * Formats the path display section based on file status
- */
+// Format the path display section based on file status
 function formatPathDisplay(file: ItemStatus, styleConfig: {
   color: (text: string) => string;
   prefix: string;
@@ -221,11 +219,9 @@ function formatPathDisplay(file: ItemStatus, styleConfig: {
   );
 }
 
-/**
- * Formats the type indicator with proper padding and colors
- */
+// Format type indicator with proper padding and colors
 function formatTypeIndicator(
-  type?: ProjectItemType,
+  type?: ValItemType,
   maxTypeLength: number = 0,
 ): string {
   if (type === undefined) {
@@ -235,6 +231,6 @@ function formatTypeIndicator(
   const typeStr = TypeToTypeStr[type];
   const paddedTypeStr = typeStr.padEnd(maxTypeLength);
 
-  return colors.gray("(") + ProjectItemColors[type](paddedTypeStr) +
+  return colors.gray("(") + ValItemColors[type](paddedTypeStr) +
     colors.gray(")");
 }

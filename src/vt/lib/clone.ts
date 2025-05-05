@@ -1,4 +1,4 @@
-import sdk, { listProjectItems } from "~/sdk.ts";
+import sdk, { listValItems } from "~/sdk.ts";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir, exists } from "@std/fs";
 import { dirname } from "@std/path/dirname";
@@ -19,15 +19,15 @@ export interface CloneResult {
 }
 
 /**
- * Parameters for cloning a project by downloading its files and directories to the specified
+ * Parameters for cloning a Val by downloading its files and directories to the specified
  * target directory.
  */
 export interface CloneParams {
-  /** The directory where the project will be cloned */
+  /** The directory where the Val will be cloned */
   targetDir: string;
-  /** The id of the project to be cloned */
-  projectId: string;
-  /** The branch ID of the project to clone */
+  /** The id of the Val to be cloned */
+  valId: string;
+  /** The branch ID of the Val to clone */
   branchId: string;
   /** The version to clone. Defaults to latest */
   version: number;
@@ -40,7 +40,7 @@ export interface CloneParams {
 }
 
 /**
- * Clones a project by downloading its files and directories to the specified
+ * Clones a Val by downloading its files and directories to the specified
  * target directory.
  *
  * @param params Options for the clone operation
@@ -49,7 +49,7 @@ export interface CloneParams {
 export function clone(params: CloneParams): Promise<CloneResult> {
   const {
     targetDir,
-    projectId,
+    valId,
     branchId,
     version,
     gitignoreRules,
@@ -59,13 +59,13 @@ export function clone(params: CloneParams): Promise<CloneResult> {
   return doAtomically(
     async (tmpDir) => {
       const itemStateChanges = new ItemStatusManager();
-      const projectItems = await listProjectItems(
-        projectId,
+      const valItems = await listValItems(
+        valId,
         branchId,
         version,
       );
 
-      await Promise.all(projectItems
+      await Promise.all(valItems
         .map(async (file) => {
           // Skip ignored files
           if (shouldIgnore(file.path, gitignoreRules)) return;
@@ -91,7 +91,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
               file.path,
               targetDir,
               tmpDir,
-              projectId,
+              valId,
               branchId,
               version,
               file,
@@ -112,10 +112,10 @@ async function createFile(
   path: string,
   originalRoot: string,
   targetRoot: string,
-  projectId: string,
+  valId: string,
   branchId: string,
   version: number | undefined = undefined,
-  file: ValTown.Projects.FileRetrieveResponse,
+  file: ValTown.Vals.FileRetrieveResponse,
   changes: ItemStatusManager,
   dryRun: boolean,
   overwrite: boolean = true,
@@ -132,7 +132,7 @@ async function createFile(
   if (!overwrite && fileInfo !== null) {
     // Still add to changes with not_modified status, since we're keeping the file as-is
     const localContent = await Deno.readTextFile(join(originalRoot, path));
-    await changes.insert({
+    changes.insert({
       type: fileType,
       path: file.path,
       status: "not_modified",
@@ -155,11 +155,11 @@ async function createFile(
   } else {
     // File exists - check if it's modified
     const localMtime = fileInfo.mtime!.getTime();
-    const projectMtime = updatedAt.getTime();
+    const valMtime = updatedAt.getTime();
 
     // Get its content for modification checking
     const localContent = await Deno.readTextFile(join(originalRoot, path));
-    const projectContent = await sdk.projects.files.getContent(projectId, {
+    const valContent = await sdk.vals.files.getContent(valId, {
       path,
       branch_id: branchId,
       version,
@@ -168,8 +168,8 @@ async function createFile(
     const modified = isFileModified({
       srcContent: localContent,
       srcMtime: localMtime,
-      dstContent: projectContent,
-      dstMtime: projectMtime,
+      dstContent: valContent,
+      dstMtime: valMtime,
     });
 
     if (modified) {
@@ -205,8 +205,8 @@ async function createFile(
   if (fileStatus.status === "not_modified") {
     await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
   } else {
-    const content = await sdk.projects.files.getContent(
-      projectId,
+    const content = await sdk.vals.files.getContent(
+      valId,
       { path: file.path, branch_id: branchId, version },
     ).then((resp) => resp.text());
 
