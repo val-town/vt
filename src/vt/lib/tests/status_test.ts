@@ -1,19 +1,15 @@
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, { getLatestVersion } from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test status detects binary files",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a binary file (contains null bytes)
         const binaryFilePath = join(tempDir, "binary-file.bin");
@@ -23,9 +19,9 @@ Deno.test({
         // Run status check
         const { itemStateChanges: statusResult } = await status({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
-          version: await getLatestVersion(project.id, branch.id),
+          version: await getLatestVersion(val.id, branch.id),
         });
 
         // Find the binary file in created items
@@ -47,18 +43,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test status detects files with invalid names",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a file with an invalid name (contains invalid characters)
         const invalidFileName = "file with spaces.txt";
@@ -68,9 +59,9 @@ Deno.test({
         // Run status check
         const { itemStateChanges: statusResult } = await status({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
-          version: await getLatestVersion(project.id, branch.id),
+          version: await getLatestVersion(val.id, branch.id),
         });
 
         // Find the file with invalid name in created items
@@ -92,32 +83,27 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test typical file status reporting",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         const remoteFile1 = "remote.txt";
         const remoteFile2 = "remote2.txt";
         const localOnlyFile = "local.txt";
 
         await t.step("create a local and remote layout", async () => {
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(val.id, {
             path: remoteFile1,
             content: "Remote file 1",
             branch_id: branch.id,
             type: "file",
           });
 
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(val.id, {
             path: remoteFile2,
             content: "Remote file 2",
             branch_id: branch.id,
@@ -141,9 +127,9 @@ Deno.test({
           // Run status check
           const { itemStateChanges: statusResult } = await status({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
+            version: await getLatestVersion(val.id, branch.id),
           });
 
           // Test file that exists in both places but was modified locally
@@ -161,27 +147,21 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test status detects empty directory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         await Deno.mkdir(join(tempDir, "empty_dir"));
 
         const { itemStateChanges: statusResult } = await status({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
-          version: await getLatestVersion(project.id, branch.id),
+          version: await getLatestVersion(val.id, branch.id),
           gitignoreRules: [
             ".vtignore",
             ".vt",
@@ -204,19 +184,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test status detects renamed files",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         await t.step("create a local and remote layout", async () => {
           // Create a folder
@@ -232,14 +206,14 @@ Deno.test({
           await Deno.writeTextFile(oldPathB, "differentContent");
 
           // Push original files to remote
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(val.id, {
             path: "folder/oldA.txt",
             content: "content",
             branch_id: branch.id,
             type: "file",
           });
 
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(val.id, {
             path: "folder/oldB.txt",
             content: "differentContent",
             branch_id: branch.id,
@@ -263,9 +237,9 @@ Deno.test({
           // Run status check
           const { itemStateChanges: statusResult } = await status({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
-            version: await getLatestVersion(project.id, branch.id),
+            version: await getLatestVersion(val.id, branch.id),
           });
 
           // Check not_modified array
@@ -296,5 +270,4 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });

@@ -1,11 +1,11 @@
 import { colors } from "@cliffy/ansi/colors";
 import {
-  ProjectItemColors,
   STATUS_STYLES,
   TypeToTypeStr,
+  ValItemColors,
   WARNING_MESSAGES,
 } from "~/consts.ts";
-import type { ProjectItemType } from "~/types.ts";
+import type { ValItemType } from "~/types.ts";
 import { basename, dirname, join } from "@std/path";
 import type {
   ItemStatus,
@@ -167,7 +167,7 @@ export function displayFileStateChanges(
 
 function formatStatus(
   file: ItemStatus,
-  type?: ProjectItemType,
+  type?: ValItemType,
   maxTypeLength: number = 0,
 ): string {
   const styleConfig = STATUS_STYLES[file.status];
@@ -221,7 +221,7 @@ function formatPathDisplay(file: ItemStatus, styleConfig: {
 
 // Format type indicator with proper padding and colors
 function formatTypeIndicator(
-  type?: ProjectItemType,
+  type?: ValItemType,
   maxTypeLength: number = 0,
 ): string {
   if (type === undefined) {
@@ -231,6 +231,6 @@ function formatTypeIndicator(
   const typeStr = TypeToTypeStr[type];
   const paddedTypeStr = typeStr.padEnd(maxTypeLength);
 
-  return colors.gray("(") + ProjectItemColors[type](paddedTypeStr) +
+  return colors.gray("(") + ValItemColors[type](paddedTypeStr) +
     colors.gray(")");
 }

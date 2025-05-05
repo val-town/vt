@@ -2,67 +2,56 @@ import { assert, assertEquals } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
-import { dirIsEmpty } from "~/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getCurrentUser, randomProjectName } from "~/sdk.ts";
+import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({
-  name: "create project with existing directory name",
+  name: "create Val with existing directory name",
+  permissions: "inherit",
   async fn(c) {
     const user = await getCurrentUser();
-
-    const emptyDirProjectName = "emptyDir" + randomProjectName();
-    const nonEmptyDirProjectName = "nonEmptyDir" + randomProjectName();
-    let emptyDirProject: ValTown.Projects.ProjectCreateResponse | null = null;
+    const emptyDirValName = "emptyDir" + randomValName();
+    const nonEmptyDirValName = "nonEmptyDir" + randomValName();
+    let emptyDirVal: ValTown.Val | null = null;
 
     await doWithTempDir(async (tmpDir) => {
       await c.step(
-        "can create project with name of empty directory",
+        "can create Val with name of empty directory",
         async () => {
           // Create an empty directory
-          const emptyDirPath = join(tmpDir, emptyDirProjectName);
+          const emptyDirPath = join(tmpDir, emptyDirValName);
           await Deno.mkdir(emptyDirPath);
 
           // Should succeed with empty directory
-          await runVtCommand(["create", emptyDirProjectName], tmpDir);
-          emptyDirProject = await sdk.alias.username.projectName.retrieve(
+          await runVtCommand(["create", emptyDirValName], tmpDir);
+          emptyDirVal = await sdk.alias.username.valName.retrieve(
             user.username!,
-            emptyDirProjectName,
+            emptyDirValName,
           );
 
-          assertEquals(emptyDirProject.name, emptyDirProjectName);
+          assertEquals(emptyDirVal.name, emptyDirValName);
 
           // Clean up
-          if (emptyDirProject) {
-            await sdk.projects.delete(emptyDirProject.id);
-            emptyDirProject = null;
+          if (emptyDirVal) {
+            await sdk.vals.delete(emptyDirVal.id);
+            emptyDirVal = null;
           }
         },
       );
 
       await c.step(
-        "cannot create project with name of non-empty directory",
+        "cannot create Val with name of non-empty directory",
         async () => {
           // Create a non-empty directory
-          const nonEmptyDirPath = join(tmpDir, nonEmptyDirProjectName);
+          const nonEmptyDirPath = join(tmpDir, nonEmptyDirValName);
           await Deno.mkdir(nonEmptyDirPath);
           await Deno.writeTextFile(join(nonEmptyDirPath, "file"), "content");
-
-          // Verify it exists and is not empty
-          assert(
-            await exists(nonEmptyDirPath),
-            "non-empty directory should exist",
-          );
-          assert(
-            !await dirIsEmpty(nonEmptyDirPath),
-            "directory should not be empty",
-          );
 
           // Should fail with non-empty directory
           const [_, status] = await runVtCommand([
             "create",
-            nonEmptyDirProjectName,
+            nonEmptyDirValName,
           ], tmpDir);
           assertEquals(status, 1);
         },
@@ -72,116 +61,129 @@ Deno.test({
   sanitizeResources: false,
 });
 
-Deno.test("new project in specific directory", async (c) => {
-  const user = await getCurrentUser();
-  const newProjectName = randomProjectName();
-  let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
+Deno.test({
+  name: "new Val in specific directory",
+  permissions: "inherit",
+  async fn(c) {
+    const user = await getCurrentUser();
 
-  try {
-    await doWithTempDir(async (tmpDir) => {
-      await c.step("create a new project", async () => {
-        await runVtCommand(["create", newProjectName], tmpDir);
+    const newValName = randomValName();
+    let newVal: ValTown.Val | null = null;
 
-        newProject = await sdk.alias.username.projectName.retrieve(
-          user.username!,
-          newProjectName,
-        );
+    try {
+      await doWithTempDir(async (tmpDir) => {
+        await c.step("create a new val", async () => {
+          await runVtCommand(["create", newValName], tmpDir);
 
-        assertEquals(newProject.name, newProjectName);
-        assertEquals(newProject.author.username, user.username);
-      });
-
-      await c.step("make sure the project is cloned", async () => {
-        assert(
-          await exists(join(tmpDir, newProjectName)),
-          "project was not cloned to target",
-        );
-      });
-    });
-  } finally {
-    // @ts-ignore newProject is defined but something went wrong
-    await sdk.projects.delete(newProject.id);
-  }
-});
-
-Deno.test("create new private project", async (c) => {
-  const user = await getCurrentUser();
-
-  const newProjectName = randomProjectName();
-  let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
-
-  try {
-    await doWithTempDir(async (tmpDir) => {
-      await c.step("create a new private project", async () => {
-        await runVtCommand([
-          "create",
-          newProjectName,
-          "--private",
-        ], tmpDir);
-
-        newProject = await sdk.alias.username.projectName.retrieve(
-          user.username!,
-          newProjectName,
-        );
-
-        assertEquals(newProject.name, newProjectName);
-        assertEquals(newProject.author.username, user.username);
-        assertEquals(
-          newProject.privacy,
-          "private",
-          "project should be private",
-        );
-      });
-
-      await c.step("make sure the project is cloned", async () => {
-        assert(
-          await exists(join(tmpDir, newProjectName)),
-          "project was not cloned to target",
-        );
-      });
-    });
-  } finally {
-    // @ts-ignore newProject is defined but something went wrong
-    if (newProject) await sdk.projects.delete(newProject.id);
-  }
-});
-
-Deno.test("create new project in current working directory", async (c) => {
-  const user = await getCurrentUser();
-
-  const newProjectName = randomProjectName();
-  let newProject: ValTown.Projects.ProjectCreateResponse | null = null;
-
-  try {
-    await doWithTempDir(async (tmpDir) => {
-      // Mock the cwd function to return the temp directory
-      await c.step("create a new project in current directory", async () => {
-        await runVtCommand([
-          "create",
-          newProjectName,
-        ], tmpDir);
-
-        newProject = await sdk.alias.username.projectName.retrieve(
-          user.username!,
-          newProjectName,
-        );
-
-        assertEquals(newProject.name, newProjectName);
-        assertEquals(newProject.author.username, user.username);
-      });
-
-      await c.step(
-        "make sure the project is cloned to current directory",
-        async () => {
-          assert(
-            await exists(join(tmpDir, newProjectName)),
-            "project was not cloned to current directory",
+          newVal = await sdk.alias.username.valName.retrieve(
+            user.username!,
+            newValName,
           );
-        },
-      );
-    });
-  } finally {
-    // @ts-ignore newProject is defined but something went wrong
-    if (newProject) await sdk.projects.delete(newProject.id);
-  }
+
+          assertEquals(newVal.name, newValName);
+          assertEquals(newVal.author.username, user.username);
+        });
+
+        await c.step("make sure the Val is cloned", async () => {
+          assert(
+            await exists(join(tmpDir, newValName)),
+            "val was not cloned to target",
+          );
+        });
+      });
+    } finally {
+      // @ts-ignore newVal is defined but something went wrong
+      await sdk.vals.delete(newVal.id);
+    }
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "create new private val",
+  permissions: "inherit",
+  async fn(c) {
+    const user = await getCurrentUser();
+    const newValName = randomValName();
+    let newVal: ValTown.Val | null = null;
+
+    try {
+      await doWithTempDir(async (tmpDir) => {
+        await c.step("create a new private val", async () => {
+          await runVtCommand([
+            "create",
+            newValName,
+            "--private",
+          ], tmpDir);
+
+          newVal = await sdk.alias.username.valName.retrieve(
+            user.username!,
+            newValName,
+          );
+
+          assertEquals(newVal.name, newValName);
+          assertEquals(newVal.author.username, user.username);
+          assertEquals(
+            newVal.privacy,
+            "private",
+            "val should be private",
+          );
+        });
+
+        await c.step("make sure the Val is cloned", async () => {
+          assert(
+            await exists(join(tmpDir, newValName)),
+            "val was not cloned to target",
+          );
+        });
+      });
+    } finally {
+      // @ts-ignore newVal is defined but something went wrong
+      if (newVal) await sdk.vals.delete(newVal.id);
+    }
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "create new Val in current working directory",
+  permissions: "inherit",
+  async fn(c) {
+    const user = await getCurrentUser();
+    const newValName = randomValName();
+    let newVal: ValTown.Val | null = null;
+
+    try {
+      await doWithTempDir(async (tmpDir) => {
+        await c.step("create a new Val in current directory", async () => {
+          await runVtCommand([
+            "create",
+            newValName,
+          ], tmpDir);
+
+          newVal = await sdk.alias.username.valName.retrieve(
+            user.username!,
+            newValName,
+          );
+
+          assertEquals(newVal.name, newValName);
+          assertEquals(newVal.author.username, user.username);
+        });
+
+        await c.step(
+          "make sure the Val is cloned to current directory",
+          async () => {
+            assert(
+              await exists(join(tmpDir, newValName)),
+              "val was not cloned to current directory",
+            );
+          },
+        );
+      });
+    } finally {
+      // @ts-ignore newVal is defined but something went wrong
+      if (newVal) await sdk.vals.delete(newVal.id);
+    }
+  },
+  sanitizeResources: false,
 });

@@ -11,7 +11,7 @@ async function listBranches(vt: VTClient) {
     const meta = await vt.getMeta().loadVtState();
 
     const branches = await Array.fromAsync(
-      sdk.projects.branches.list(meta.project.id, {}),
+      sdk.vals.branches.list(meta.val.id, {}),
     );
 
     const formatter = new Intl.DateTimeFormat("en-US", {
@@ -66,7 +66,7 @@ async function deleteBranch(vt: VTClient, toDeleteName: string) {
 
   await doWithSpinner("Deleting branch...", async (spinner) => {
     const toDeleteBranch = await branchNameToBranch(
-      meta.project.id,
+      meta.val.id,
       toDeleteName,
     );
     if (toDeleteBranch.id === meta.branch.id) {
@@ -75,7 +75,7 @@ async function deleteBranch(vt: VTClient, toDeleteName: string) {
       );
     }
 
-    await sdk.projects.branches.delete(meta.project.id, toDeleteBranch.id);
+    await sdk.vals.branches.delete(meta.val.id, toDeleteBranch.id);
     spinner.succeed(`Branch '${toDeleteName}' has been deleted.`);
   });
 }

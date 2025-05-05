@@ -12,7 +12,7 @@ import { ensureDir, exists, walk } from "@std/fs";
 
 /**
  * The VTMeta class manages .vt/* configuration files and provides abstractions
- * to mutate and retreive them. It maintains the state of the vt folder. Used
+ * to mutate and retrieve them. It maintains the state of the vt folder. Used
  * internally by VTClient.
  */
 export default class VTMeta {
@@ -64,7 +64,7 @@ export default class VTMeta {
    * Reads and parses the state file.
    *
    * @returns A promise that resolves with the parsed state data.
-   * @throws {Error} Will throw an error if the file cannot be read or parsed.
+   * @throws Will throw an error if the file cannot be read or parsed.
    */
   public async loadVtState(): Promise<z.infer<typeof VTStateSchema>> {
     const data = await Deno.readTextFile(this.getVtStateFileName());
@@ -113,7 +113,7 @@ export default class VTMeta {
    *
    * @param callback A function that receives the current config and can modify it
    * @returns Promise that resolves to the return value of the callback
-   * @throws {Error} If the config cannot be loaded or saved
+   * @throws If the config cannot be loaded or saved
    */
   public async doWithVtState<T>(
     callback: (

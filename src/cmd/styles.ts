@@ -7,7 +7,7 @@ import yaml from "highlight.js/lib/languages/yaml";
 /**
  * Prints a YAML string with syntax highlighting.
  *
- * @param value - The YAML string to be printed
+ * @param value The YAML string to be printed
  */
 export function printYaml(value: string) {
   if (Deno.stdout.isTerminal() || Deno.env.get("FORCE_COLOR")) {
@@ -22,7 +22,7 @@ export function printYaml(value: string) {
 /**
  * Prints TypeScript with syntax highlighting.
  *
- * @param value - The TypeScript string to be printed
+ * @param value The TypeScript string to be printed
  */
 export function printTypescript(value: string) {
   const emphasize = createEmphasize();
@@ -33,7 +33,7 @@ export function printTypescript(value: string) {
 /**
  * Prints a Markdown string to the console with syntax highlighting.
  *
- * @param value - The Markdown string to be printed
+ * @param value The Markdown string to be printed
  */
 export function printMarkdown(value: string) {
   const emphasize = createEmphasize();
@@ -44,7 +44,7 @@ export function printMarkdown(value: string) {
 /**
  * Prints a JSON object to the console with syntax highlighting.
  *
- * @param obj - The object to be stringified to JSON and printed
+ * @param obj The object to be stringified to JSON and printed
  */
 export function printJson(obj: unknown) {
   const emphasize = createEmphasize();

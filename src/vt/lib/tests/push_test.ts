@@ -1,9 +1,5 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, {
-  getLatestVersion,
-  listProjectItems,
-  projectItemExists,
-} from "~/sdk.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import sdk, { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -11,14 +7,10 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
   name: "test moving file from subdirectory to root",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tempDir) => {
-      await doWithNewProject(async ({ project, branch }) => {
+      await doWithNewVal(async ({ val, branch }) => {
         // Make sure tempDir exists and is accessible
         await Deno.mkdir(tempDir, { recursive: true });
 
@@ -33,15 +25,15 @@ Deno.test({
           // Push the file in subdirectory
           const { itemStateChanges: firstPush } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
           assert(
-            await projectItemExists(
-              project.id,
+            await valItemExists(
+              val.id,
               branch.id,
               "subdir/test.txt",
-              await getLatestVersion(project.id, branch.id),
+              await getLatestVersion(val.id, branch.id),
             ),
             "file should exist in subdir",
           );
@@ -57,7 +49,7 @@ Deno.test({
           // Push the moved file
           const { itemStateChanges: secondPush } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
           assertEquals(secondPush.renamed.length, 1);
@@ -69,7 +61,7 @@ Deno.test({
           // Push again with no changes
           const { itemStateChanges: thirdPush } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
@@ -80,56 +72,51 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test ambiguous rename detection with duplicate content",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        const projectDir = join(tempDir, "project");
-        await Deno.mkdir(projectDir, { recursive: true });
+        const valDir = join(tempDir, "val");
+        await Deno.mkdir(valDir, { recursive: true });
 
         // Create two files with identical content
         const sameContent = "identical content";
-        await Deno.writeTextFile(join(projectDir, "file1.ts"), sameContent);
-        await Deno.writeTextFile(join(projectDir, "file2.ts"), sameContent);
+        await Deno.writeTextFile(join(valDir, "file1.ts"), sameContent);
+        await Deno.writeTextFile(join(valDir, "file2.ts"), sameContent);
 
         // But the mtimes should be the same, so that it's ambiguous
-        await Deno.utime(join(projectDir, "file2.ts"), 0, 0);
-        await Deno.utime(join(projectDir, "file1.ts"), 0, 0);
+        await Deno.utime(join(valDir, "file2.ts"), 0, 0);
+        await Deno.utime(join(valDir, "file1.ts"), 0, 0);
 
         // Push initial files
         await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
 
         // Get original file IDs
-        const file1 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/file1.ts" })
+        const file1 = await sdk.vals.files
+          .retrieve(val.id, { path: "val/file1.ts", recursive: true })
           .then((resp) => resp.data[0]);
-        const file2 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/file2.ts" })
+        const file2 = await sdk.vals.files
+          .retrieve(val.id, { path: "val/file2.ts", recursive: true })
           .then((resp) => resp.data[0]);
 
         // Delete both files and create two new files with the same content
-        await Deno.remove(join(projectDir, "file1.ts"));
-        await Deno.remove(join(projectDir, "file2.ts"));
-        await Deno.writeTextFile(join(projectDir, "newfile1.ts"), sameContent);
-        await Deno.writeTextFile(join(projectDir, "newfile2.ts"), sameContent);
+        await Deno.remove(join(valDir, "file1.ts"));
+        await Deno.remove(join(valDir, "file2.ts"));
+        await Deno.writeTextFile(join(valDir, "newfile1.ts"), sameContent);
+        await Deno.writeTextFile(join(valDir, "newfile2.ts"), sameContent);
 
         // Push changes
         const { itemStateChanges: result } = await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
 
@@ -151,11 +138,17 @@ Deno.test({
         );
 
         // Verify new files have different IDs than original files
-        const newFile1 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/newfile1.ts" })
+        const newFile1 = await sdk.vals.files
+          .retrieve(val.id, {
+            path: "val/newfile1.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
-        const newFile2 = await sdk.projects.files
-          .retrieve(project.id, { path: "project/newfile2.ts" })
+        const newFile2 = await sdk.vals.files
+          .retrieve(val.id, {
+            path: "val/newfile2.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
 
         assert(
@@ -169,19 +162,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test moving file to subdirectory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         const originalFilePath = join(tempDir, "test_cron.ts");
         const fileContent = "console.log('Hello, world!');";
@@ -190,23 +177,23 @@ Deno.test({
           await Deno.writeTextFile(originalFilePath, fileContent);
           await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
           // Verify file exists at original location
-          const fileExists = await projectItemExists(
-            project.id,
+          const fileExists = await valItemExists(
+            val.id,
             branch.id,
             "test_cron.ts",
-            await getLatestVersion(project.id, branch.id),
+            await getLatestVersion(val.id, branch.id),
           );
           assert(fileExists, "file should exist after creation");
         });
 
         // Get the original file ID
-        const originalFile = await sdk.projects.files
-          .retrieve(project.id, { path: "test_cron.ts" })
+        const originalFile = await sdk.vals.files
+          .retrieve(val.id, { path: "test_cron.ts", recursive: true })
           .then((resp) => resp.data[0]);
 
         await t.step("move file to subdirectory", async () => {
@@ -220,27 +207,27 @@ Deno.test({
           // Push the changes
           await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
         });
 
         await t.step("verify file moved correctly", async () => {
           // Verify file exists at new location
-          const fileExistsAtNewPath = await projectItemExists(
-            project.id,
+          const fileExistsAtNewPath = await valItemExists(
+            val.id,
             branch.id,
             "subdir/moved_file.ts",
-            await getLatestVersion(project.id, branch.id),
+            await getLatestVersion(val.id, branch.id),
           );
           assert(fileExistsAtNewPath, "file should exist at new location");
 
           // Verify file no longer exists at original location
-          const fileExistsAtOldPath = await projectItemExists(
-            project.id,
+          const fileExistsAtOldPath = await valItemExists(
+            val.id,
             branch.id,
             "test_file.ts",
-            await getLatestVersion(project.id, branch.id),
+            await getLatestVersion(val.id, branch.id),
           );
           assert(
             !fileExistsAtOldPath,
@@ -248,8 +235,11 @@ Deno.test({
           );
 
           // Verify the file ID is preserved (same file)
-          const movedFile = await sdk.projects.files
-            .retrieve(project.id, { path: "subdir/moved_file.ts" })
+          const movedFile = await sdk.vals.files
+            .retrieve(val.id, {
+              path: "subdir/moved_file.ts",
+              recursive: true,
+            })
             .then((resp) => resp.data[0]);
           assertEquals(
             originalFile.id,
@@ -260,19 +250,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test typical pushing",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         const vtFilePath = "test.txt";
         const localFilePath = join(tempDir, vtFilePath);
@@ -281,13 +265,13 @@ Deno.test({
           await Deno.writeTextFile(localFilePath, "test");
           await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
           // Pull and assert that the creation worked
-          const originalFileContent = await sdk.projects.files
-            .getContent(project.id, {
+          const originalFileContent = await sdk.vals.files
+            .getContent(val.id, {
               path: vtFilePath,
               branch_id: branch.id,
             })
@@ -302,13 +286,13 @@ Deno.test({
           await Deno.writeTextFile(localFilePath, "test2");
           await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
           // Pull and assert that the modification worked
-          const newFileContent = await sdk.projects.files
-            .getContent(project.id, {
+          const newFileContent = await sdk.vals.files
+            .getContent(val.id, {
               path: vtFilePath,
               branch_id: branch.id,
             })
@@ -320,154 +304,150 @@ Deno.test({
           await Deno.remove(localFilePath);
           await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
           // Assert that the file no longer exists on the remote
-          const fileExists = await projectItemExists(
-            project.id,
+          const fileExists = await valItemExists(
+            val.id,
             branch.id,
             vtFilePath,
-            await getLatestVersion(project.id, branch.id),
+            await getLatestVersion(val.id, branch.id),
           );
           assert(!fileExists, "file should have been deleted");
         });
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test renaming file without content change",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        const projectDir = join(tempDir, "project");
+        const valDir = join(tempDir, "val");
 
         // Create and push original file
-        await Deno.mkdir(projectDir, { recursive: true });
+        await Deno.mkdir(valDir, { recursive: true });
         await Deno.writeTextFile(
-          join(projectDir, "original.ts"),
+          join(valDir, "original.ts"),
           "unchanged content",
         );
 
         await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
 
         // Get the id of the original file
-        const originalFile = await sdk.projects.files
-          .retrieve(project.id, { path: "project/original.ts" })
+        const originalFile = await sdk.vals.files
+          .retrieve(val.id, {
+            path: "val/original.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
 
         // Rename file without changing content
-        await Deno.remove(join(projectDir, "original.ts"));
+        await Deno.remove(join(valDir, "original.ts"));
         await Deno.writeTextFile(
-          join(projectDir, "renamed.ts"),
+          join(valDir, "renamed.ts"),
           "unchanged content",
         );
 
         // Push renamed file
         const { itemStateChanges: statusResult } = await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
 
         // Verify rename was detected
         assertEquals(statusResult.renamed.length, 1);
-        assertEquals(statusResult.renamed[0].oldPath, "project/original.ts");
-        assertEquals(statusResult.renamed[0].path, "project/renamed.ts");
+        assertEquals(statusResult.renamed[0].oldPath, "val/original.ts");
+        assertEquals(statusResult.renamed[0].path, "val/renamed.ts");
         assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Verify file ID is preserved (same file)
-        const renamedFile = await sdk.projects.files.retrieve(
-          project.id,
-          { path: "project/renamed.ts" },
+        const renamedFile = await sdk.vals.files.retrieve(
+          val.id,
+          { path: "val/renamed.ts", recursive: true },
         ).then((resp) => resp.data[0]);
         assertEquals(originalFile.id, renamedFile.id);
 
         // Verify old file is gone
-        const oldFileExists = await projectItemExists(
-          project.id,
+        const oldFileExists = await valItemExists(
+          val.id,
           branch.id,
-          "project/original.ts",
-          await getLatestVersion(project.id, branch.id),
+          "val/original.ts",
+          await getLatestVersion(val.id, branch.id),
         );
         assert(!oldFileExists, "Old file should not exist after rename");
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test renaming file",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
-        const projectDir = join(tempDir, "project");
+        const valDir = join(tempDir, "val");
 
         await t.step("create a file and push it", async () => {
           // Create and push original file
-          await Deno.mkdir(projectDir, { recursive: true });
+          await Deno.mkdir(valDir, { recursive: true });
           await Deno.writeTextFile(
-            join(projectDir, "old.http.ts"),
+            join(valDir, "old.http.ts"),
             "content",
           );
 
           await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
         });
 
         // Get the id of the original file
-        const originalFile = await sdk.projects.files
-          .retrieve(project.id, { path: "project/old.http.ts" })
+        const originalFile = await sdk.vals.files
+          .retrieve(val.id, {
+            path: "val/old.http.ts",
+            recursive: true,
+          })
           .then((resp) => resp.data[0]);
 
         await t.step("rename the file and push changes", async () => {
           // Rename file (delete old, create new)
-          await Deno.remove(join(projectDir, "old.http.ts"));
+          await Deno.remove(join(valDir, "old.http.ts"));
           // (slightly modified, but less than 50%)
-          await Deno.writeTextFile(join(projectDir, "new.tsx"), "contentt");
+          await Deno.writeTextFile(join(valDir, "new.tsx"), "contentt");
 
           // Push renamed file
           const { itemStateChanges: statusResult } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
           // Verify rename was detected
           assertEquals(statusResult.renamed.length, 1);
           assertEquals(statusResult.renamed[0].type, "http");
-          assertEquals(statusResult.renamed[0].oldPath, "project/old.http.ts");
-          assertEquals(statusResult.renamed[0].path, "project/new.tsx");
+          assertEquals(statusResult.renamed[0].oldPath, "val/old.http.ts");
+          assertEquals(statusResult.renamed[0].path, "val/new.tsx");
           assertEquals(statusResult.renamed[0].status, "renamed");
         });
 
         await t.step("verify file content, type, and uuid", async () => {
           // Verify file ID is preserved (same file)
-          const renamedFile = await sdk.projects.files.retrieve(
-            project.id,
-            { path: "project/new.tsx" },
+          const renamedFile = await sdk.vals.files.retrieve(
+            val.id,
+            { path: "val/new.tsx", recursive: true },
           ).then((resp) => resp.data[0]);
           assertEquals(originalFile.id, renamedFile.id);
 
@@ -475,9 +455,9 @@ Deno.test({
           assertEquals(renamedFile.type, "http");
 
           // Verify content is preserved
-          const content = await sdk.projects.files
-            .getContent(project.id, {
-              path: "project/new.tsx",
+          const content = await sdk.vals.files
+            .getContent(val.id, {
+              path: "val/new.tsx",
               branch_id: branch.id,
             })
             .then((resp) => resp.text());
@@ -486,29 +466,24 @@ Deno.test({
 
         await t.step("ensure file no longer exists at old path", async () => {
           // Verify old file is gone
-          const oldFileExists = await projectItemExists(
-            project.id,
+          const oldFileExists = await valItemExists(
+            val.id,
             branch.id,
-            "project/old.http.ts",
-            await getLatestVersion(project.id, branch.id),
+            "val/old.http.ts",
+            await getLatestVersion(val.id, branch.id),
           );
           assert(!oldFileExists, "Old file should not exist after rename");
         });
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test pushing empty directory",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create an empty directory
         const emptyDirPath = join(tempDir, "empty_dir");
@@ -517,7 +492,7 @@ Deno.test({
         // Push the empty directory
         const { itemStateChanges: pushResult } = await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
 
@@ -531,10 +506,10 @@ Deno.test({
         );
 
         // Check that the directory exists on the server
-        const listResult = await listProjectItems(
-          project.id,
+        const listResult = await listValItems(
+          val.id,
           branch.id,
-          await getLatestVersion(project.id, branch.id),
+          await getLatestVersion(val.id, branch.id),
         );
 
         assertEquals(
@@ -547,18 +522,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test dry run push",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a file
         const vtFilePath = "test.txt";
@@ -568,7 +538,7 @@ Deno.test({
         // Push with dryRun enabled
         const { itemStateChanges: result } = await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
           dryRun: true,
         });
@@ -580,11 +550,11 @@ Deno.test({
         assertEquals(result.created[0].type, "file");
 
         // Assert that the file was NOT actually pushed to the server
-        const fileExists = await projectItemExists(
-          project.id,
+        const fileExists = await valItemExists(
+          val.id,
           branch.id,
           vtFilePath,
-          await getLatestVersion(project.id, branch.id),
+          await getLatestVersion(val.id, branch.id),
         );
         assert(!fileExists, "File should not exist on server after dry run");
       });
@@ -594,13 +564,9 @@ Deno.test({
 
 Deno.test({
   name: "test push with no changes",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create a file
         const vtFilePath = "test.txt";
@@ -610,7 +576,7 @@ Deno.test({
         // Do the push
         const { itemStateChanges: firstResult } = await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
 
@@ -622,7 +588,7 @@ Deno.test({
 
         const { itemStateChanges: secondResult } = await push({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           branchId: branch.id,
         });
         // Should be no changes on the second push
@@ -631,18 +597,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test push with file warnings (empty and too large)",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Import MAX_FILE_CHARS from consts to ensure test is accurate
         const { MAX_FILE_CHARS } = await import("~/consts.ts");
@@ -667,7 +628,7 @@ Deno.test({
           // Push all files
           const { itemStateChanges } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
@@ -704,11 +665,11 @@ Deno.test({
 
         await t.step("verify only safe files were uploaded", async () => {
           // Check that only the normal file was actually uploaded to the server
-          const latestVersion = await getLatestVersion(project.id, branch.id);
+          const latestVersion = await getLatestVersion(val.id, branch.id);
 
           // Normal file should exist
-          const normalFileExists = await projectItemExists(
-            project.id,
+          const normalFileExists = await valItemExists(
+            val.id,
             branch.id,
             "normal.txt",
             latestVersion,
@@ -716,16 +677,16 @@ Deno.test({
           assert(normalFileExists, "normal file should exist on server");
 
           // Files with warnings should NOT exist
-          const emptyFileExists = await projectItemExists(
-            project.id,
+          const emptyFileExists = await valItemExists(
+            val.id,
             branch.id,
             "empty.txt",
             latestVersion,
           );
           assert(!emptyFileExists, "empty file should NOT exist on server");
 
-          const largeFileExists = await projectItemExists(
-            project.id,
+          const largeFileExists = await valItemExists(
+            val.id,
             branch.id,
             "too_large.txt",
             latestVersion,
@@ -735,19 +696,13 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test push with read-only files",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create multiple files - some will be made read-only
         const normalFilePath = join(tempDir, "writable.txt");
@@ -763,7 +718,7 @@ Deno.test({
           // First push to establish files on the server
           const { itemStateChanges: initialPush } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
@@ -786,7 +741,7 @@ Deno.test({
           // Try to push all changes
           const { itemStateChanges: secondPush } = await push({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             branchId: branch.id,
           });
 
@@ -823,22 +778,22 @@ Deno.test({
 
         await t.step("verify server state after push", async () => {
           // Check content on the server to verify the push succeeded
-          const writableContent = await sdk.projects.files
-            .getContent(project.id, {
+          const writableContent = await sdk.vals.files
+            .getContent(val.id, {
               path: "writable.txt",
               branch_id: branch.id,
             })
             .then((resp) => resp.text());
 
-          const readOnlyContent = await sdk.projects.files
-            .getContent(project.id, {
+          const readOnlyContent = await sdk.vals.files
+            .getContent(val.id, {
               path: "readonly.txt",
               branch_id: branch.id,
             })
             .then((resp) => resp.text());
 
-          const anotherContent = await sdk.projects.files
-            .getContent(project.id, {
+          const anotherContent = await sdk.vals.files
+            .getContent(val.id, {
               path: "another.txt",
               branch_id: branch.id,
             })
@@ -867,5 +822,4 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });

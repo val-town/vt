@@ -1,41 +1,40 @@
 import ValTown from "@valtown/sdk";
-import "@std/dotenv/load";
 import { memoize } from "@std/cache";
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
 
 /**
- * Checks if a project exists.
+ * Checks if a Val exists.
  *
  * @param projectId - The ID of the project to check
- * @returns Promise resolving to true if the project exists, false otherwise
+ * @returns Promise resolving to whether the project exists
  */
-export async function projectExists(projectId: string): Promise<boolean>;
+export async function valExists(valId: string): Promise<boolean>;
 /**
- * Checks if a project exists.
+ * Checks if a Val exists.
  *
- * @param options Project identification options
- * @param options.username The username of the project owner
- * @param options.projectName The name of the project to check
- * @returns Promise resolving to true if the project exists, false otherwise
+ * @param options Val identification options
+ * @param options.username The username of the Val owner
+ * @param options.valName The name of the Val to check
+ * @returns Promise resolving to true if the Val exists, false otherwise
  */
-export async function projectExists(options: {
+export async function valExists(options: {
   username: string;
-  projectName: string;
+  valName: string;
 }): Promise<boolean>;
-export async function projectExists(
-  projectIdOrOptions: string | { username: string; projectName: string },
+export async function valExists(
+  valIdOrOptions: string | { username: string; valName: string },
 ): Promise<boolean> {
   try {
-    if (typeof projectIdOrOptions === "string") {
-      // Project ID provided
-      const projectId = projectIdOrOptions;
-      await sdk.projects.retrieve(projectId);
+    if (typeof valIdOrOptions === "string") {
+      // Val ID provided
+      const valId = valIdOrOptions;
+      await sdk.vals.retrieve(valId);
     } else {
-      // Username and project name provided
-      const { username, projectName } = projectIdOrOptions;
-      await sdk.alias.username.projectName.retrieve(username, projectName);
+      // Username and Val name provided
+      const { username, valName } = valIdOrOptions;
+      await sdk.alias.username.valName.retrieve(username, valName);
     }
     return true;
   } catch (error) {
@@ -47,58 +46,58 @@ export async function projectExists(
 }
 
 /**
- * Checks if a branch with the given name exists in a project.
+ * Checks if a branch with the given name exists in a val.
  *
- * @param projectId - The ID of the project to check
- * @param branchName - The name of the branch to check for
+ * @param valId The ID of the Val to check
+ * @param branchName The name of the branch to check for
  * @returns Promise resolving to true if the branch exists, false otherwise
  */
 export async function branchExists(
-  projectId: string,
+  valId: string,
   branchName: string,
 ): Promise<boolean> {
-  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+  for await (const branch of sdk.vals.branches.list(valId, {})) {
     if (branch.name == branchName) return true;
   }
   return false;
 }
 
 /**
- * Converts a branch name to its corresponding branch ID for a given project.
+ * Converts a branch name to its corresponding branch ID for a given val.
  *
- * @param projectId - The ID of the project containing the branch
- * @param branchName - The name of the branch to look up
+ * @param valId The ID of the Val containing the branch
+ * @param branchName The name of the branch to look up
  * @returns Promise resolving to the branch ID
- * @throws {Error} If branch is not found or if the API request fails
+ * @throws if the branch is not found or if the API request fails
  */
 export async function branchNameToBranch(
-  projectId: string,
+  valId: string,
   branchName: string,
-): Promise<ValTown.Projects.Branches.BranchListResponse> {
-  for await (const branch of sdk.projects.branches.list(projectId, {})) {
+): Promise<ValTown.Vals.Branches.BranchListResponse> {
+  for await (const branch of sdk.vals.branches.list(valId, {})) {
     if (branch.name == branchName) return branch;
   }
 
-  throw new Error(`Branch "${branchName}" not found in project`);
+  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in Val`);
 }
 
 /**
- * Checks if a file exists at the specified path in a project
+ * Checks if a file exists at the specified path in a val
  *
- * @param projectId - The ID of the project containing the file
- * @param filePath - The file path to check
- * @param branchId - The ID of the project branch to reference
- * @param version - The version of the project to check
+ * @param valId The ID of the Val containing the file
+ * @param filePath The file path to check
+ * @param branchId The ID of the Val branch to reference
+ * @param version The version of the Val to check
  * @returns Promise resolving to true if the file exists, false otherwise
  */
-export async function projectItemExists(
-  projectId: string,
+export async function valItemExists(
+  valId: string,
   branchId: string,
   filePath: string,
   version: number,
 ): Promise<boolean> {
   try {
-    const item = await getProjectItem(projectId, branchId, version, filePath);
+    const item = await getValItem(valId, branchId, version, filePath);
     return item !== undefined;
   } catch (e) {
     if (e instanceof ValTown.APIError && e.status === 404) {
@@ -108,24 +107,24 @@ export async function projectItemExists(
 }
 
 /**
- * Converts a file path to its corresponding project item for a given project.
+ * Converts a file path to its corresponding Val item for a given val.
  *
- * @param projectId - The ID of the project containing the file
+ * @param valId - The ID of the Val containing the file
  * @param options - The options object
- * @param options.branchId - The ID of the project branch to reference
- * @param [options.version] - The version of the project for the file being found (optional)
+ * @param options.branchId - The ID of the Val branch to reference
+ * @param [options.version] - The version of the Val for the file being found (optional)
  * @param options.filePath - The file path to locate
  * @returns Promise resolving to the file data or undefined if not found
  */
-export const getProjectItem = memoize(async (
-  projectId: string,
+export const getValItem = memoize(async (
+  valId: string,
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ValTown.Projects.FileRetrieveResponse | undefined> => {
-  const projectItems = await listProjectItems(projectId, branchId, version);
+): Promise<ValTown.Vals.FileRetrieveResponse | undefined> => {
+  const valItems = await listValItems(valId, branchId, version);
 
-  for (const filepath of projectItems) {
+  for (const filepath of valItems) {
     if (filepath.path === filePath) return filepath;
   }
 
@@ -133,45 +132,50 @@ export const getProjectItem = memoize(async (
 });
 
 /**
-  * Lists all file paths in a project with pagination support.
-  *
-  * @param projectId The ID of the project.
-  * @param params The parameters for listing project items.
-  * @param params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for
- root.
-  * @param [params.branch_id] The ID of the project branch to reference. Defaults to main.
-  * @param [params.version] - The version of the project. Defaults to latest.
-  * @param [params.options.recursive] Whether to recursively list files in subdirectories.
-  * @returns Promise resolving to a Set of file paths.
-  */
-export const listProjectItems = memoize(async (
-  projectId: string,
+ * Lists all file paths in a Val with pagination support.
+ *
+ * @param valId ID of the val
+ * @param params Parameters for listing Val items
+ * @param params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for root.
+ * @param [params.branch_id] The ID of the Val branch to reference. Defaults to main.
+ * @param [params.version] - The version of the val. Defaults to latest.
+ * @param [params.options.recursive] Whether to recursively list files in subdirectories
+ * @returns Promise resolving to a Set of file paths
+ */
+export const listValItems = memoize(async (
+  valId: string,
   branchId: string,
   version: number,
-): Promise<ValTown.Projects.FileRetrieveResponse[]> => {
+): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
+  const files: ValTown.Vals.FileRetrieveResponse[] = [];
+
   branchId = branchId ||
-    (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)
+    (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
 
-  return await Array.fromAsync(sdk.projects.files.retrieve(projectId, {
-    path: "",
-    branch_id: branchId,
-    version,
-    recursive: true,
-  }));
+  for await (
+    const file of sdk.vals.files.retrieve(valId, {
+      path: "",
+      branch_id: branchId,
+      version,
+      recursive: true,
+    })
+  ) files.push(file);
+
+  return files;
 });
 
 /**
  * Get the latest version of a branch.
  */
-export async function getLatestVersion(projectId: string, branchId: string) {
-  return (await sdk.projects.branches.retrieve(projectId, branchId)).version;
+export async function getLatestVersion(valId: string, branchId: string) {
+  return (await sdk.vals.branches.retrieve(valId, branchId)).version;
 }
 
 /**
- * Generate a random (valid) project name. Useful for tests.
+ * Generate a random (valid) Val name. Useful for tests.
  */
-export function randomProjectName(label = "") {
+export function randomValName(label = "") {
   return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
 }
 

@@ -1,33 +1,30 @@
-import type { ProjectFileType, ProjectItemType } from "~/types.ts";
-import sdk, {
-  getLatestVersion,
-  getProjectItem,
-  listProjectItems,
-} from "~/sdk.ts";
+import type { ValFileType, ValItemType } from "~/types.ts";
+import sdk, { getLatestVersion, getValItem, listValItems } from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
+import { pooledMap } from "@std/async";
 import {
   getItemWarnings,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import { pooledMap } from "@std/async";
 
 /** Result of push operation  */
 export interface PushResult {
+  /** Changes made to Val items during the push process */
   itemStateChanges: ItemStatusManager;
 }
 
 /**
- * Parameters for pushing latest changes from a vt folder into a Val Town project.
+ * Parameters for pushing latest changes from a vt folder into a Val Town val.
  */
 export interface PushParams {
-  /** The vt project root directory. */
+  /** The vt Val root directory. */
   targetDir: string;
-  /** The id of the project to upload to. */
-  projectId: string;
+  /** The id of the Val to upload to. */
+  valId: string;
   /** The branch ID to upload to. */
   branchId: string;
   /** A list of gitignore rules. */
@@ -39,7 +36,7 @@ export interface PushParams {
 }
 
 /**
- * Pushes latest changes from a vt folder into a Val Town project. Note that
+ * Pushes latest changes from a vt folder into a Val Town val. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
  * @param params Options for push operation.
@@ -48,20 +45,20 @@ export interface PushParams {
 export async function push(params: PushParams): Promise<PushResult> {
   const {
     targetDir,
-    projectId,
+    valId,
     branchId,
     gitignoreRules,
     dryRun = false,
-    concurrencyPoolSize = 10,
+    concurrencyPoolSize = 5,
   } = params;
-  const initialVersion = await getLatestVersion(projectId, branchId);
+  const initialVersion = await getLatestVersion(valId, branchId);
 
   assert(await exists(targetDir), "target directory doesn't exist");
 
   // Retrieve the status
   const { itemStateChanges } = await status({
     targetDir,
-    projectId,
+    valId,
     branchId,
     version: initialVersion,
     gitignoreRules,
@@ -87,9 +84,9 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((item) => item.warnings?.length === 0) // no warnings
     .forEach((item) => safeItemStateChanges.insert(item));
 
-  // Get existing project items to check which directories already exist
-  const existingItems = await listProjectItems(
-    projectId,
+  // Get existing Val items to check which directories already exist
+  const existingItems = await listValItems(
+    valId,
     branchId,
     initialVersion,
   );
@@ -104,13 +101,13 @@ export async function push(params: PushParams): Promise<PushResult> {
 
   // Create all necessary directories first
   await createRequiredDirectories(
-    projectId,
+    valId,
     branchId,
     safeItemStateChanges,
     existingDirs,
     itemStateChanges,
   );
-  const versionAfterDirectories = await getLatestVersion(projectId, branchId);
+  const versionAfterDirectories = await getLatestVersion(valId, branchId);
 
   // Define all file operations that will occur
   const fileOperations: (() => Promise<unknown>)[] = [];
@@ -120,8 +117,8 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((f) => f.type !== "directory")
     .forEach((f) =>
       fileOperations.push(async () => {
-        const parent = await getProjectItem(
-          projectId,
+        const parent = await getValItem(
+          valId,
           branchId,
           versionAfterDirectories,
           dirname(f.path),
@@ -132,10 +129,10 @@ export async function push(params: PushParams): Promise<PushResult> {
         if (isAtRoot) {
           await doReqMaybeApplyWarning(
             async () =>
-              await sdk.projects.files.update(projectId, {
+              await sdk.vals.files.update(valId, {
                 branch_id: branchId,
                 name: undefined,
-                parent_id: null,
+                parent_path: null,
                 path: f.oldPath,
               }),
             f.path,
@@ -147,10 +144,10 @@ export async function push(params: PushParams): Promise<PushResult> {
         // must be undefined (the api is very picky about this!)
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.update(projectId, {
+            await sdk.vals.files.update(valId, {
               branch_id: branchId,
               name: isAtRoot ? undefined : basename(f.path),
-              parent_id: parent?.id || null,
+              parent_path: parent?.path || null,
               path: f.oldPath,
               content: f.content,
             }),
@@ -167,13 +164,13 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.create(
-              projectId,
+            await sdk.vals.files.create(
+              valId,
               {
                 path: f.path,
                 content: f.content!, // It's a file not a dir so this should be defined
                 branch_id: branchId,
-                type: f.type as Exclude<ProjectItemType, "directory">,
+                type: f.type as Exclude<ValItemType, "directory">,
               },
             ),
           f.path,
@@ -189,14 +186,14 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.update(
-              projectId,
+            await sdk.vals.files.update(
+              valId,
               {
                 path: f.path,
                 branch_id: branchId,
                 content: f.content,
                 name: basename(f.path),
-                type: f.type as ProjectFileType,
+                type: f.type as ValFileType,
               },
             ),
           f.path,
@@ -211,7 +208,7 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.delete(projectId, {
+            await sdk.vals.files.delete(valId, {
               path: f.path,
               branch_id: branchId,
               recursive: true,
@@ -233,7 +230,7 @@ export async function push(params: PushParams): Promise<PushResult> {
 }
 
 async function createRequiredDirectories(
-  projectId: string,
+  valId: string,
   branchId: string,
   fileState: ItemStatusManager,
   existingDirs: Set<string>,
@@ -274,8 +271,8 @@ async function createRequiredDirectories(
   for (const path of sortedDirsToCreate) {
     await doReqMaybeApplyWarning(
       () =>
-        sdk.projects.files.create(
-          projectId,
+        sdk.vals.files.create(
+          valId,
           { path, type: "directory", branch_id: branchId },
         ),
       path,

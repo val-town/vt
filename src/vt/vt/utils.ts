@@ -7,7 +7,7 @@ import { findRoot } from "~/utils.ts";
  *
  * @param startPath The path to start searching from
  * @param maxLevels The maximum number of levels to walk up (default is MAX_WALK_UP_LEVELS)
- * @throw {Error} If no .vt directory is found within the specified levels
+ * @throw If no .vt directory is found within the specified levels
  * @returns The path to the directory containing a .vt folder
  */
 export async function findVtRoot(

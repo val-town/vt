@@ -9,7 +9,7 @@ import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
  * @param startPath The path to start searching from
  * @param isRoot Callback function that determines if a path is a root
  * @param maxLevels The maximum number of levels to walk up (default is MAX_WALK_UP_LEVELS)
- * @throw {Error} If no root directory is found within the specified levels
+ * @throw If no root directory is found within the specified levels
  * @returns The path to the directory that satisfies the root condition
  */
 export async function findRoot(
@@ -44,10 +44,10 @@ export async function findRoot(
 /**
  * Gets a value from a nested property path within an object.
  *
- * @param obj - The source object
- * @param path - A dot-separated string representing the property path (e.g., 'user.address.city')
- * @param defaultValue - Value to return if path doesn't exist
- * @returns {unknown} The value at the specified path or defaultValue if not found
+ * @param obj The source object
+ * @param path A dot-separated string representing the property path (e.g., 'user.address.city')
+ * @param defaultValue Value to return if path doesn't exist
+ * @returns The value at the specified path or defaultValue if not found
  */
 export function getNestedProperty(
   obj: Record<string, unknown>,
@@ -117,13 +117,44 @@ export async function dirIsEmpty(path: string | URL): Promise<boolean> {
 }
 
 /**
- * Determines if a string contains a null byte.
+ * Whether a string contains a null byte. This is a heuristic val town uses to
+ * detect whether a file is utf 8.
  *
- * This is a heuristic val town uses to detect whether a file is utf 8.
- *
- * @param str - The string to check
+ * @param str The string to check
  * @returns Whether the string contains a null byte
  */
 export function hasNullBytes(str: string): boolean {
   return str.includes("\0");
+}
+
+/**
+ * Collects a specified number of items from an asynchronous generator into an array.
+ *
+ * @param asyncGenerator An asynchronous generator function.
+ * @param N Number of iterations to perform.
+ * @returns A promise that resolves to an array containing the collected items.
+ */
+export async function arrayFromAsyncN<T>(
+  asyncGenerator: AsyncIterable<T>,
+  N: number,
+): Promise<[T[], boolean]> {
+  const results: T[] = [];
+  const iterator = asyncGenerator[Symbol.asyncIterator]();
+  let count = 0;
+  let hasMore = false;
+
+  while (count < N) {
+    const { value, done } = await iterator.next();
+    if (done) break;
+    results.push(value);
+    count++;
+  }
+
+  // Check if there's at least one more item available
+  if (count === N) {
+    const { done } = await iterator.next();
+    hasMore = !done;
+  }
+
+  return [results, hasMore];
 }

@@ -3,6 +3,7 @@ import { Secret } from "@cliffy/prompt/secret";
 import { colors } from "@cliffy/ansi/colors";
 import open from "open";
 import {
+  DEFAULT_WRAP_WIDTH,
   GET_API_KEY_URL,
   GLOBAL_VT_CONFIG_PATH,
   VT_README_URL,
@@ -21,15 +22,15 @@ function welcomeToVt(): void {
 
   console.log(wrap(
     colors.bold("VT") +
-      " is a companion CLI to interface with Val Town projects.",
-    { width: 80 },
+      " is a companion CLI to interface with Val Town vals.",
+    { width: DEFAULT_WRAP_WIDTH },
   ));
   console.log();
 
-  console.log(wrap("With this CLI, you can:", { width: 80 }));
+  console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_WIDTH }));
 
   [
-    "Create and manage Val Town projects",
+    "Create and manage Val Town vals",
     "Push and pull changes between your local system and Val Town",
     "Watch a directory to keep it automatically synced with Val Town",
     "And more!",
@@ -67,7 +68,7 @@ export async function onboardFlow(
   });
 
   if (goToWebsite) {
-    console.log("Ensure you select user read & project read+write permissions");
+    console.log("Ensure you select user read & Val read+write permissions");
     await delay(500);
     await open(GET_API_KEY_URL);
     console.log(`Browser opened to ${GET_API_KEY_URL}`);
@@ -75,7 +76,7 @@ export async function onboardFlow(
     console.log();
     console.log(
       "You can get an API key at " + GET_API_KEY_URL +
-        " with project read/write permissions",
+        " with Val read/write permissions",
     );
   }
 
