@@ -1,8 +1,7 @@
 import {
-  MAX_PORT_ATTEMPTS,
   VT_COMPANION_HOST,
-  VT_COMPANION_PORT,
-} from "../../companion/src/consts.ts";
+  VT_COMPANION_PORTS,
+} from "~/companion/src/consts.ts";
 
 /**
  * VTCompanion is manages a WebSocket server for communication with the VT
@@ -14,27 +13,27 @@ export default class VTCompanion {
   /**
    * Constructs a new VTCompanion instance.
    *
-   * @param port The port number to listen on.
+   * @param ports Candidate ports for the WebSocket server to listen on.
    * @param host The host address to listen on (default: "localhost").
    * @param onConnect A callback function to be called when a client connects.
    */
   constructor(
     {
-      port,
+      ports,
       host,
       onConnect,
     }: {
-      port?: number;
+      ports?: number[];
       host?: string;
       onConnect?: () => void;
     } = {},
   ) {
-    this.port = port ?? VT_COMPANION_PORT;
+    this.ports = ports ?? VT_COMPANION_PORTS;
     this.host = host ?? VT_COMPANION_HOST;
     this.onConnect = onConnect ?? (() => {});
   }
 
-  public readonly port: number;
+  public readonly ports: number[];
   public readonly host: string;
   private onConnect: () => void;
 
@@ -53,17 +52,16 @@ export default class VTCompanion {
    * Starts the WebSocket server.
    *
    * Attempts to start the server on the configured port, and if that fails,
-   * tries the next 10 ports.
+   * tries the next ports.
    *
    * @returns A Deno server instance, or undefined if no port was available.
    */
   public start() {
-    for (let portOffset = 0; portOffset < MAX_PORT_ATTEMPTS; portOffset++) {
-      const currentPort = this.port + portOffset;
+    for (const port of this.ports) {
       try {
         return Deno.serve(
           {
-            port: currentPort,
+            port: port,
             hostname: this.host,
             onListen: () => {},
           },
@@ -78,6 +76,6 @@ export default class VTCompanion {
         if (!(e instanceof Deno.errors.AddrInUse)) throw e;
       }
     }
-    return;
+    return undefined;
   }
 }

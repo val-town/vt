@@ -1,7 +1,4 @@
-window.onload = () => {
-  console.log("hi");
-};
-
 chrome.runtime.sendMessage({ action: "pageLoaded" }, (response) => {
-  console.log("Service worker response:", response);
+  console.log("Response from daemon service worker: ", response);
+  // Broadcast message to wake up the daemon service worker
 });

@@ -19,7 +19,7 @@ export const watchCmd = new Command()
   .option(
     "-d, --debounce-delay <delay:number>",
     "Debounce delay in milliseconds",
-    { default: 300 },
+    { default: 100 },
   )
   .action(async ({ companion: useCompanion, debounceDelay }) => {
     await doWithSpinner("Starting watch...", async (spinner) => {
@@ -53,12 +53,28 @@ export const watchCmd = new Command()
       console.log();
       console.log(watchingForChangesLine());
 
-      let connectedBefore = false;
       let companion: VTCompanion | undefined;
+
+      // We may get a flurry of reconections (because of how the extension scans
+      // ports on localhost to find VT), so we have a buffer time
+      let lastReconnectedMessage = 0;
+
       if (useCompanion) {
         companion = new VTCompanion({
           onConnect: () => {
-            if (connectedBefore) {
+            const now = Date.now();
+
+            if (now - lastReconnectedMessage < 1000) return;
+
+            if (lastReconnectedMessage === 0) {
+              console.log();
+              console.log(
+                colors.green(
+                  "Browser companion connected to VT. Tabs will reload on changes.",
+                ),
+              );
+              console.log();
+            } else {
               console.log();
               console.log(
                 colors.yellow(
@@ -66,16 +82,9 @@ export const watchCmd = new Command()
                 ),
               );
               console.log();
-              return;
             }
-            connectedBefore = true;
-            console.log();
-            console.log(
-              colors.green(
-                "Browser companion connected to VT. Tabs will reload on changes.",
-              ),
-            );
-            console.log();
+
+            lastReconnectedMessage = now;
           },
         });
         companion.start();
@@ -104,8 +113,8 @@ export const watchCmd = new Command()
                     await getLatestVersion(state.val.id, state.branch.id),
                   )
                 )
-                .then((projectItems) =>
-                  projectItems
+                .then((valItems) =>
+                  valItems
                     .filter((valItem) => !!valItem.links.endpoint)
                     .map((valItem) => valItem.links.endpoint)
                     .forEach((link) => companion.reloadTab(link!))
