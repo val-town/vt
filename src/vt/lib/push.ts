@@ -117,8 +117,6 @@ export async function push(params: PushParams): Promise<PushResult> {
     .filter((f) => f.type !== "directory")
     .forEach((f) =>
       fileOperations.push(async () => {
-        const promises: Promise<unknown>[] = [];
-
         const parent = await getValItem(
           valId,
           branchId,
@@ -129,16 +127,16 @@ export async function push(params: PushParams): Promise<PushResult> {
         // If moving from a folder to the root, we have to do it as two API
         // calls because of an API bug
         if (f.oldPath != basename(f.oldPath) && f.path === basename(f.path)) {
-          promises.push(sdk.vals.files.update(valId, {
+          await sdk.vals.files.update(valId, {
             branch_id: branchId,
             parent_path: parent?.path ?? null,
             path: f.oldPath,
-          }));
+          });
         }
 
         // To move the file to the root dir parent_id must be null and the name
         // must be undefined (the api is very picky about this!)
-        promises.push(doReqMaybeApplyWarning(
+        return doReqMaybeApplyWarning(
           async () =>
             await sdk.vals.files.update(valId, {
               branch_id: branchId,
@@ -149,9 +147,7 @@ export async function push(params: PushParams): Promise<PushResult> {
             }),
           f.path,
           itemStateChanges,
-        ));
-
-        return Promise.all(promises);
+        );
       })
     );
 
