@@ -1,7 +1,5 @@
 # Val Town CLI
 
-VT is a cli to work with Vals in the [Val Town](https://val.town) platform.
-
 `vt` is the official CLI to work with projects on the
 [Val Town](https://val.town) platform.
 
