@@ -126,7 +126,8 @@ export async function push(params: PushParams): Promise<PushResult> {
           dirname(f.path),
         );
 
-        // If moving from a folder to the root
+        // If moving from a folder to the root, we have to do it as two API
+        // calls because of an API bug
         if (f.oldPath != basename(f.oldPath) && f.path === basename(f.path)) {
           promises.push(sdk.vals.files.update(valId, {
             branch_id: branchId,
