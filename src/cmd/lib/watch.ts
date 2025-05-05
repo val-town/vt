@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -19,6 +19,7 @@ export const watchCmd = new Command()
   .action(async (options) => {
     await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+      const user = await getCurrentUser();
 
       // Get initial branch information for display
       const vtState = await vt.getMeta().loadVtState();
@@ -26,6 +27,15 @@ export const watchCmd = new Command()
         vtState.val.id,
         vtState.branch.id,
       );
+
+      const valToWatch = await sdk.vals.retrieve(vtState.val.id);
+      if (valToWatch.author.id !== user.id) {
+        console.log(valToWatch.author.id, user.id);
+        throw new Error(
+          "You are not the owner of this Val, you cannot watch." +
+            "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",
+        );
+      }
 
       spinner.stop();
 
