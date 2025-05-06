@@ -37,7 +37,8 @@ async function ensureValidApiKey() {
       await onboardFlow({ showWelcome: false });
     } else {
       console.log("Let's set up your Val Town API key.");
-      await onboardFlow();
+      console.log();
+      await onboardFlow({ showWelcome: true });
     }
   }
 
@@ -59,7 +60,7 @@ async function startVt() {
 
 if (import.meta.main) {
   await ensureValidApiKey();
-  sdk.bearerToken = Deno.env.get(API_KEY_KEY)!;
+  sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
   await startVt();
 }
 

@@ -176,7 +176,10 @@ export async function ensureGlobalVtConfig(): Promise<void> {
     // automatically (the config file didn't previously exist so we shouldn't
     // be overwriting anything)
     if (Deno.env.has(API_KEY_KEY)) {
-      startingConfig.apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
+      const apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
+      if (apiKey.length == 32 || apiKey.length == 33) {
+        startingConfig.apiKey = apiKey;
+      } else startingConfig.apiKey = "0".repeat(32);
     }
 
     await Deno.writeTextFile(
