@@ -1,5 +1,5 @@
 import type { ValFileType, ValItemType } from "~/types.ts";
-import sdk, { getLatestVersion, getValItem, listValItems } from "~/sdk.ts";
+import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
@@ -107,7 +107,6 @@ export async function push(params: PushParams): Promise<PushResult> {
     existingDirs,
     itemStateChanges,
   );
-  const versionAfterDirectories = await getLatestVersion(valId, branchId);
 
   // Define all file operations that will occur
   const fileOperations: (() => Promise<unknown>)[] = [];
@@ -116,32 +115,13 @@ export async function push(params: PushParams): Promise<PushResult> {
   safeItemStateChanges.renamed
     .filter((f) => f.type !== "directory")
     .forEach((f) =>
-      fileOperations.push(async () => {
-        const parent = await getValItem(
-          valId,
-          branchId,
-          versionAfterDirectories,
-          dirname(f.path),
-        );
-
-        // If moving from a folder to the root, we have to do it as two API
-        // calls because of an API bug
-        if (f.oldPath != basename(f.oldPath) && f.path === basename(f.path)) {
-          await sdk.vals.files.update(valId, {
-            branch_id: branchId,
-            parent_path: parent?.path ?? null,
-            path: f.oldPath,
-          });
-        }
-
-        // To move the file to the root dir parent_id must be null and the name
-        // must be undefined (the api is very picky about this!)
+      fileOperations.push(() => {
         return doReqMaybeApplyWarning(
           async () =>
             await sdk.vals.files.update(valId, {
               branch_id: branchId,
               name: basename(f.path),
-              parent_path: parent?.path ?? null,
+              parent_path: dirname(f.path) === "." ? null : dirname(f.path),
               path: f.oldPath,
               content: f.content,
             }),
