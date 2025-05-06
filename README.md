@@ -50,10 +50,10 @@ To authenticate with `val.town`, just run `vt`, and you should get the dialog
 ```
 Welcome to the Val Town CLI!
 
-  VT is a companion CLI to interface with Val Town vals.
+  VT is a companion CLI to interface with Val Town Vals.
 
   With this CLI, you can:
-  - Create and manage Val Town vals
+  - Create and manage Val Town Vals
   - Push and pull changes between your local system and Val Town
   - Watch a directory to keep it automatically synced with Val Town
   - And more!
