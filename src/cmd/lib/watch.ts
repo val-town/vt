@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
+import sdk, { getLatestVersion, getValItem, listValItems } from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -55,11 +55,11 @@ export const watchCmd = new Command()
 
       let companion: VTCompanion | undefined;
 
-      // We may get a flurry of reconections (because of how the extension scans
-      // ports on localhost to find VT), so we have a buffer time
-      let lastReconnectedMessage = 0;
-
       if (useCompanion) {
+        // We may get a flurry of reconnections (because of how the extension
+        // scans ports on localhost to find VT), so we have a buffer time
+        let lastReconnectedMessage = 0;
+
         companion = new VTCompanion({
           onConnect: () => {
             const now = Date.now();
@@ -91,7 +91,12 @@ export const watchCmd = new Command()
       }
 
       try {
-        await vt.watch((fileStateChanges) => {
+        await vt.watch(async (fileStateChanges) => {
+          const newVersion = await getLatestVersion(
+            vtState.val.id,
+            vtState.branch.id,
+          );
+
           try {
             if (fileStateChanges.size() > 0) {
               console.log();
@@ -105,20 +110,18 @@ export const watchCmd = new Command()
             }
 
             if (companion) {
-              vt.getMeta().loadVtState()
-                .then(async (state) =>
-                  await listValItems(
-                    state.val.id,
-                    state.branch.id,
-                    await getLatestVersion(state.val.id, state.branch.id),
-                  )
-                )
-                .then((valItems) =>
-                  valItems
-                    .filter((valItem) => !!valItem.links.endpoint)
-                    .map((valItem) => valItem.links.endpoint)
-                    .forEach((link) => companion.reloadTab(link!))
+              for (const modifiedEntry of fileStateChanges.modified) {
+                const path = modifiedEntry.path;
+                const valItem = await getValItem(
+                  vtState.val.id,
+                  vtState.branch.id,
+                  newVersion,
+                  path,
                 );
+                if (valItem && valItem.links.endpoint) {
+                  companion.reloadTab(valItem.links.endpoint);
+                }
+              }
             }
           } catch (e) {
             if (e instanceof Error) console.log(colors.red(e.message));
