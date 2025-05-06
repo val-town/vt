@@ -36,8 +36,6 @@ async function ensureValidApiKey() {
       console.log();
       await onboardFlow({ showWelcome: false });
     } else {
-      console.log("Let's set up your Val Town API key.");
-      console.log();
       await onboardFlow({ showWelcome: true });
     }
   }

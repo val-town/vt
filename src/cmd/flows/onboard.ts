@@ -22,7 +22,7 @@ function welcomeToVt(): void {
 
   console.log(wrap(
     colors.bold("VT") +
-      " is a companion CLI to interface with Val Town vals.",
+      " is a companion CLI to interface with Val Town Vals.",
     { width: DEFAULT_WRAP_WIDTH },
   ));
   console.log();
@@ -30,7 +30,7 @@ function welcomeToVt(): void {
   console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_WIDTH }));
 
   [
-    "Create and manage Val Town vals",
+    "Create and manage Val Town Vals",
     "Push and pull changes between your local system and Val Town",
     "Watch a directory to keep it automatically synced with Val Town",
     "And more!",
