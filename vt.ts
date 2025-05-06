@@ -4,6 +4,7 @@ import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
 import { API_KEY_KEY } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
+import sdk from "~/sdk.ts";
 
 await ensureGlobalVtConfig();
 
@@ -58,6 +59,7 @@ async function startVt() {
 
 if (import.meta.main) {
   await ensureValidApiKey();
+  sdk.bearerToken = Deno.env.get(API_KEY_KEY)!;
   await startVt();
 }
 

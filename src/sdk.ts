@@ -1,8 +1,9 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
-const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
+// Must get set in vt.ts entrypoint!
+const sdk = new ValTown({ bearerToken: crypto.randomUUID() });
 
 /**
  * Checks if a Val exists.
