@@ -3,7 +3,7 @@ import { VTConnector } from "./VTConnector.js";
 import { normalizeUrl } from "./utils.js";
 
 export class VTDaemon {
-  private running = false;
+  private ws: WebSocket | null = null;
   private static instance: VTDaemon;
 
   private constructor() {}
@@ -16,25 +16,25 @@ export class VTDaemon {
   }
 
   public isRunning(): boolean {
-    return this.running;
+    return this.ws !== null && this.ws.readyState === 1;
   }
 
   public async start() {
     console.log("Starting the VT Companion Daemon...");
 
-    await deadline((async () => new VTConnector().getWebSocket())(), 5000)
+    await deadline((() => new VTConnector().getWebSocket())(), 5000)
       .then((ws) => {
-        console.log("Connected to VT CLI websocket");
-
-        if (this.running) {
+        if (this.isRunning()) {
           console.log("VT Connector is already running");
           return;
         }
-        this.running = true;
+        console.log("Connected to VT CLI websocket");
+
+        this.ws = ws;
 
         ws.addEventListener("close", (e) => {
           console.log("VT Connector websocket closed: ", e);
-          this.running = false;
+          this.ws = null;
         });
 
         ws.addEventListener("message", async (e) => {
