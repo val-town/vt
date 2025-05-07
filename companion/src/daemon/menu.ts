@@ -1,3 +1,4 @@
+import { HOME_PAGE } from "../consts.js";
 import { VTDaemon } from "./VTDaemon.js";
 
 export function setupContextMenu(daemon: VTDaemon) {
@@ -20,7 +21,7 @@ export function setupContextMenu(daemon: VTDaemon) {
       console.log("Waking up the VT Connector daemon...");
       daemon.start();
     } else if (info.menuItemId === "aboutMenu") {
-      chrome.tabs.create({ url: "https://jsr.io/@valtown/vt" });
+      chrome.tabs.create({ url: HOME_PAGE });
     }
   });
 }
