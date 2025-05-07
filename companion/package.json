@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.js",
+    "build:chrome": "node build.js firefox && cd dist && zip -r vt-extension *",
+    "build:firefox": "node build.js chrome && cd dist && zip -r vt-extension *",
+    "clean": "rm -rf dist",
     "dev": "nodemon --watch src --watch build.js --ext js,ts,json,css,html --polling --exec 'npm run build -- --dev'",
     "dev:chrome": "node scripts/chrome.js"
   },

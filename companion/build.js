@@ -29,6 +29,7 @@ async function build() {
   }
 
   const isDev = process.argv.includes("--dev");
+  const browserType = process.argv.includes("firefox") ? "firefox" : "chrome";
 
   await esbuild.build({
     entryPoints: ["src/daemon/main.ts", "src/content.ts"],
@@ -42,6 +43,11 @@ async function build() {
   });
 
   await copyDir(publicDir, outputDir);
+  await fs.copyFile(
+    path.join("public", `manifest-${browserType}.json`),
+    path.join(outputDir, "manifest.json"),
+  );
+
   esbuild.stop();
 }
 
