@@ -1,9 +1,10 @@
 {
   "name": "vt-companion",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
+    "build:source": "zip -r vt-companion-source.zip * -x \"*node_modules/*\" \"*.git/*\"",
     "build:chrome": "node build.js firefox && cd dist && zip -r vt-extension *",
     "build:firefox": "node build.js chrome && cd dist && zip -r vt-extension *",
     "clean": "rm -rf dist",
