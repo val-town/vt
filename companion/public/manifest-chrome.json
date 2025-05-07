@@ -6,15 +6,9 @@
   "background": {
     "service_worker": "daemon/main.js"
   },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "std@val.town",
-      "strict_min_version": "102.0"
-    }
-  },
   "content_scripts": [
     {
-      "matches": ["*:\/\/*.web.val.run\/*"],
+      "matches": ["*:\/\/*.val.run\/*"],
       "js": ["content.js"]
     }
   ],

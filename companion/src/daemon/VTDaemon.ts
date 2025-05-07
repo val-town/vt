@@ -42,11 +42,11 @@ export class VTDaemon {
 
           console.log("Reloading tabs with link ", link);
           const normalizedLink = normalizeUrl(link);
-          (await chrome.tabs.query({}))
+          (await browser.tabs.query({}))
             .filter((t) =>
               t.url && normalizeUrl(t.url).includes(normalizedLink)
             )
-            .forEach(async (tab) => await chrome.tabs.reload(tab.id!));
+            .forEach(async (tab) => await browser.tabs.reload(tab.id!));
         });
       })
       .catch((err) =>

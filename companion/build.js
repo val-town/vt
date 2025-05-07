@@ -30,6 +30,9 @@ async function build() {
 
   const isDev = process.argv.includes("--dev");
   const browserType = process.argv.includes("firefox") ? "firefox" : "chrome";
+  const manifestFile = browserType === "firefox"
+    ? "manifest-firefox.json"
+    : "manifest-chrome.json";
 
   await esbuild.build({
     entryPoints: ["src/daemon/main.ts", "src/content.ts"],
@@ -37,15 +40,22 @@ async function build() {
     bundle: true,
     minify: !isDev,
     format: "esm",
-    loader: { ".svg": "dataurl" },
-    define: { "window.IS_PRODUCTION": "true" },
     treeShaking: true,
   });
 
   await copyDir(publicDir, outputDir);
   await fs.copyFile(
-    path.join("public", `manifest-${browserType}.json`),
+    path.join(publicDir, manifestFile),
     path.join(outputDir, "manifest.json"),
+  );
+  await fs.copyFile(
+    path.join(
+      "node_modules",
+      "webextension-polyfill",
+      "dist",
+      "browser-polyfill.js",
+    ),
+    path.join(outputDir, "browser-polyfill.js"),
   );
 
   esbuild.stop();

@@ -5,7 +5,7 @@ const daemon = VTDaemon.getInstance();
 setupContextMenu(daemon);
 daemon.start();
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "pageLoaded") {
     if (daemon.isRunning()) {
       sendResponse("VT connector service worker is awake and running");
@@ -15,4 +15,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse("VT connector service worker is awake and running");
     }
   }
+  // Return true to indicate you wish to send a response asynchronously
+  // This is needed for Firefox compatibility
+  return true;
 });
