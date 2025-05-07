@@ -24,6 +24,11 @@ export function getClonePath(
  */
 export function sanitizeErrors(error: unknown): string {
   if (error instanceof ValTown.APIError) {
+    if (error.status === 404) {
+      return "Resource not found. Please check the Val name or ID. " +
+        "You may not own this resource.";
+    }
+
     // Remove leading numbers from error message and convert to sentence case
     const cleanedMessage = error.message.replace(/^\d+\s+/, "");
     return cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1);

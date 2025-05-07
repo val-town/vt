@@ -3,6 +3,8 @@
 `vt` is the official CLI to work with projects on the
 [Val Town](https://val.town) platform.
 
+![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
+
 ```
 Usage:   vt    
 Version: x.x.xx
@@ -48,10 +50,10 @@ To authenticate with `val.town`, just run `vt`, and you should get the dialog
 ```
 Welcome to the Val Town CLI!
 
-  VT is a companion CLI to interface with Val Town vals.
+  VT is a companion CLI to interface with Val Town Vals.
 
   With this CLI, you can:
-  - Create and manage Val Town vals
+  - Create and manage Val Town Vals
   - Push and pull changes between your local system and Val Town
   - Watch a directory to keep it automatically synced with Val Town
   - And more!
