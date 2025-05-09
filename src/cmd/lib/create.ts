@@ -95,6 +95,7 @@ vt checkout main`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {
+          await Deno.remove(clonePath, { recursive: true });
           throw new Error(`Val name "${valName}" already exists`);
         } else throw error;
       }
