@@ -7,7 +7,7 @@ import {
   TYPE_PRIORITY,
   VAL_ITEM_NAME_REGEX,
 } from "~/consts.ts";
-import { basename } from "@std/path";
+import { basename, dirname } from "@std/path";
 import { hasNullBytes } from "~/utils.ts";
 
 /**
@@ -452,12 +452,51 @@ export class ItemStatusManager {
     return this;
   }
 
+  public process(): this {
+    return this
+      .consolidateRenames()
+      .consolidateDeletions();
+  }
+
+  /**
+   * Only keep the highest path that requires deletion for deletions.
+   * So, if both ./foo/bar/buzz.ts and /foo are primed for deletion, remove
+   * ./foo/bar/buzz.ts, since /foo will handle it.
+   */
+  private consolidateDeletions() {
+    // For each deleted path, check if any of its parent directories are also deleted
+    this.deleted
+      .filter((item) => item.type === "directory")
+      .map((item) => item.path)
+      .flatMap((path) => {
+        const targets: string[] = [];
+        let currentPath = path;
+        let parent = dirname(currentPath);
+
+        // Check if any parent directory is in the deleted set
+        while (parent && parent !== "." && parent !== currentPath) {
+          if (this.#deleted.has(parent)) {
+            // This path is redundant because its parent is already deleted
+            targets.push(path);
+            break;
+          }
+          currentPath = parent;
+          parent = dirname(currentPath);
+        }
+
+        return targets;
+      })
+      .forEach((path) => this.#deleted.delete(path));
+
+    return this;
+  }
+
   /**
    * Check to see if any item in the ItemStateManager is a renamed version of
    * any other item, for every item. Consolidates the items into a single item
    * of renamed state if a rename is detected.
    */
-  public consolidateRenames(): this {
+  private consolidateRenames() {
     const processed = new Set<string>();
 
     const deletedItems = Array.from(this.deleted)

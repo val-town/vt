@@ -146,7 +146,7 @@ export async function status(params: StatusParams): Promise<StatusResult> {
     }
   }
 
-  return { itemStateChanges: result.consolidateRenames() };
+  return { itemStateChanges: result.process() };
 }
 
 async function getValFiles({
