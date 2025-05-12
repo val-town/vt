@@ -1,9 +1,9 @@
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import sdk, { getLatestVersion } from "../../../utils/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { status } from "~/vt/lib/status.ts";
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { status } from "~/vt/lib/vals/status.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 
 Deno.test({
   name: "test status detects binary files",
@@ -123,7 +123,7 @@ Deno.test({
           );
         });
 
-        await t.step("varify status layout", async () => {
+        await t.step("verify status layout", async () => {
           // Run status check
           const { itemStateChanges: statusResult } = await status({
             targetDir: tempDir,

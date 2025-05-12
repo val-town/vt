@@ -13,7 +13,7 @@ import {
   waitForStable,
 } from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
+import sdk, { getCurrentUser, randomValName } from "~/utils/sdk.ts";
 import type { ValFileType } from "~/types.ts";
 
 Deno.test({

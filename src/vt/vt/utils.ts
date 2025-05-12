@@ -1,6 +1,6 @@
 import { join } from "@std/path";
 import { MAX_WALK_UP_LEVELS } from "~/consts.ts";
-import { findRoot } from "~/utils.ts";
+import { findRoot } from "../../utils/misc.ts";
 
 /**
  * Finds the nearest directory containing a .vt folder by climbing up the directory tree

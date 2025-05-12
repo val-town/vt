@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "../../utils/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
@@ -10,7 +10,7 @@ import { Confirm } from "@cliffy/prompt";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
 import { parseValUrl } from "~/cmd/parsing.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
-import { arrayFromAsyncN } from "~/utils.ts";
+import { arrayFromAsyncN } from "~/utils/mod.ts";
 
 export const cloneCmd = new Command()
   .name("clone")

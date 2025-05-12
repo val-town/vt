@@ -1,18 +1,20 @@
-import sdk, { listValItems } from "~/sdk.ts";
-import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import * as fs from "@std/fs";
-import * as path from "@std/path";
-import {
-  type CreatedItemStatus,
-  type DeletedItemStatus,
-  getItemWarnings,
-  type ItemInfo,
-  ItemStatusManager,
-  type ModifiedItemStatus,
-  type NotModifiedItemStatus,
+import type {
+  CreatedItemStatus,
+  DeletedItemStatus,
+  ItemInfo,
+  ModifiedItemStatus,
+  NotModifiedItemStatus,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import { join } from "@std/path";
+import {
+  getItemWarnings,
+  ItemStatusManager,
+} from "~/vt/lib/utils/ItemStatusManager.ts";
+import { join, relative } from "@std/path";
 import { isFileModified } from "~/vt/lib/utils/misc.ts";
+import { listValItems } from "~/utils/mod.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
+import sdk from "~/utils/sdk.ts";
+import { walk } from "@std/fs";
 
 /** Result of status operation  */
 export interface StatusResult {
@@ -22,7 +24,7 @@ export interface StatusResult {
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town val.
  */
-export interface StatusParams {
+interface StatusParams {
   /** The directory to scan for changes. */
   targetDir: string;
   /** The Val Town Val ID. */
@@ -43,7 +45,7 @@ export interface StatusParams {
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status(params: StatusParams): Promise<StatusResult> {
+async function status(params: StatusParams): Promise<StatusResult> {
   const {
     targetDir,
     valId,
@@ -87,7 +89,7 @@ export async function status(params: StatusParams): Promise<StatusResult> {
       result.insert(createdFileState);
     } else {
       if (localFile.type !== "directory") {
-        const localStat = await Deno.stat(path.join(targetDir, localFile.path));
+        const localStat = await Deno.stat(join(targetDir, localFile.path));
         // File exists in both places, check if modified
         const isModified = isFileModified({
           srcContent: localFile.content!, // We know it isn't a dir, so there should be content
@@ -193,10 +195,10 @@ async function getLocalFiles({
 }): Promise<ItemInfo[]> {
   const filePromises: Promise<ItemInfo | null>[] = [];
 
-  for await (const entry of fs.walk(targetDir)) {
+  for await (const entry of walk(targetDir)) {
     filePromises.push((async () => {
       // Check if this is on the ignore list
-      const relativePath = path.relative(targetDir, entry.path);
+      const relativePath = relative(targetDir, entry.path);
       if (shouldIgnore(relativePath, gitignoreRules)) return null;
       if (entry.path === targetDir) return null;
 
@@ -227,3 +229,6 @@ async function getLocalFiles({
   const results = await Promise.all(filePromises);
   return results.filter((item): item is ItemInfo => item !== null);
 }
+
+export { status };
+export type { StatusParams };

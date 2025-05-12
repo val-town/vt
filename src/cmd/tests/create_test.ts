@@ -3,7 +3,7 @@ import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
+import sdk, { getCurrentUser, randomValName } from "~/utils/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 
 Deno.test({

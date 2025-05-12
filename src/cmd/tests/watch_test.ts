@@ -4,7 +4,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
+import { getLatestVersion, listValItems, valItemExists } from "~/utils/sdk.ts";
 import {
   runVtCommand,
   streamVtCommand,

@@ -1,9 +1,9 @@
-import { push } from "~/vt/lib/push.ts";
-import sdk, { branchNameToBranch } from "~/sdk.ts";
 import type { ValPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
 import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import sdk, { branchNameToBranch } from "~/utils/sdk.ts";
+import { push } from "~/vt/lib/vals/mod.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -21,7 +21,7 @@ interface CreateResponse {
 /**
  * Parameters for creating a new Val Town Val from a local directory.
  */
-export interface CreateParams {
+interface CreateParams {
   /** The root directory containing the files to upload to the new val. */
   sourceDir: string;
   /** The name for the new val. */
@@ -40,7 +40,7 @@ export interface CreateParams {
  * @param params Options for create operation.
  * @returns Promise that resolves with changes that were applied during the push operation and the new Val ID.
  */
-export async function create(
+async function create(
   params: CreateParams,
 ): Promise<CreateResponse> {
   const {
@@ -65,7 +65,7 @@ export async function create(
   );
 
   // Push the local directory contents to the new val
-  const { itemStateChanges } = await push({
+  const { itemStateChanges } = await push.push({
     targetDir: sourceDir,
     valId: newVal.id,
     branchId: newBranch.id,
@@ -78,3 +78,6 @@ export async function create(
     newBranchId: newBranch.id,
   };
 }
+
+export { create };
+export type { CreateParams, CreateResponse };

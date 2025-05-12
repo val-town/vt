@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import open from "open";
-import sdk from "~/sdk.ts";
+import sdk from "../../utils/sdk.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";

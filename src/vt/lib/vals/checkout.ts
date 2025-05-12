@@ -1,17 +1,17 @@
-import sdk, { listValItems } from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { pull } from "~/vt/lib/pull.ts";
-import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import { join, relative } from "@std/path";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 import { walk } from "@std/fs";
+import sdk, { listValItems } from "~/utils/sdk.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
+import { pull } from "~/vt/lib/vals/pull.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
  * changes.
  */
-export interface CheckoutResult {
+interface CheckoutResult {
   /** The source branch */
   fromBranch: ValTown.Vals.BranchCreateResponse;
   /**
@@ -28,7 +28,7 @@ export interface CheckoutResult {
 /**
  * Base parameters for all checkout operations.
  */
-export type BaseCheckoutParams = {
+type BaseCheckoutParams = {
   /** The directory where the branch will be checked out */
   targetDir: string;
   /** The ID of the Val */
@@ -44,7 +44,7 @@ export type BaseCheckoutParams = {
 /**
  * Parameters for checking out an existing branch.
  */
-export type BranchCheckoutParams = BaseCheckoutParams & {
+type BranchCheckoutParams = BaseCheckoutParams & {
   /** The ID of the branch to checkout */
   toBranchId: string;
   /** The ID of the branch we're switching from */
@@ -54,7 +54,7 @@ export type BranchCheckoutParams = BaseCheckoutParams & {
 /**
  * Parameters for creating and checking out a new branch (fork).
  */
-export type ForkCheckoutParams = BaseCheckoutParams & {
+type ForkCheckoutParams = BaseCheckoutParams & {
   /** The branch ID from which to create the fork */
   forkedFromId: string;
   /** The name for the new forked branch */
@@ -66,7 +66,7 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
  * @param params Options for the checkout operation.
  * @returns Promise that resolves with checkout information.
  */
-export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
+function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
   * Creates a new branch from a val's branch and checks it out.
@@ -74,8 +74,8 @@ export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
   * @returns Promise that resolves with checkout information (including the new branch
  details).
   */
-export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
-export function checkout(
+function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
+function checkout(
   params: BranchCheckoutParams | ForkCheckoutParams,
 ): Promise<CheckoutResult> {
   // Determine if we're creating a new branch or checking out an existing one
@@ -90,9 +90,7 @@ export function checkout(
   }
 }
 
-/**
- * Handles creating a new branch (fork) and marking all files as not_modified
- */
+// Handles creating a new branch (fork) and marking all files as not_modified
 async function handleForkCheckout(
   params: ForkCheckoutParams,
 ): Promise<CheckoutResult> {
@@ -146,9 +144,7 @@ async function handleForkCheckout(
   };
 }
 
-/**
- * Handles checking out an existing branch
- */
+// Handles checking out an existing branch
 async function handleBranchCheckout(
   params: BranchCheckoutParams,
 ): Promise<CheckoutResult> {
@@ -262,3 +258,11 @@ async function handleBranchCheckout(
     { targetDir: params.targetDir },
   );
 }
+
+export { checkout };
+export type {
+  BaseCheckoutParams,
+  BranchCheckoutParams,
+  CheckoutResult,
+  ForkCheckoutParams,
+};

@@ -1,6 +1,6 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "../../utils/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";

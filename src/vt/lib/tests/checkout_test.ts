@@ -1,11 +1,11 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { branchExists, getLatestVersion } from "~/sdk.ts";
-import { checkout } from "~/vt/lib/checkout.ts";
+import sdk, { branchExists, getLatestVersion } from "~/utils/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { checkout } from "~/vt/lib/mod.ts";
 
 Deno.test({
   name: "test cross branch checkout",
@@ -40,7 +40,7 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: mainBranch.id,
@@ -64,7 +64,7 @@ Deno.test({
         );
 
         // Checkout feature branch
-        const result = await checkout({
+        const result = await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: featureBranch.id,
@@ -113,7 +113,7 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: mainBranch.id,
@@ -128,7 +128,7 @@ Deno.test({
         );
 
         // Create and checkout a new branch
-        const result = await checkout({
+        const result = await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           forkedFromId: mainBranch.id,
@@ -157,7 +157,7 @@ Deno.test({
         );
 
         // Switch back to main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: mainBranch.id,
@@ -210,7 +210,7 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: mainBranch.id,
@@ -241,7 +241,7 @@ Deno.test({
         );
 
         // Checkout feature branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: featureBranch.id,
@@ -309,7 +309,7 @@ Deno.test({
       // First temp directory for feature branch checkout
       await doWithTempDir(async (featureTempDir) => {
         await t.step("checkout feature branch", async () => {
-          await checkout({
+          await checkout.checkout({
             targetDir: featureTempDir,
             valId: val.id,
             toBranchId: featureBranch.id,
@@ -333,7 +333,7 @@ Deno.test({
         // Second temp directory for main branch checkout
         await doWithTempDir(async (mainTempDir) => {
           await t.step("checkout main branch", async () => {
-            await checkout({
+            await checkout.checkout({
               targetDir: mainTempDir,
               valId: val.id,
               toBranchId: mainBranch.id,
@@ -377,7 +377,7 @@ Deno.test({
       await t.step("test dry run for new branch creation", async () => {
         await doWithTempDir(async (tempDir) => {
           // Try to create new branch with dryRun
-          const result = await checkout({
+          const result = await checkout.checkout({
             targetDir: tempDir,
             valId: val.id,
             forkedFromId: mainBranch.id,
@@ -401,7 +401,7 @@ Deno.test({
           );
 
           // Checkout a second time, and expect no changes
-          await checkout({
+          await checkout.checkout({
             targetDir: tempDir,
             valId: val.id,
             toBranchId: mainBranch.id,
@@ -420,7 +420,7 @@ Deno.test({
         await doWithTempDir(async (tempDir) => {
           // Checkout main branch to temp dir first (actual checkout, not dry
           // run)
-          await checkout({
+          await checkout.checkout({
             targetDir: tempDir,
             valId: val.id,
             toBranchId: mainBranch.id,
@@ -434,7 +434,7 @@ Deno.test({
           await Deno.writeTextFile(localFilePath, modifiedContent);
 
           // Run checkout with dryRun
-          const result = await checkout({
+          const result = await checkout.checkout({
             targetDir: tempDir,
             valId: val.id,
             toBranchId: mainBranch.id,
@@ -476,7 +476,7 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: mainBranch.id,
@@ -499,7 +499,7 @@ Deno.test({
         await Deno.writeTextFile(originalFilePath, "modified content");
 
         // Create and checkout a new branch (equivalent to checkout -b)
-        const result = await checkout({
+        const result = await checkout.checkout({
           targetDir: tempDir,
           valId: val.id,
           forkedFromId: mainBranch.id,
@@ -549,7 +549,7 @@ Deno.test({
           });
 
           // Checkout main branch again to verify changes aren't there
-          await checkout({
+          await checkout.checkout({
             targetDir: tempDir,
             valId: val.id,
             toBranchId: mainBranch.id,

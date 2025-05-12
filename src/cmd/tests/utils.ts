@@ -7,7 +7,7 @@ import sdk, {
   getCurrentUser,
   getLatestVersion,
   listValItems,
-} from "~/sdk.ts";
+} from "~/utils/sdk.ts";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";

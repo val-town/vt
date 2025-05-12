@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import sdk, { branchNameToBranch } from "~/sdk.ts";
+import sdk, { branchNameToBranch } from "../../utils/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
 import { doWithSpinner } from "~/cmd/utils.ts";

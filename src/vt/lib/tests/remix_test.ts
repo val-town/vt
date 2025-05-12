@@ -1,10 +1,10 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { exists } from "@std/fs";
-import { remix } from "~/vt/lib/remix.ts";
-import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser } from "~/utils/sdk.ts";
+import { remix } from "~/vt/lib/mod.ts";
+import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { exists } from "@std/fs";
 
 Deno.test({
   name: "remix preserves HTTP Val type",
@@ -31,7 +31,7 @@ Deno.test({
 
         // Remix the val
         await t.step("remix Val with HTTP val", async () => {
-          const result = await remix({
+          const result = await remix.remix({
             targetDir: destTmpDir,
             srcValId: val.id,
             srcBranchId: "main",
@@ -95,7 +95,7 @@ Deno.test({
         const remixedValName = `${val.name}_private`;
 
         // Remix as private val
-        const result = await remix({
+        const result = await remix.remix({
           targetDir: destTmpDir,
           srcValId: val.id,
           srcBranchId: "main",
@@ -130,7 +130,7 @@ Deno.test({
           "This is a custom description for the remixed val";
 
         // Remix with custom description
-        const result = await remix({
+        const result = await remix.remix({
           targetDir: destTmpDir,
           srcValId: val.id,
           srcBranchId: "main",
@@ -186,7 +186,7 @@ Deno.test({
 
         await t.step("general remix test", async () => {
           // Perform the remix
-          const result = await remix({
+          const result = await remix.remix({
             targetDir: destTmpDir,
             srcValId: val.id,
             srcBranchId: "main",

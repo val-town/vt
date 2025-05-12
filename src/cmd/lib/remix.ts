@@ -1,7 +1,6 @@
 import { Command } from "@cliffy/command";
 import { join } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getCurrentUser, valExists } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { parseValUrl } from "~/cmd/parsing.ts";
@@ -9,6 +8,7 @@ import { randomIntegerBetween } from "@std/random";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
 import { Confirm } from "@cliffy/prompt";
 import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
+import { getCurrentUser, valExists } from "~/utils/sdk.ts";
 
 export const remixCmd = new Command()
   .name("remix")

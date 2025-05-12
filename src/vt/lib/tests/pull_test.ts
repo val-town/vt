@@ -1,10 +1,10 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
-import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import sdk, { getLatestVersion } from "~/utils/sdk.ts";
+import { pull } from "~/vt/lib/mod.ts";
 
 Deno.test({
   name: "test typical pulling",
@@ -29,7 +29,7 @@ Deno.test({
         });
 
         await doWithTempDir(async (tempDir) => {
-          await pull({
+          await pull.pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -70,7 +70,7 @@ Deno.test({
             );
 
             // Pull updates
-            await pull({
+            await pull.pull({
               targetDir: tempDir,
               valId: val.id,
               branchId: branch.id,
@@ -99,7 +99,7 @@ Deno.test({
             );
 
             // Pull updates
-            await pull({
+            await pull.pull({
               targetDir: tempDir,
               valId: val.id,
               branchId: branch.id,
@@ -146,7 +146,7 @@ Deno.test({
         await Deno.writeTextFile(localIgnoredPath, "Ignored local file");
 
         // Pull with gitignore rules
-        await pull({
+        await pull.pull({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -206,7 +206,7 @@ Deno.test({
 
         await t.step("perform dry run pull", async () => {
           // Run pull with dryRun option
-          const { itemStateChanges } = await pull({
+          const { itemStateChanges } = await pull.pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -237,7 +237,7 @@ Deno.test({
         });
 
         // Now actually pull the file so we can test modifications
-        await pull({
+        await pull.pull({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -257,7 +257,7 @@ Deno.test({
           );
 
           // Run pull with dryRun option
-          const { itemStateChanges } = await pull({
+          const { itemStateChanges } = await pull.pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -313,7 +313,7 @@ Deno.test({
 
         await t.step("pull that creates directories", async () => {
           // Pull the project to the temp directory
-          const { itemStateChanges: firstPullChanges } = await pull({
+          const { itemStateChanges: firstPullChanges } = await pull.pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -339,7 +339,7 @@ Deno.test({
 
         await t.step("pull that should not detect changes", async () => {
           // Pull again - should not detect changes
-          const { itemStateChanges: secondPullChanges } = await pull({
+          const { itemStateChanges: secondPullChanges } = await pull.pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,

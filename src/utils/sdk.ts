@@ -120,20 +120,27 @@ export async function valItemExists(
  * @param options.filePath - The file path to locate
  * @returns Promise resolving to the file data or undefined if not found
  */
-export const getValItem = memoize(async (
+export const getValItem: (
   valId: string,
   branchId: string,
   version: number,
   filePath: string,
-): Promise<ValTown.Vals.FileRetrieveResponse | undefined> => {
-  const valItems = await listValItems(valId, branchId, version);
+) => Promise<ValTown.Vals.Files.FileRetrieveResponse | undefined> = memoize(
+  async (
+    valId: string,
+    branchId: string,
+    version: number,
+    filePath: string,
+  ) => {
+    const valItems = await listValItems(valId, branchId, version);
 
-  for (const filepath of valItems) {
-    if (filepath.path === filePath) return filepath;
-  }
+    for (const filepath of valItems) {
+      if (filepath.path === filePath) return filepath;
+    }
 
-  return undefined;
-});
+    return undefined;
+  },
+);
 
 /**
  * Lists all file paths in a Val with pagination support.
@@ -146,16 +153,22 @@ export const getValItem = memoize(async (
  * @param [params.options.recursive] Whether to recursively list files in subdirectories
  * @returns Promise resolving to a Set of file paths
  */
-export const listValItems = memoize(async (
+export const listValItems: (
   valId: string,
   branchId: string,
   version: number,
-): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
-  const files: ValTown.Vals.FileRetrieveResponse[] = [];
+) => Promise<ValTown.Vals.Files.FileRetrieveResponse[]> = memoize(async (
+  valId: string,
+  branchId: string,
+  version: number,
+) => {
+  const files: ValTown.Vals.Files.FileRetrieveResponse[] = [];
 
-  branchId = branchId ||
-    (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
+  // If branchId is not provided, get the default branch id
+  if (!branchId) {
+    branchId = (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id))!;
+  }
 
   for await (
     const file of sdk.vals.files.retrieve(valId, {
@@ -164,7 +177,9 @@ export const listValItems = memoize(async (
       version,
       recursive: true,
     })
-  ) files.push(file);
+  ) {
+    files.push(file);
+  }
 
   return files;
 });
@@ -172,22 +187,29 @@ export const listValItems = memoize(async (
 /**
  * Get the latest version of a branch.
  */
-export async function getLatestVersion(valId: string, branchId: string) {
+export async function getLatestVersion(
+  valId: string,
+  branchId: string,
+): Promise<number> {
   return (await sdk.vals.branches.retrieve(valId, branchId)).version;
 }
 
 /**
  * Generate a random (valid) Val name. Useful for tests.
  */
-export function randomValName(label = "") {
+export function randomValName(label = ""): string {
   return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
 }
 
 /**
  * Get the owner of the API key used to auth the current ValTown instance.
  */
-export const getCurrentUser = memoize(async () => {
-  return await sdk.me.profile.retrieve();
-});
+export const getCurrentUser: () => Promise<
+  ValTown.Me.Profile.ProfileRetrieveResponse
+> = memoize(
+  async () => {
+    return await sdk.me.profile.retrieve();
+  },
+);
 
 export default sdk;

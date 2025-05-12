@@ -1,9 +1,9 @@
 import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import sdk from "~/sdk.ts";
+import sdk from "../../utils/sdk.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { arrayFromAsyncN } from "~/utils.ts";
+import { arrayFromAsyncN } from "~/utils/mod.ts";
 
 const VAL_LIST_BATCH_SIZE = 20;
 

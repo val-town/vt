@@ -1,6 +1,6 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
+import sdk from "../../utils/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import type ValTown from "@valtown/sdk";

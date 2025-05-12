@@ -1,14 +1,11 @@
-import { clone } from "~/vt/lib/clone.ts";
-import { create } from "~/vt/lib/create.ts";
-import sdk, {
-  branchNameToBranch,
-  getLatestVersion,
-  listValItems,
-} from "~/sdk.ts";
+import { clone } from "~/vt/lib/vals/clone.ts";
+import { create } from "~/vt/lib/vals/create.ts";
 import { doAtomically } from "~/vt/lib/utils/misc.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_VAL_PRIVACY } from "~/consts.ts";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import type { ValPrivacy } from "~/types.ts";
+import { branchNameToBranch } from "~/utils/mod.ts";
+import sdk, { getLatestVersion, listValItems } from "~/utils/sdk.ts";
 
 /**
  * Result of remixing a val.
@@ -17,7 +14,7 @@ import type { ValPrivacy } from "~/types.ts";
  * This object contains information about the newly created Val and the changes
  * that were made to the local file state during the remix operation.
  */
-export interface RemixResult {
+interface RemixResult {
   /** The ID of the newly created Val */
   toValId: string;
   /** The version number of the newly created Val */
@@ -32,7 +29,7 @@ export interface RemixResult {
 /**
  * Parameters for remixing some Val Town Val to a new Val Town val.
  */
-export interface RemixParams {
+interface RemixParams {
   /** The root directory to contain the newly remixed val. */
   targetDir: string;
   /** The id of the Val to remix from. */
@@ -56,7 +53,7 @@ export interface RemixParams {
  * @returns Promise that resolves with a CheckoutResult containing information about the
  * newly created Val and the changes made during the remix operation.
  */
-export async function remix(
+async function remix(
   params: RemixParams,
 ): Promise<RemixResult> {
   const itemStateChanges = new ItemStatusManager();
@@ -127,3 +124,6 @@ export async function remix(
     }, true];
   }, { targetDir });
 }
+
+export { remix };
+export type { RemixParams, RemixResult };

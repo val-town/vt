@@ -1,23 +1,20 @@
 import { join, relative } from "@std/path";
-import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import { listValItems } from "~/sdk.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { walk } from "@std/fs";
-import { clone } from "~/vt/lib/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
+import { clone } from "~/vt/lib/mod.ts";
+import { getLatestVersion, listValItems } from "~/utils/sdk.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
 
 /** Result of pull operation  */
 export interface PushResult {
   itemStateChanges: ItemStatusManager;
 }
 
-/**
- * Parameters for pulling latest changes from a Val Town Val into a vt folder.
- */
-export interface PullParams {
+interface PullParams {
   /** The vt Val root directory. */
   targetDir: string;
   /** The id of the Val to download from. */
@@ -25,7 +22,7 @@ export interface PullParams {
   /** The branch ID to download file content from. */
   branchId: string;
   /** The version to pull. Defaults to latest version. */
-  version: number;
+  version?: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files, just report what would change. */
@@ -46,15 +43,17 @@ export interface PullParams {
  * @param params Options for pull operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function pull(params: PullParams): Promise<PushResult> {
+async function pull(params: PullParams): Promise<PushResult> {
   const {
     targetDir,
     valId,
     branchId,
-    version,
+    version = params.version ||
+      await getLatestVersion(params.valId, params.branchId),
     gitignoreRules = [],
     dryRun = false,
   } = params;
+
   return doAtomically(
     async (tmpDir) => {
       const changes = new ItemStatusManager();
@@ -71,7 +70,7 @@ export function pull(params: PullParams): Promise<PushResult> {
       // Clone all the files from the Val into the temp dir. This
       // implicitly will overwrite files with the current version on the
       // server.
-      const { itemStateChanges: cloneChanges } = await clone({
+      const { itemStateChanges: cloneChanges } = await clone.clone({
         targetDir: tmpDir,
         valId,
         branchId,
@@ -136,3 +135,6 @@ export function pull(params: PullParams): Promise<PushResult> {
     { targetDir, prefix: "vt_pull_" },
   );
 }
+
+export { pull };
+export type { PullParams };

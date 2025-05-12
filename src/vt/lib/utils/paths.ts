@@ -3,9 +3,9 @@ import {
   FIRST_VERSION_NUMBER,
   RECENT_VERSION_COUNT,
 } from "~/consts.ts";
-import { getValItem } from "~/sdk.ts";
 import { compile as compileGitignore } from "gitignore-parser";
 import type { ValItemType } from "~/types.ts";
+import { getValItem } from "~/utils/mod.ts";
 
 /**
  * Determine the type of a Val file.

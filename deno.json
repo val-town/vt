@@ -11,7 +11,9 @@
     "test:cmd": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --fail-fast ./src/cmd",
     "test:lib": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --parallel ./src/vt/lib",
     "check": "env DENO_NO_PROMPT=1 deno check .",
-    "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
+    "fmt": "env DENO_NO_PROMPT=1 deno fmt --ignore=docs",
+    "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check",
+    "doc": "deno doc --html --name='vtlib' --output=docs mod.ts"
   },
   "imports": {
     "@std/random": "jsr:@std/random@^0.1.0",

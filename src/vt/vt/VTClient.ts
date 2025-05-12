@@ -1,20 +1,14 @@
 import { checkout, clone, create, remix, status } from "~/vt/lib/mod.ts";
 import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
-import { pull } from "~/vt/lib/pull.ts";
-import { push } from "~/vt/lib/push.ts";
+import { pull } from "~/vt/lib/vals/pull.ts";
+import { push } from "~/vt/lib/vals/push.ts";
 import { join, relative } from "@std/path";
-import type {
-  BaseCheckoutParams,
-  BranchCheckoutParams,
-  CheckoutResult,
-  ForkCheckoutParams,
-} from "~/vt/lib/checkout.ts";
 import sdk, {
   branchNameToBranch,
   getCurrentUser,
   getLatestVersion,
-} from "~/sdk.ts";
+} from "../../utils/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
   DEFAULT_EDITOR_TEMPLATE,
@@ -23,11 +17,17 @@ import {
 } from "~/consts.ts";
 import { exists } from "@std/fs";
 import ValTown from "@valtown/sdk";
-import { dirIsEmpty } from "~/utils.ts";
+import { dirIsEmpty } from "../../utils/misc.ts";
 import VTConfig from "~/vt/VTConfig.ts";
 import type { ValPrivacy } from "~/types.ts";
 import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
+import type {
+  BaseCheckoutParams,
+  BranchCheckoutParams,
+  CheckoutResult,
+  ForkCheckoutParams,
+} from "~/vt/lib/vals/checkout.ts";
 
 /**
  * The VTClient class is an abstraction on a VT directory that exposes
@@ -86,7 +86,7 @@ export default class VTClient {
       DEFAULT_BRANCH_NAME,
     );
 
-    await clone({
+    await clone.clone({
       targetDir: this.rootPath,
       valId: templateVal.id,
       branchId: templateBranch.id,
@@ -269,7 +269,7 @@ export default class VTClient {
     await assertSafeDirectory(rootPath);
 
     // First create the val
-    const { newValId: newValId } = await create({
+    const { newValId: newValId } = await create.create({
       sourceDir: rootPath,
       valName,
       privacy,
@@ -325,7 +325,7 @@ export default class VTClient {
       srcValName,
     );
 
-    const { toValId, toVersion } = await remix({
+    const { toValId, toVersion } = await remix.remix({
       targetDir: rootPath,
       srcValId: srcVal.id,
       srcBranchId: srcBranchName,
@@ -384,7 +384,7 @@ export default class VTClient {
 
     await vt.getMeta().doWithVtState(async (config) => {
       // Do the clone using the configuration
-      await clone({
+      await clone.clone({
         targetDir: rootPath,
         valId: config.val.id,
         branchId: config.branch.id,
@@ -428,7 +428,7 @@ export default class VTClient {
       // Use provided branchId or fall back to the current branch from state
       const targetBranchId = branchId || vtState.branch.id;
 
-      const { itemStateChanges } = await status({
+      const { itemStateChanges } = await status.status({
         targetDir: this.rootPath,
         valId: vtState.val.id,
         branchId: targetBranchId,
@@ -557,7 +557,7 @@ export default class VTClient {
           toBranchVersion: FIRST_VERSION_NUMBER, // Version should be 1 for a new forked branch
         };
 
-        result = await checkout(forkParams);
+        result = await checkout.checkout(forkParams);
 
         if (!baseParams.dryRun) {
           if (result.toBranch) {
@@ -584,7 +584,7 @@ export default class VTClient {
           toBranchVersion: options?.toBranchVersion || checkoutBranch.version, // Use specified version or the branch's version
         };
 
-        result = await checkout(branchParams);
+        result = await checkout.checkout(branchParams);
       }
 
       // Don't touch the state if it's a dry run

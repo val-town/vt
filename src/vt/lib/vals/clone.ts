@@ -1,5 +1,3 @@
-import sdk, { listValItems } from "~/sdk.ts";
-import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir, exists } from "@std/fs";
 import { dirname } from "@std/path/dirname";
 import { join } from "@std/path";
@@ -9,11 +7,13 @@ import {
   type ItemStatus,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
+import sdk, { getLatestVersion, listValItems } from "~/utils/sdk.ts";
+import { shouldIgnore } from "~/vt/lib/utils/paths.ts";
 
 /**
  * Result of a clone operation.
  */
-export interface CloneResult {
+interface CloneResult {
   /** Changes made to items during the cloning process */
   itemStateChanges: ItemStatusManager;
 }
@@ -22,7 +22,7 @@ export interface CloneResult {
  * Parameters for cloning a Val by downloading its files and directories to the specified
  * target directory.
  */
-export interface CloneParams {
+interface CloneParams {
   /** The directory where the Val will be cloned */
   targetDir: string;
   /** The id of the Val to be cloned */
@@ -30,7 +30,7 @@ export interface CloneParams {
   /** The branch ID of the Val to clone */
   branchId: string;
   /** The version to clone. Defaults to latest */
-  version: number;
+  version?: number;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually write files, just report what would change */
@@ -46,8 +46,8 @@ export interface CloneParams {
  * @param params Options for the clone operation
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export function clone(params: CloneParams): Promise<CloneResult> {
-  const {
+function clone(params: CloneParams): Promise<CloneResult> {
+  let {
     targetDir,
     valId,
     branchId,
@@ -58,6 +58,7 @@ export function clone(params: CloneParams): Promise<CloneResult> {
   } = params;
   return doAtomically(
     async (tmpDir) => {
+      version = version ?? (await getLatestVersion(valId, branchId));
       const itemStateChanges = new ItemStatusManager();
       const valItems = await listValItems(
         valId,
@@ -216,3 +217,6 @@ async function createFile(
   // Set the file's mtime to match the source
   await Deno.utime(join(targetRoot, path), updatedAt, updatedAt);
 }
+
+export { clone };
+export type { CloneParams, CloneResult };

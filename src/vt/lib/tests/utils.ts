@@ -1,4 +1,5 @@
-import sdk, { branchNameToBranch, randomValName } from "~/sdk.ts";
+import { branchNameToBranch } from "~/utils/mod.ts";
+import sdk, { randomValName } from "~/utils/sdk.ts";
 
 export interface ExpectedValInode {
   path: string;

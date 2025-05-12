@@ -1,9 +1,13 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
-import { push } from "~/vt/lib/push.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { push } from "~/vt/lib/mod.ts";
+import sdk, {
+  getLatestVersion,
+  listValItems,
+  valItemExists,
+} from "~/utils/sdk.ts";
 
 Deno.test({
   name: "test renaming file at root",
@@ -15,7 +19,7 @@ Deno.test({
 
         // Create and push the original file
         await Deno.writeTextFile(oldFilePath, "root file content");
-        await push({
+        await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -26,7 +30,7 @@ Deno.test({
         await Deno.rename(oldFilePath, newFilePath);
 
         // Push the renamed file
-        const { itemStateChanges: result } = await push({
+        const { itemStateChanges: result } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -80,7 +84,7 @@ Deno.test({
           await Deno.writeTextFile(initialFilePath, "test content");
 
           // Push the file in subdirectory
-          const { itemStateChanges: firstPush } = await push({
+          const { itemStateChanges: firstPush } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -104,7 +108,7 @@ Deno.test({
           await Deno.writeTextFile(rootFilePath, "test content");
 
           // Push the moved file
-          const { itemStateChanges: secondPush } = await push({
+          const { itemStateChanges: secondPush } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -116,7 +120,7 @@ Deno.test({
 
         await t.step("ensure push is idempotent", async () => {
           // Push again with no changes
-          const { itemStateChanges: thirdPush } = await push({
+          const { itemStateChanges: thirdPush } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -150,7 +154,7 @@ Deno.test({
         await Deno.utime(join(valDir, "file1.ts"), 0, 0);
 
         // Push initial files
-        await push({
+        await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -171,7 +175,7 @@ Deno.test({
         await Deno.writeTextFile(join(valDir, "newfile2.ts"), sameContent);
 
         // Push changes
-        const { itemStateChanges: result } = await push({
+        const { itemStateChanges: result } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -232,7 +236,7 @@ Deno.test({
 
         await t.step("create a file and push it", async () => {
           await Deno.writeTextFile(originalFilePath, fileContent);
-          await push({
+          await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -262,7 +266,7 @@ Deno.test({
           await Deno.writeTextFile(newFilePath, fileContent);
 
           // Push the changes
-          await push({
+          await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -320,7 +324,7 @@ Deno.test({
 
         await t.step("create a file and push it", async () => {
           await Deno.writeTextFile(localFilePath, "test");
-          await push({
+          await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -341,7 +345,7 @@ Deno.test({
 
         await t.step("modify the file and push changes", async () => {
           await Deno.writeTextFile(localFilePath, "test2");
-          await push({
+          await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -359,7 +363,7 @@ Deno.test({
 
         await t.step("delete the file and push deletion", async () => {
           await Deno.remove(localFilePath);
-          await push({
+          await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -394,7 +398,7 @@ Deno.test({
           "unchanged content",
         );
 
-        await push({
+        await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -416,7 +420,7 @@ Deno.test({
         );
 
         // Push renamed file
-        const { itemStateChanges: statusResult } = await push({
+        const { itemStateChanges: statusResult } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -464,7 +468,7 @@ Deno.test({
             "content",
           );
 
-          await push({
+          await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -486,7 +490,7 @@ Deno.test({
           await Deno.writeTextFile(join(valDir, "new.tsx"), "contentt");
 
           // Push renamed file
-          const { itemStateChanges: statusResult } = await push({
+          const { itemStateChanges: statusResult } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -547,7 +551,7 @@ Deno.test({
         await Deno.mkdir(emptyDirPath, { recursive: true });
 
         // Push the empty directory
-        const { itemStateChanges: pushResult } = await push({
+        const { itemStateChanges: pushResult } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -593,7 +597,7 @@ Deno.test({
         await Deno.writeTextFile(localFilePath, "test content");
 
         // Push with dryRun enabled
-        const { itemStateChanges: result } = await push({
+        const { itemStateChanges: result } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -631,7 +635,7 @@ Deno.test({
         await Deno.writeTextFile(localFilePath, "test content");
 
         // Do the push
-        const { itemStateChanges: firstResult } = await push({
+        const { itemStateChanges: firstResult } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -643,7 +647,7 @@ Deno.test({
         assertEquals(firstResult.created.length, 1);
         assertEquals(firstResult.size(), 1);
 
-        const { itemStateChanges: secondResult } = await push({
+        const { itemStateChanges: secondResult } = await push.push({
           targetDir: tempDir,
           valId: val.id,
           branchId: branch.id,
@@ -683,7 +687,7 @@ Deno.test({
 
         await t.step("push and verify warnings", async () => {
           // Push all files
-          const { itemStateChanges } = await push({
+          const { itemStateChanges } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -773,7 +777,7 @@ Deno.test({
           await Deno.writeTextFile(anotherFilePath, "another file content");
 
           // First push to establish files on the server
-          const { itemStateChanges: initialPush } = await push({
+          const { itemStateChanges: initialPush } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -796,7 +800,7 @@ Deno.test({
           await Deno.writeTextFile(anotherFilePath, "updated another content");
 
           // Try to push all changes
-          const { itemStateChanges: secondPush } = await push({
+          const { itemStateChanges: secondPush } = await push.push({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,

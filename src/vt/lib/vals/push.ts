@@ -1,6 +1,4 @@
 import type { ValFileType, ValItemType } from "~/types.ts";
-import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
-import { status } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
@@ -10,9 +8,16 @@ import {
   getItemWarnings,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
+import sdk, {
+  branchNameToBranch,
+  getLatestVersion,
+  listValItems,
+} from "~/utils/sdk.ts";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { status } from "~/vt/lib/mod.ts";
 
 /** Result of push operation  */
-export interface PushResult {
+interface PushResult {
   /** Changes made to Val items during the push process */
   itemStateChanges: ItemStatusManager;
 }
@@ -20,13 +25,13 @@ export interface PushResult {
 /**
  * Parameters for pushing latest changes from a vt folder into a Val Town val.
  */
-export interface PushParams {
+interface PushParams {
   /** The vt Val root directory. */
   targetDir: string;
   /** The id of the Val to upload to. */
   valId: string;
   /** The branch ID to upload to. */
-  branchId: string;
+  branchId?: string;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
   /** If true, don't actually modify files on server, just report what would change. */
@@ -42,11 +47,13 @@ export interface PushParams {
  * @param params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-export async function push(params: PushParams): Promise<PushResult> {
+async function push(params: PushParams): Promise<PushResult> {
   const {
     targetDir,
     valId,
-    branchId,
+    branchId = params.branchId ||
+      (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
+        .then((resp) => resp.id))!,
     gitignoreRules,
     dryRun = false,
     concurrencyPoolSize = 5,
@@ -56,7 +63,7 @@ export async function push(params: PushParams): Promise<PushResult> {
   assert(await exists(targetDir), "target directory doesn't exist");
 
   // Retrieve the status
-  const { itemStateChanges } = await status({
+  const { itemStateChanges } = await status.status({
     targetDir,
     valId,
     branchId,
@@ -280,3 +287,6 @@ async function doReqMaybeApplyWarning<T>(
     return undefined;
   }
 }
+
+export { push };
+export type { PushParams, PushResult };

@@ -1,11 +1,11 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk from "~/sdk.ts";
-import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import type { ValFileType } from "~/types.ts";
+import sdk from "~/utils/sdk.ts";
+import { clone } from "~/vt/lib/mod.ts";
 
 Deno.test({
   name: "test typical cloning",
@@ -81,7 +81,7 @@ Deno.test({
         await doWithTempDir(async (tempDir) => {
           await t.step("verify cloned files", async () => {
             // Clone the Val to the temp directory
-            await clone({
+            await clone.clone({
               targetDir: tempDir,
               valId: val.id,
               branchId: branch.id,
@@ -144,7 +144,7 @@ Deno.test({
         await doWithTempDir(async (tempDir) => {
           await t.step("clone the val", async () => {
             // Clone the Val to the temp directory
-            await clone({
+            await clone.clone({
               targetDir: tempDir,
               valId: val.id,
               branchId: branch.id,
