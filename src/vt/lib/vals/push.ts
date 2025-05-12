@@ -1,35 +1,35 @@
-import type { ProjectFileType, ProjectItemType } from "~/types.ts";
-import sdk, {
-  branchNameToBranch,
-  getLatestVersion,
-  getProjectItem,
-  listProjectItems,
-} from "../../../../utils/sdk.ts";
-import { status } from "~/vt/lib/vals/status.ts";
+import type { ValFileType, ValItemType } from "~/types.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
+import { pooledMap } from "@std/async";
 import {
   getItemWarnings,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import { pooledMap } from "@std/async";
+import sdk, {
+  branchNameToBranch,
+  getLatestVersion,
+  listValItems,
+} from "~/utils/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { status } from "~/vt/lib/mod.ts";
 
+/** Result of push operation  */
 interface PushResult {
-  /** Changes made to project items during the push process */
+  /** Changes made to Val items during the push process */
   itemStateChanges: ItemStatusManager;
 }
 
 /**
- * Parameters for pushing latest changes from a vt folder into a Val Town project.
+ * Parameters for pushing latest changes from a vt folder into a Val Town val.
  */
 interface PushParams {
-  /** The vt project root directory. */
+  /** The vt Val root directory. */
   targetDir: string;
-  /** The id of the project to upload to. */
-  projectId: string;
+  /** The id of the Val to upload to. */
+  valId: string;
   /** The branch ID to upload to. */
   branchId?: string;
   /** A list of gitignore rules. */
@@ -41,29 +41,31 @@ interface PushParams {
 }
 
 /**
- * Pushes latest changes from a vt folder into a Val Town project. Note that
+ * Pushes latest changes from a vt folder into a Val Town val. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
- * @param {PushParams} params Options for push operation.
+ * @param params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 async function push(params: PushParams): Promise<PushResult> {
   const {
     targetDir,
-    projectId,
-    branchId = (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)).id,
+    valId,
+    branchId = params.branchId ||
+      (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
+        .then((resp) => resp.id))!,
     gitignoreRules,
     dryRun = false,
-    concurrencyPoolSize = 10,
+    concurrencyPoolSize = 5,
   } = params;
-  const initialVersion = await getLatestVersion(projectId, branchId);
+  const initialVersion = await getLatestVersion(valId, branchId);
 
   assert(await exists(targetDir), "target directory doesn't exist");
 
   // Retrieve the status
-  const itemStateChanges = await status({
+  const { itemStateChanges } = await status.status({
     targetDir,
-    projectId,
+    valId,
     branchId,
     version: initialVersion,
     gitignoreRules,
@@ -89,9 +91,9 @@ async function push(params: PushParams): Promise<PushResult> {
     .filter((item) => item.warnings?.length === 0) // no warnings
     .forEach((item) => safeItemStateChanges.insert(item));
 
-  // Get existing project items to check which directories already exist
-  const existingItems = await listProjectItems(
-    projectId,
+  // Get existing Val items to check which directories already exist
+  const existingItems = await listValItems(
+    valId,
     branchId,
     initialVersion,
   );
@@ -106,13 +108,12 @@ async function push(params: PushParams): Promise<PushResult> {
 
   // Create all necessary directories first
   await createRequiredDirectories(
-    projectId,
+    valId,
     branchId,
     safeItemStateChanges,
     existingDirs,
     itemStateChanges,
   );
-  const versionAfterDirectories = await getLatestVersion(projectId, branchId);
 
   // Define all file operations that will occur
   const fileOperations: (() => Promise<unknown>)[] = [];
@@ -121,38 +122,13 @@ async function push(params: PushParams): Promise<PushResult> {
   safeItemStateChanges.renamed
     .filter((f) => f.type !== "directory")
     .forEach((f) =>
-      fileOperations.push(async () => {
-        const parent = await getProjectItem(
-          projectId,
-          branchId,
-          versionAfterDirectories,
-          dirname(f.path),
-        );
-
-        const isAtRoot = basename(f.path) == f.path;
-
-        if (isAtRoot) {
-          await doReqMaybeApplyWarning(
-            async () =>
-              await sdk.projects.files.update(projectId, {
-                branch_id: branchId,
-                name: undefined,
-                parent_id: null,
-                path: f.oldPath,
-              }),
-            f.path,
-            itemStateChanges,
-          );
-        }
-
-        // To move the file to the root dir parent_id must be null and the name
-        // must be undefined (the api is very picky about this!)
-        return await doReqMaybeApplyWarning(
+      fileOperations.push(() => {
+        return doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.update(projectId, {
+            await sdk.vals.files.update(valId, {
               branch_id: branchId,
-              name: isAtRoot ? undefined : basename(f.path),
-              parent_id: parent?.id || null,
+              name: basename(f.path),
+              parent_path: dirname(f.path) === "." ? null : dirname(f.path),
               path: f.oldPath,
               content: f.content,
             }),
@@ -169,13 +145,13 @@ async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.create(
-              projectId,
+            await sdk.vals.files.create(
+              valId,
               {
                 path: f.path,
                 content: f.content!, // It's a file not a dir so this should be defined
                 branch_id: branchId,
-                type: f.type as Exclude<ProjectItemType, "directory">,
+                type: f.type as Exclude<ValItemType, "directory">,
               },
             ),
           f.path,
@@ -191,14 +167,14 @@ async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.update(
-              projectId,
+            await sdk.vals.files.update(
+              valId,
               {
                 path: f.path,
                 branch_id: branchId,
                 content: f.content,
                 name: basename(f.path),
-                type: f.type as ProjectFileType,
+                type: f.type as ValFileType,
               },
             ),
           f.path,
@@ -213,7 +189,7 @@ async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.projects.files.delete(projectId, {
+            await sdk.vals.files.delete(valId, {
               path: f.path,
               branch_id: branchId,
               recursive: true,
@@ -235,7 +211,7 @@ async function push(params: PushParams): Promise<PushResult> {
 }
 
 async function createRequiredDirectories(
-  projectId: string,
+  valId: string,
   branchId: string,
   fileState: ItemStatusManager,
   existingDirs: Set<string>,
@@ -276,8 +252,8 @@ async function createRequiredDirectories(
   for (const path of sortedDirsToCreate) {
     await doReqMaybeApplyWarning(
       () =>
-        sdk.projects.files.create(
-          projectId,
+        sdk.vals.files.create(
+          valId,
           { path, type: "directory", branch_id: branchId },
         ),
       path,

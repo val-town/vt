@@ -1,27 +1,22 @@
-import { doWithNewProject } from "~/vt/lib/tests/utils.ts";
-import sdk, { branchExists, getLatestVersion } from "../../../../utils/sdk.ts";
-import { checkout } from "~/vt/lib/vals/checkout.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import sdk, { branchExists, getLatestVersion } from "~/utils/sdk.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { checkout } from "~/vt/lib/mod.ts";
 
 Deno.test({
   name: "test cross branch checkout",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-    env: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch: mainBranch }) => {
-      let featureBranch: ValTown.Projects.BranchCreateResponse;
+    await doWithNewVal(async ({ val, branch: mainBranch }) => {
+      let featureBranch: ValTown.Vals.BranchCreateResponse;
 
       await t.step("create files on main and feature branches", async () => {
         // Create a file on main branch
-        await sdk.projects.files.create(project.id, {
+        await sdk.vals.files.create(val.id, {
           path: "main.txt",
           content: "file on main branch",
           branch_id: mainBranch.id,
@@ -29,13 +24,13 @@ Deno.test({
         });
 
         // Create a new branch from main
-        featureBranch = await sdk.projects.branches.create(
-          project.id,
+        featureBranch = await sdk.vals.branches.create(
+          val.id,
           { branchId: mainBranch.id, name: "feature" },
         );
 
         // Add a file to the feature branch
-        await sdk.projects.files.create(project.id, {
+        await sdk.vals.files.create(val.id, {
           path: "feature.txt",
           content: "file on feature branch",
           branch_id: featureBranch.id,
@@ -45,9 +40,9 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
         });
@@ -69,13 +64,13 @@ Deno.test({
         );
 
         // Checkout feature branch
-        const result = await checkout({
+        const result = await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: featureBranch.id,
           fromBranchId: mainBranch.id,
           toBranchVersion: await getLatestVersion(
-            project.id,
+            val.id,
             featureBranch.id,
           ),
         });
@@ -101,16 +96,15 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test branch creation and checkout",
-  permissions: { read: true, write: true, net: true },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+    await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(val.id, {
         path: "main.txt",
         content: "main branch content",
         branch_id: mainBranch.id,
@@ -119,9 +113,9 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           toBranchVersion: 1,
@@ -134,9 +128,9 @@ Deno.test({
         );
 
         // Create and checkout a new branch
-        const result = await checkout({
+        const result = await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           forkedFromId: mainBranch.id,
           name: "new-feature",
           toBranchVersion: 2,
@@ -163,9 +157,9 @@ Deno.test({
         );
 
         // Switch back to main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: mainBranch.id,
           fromBranchId: result.toBranch!.id,
           toBranchVersion: 3,
@@ -185,16 +179,15 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test untracked files are carried over during checkout",
-  permissions: { read: true, write: true, net: true },
+  permissions: "inherit",
   async fn() {
-    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+    await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(val.id, {
         path: "main.txt",
         content: "file on main branch",
         branch_id: mainBranch.id,
@@ -202,13 +195,13 @@ Deno.test({
       });
 
       // Create a new branch from main
-      const featureBranch = await sdk.projects.branches.create(
-        project.id,
+      const featureBranch = await sdk.vals.branches.create(
+        val.id,
         { branchId: mainBranch.id, name: "feature" },
       );
 
       // Add a file to feature branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(val.id, {
         path: "feature-only.txt",
         content: "file on feature branch only",
         branch_id: featureBranch.id,
@@ -217,9 +210,9 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           toBranchVersion: 1,
@@ -248,9 +241,9 @@ Deno.test({
         );
 
         // Checkout feature branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: featureBranch.id,
           fromBranchId: mainBranch.id,
         });
@@ -293,19 +286,19 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "file not in target branch should be deleted",
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+    await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a feature branch
-      const featureBranch = await sdk.projects.branches
-        .create(project.id, { name: "feature" });
+      const featureBranch = await sdk.vals.branches
+        .create(val.id, { name: "feature" });
 
       await t.step("add file to feature branch", async () => {
-        await sdk.projects.files.create(project.id, {
+        await sdk.vals.files.create(val.id, {
           path: "feature.txt",
           content: "feature content",
           branch_id: featureBranch.id,
@@ -316,9 +309,9 @@ Deno.test({
       // First temp directory for feature branch checkout
       await doWithTempDir(async (featureTempDir) => {
         await t.step("checkout feature branch", async () => {
-          await checkout({
+          await checkout.checkout({
             targetDir: featureTempDir,
-            projectId: project.id,
+            valId: val.id,
             toBranchId: featureBranch.id,
             fromBranchId: featureBranch.id,
             toBranchVersion: 1,
@@ -340,9 +333,9 @@ Deno.test({
         // Second temp directory for main branch checkout
         await doWithTempDir(async (mainTempDir) => {
           await t.step("checkout main branch", async () => {
-            await checkout({
+            await checkout.checkout({
               targetDir: mainTempDir,
-              projectId: project.id,
+              valId: val.id,
               toBranchId: mainBranch.id,
               fromBranchId: featureBranch.id,
               toBranchVersion: 1,
@@ -366,20 +359,15 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test checkout with dryRun",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+    await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(val.id, {
         path: "main.txt",
         content: "file on main branch",
         branch_id: mainBranch.id,
@@ -389,9 +377,9 @@ Deno.test({
       await t.step("test dry run for new branch creation", async () => {
         await doWithTempDir(async (tempDir) => {
           // Try to create new branch with dryRun
-          const result = await checkout({
+          const result = await checkout.checkout({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             forkedFromId: mainBranch.id,
             name: "dry-run-branch",
             dryRun: true,
@@ -407,19 +395,19 @@ Deno.test({
           );
           // Verify branch wasn't actually created on server
           assertEquals(
-            await branchExists(project.id, "dry-run-branch"),
+            await branchExists(val.id, "dry-run-branch"),
             false,
             "branch should not be created during dry run",
           );
 
           // Checkout a second time, and expect no changes
-          await checkout({
+          await checkout.checkout({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
             toBranchVersion: await getLatestVersion(
-              project.id,
+              val.id,
               mainBranch.id,
             ),
           });
@@ -432,9 +420,9 @@ Deno.test({
         await doWithTempDir(async (tempDir) => {
           // Checkout main branch to temp dir first (actual checkout, not dry
           // run)
-          await checkout({
+          await checkout.checkout({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
             toBranchVersion: 1,
@@ -446,9 +434,9 @@ Deno.test({
           await Deno.writeTextFile(localFilePath, modifiedContent);
 
           // Run checkout with dryRun
-          const result = await checkout({
+          const result = await checkout.checkout({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             toBranchId: mainBranch.id,
             fromBranchId: mainBranch.id,
             dryRun: true,
@@ -471,20 +459,15 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });
 
 Deno.test({
   name: "test checkout -b preserves local unpushed changes",
-  permissions: {
-    read: true,
-    write: true,
-    net: true,
-  },
+  permissions: "inherit",
   async fn(t) {
-    await doWithNewProject(async ({ project, branch: mainBranch }) => {
+    await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.projects.files.create(project.id, {
+      await sdk.vals.files.create(val.id, {
         path: "original.txt",
         content: "original content",
         branch_id: mainBranch.id,
@@ -493,9 +476,9 @@ Deno.test({
 
       await doWithTempDir(async (tempDir) => {
         // Checkout main branch
-        await checkout({
+        await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           toBranchId: mainBranch.id,
           fromBranchId: mainBranch.id,
           toBranchVersion: 1,
@@ -516,9 +499,9 @@ Deno.test({
         await Deno.writeTextFile(originalFilePath, "modified content");
 
         // Create and checkout a new branch (equivalent to checkout -b)
-        const result = await checkout({
+        const result = await checkout.checkout({
           targetDir: tempDir,
-          projectId: project.id,
+          valId: val.id,
           forkedFromId: mainBranch.id,
           name: "feature-with-changes",
           toBranchVersion: 2,
@@ -551,14 +534,14 @@ Deno.test({
         // Verify we can push the changes to the new branch
         await t.step("push changes to new branch", async () => {
           // Push changes to the new branch (this would be a separate operation in real usage)
-          await sdk.projects.files.create(project.id, {
+          await sdk.vals.files.create(val.id, {
             path: "new-file.txt",
             content: "new file content",
             branch_id: result.toBranch!.id,
             type: "file",
           });
 
-          await sdk.projects.files.update(project.id, {
+          await sdk.vals.files.update(val.id, {
             path: "original.txt",
             content: "modified content",
             branch_id: result.toBranch!.id,
@@ -566,9 +549,9 @@ Deno.test({
           });
 
           // Checkout main branch again to verify changes aren't there
-          await checkout({
+          await checkout.checkout({
             targetDir: tempDir,
-            projectId: project.id,
+            valId: val.id,
             toBranchId: mainBranch.id,
             fromBranchId: result.toBranch!.id,
             toBranchVersion: 3,
@@ -590,5 +573,4 @@ Deno.test({
       });
     });
   },
-  sanitizeResources: false,
 });

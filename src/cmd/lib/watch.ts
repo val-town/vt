@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk from "../../../utils/sdk.ts";
+import sdk from "../../utils/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -21,17 +21,17 @@ export const watchCmd = new Command()
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
       // Get initial branch information for display
-      const state = await vt.getMeta().loadVtState();
-      const currentBranch = await sdk.projects.branches.retrieve(
-        state.project.id,
-        state.branch.id,
+      const vtState = await vt.getMeta().loadVtState();
+      const currentBranch = await sdk.vals.branches.retrieve(
+        vtState.val.id,
+        vtState.branch.id,
       );
 
       spinner.stop();
 
       const versionRangeStr = displayVersionRange(
         FIRST_VERSION_NUMBER,
-        state.branch.version,
+        vtState.branch.version,
         currentBranch.version,
       );
       console.log(

@@ -1,29 +1,26 @@
 import { join, relative } from "@std/path";
-import { walk } from "@std/fs";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
-import {
-  branchNameToBranch,
-  getLatestVersion,
-  listProjectItems,
-} from "../../../../utils/sdk.ts";
-import { clone } from "~/vt/lib/vals/clone.ts";
-import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
 import {
   type ItemStatus,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { walk } from "@std/fs";
+import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
+import { clone } from "~/vt/lib/mod.ts";
+import { getLatestVersion, listValItems } from "~/utils/sdk.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
 
-/**
- * Parameters for pulling latest changes from a Val Town project into a vt folder.
- */
+/** Result of pull operation  */
+export interface PushResult {
+  itemStateChanges: ItemStatusManager;
+}
+
 interface PullParams {
-  /** The vt project root directory. */
+  /** The vt Val root directory. */
   targetDir: string;
-  /** The id of the project to download from. */
-  projectId: string;
-  /** The branch ID to download file content from. Defaults to main. */
-  branchId?: string;
+  /** The id of the Val to download from. */
+  valId: string;
+  /** The branch ID to download file content from. */
+  branchId: string;
   /** The version to pull. Defaults to latest version. */
   version?: number;
   /** A list of gitignore rules. */
@@ -33,17 +30,26 @@ interface PullParams {
 }
 
 /**
- * Pulls the latest changes from a Val Town project into a local directory.
+ * Pulls latest changes from a Val Town Val into a vt folder.
  *
- * @param {PullParams} params Options for pull operation.
- * @returns Promise that resolves with an ItemStatusManager containing information about changes.
+ * After a pull:
+ * - All files from the remote Val exist at the remote's version's location locally
+ * - Local files that match gitignore rules are preserved at their current path
+ * - Untracked local files that were never pushed are preserved
+ *
+ * Files that are removed:
+ * - Files that previously existed in the remote Val but were deleted
+ *
+ * @param params Options for pull operation.
+ * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
-async function pull(params: PullParams): Promise<ItemStatusManager> {
+async function pull(params: PullParams): Promise<PushResult> {
   const {
     targetDir,
-    projectId,
-    branchId = (await branchNameToBranch(projectId, DEFAULT_BRANCH_NAME)).id,
-    version = await getLatestVersion(projectId, branchId),
+    valId,
+    branchId,
+    version = params.version ||
+      await getLatestVersion(params.valId, params.branchId),
     gitignoreRules = [],
     dryRun = false,
   } = params;
@@ -61,12 +67,12 @@ async function pull(params: PullParams): Promise<ItemStatusManager> {
         overwrite: true,
       });
 
-      // Clone all the files from the project into the temp dir. This
+      // Clone all the files from the Val into the temp dir. This
       // implicitly will overwrite files with the current version on the
       // server.
-      const { itemStateChanges: cloneChanges } = await clone({
+      const { itemStateChanges: cloneChanges } = await clone.clone({
         targetDir: tmpDir,
-        projectId,
+        valId,
         branchId,
         version,
         gitignoreRules,
@@ -77,12 +83,12 @@ async function pull(params: PullParams): Promise<ItemStatusManager> {
       changes.merge(cloneChanges);
 
       // Get list of files from the server
-      const projectItems = await listProjectItems(
-        projectId,
+      const valItems = await listValItems(
+        valId,
         branchId,
         version,
       );
-      const projectItemsSet = new Set(projectItems.map((file) => file.path));
+      const valItemsSet = new Set(valItems.map((file) => file.path));
 
       // Scan the temp directory to identify files that should be deleted
       const pathsToDelete: string[] = [];
@@ -93,14 +99,14 @@ async function pull(params: PullParams): Promise<ItemStatusManager> {
 
         if (shouldIgnore(relativePath, gitignoreRules)) continue;
         if (relativePath === "" || entry.path === tmpDir) continue;
-        if (projectItemsSet.has(relativePath)) continue;
+        if (valItemsSet.has(relativePath)) continue;
 
         const stat = await Deno.stat(entry.path);
         const fileStatus: ItemStatus = {
           path: relativePath,
           status: "deleted",
-          type: stat.isDirectory ? "directory" : await getProjectItemType(
-            projectId,
+          type: stat.isDirectory ? "directory" : await getValItemType(
+            valId,
             branchId,
             version,
             relativePath,
@@ -124,7 +130,7 @@ async function pull(params: PullParams): Promise<ItemStatusManager> {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
-      return [changes, !dryRun];
+      return [{ itemStateChanges: changes }, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },
   );

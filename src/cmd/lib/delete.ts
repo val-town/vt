@@ -2,32 +2,32 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { Confirm } from "@cliffy/prompt";
-import sdk from "../../../utils/sdk.ts";
+import sdk from "../../utils/sdk.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 
 export const deleteCmd = new Command()
   .name("delete")
-  .description("Delete a Val Town project")
+  .description("Delete the current Val")
   .option("-f, --force", "Skip confirmation prompt")
-  .example("Delete current project", "vt delete")
+  .example("Delete current val", "vt delete")
   .action(async ({ force }: { force?: boolean }) => {
-    await doWithSpinner("Deleting project...", async (spinner) => {
+    await doWithSpinner("Deleting val...", async (spinner) => {
       const vtRoot = await findVtRoot(Deno.cwd());
       const vt = VTClient.from(vtRoot);
       const meta = vt.getMeta();
       const vtState = await meta.loadVtState();
 
-      // Get project name for display
-      const project = await sdk.projects.retrieve(vtState.project.id);
-      const projectName = project.name;
+      // Get Val name for display
+      const val = await sdk.vals.retrieve(vtState.val.id);
+      const valName = val.name;
 
       // Confirm deletion unless --force is used
       if (!force) {
         spinner.stop();
         const shouldDelete = await Confirm.prompt({
           message:
-            `Are you sure you want to delete project "${projectName}"? This action cannot be undone.`,
+            `Are you sure you want to delete Val "${valName}"? This action cannot be undone.`,
           default: false,
         });
 
@@ -40,7 +40,7 @@ export const deleteCmd = new Command()
       spinner.start();
       await vt.delete();
 
-      spinner.succeed(`Project "${projectName}" has been deleted.`);
+      spinner.succeed(`Val "${valName}" has been deleted.`);
       spinner.info(
         colors.red(
           `You will no longer be able to use ${

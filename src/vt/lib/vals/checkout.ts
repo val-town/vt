@@ -1,12 +1,11 @@
-import sdk from "../../../../utils/sdk.ts";
 import type ValTown from "@valtown/sdk";
-import { pull } from "~/vt/lib/vals/pull.ts";
 import { join, relative } from "@std/path";
-import { walk } from "@std/fs";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
-import { listProjectItems } from "../../../../utils/sdk.ts";
 import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
+import { walk } from "@std/fs";
+import sdk, { listValItems } from "~/utils/sdk.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
+import { pull } from "~/vt/lib/vals/pull.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -14,12 +13,12 @@ import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
  */
 interface CheckoutResult {
   /** The source branch */
-  fromBranch: ValTown.Projects.BranchCreateResponse;
+  fromBranch: ValTown.Vals.BranchCreateResponse;
   /**
    * The target branch or null if it was a dry run and you were forking to a
    * new branch, since a dry run won't create a new branch
    */
-  toBranch: ValTown.Projects.BranchCreateResponse | null;
+  toBranch: ValTown.Vals.BranchCreateResponse | null;
   /** Whether a new branch was created during checkout */
   createdNew: boolean;
   /** Changes made to files during the checkout process */
@@ -32,8 +31,8 @@ interface CheckoutResult {
 type BaseCheckoutParams = {
   /** The directory where the branch will be checked out */
   targetDir: string;
-  /** The ID of the project */
-  projectId: string;
+  /** The ID of the Val */
+  valId: string;
   /** If true, simulates the checkout without making changes */
   dryRun?: boolean;
   /** A list of gitignore rules. */
@@ -63,19 +62,18 @@ type ForkCheckoutParams = BaseCheckoutParams & {
 };
 
 /**
- * Checks out a specific existing branch of a project.
- *
+ * Checks out a specific existing branch of a val.
  * @param params Options for the checkout operation.
- * @returns A promise that resolves with checkout information.
+ * @returns Promise that resolves with checkout information.
  */
 function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
- * Creates a new branch from a project's branch and checks it out.
- *
- * @param params Options for the checkout operation.
- * @returns  A promise that resolves with checkout information (including the new branch details).
- */
+  * Creates a new branch from a val's branch and checks it out.
+  * @param params Options for the checkout operation.
+  * @returns Promise that resolves with checkout information (including the new branch
+ details).
+  */
 function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
 function checkout(
   params: BranchCheckoutParams | ForkCheckoutParams,
@@ -100,16 +98,16 @@ async function handleForkCheckout(
 
   // Get the source branch info
   const fromBranch:
-    | Awaited<ReturnType<typeof sdk.projects.branches.retrieve>>
-    | null = await sdk.projects.branches.retrieve(
-      params.projectId,
+    | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
+    | null = await sdk.vals.branches.retrieve(
+      params.valId,
       params.forkedFromId,
     );
 
   // Create the new branch if not a dry run
   const toBranch = (!params.dryRun)
-    ? await sdk.projects.branches.create(
-      params.projectId,
+    ? await sdk.vals.branches.create(
+      params.valId,
       {
         branchId: params.forkedFromId,
         name: params.name,
@@ -118,8 +116,8 @@ async function handleForkCheckout(
     : null;
 
   // Ensure everything is marked as not changed
-  await listProjectItems(
-    params.projectId,
+  await listValItems(
+    params.valId,
     fromBranch.id,
     fromBranch.version,
   ).then((items) =>
@@ -161,22 +159,22 @@ async function handleBranchCheckout(
 
       // Get the target branch info
       let toBranch:
-        | Awaited<ReturnType<typeof sdk.projects.branches.retrieve>>
-        | null = await sdk.projects.branches.retrieve(
-          params.projectId,
+        | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
+        | null = await sdk.vals.branches.retrieve(
+          params.valId,
           params.toBranchId,
         );
       toBranch.version = params.toBranchVersion || toBranch.version;
 
       // Get the source branch info
-      const fromBranch = await sdk.projects.branches.retrieve(
-        params.projectId,
+      const fromBranch = await sdk.vals.branches.retrieve(
+        params.valId,
         params.fromBranchId,
       );
 
       const fromFiles = new Set(
-        await listProjectItems(
-          params.projectId,
+        await listValItems(
+          params.valId,
           fromBranch.id,
           fromBranch.version,
         ).then((resp) => resp.map((item) => item.path)),
@@ -184,17 +182,17 @@ async function handleBranchCheckout(
 
       // Get files from the target branch
       const toFiles = new Set(
-        await listProjectItems(
-          params.projectId,
+        await listValItems(
+          params.valId,
           toBranch.id,
           toBranch.version,
         ).then((resp) => resp.map((item) => item.path)),
       );
 
       // Clone the target branch into the temporary directory
-      const pullResult = await pull({
+      const { itemStateChanges: pullResult } = await pull({
         targetDir: tmpDir,
-        projectId: params.projectId,
+        valId: params.valId,
         branchId: toBranch.id,
         version: toBranch.version,
         gitignoreRules: params.gitignoreRules,
@@ -220,8 +218,8 @@ async function handleBranchCheckout(
           fileStateChanges.insert({
             path: relativePath,
             status: "deleted",
-            type: stat.isDirectory ? "directory" : await getProjectItemType(
-              params.projectId,
+            type: stat.isDirectory ? "directory" : await getValItemType(
+              params.valId,
               fromBranch.id,
               fromBranch.version,
               relativePath,

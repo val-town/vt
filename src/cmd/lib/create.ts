@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getCurrentUser } from "../../../utils/sdk.ts";
+import { getCurrentUser } from "../../utils/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
@@ -10,39 +10,39 @@ import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
   .name("create")
-  .description("Create a new Val Town project")
-  .arguments("<projectName:string> [targetDir:string]")
-  .option("--public", "Create as public project (default)", {
+  .description("Create a new Val")
+  .arguments("<valName:string> [targetDir:string]")
+  .option("--public", "Create as public Val (default)", {
     conflicts: ["private", "unlisted"],
   })
-  .option("--private", "Create as private project", {
+  .option("--private", "Create as private Val", {
     conflicts: ["public", "unlisted"],
   })
-  .option("--unlisted", "Create as unlisted project", {
+  .option("--unlisted", "Create as unlisted Val", {
     conflicts: ["public", "private"],
   })
   .option("--no-editor-files", "Skip creating editor configuration files")
-  .option("-d, --description <desc:string>", "Project description")
+  .option("-d, --description <desc:string>", "Val description")
   .example(
     "Start fresh",
     `
-vt create my-project
-cd ./my-project
+vt create my-val
+cd ./my-val
 vt browse
-vt watch # syncs changes to val town`,
+vt watch # syncs changes to Val town`,
   )
   .example(
-    "Work on an existing project",
+    "Work on an existing val",
     `
-vt clone username/projectName
-cd ./projectName
+vt clone username/valName
+cd ./valName
 vim index.tsx
 vt push`,
   )
   .example(
     "Check out a new branch",
     `
-cd ./projectName
+cd ./valName
 vt checkout -b my-branch
 vim index.tsx
 vt push
@@ -61,12 +61,12 @@ vt checkout main`,
       description?: string;
       editorFiles?: boolean;
     },
-    projectName: string,
+    valName: string,
     targetDir?: string,
   ) => {
-    await doWithSpinner("Creating new project...", async (spinner) => {
-      const clonePath = getClonePath(targetDir, projectName);
+    await doWithSpinner("Creating new Val...", async (spinner) => {
       const user = await getCurrentUser();
+      const clonePath = getClonePath(targetDir, valName);
 
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
@@ -74,7 +74,7 @@ vt checkout main`,
       try {
         const vt = await VTClient.create({
           rootPath: clonePath,
-          projectName,
+          valName,
           username: user.username!,
           privacy,
           description,
@@ -91,13 +91,11 @@ vt checkout main`,
         }
 
         spinner.succeed(
-          `Created ${privacy} project "${projectName}" in "${
-            basename(clonePath)
-          }"`,
+          `Created ${privacy} Val "${valName}" in "${basename(clonePath)}"`,
         );
       } catch (error) {
         if (error instanceof APIError && error.status === 409) {
-          throw new Error(`Project name "${projectName}" already exists`);
+          throw new Error(`Val name "${valName}" already exists`);
         } else throw error;
       }
     });

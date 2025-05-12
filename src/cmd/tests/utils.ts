@@ -2,15 +2,16 @@ import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
 import stripAnsi from "strip-ansi";
 import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
-import { parseProjectUri } from "~/cmd/parsing.ts";
 import sdk, {
   branchNameToBranch,
   getCurrentUser,
   getLatestVersion,
-  listProjectItems,
-} from "../../../utils/sdk.ts";
+  listValItems,
+} from "~/utils/sdk.ts";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
+import { delay } from "@std/async";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -57,41 +58,73 @@ export async function runVtCommand(
   options: {
     env?: Record<string, string>;
     autoConfirm?: boolean;
+    deadlineMs?: number;
   } = {},
 ): Promise<[string, number]> {
-  options = { autoConfirm: true, ...options };
+  const { autoConfirm = true, deadlineMs = 8_000 } = options;
 
   return await doWithTempDir(async (tmpDir) => {
-    // Configure and spawn the process
-    const commandPath = join(Deno.cwd(), ENTRYPOINT_NAME);
-    const command = new Deno.Command(Deno.execPath(), {
-      args: ["run", "-A", commandPath, ...args],
-      stdout: "piped",
-      stderr: "piped",
-      stdin: "piped",
-      cwd,
+    const process = runVtProc(args, cwd, {
       env: { XDG_CONFIG_HOME: join(tmpDir, "config"), ...options.env },
     });
 
-    const process = command.spawn();
+    // If autoConfirm is enabled, send "yes\n" repeatedly to stdin
+    let autoConfirmInterval: number | undefined;
 
-    // Send "y" to automatically confirm prompts
-    if (options.autoConfirm) {
-      const stdin = process.stdin.getWriter();
-      await stdin.write(new TextEncoder().encode("y\n"));
-      stdin.releaseLock();
+    const cleanup = () => {
+      if (autoConfirmInterval) {
+        clearInterval(autoConfirmInterval);
+        autoConfirmInterval = undefined;
+      }
+
+      clearTimeout(killTimeout);
+
+      if (process.stdin.locked) {
+        // Try to release the lock if possible
+        try {
+          const writer = process.stdin.getWriter();
+          writer.releaseLock();
+        } catch {
+          // Ignore errors when trying to release the lock
+        }
+      }
+
+      try {
+        process.stdin.abort();
+      } catch (e) {
+        // Ignore errors when closing stdin
+        if (!(e instanceof Error && e.name === "TypeError")) throw e;
+      }
+
+      try {
+        process.kill();
+      } catch (e) {
+        // Ignore errors when killing the process if the process is already dead
+        if (!(e instanceof Error && e.name === "TypeError")) throw e;
+      }
+    };
+
+    const killTimeout = setTimeout(cleanup, deadlineMs);
+
+    if (autoConfirm) {
+      autoConfirmInterval = setInterval(() => {
+        if (process.stdin.locked) return;
+        const writer = process.stdin.getWriter();
+        writer.write(new TextEncoder().encode("\b".repeat(10) + "yes\n"))
+          .catch(() => {}); // Ignore errors when writing to stdin
+        writer.releaseLock();
+      }, 100);
     }
 
-    // Close stdin to prevent resource leaks
-    await process.stdin.close();
-
-    // Collect and process the output
-    const { stdout, stderr, code } = await process.output();
-    const stdoutText = new TextDecoder().decode(stdout);
-    const stderrText = new TextDecoder().decode(stderr);
-    const combinedOutput = stdoutText + stderrText;
-
-    return [stripAnsi(combinedOutput), code];
+    try {
+      // Wait for the process to finish
+      const { stdout, code } = await process.output();
+      const stdoutText = new TextDecoder().decode(stdout);
+      return [stripAnsi(stdoutText), code];
+    } finally {
+      // Ensure cleanup happens even if process.output() throws
+      cleanup();
+    }
   });
 }
 
@@ -139,32 +172,32 @@ export function streamVtCommand(
 }
 
 /**
- * Removes all files in a directory that match the files found in the project relative to the dirPath.
+ * Removes all files in a directory that match the files found in the Val relative to the dirPath.
  *
  * @param dirPath - The directory to clean
  */
 export async function removeAllEditorFiles(dirPath: string): Promise<void> {
   const user = await getCurrentUser();
-  const { ownerName, projectName } = parseProjectUri(
+  const { ownerName, valName } = parseValUri(
     DEFAULT_EDITOR_TEMPLATE,
     user.username!,
   );
-  const templateProject = await sdk.alias.username.projectName.retrieve(
+  const templateProject = await sdk.alias.username.valName.retrieve(
     ownerName,
-    projectName,
+    valName,
   );
   const templateBranch = await branchNameToBranch(
     templateProject.id,
     DEFAULT_BRANCH_NAME,
   );
-  const projectItems = await listProjectItems(
+  const valItems = await listValItems(
     templateProject.id,
     templateBranch.id,
     await getLatestVersion(templateProject.id, templateBranch.id),
   );
 
-  // Create a Set of relative paths for all files in the template project
-  const templateFilePaths = new Set(projectItems.map((item) => item.path));
+  // Create a Set of relative paths for all files in the template val
+  const templateFilePaths = new Set(valItems.map((item) => item.path));
 
   // Build a list of files to remove using Array.fromAsync with walk and filter
   const filesToRemove = (await Array.fromAsync(walk(dirPath)))
@@ -179,6 +212,32 @@ export async function removeAllEditorFiles(dirPath: string): Promise<void> {
       if (e instanceof Deno.errors.NotFound) {
         // Ignore if the file was already removed
       } else throw e;
+    }
+  }
+}
+
+/**
+ * Waits until an array becomes stable (no new entries added) for a specified duration.
+ *
+ * @param array The array to monitor for stability
+ * @param stableTimeMs The time in milliseconds that the array must remain unchanged
+ * @returns A promise that resolves when the array is stable
+ */
+export async function waitForStable<T>(
+  array: T[],
+  stableTimeMs: number = 500,
+): Promise<void> {
+  let lastLength = array.length;
+
+  while (true) {
+    await delay(stableTimeMs);
+
+    if (array.length === lastLength) {
+      // Array is stable, we can exit the loop
+      break;
+    } else {
+      // Array changed during timeout, update length and continue
+      lastLength = array.length;
     }
   }
 }

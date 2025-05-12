@@ -1,7 +1,10 @@
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
+import "@std/dotenv/load";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
 import { API_KEY_KEY } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
+import sdk from "~/utils/sdk.ts";
 
 await ensureGlobalVtConfig();
 
@@ -12,7 +15,7 @@ async function isApiKeyValid(): Promise<boolean> {
   const resp = await fetch("https://api.val.town/v1/me", {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
-  return resp.ok;
+  return resp.status !== 401;
 }
 
 async function ensureValidApiKey() {
@@ -34,7 +37,8 @@ async function ensureValidApiKey() {
       await onboardFlow({ showWelcome: false });
     } else {
       console.log("Let's set up your Val Town API key.");
-      await onboardFlow();
+      console.log();
+      await onboardFlow({ showWelcome: true });
     }
   }
 
@@ -56,5 +60,8 @@ async function startVt() {
 
 export async function launch() {
   await ensureValidApiKey();
+  sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
   await startVt();
 }
+
+export * from "./mod.ts";

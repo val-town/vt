@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
-import sdk from "../../../utils/sdk.ts";
+import sdk from "../../utils/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
@@ -17,8 +17,8 @@ export const statusCmd = new Command()
 
       const vtState = await vt.getMeta().loadVtState();
 
-      const currentBranch = await sdk.projects.branches.retrieve(
-        vtState.project.id,
+      const currentBranch = await sdk.vals.branches.retrieve(
+        vtState.val.id,
         vtState.branch.id,
       );
 

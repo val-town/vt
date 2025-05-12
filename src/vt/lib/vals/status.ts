@@ -1,27 +1,34 @@
-import sdk, { listProjectItems } from "../../../../utils/sdk.ts";
-import { getProjectItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
-import * as fs from "@std/fs";
-import * as path from "@std/path";
-import {
-  type CreatedItemStatus,
-  type DeletedItemStatus,
-  getItemWarnings,
-  type ItemInfo,
-  ItemStatusManager,
-  type ModifiedItemStatus,
-  type NotModifiedItemStatus,
+import type {
+  CreatedItemStatus,
+  DeletedItemStatus,
+  ItemInfo,
+  ModifiedItemStatus,
+  NotModifiedItemStatus,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import { join } from "@std/path";
+import {
+  getItemWarnings,
+  ItemStatusManager,
+} from "~/vt/lib/utils/ItemStatusManager.ts";
+import { join, relative } from "@std/path";
 import { isFileModified } from "~/vt/lib/utils/misc.ts";
+import { listValItems } from "~/utils/mod.ts";
+import { getValItemType, shouldIgnore } from "~/vt/lib/utils/paths.ts";
+import sdk from "~/utils/sdk.ts";
+import { walk } from "@std/fs";
+
+/** Result of status operation  */
+export interface StatusResult {
+  itemStateChanges: ItemStatusManager;
+}
 
 /**
- * Parameters for scanning a directory and determining the status of files compared to the Val Town project.
+ * Parameters for scanning a directory and determining the status of files compared to the Val Town val.
  */
 interface StatusParams {
   /** The directory to scan for changes. */
   targetDir: string;
-  /** The Val Town project ID. */
-  projectId: string;
+  /** The Val Town Val ID. */
+  valId: string;
   /** Branch ID to check against. */
   branchId: string;
   /** The version to check the status against. Defaults to the latest version. */
@@ -32,16 +39,16 @@ interface StatusParams {
 
 /**
  * Scans a directory and determines the status of all files compared to the Val
- * Town project on the website. Reports status for files as modified, not
+ * Town Val on the website. Reports status for files as modified, not
  * modified, deleted, or created.
  *
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-async function status(params: StatusParams): Promise<ItemStatusManager> {
+async function status(params: StatusParams): Promise<StatusResult> {
   const {
     targetDir,
-    projectId,
+    valId,
     branchId,
     version,
     gitignoreRules,
@@ -50,27 +57,27 @@ async function status(params: StatusParams): Promise<ItemStatusManager> {
 
   // Get all files
   const localFiles = await getLocalFiles({
-    projectId,
+    valId,
     branchId,
     version,
     targetDir,
     gitignoreRules,
   });
-  const projectFiles = await getProjectFiles({
-    projectId,
+  const valFiles = await getValFiles({
+    valId,
     branchId,
     version,
     gitignoreRules,
   });
-  const projectFileMap = new Map(projectFiles.map((file) => [file.path, file]));
+  const valFileMap = new Map(valFiles.map((file) => [file.path, file]));
 
-  // Compare local files against project files
+  // Compare local files against Val files
   for (const localFile of localFiles) {
-    const projectFileInfo = projectFileMap.get(localFile.path);
+    const valFileInfo = valFileMap.get(localFile.path);
     const localFilePath = join(targetDir, localFile.path);
 
-    if (projectFileInfo === undefined) {
-      // File exists locally but not in project - it's created
+    if (valFileInfo === undefined) {
+      // File exists locally but not in Val - it's created
       const createdFileState: CreatedItemStatus = {
         status: "created",
         type: localFile.type,
@@ -82,13 +89,13 @@ async function status(params: StatusParams): Promise<ItemStatusManager> {
       result.insert(createdFileState);
     } else {
       if (localFile.type !== "directory") {
-        const localStat = await Deno.stat(path.join(targetDir, localFile.path));
+        const localStat = await Deno.stat(join(targetDir, localFile.path));
         // File exists in both places, check if modified
         const isModified = isFileModified({
           srcContent: localFile.content!, // We know it isn't a dir, so there should be content
           srcMtime: localFile.mtime,
-          dstContent: projectFileInfo.content!,
-          dstMtime: projectFileInfo.mtime,
+          dstContent: valFileInfo.content!,
+          dstMtime: valFileInfo.mtime,
         });
 
         if (isModified) {
@@ -96,7 +103,7 @@ async function status(params: StatusParams): Promise<ItemStatusManager> {
             type: localFile.type,
             path: localFile.path,
             status: "modified",
-            where: localStat.mtime!.getTime() > projectFileInfo.mtime
+            where: localStat.mtime!.getTime() > valFileInfo.mtime
               ? "local"
               : "remote",
             mtime: localStat.mtime!.getTime(),
@@ -127,36 +134,36 @@ async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  // Check for files that exist in project but not locally
-  for (const projectFile of projectFiles) {
-    if (!localFiles.find((f) => f.path === projectFile.path)) {
+  // Check for files that exist in Val but not locally
+  for (const valFile of valFiles) {
+    if (!localFiles.find((f) => f.path === valFile.path)) {
       const deletedFileState: DeletedItemStatus = {
-        type: projectFile.type,
-        path: projectFile.path,
+        type: valFile.type,
+        path: valFile.path,
         status: "deleted",
-        mtime: projectFile.mtime,
-        content: projectFile.content,
+        mtime: valFile.mtime,
+        content: valFile.content,
       };
       result.insert(deletedFileState);
     }
   }
 
-  return result.consolidateRenames();
+  return { itemStateChanges: result.consolidateRenames() };
 }
 
-async function getProjectFiles({
-  projectId,
+async function getValFiles({
+  valId,
   branchId,
   version,
   gitignoreRules,
 }: {
-  projectId: string;
+  valId: string;
   branchId: string;
   version: number;
   gitignoreRules?: string[];
 }): Promise<ItemInfo[]> {
   return Promise.all(
-    (await listProjectItems(projectId, branchId, version))
+    (await listValItems(valId, branchId, version))
       .filter((file) => !shouldIgnore(file.path, gitignoreRules))
       .map(async (file): Promise<ItemInfo> => ({
         path: file.path,
@@ -164,7 +171,7 @@ async function getProjectFiles({
         mtime: new Date(file.updatedAt).getTime(),
         content: file.type === "directory"
           ? undefined
-          : await sdk.projects.files.getContent(projectId, {
+          : await sdk.vals.files.getContent(valId, {
             path: file.path,
             branch_id: branchId,
             version,
@@ -174,13 +181,13 @@ async function getProjectFiles({
 }
 
 async function getLocalFiles({
-  projectId,
+  valId,
   branchId,
   version,
   targetDir,
   gitignoreRules,
 }: {
-  projectId: string;
+  valId: string;
   branchId: string;
   version: number;
   targetDir: string;
@@ -188,10 +195,10 @@ async function getLocalFiles({
 }): Promise<ItemInfo[]> {
   const filePromises: Promise<ItemInfo | null>[] = [];
 
-  for await (const entry of fs.walk(targetDir)) {
+  for await (const entry of walk(targetDir)) {
     filePromises.push((async () => {
       // Check if this is on the ignore list
-      const relativePath = path.relative(targetDir, entry.path);
+      const relativePath = relative(targetDir, entry.path);
       if (shouldIgnore(relativePath, gitignoreRules)) return null;
       if (entry.path === targetDir) return null;
 
@@ -206,8 +213,8 @@ async function getLocalFiles({
 
       return {
         path: relativePath,
-        type: (entry.isDirectory ? "directory" : await getProjectItemType(
-          projectId,
+        type: (entry.isDirectory ? "directory" : await getValItemType(
+          valId,
           branchId,
           version,
           relativePath,

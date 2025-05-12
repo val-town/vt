@@ -5,8 +5,8 @@
  */
 
 export type { ItemStatusManager } from "./utils/ItemStatusManager.ts";
-export { getProjectItemType } from "./utils/paths.ts";
+export { getValItemType } from "./utils/paths.ts";
 export type * from "~/types.ts";
 
 export * from "./vals/mod.ts";
-export * as utils from "../../../utils/mod.ts";
+export * as utils from "../../utils/mod.ts";

@@ -3,35 +3,38 @@ import { join } from "@std/path";
 import Kia from "kia";
 
 /**
- * Determines the clone path based on the provided directory and project name
+ * Determines the clone path based on the provided directory and Val name
  *
- * @param specifiedTarget Optional directory where the project should be cloned
- * @param projectName Name of the project being cloned
- * @returns The absolute path where the project will be cloned
+ * @param specifiedTarget Optional directory where the Val should be cloned
+ * @param valName Name of the Val being cloned
+ * @returns The absolute path where the Val will be cloned
  */
 export function getClonePath(
   specifiedTarget: string | undefined,
-  projectName: string,
+  valName: string,
 ): string {
-  return specifiedTarget || join(Deno.cwd(), projectName);
+  return specifiedTarget || join(Deno.cwd(), valName);
 }
 
 /**
  * Clean and transform error messages
  *
- * @param error - The error to be processed
+ * @param error The error to be processed
  * @returns A cleaned error message
  */
 export function sanitizeErrors(error: unknown): string {
   if (error instanceof ValTown.APIError) {
+    if (error.status === 404) {
+      return "Resource not found. Please check the Val name or ID. " +
+        "You may not own this resource.";
+    }
+
     // Remove leading numbers from error message and convert to sentence case
     const cleanedMessage = error.message.replace(/^\d+\s+/, "");
     return cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1);
   }
 
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
 
   // For any other type of error, convert to string
   return String(error);
@@ -40,12 +43,13 @@ export function sanitizeErrors(error: unknown): string {
 /**
  * Execute a function with a spinner, ensuring it stops after execution.
  *
+ * @template T The return type of the callback function
  * @param spinnerText - Initial spinner text
  * @param callback - Function to execute with the spinner
- * @param options - Optional configuration for spinner behavior
- * @param options.autostart - Whether to start the spinner automatically (default: true)
- * @param options.cleanError - Function to clean error messages (default: sanitizeErrors)
- * @param options.exitOnError - Whether to exit on error (default: true)
+ * @param Optional configuration for spinner behavior
+ * @param options.autostart Whether to start the spinner automatically
+ * @param Function to clean error messages
+ * @param options.exitOnError Whether to exit on error
  * @returns The result of the callback function
  */
 export async function doWithSpinner<T>(
