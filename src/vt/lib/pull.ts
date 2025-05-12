@@ -99,7 +99,7 @@ export function pull(params: PullParams): Promise<PushResult> {
         const tmpDirPath = entry.path;
 
         if (shouldIgnore(relativePath, gitignoreRules)) continue;
-        if (relativePath === "" || entry.path === tmpDir) continue;
+        if (relativePath === "." || entry.path === tmpDir) continue;
         if (valItemsSet.has(relativePath)) continue;
 
         const stat = await Deno.stat(entry.path);
