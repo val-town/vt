@@ -1,15 +1,14 @@
-import { clone } from "~/vt/lib/clone.ts";
+import { checkout, clone, create, remix, status } from "~/vt/lib/mod.ts";
 import { debounce, delay } from "@std/async";
 import VTMeta from "~/vt/vt/VTMeta.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { push } from "~/vt/lib/push.ts";
 import { join, relative } from "@std/path";
-import {
-  type BaseCheckoutParams,
-  type BranchCheckoutParams,
-  checkout,
-  type CheckoutResult,
-  type ForkCheckoutParams,
+import type {
+  BaseCheckoutParams,
+  BranchCheckoutParams,
+  CheckoutResult,
+  ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
 import sdk, {
   branchNameToBranch,
@@ -22,14 +21,11 @@ import {
   FIRST_VERSION_NUMBER,
   META_FOLDER_NAME,
 } from "~/consts.ts";
-import { status } from "~/vt/lib/status.ts";
 import { exists, walk } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
-import { remix } from "~/vt/lib/remix.ts";
 import type { ValPrivacy } from "~/types.ts";
-import { create } from "~/vt/lib/create.ts";
 import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
 
@@ -40,7 +36,7 @@ import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
  * With a VTClient you can do things like clone a Val town Val, or
  * pull/push a Val Town Val.
  *
- * @param {string} rootPath - The root path of the VT directory
+ * @param rootPath - The root path of the VT directory
  */
 export default class VTClient {
   readonly #meta: VTMeta;
@@ -52,7 +48,7 @@ export default class VTClient {
   /**
    * Returns the VTMeta instance for this client.
    *
-   * @returns {VTMeta} The VTMeta instance.
+   * @returns The VTMeta instance.
    */
   public getMeta(): VTMeta {
     return this.#meta;
@@ -61,15 +57,18 @@ export default class VTClient {
   /**
    * Returns a new VTConfig object init-ed at this VTClient's rootPath.
    *
-   * @returns {VTConfig} The VTConfig instance.
+   * @returns The VTConfig instance.
    */
   public getConfig(): VTConfig {
     return new VTConfig(this.rootPath);
   }
 
   /**
-   * Adds editor configuration files to the target directory by "underlaying" a
-   * default Val town val.
+   * Adds editor configuration files to the target directory.
+   *
+   * @param options Options for adding editor files
+   * @param options.noDenoJson Whether to skip adding deno.json
+   * @returns Adds editor configuration files to the target directory by "underlaying" a default Val town val.
    */
   public async addEditorTemplate(): Promise<void> {
     const user = await getCurrentUser();
@@ -167,9 +166,9 @@ export default class VTClient {
    * lock file with the running program's PID is maintained automatically so
    * that this cannot run with multiple instances.
    *
-   * @param {number} debounceDelay - Time in milliseconds to wait between pushes (default: 1000ms)
-   * @param {number} gracePeriod - Time in milliseconds to wait after a push before processing new events (default: 250ms)
-   * @returns {AsyncGenerator<FileStateChanges>} An async generator that yields `StatusResult` objects for each change.
+   * @param debounceDelay - Time in milliseconds to wait between pushes (default: 1000ms)
+   * @param gracePeriod - Time in milliseconds to wait after a push before processing new events (default: 250ms)
+   * @returns A promise that resolves when the watcher is stopped.
    */
   public async watch(
     callback: (fileState: ItemStatusManager) => void | Promise<void>,
@@ -261,13 +260,13 @@ export default class VTClient {
   /**
    * Create a new Val Town Val and initialize a VT instance for it.
    *
-   * @param {Object} options - The options for creating a new val
-   * @param {string} options.rootPath - The root path where the VT instance will be initialized
-   * @param {string} options.valName - The name of the Val to create
-   * @param {string} options.username - The username of the Val owner
-   * @param {'public' | 'private' | 'unlisted'} options.privacy - The privacy setting for the val
-   * @param {string} [options.description] - Optional description for the val
-   * @returns {Promise<VTClient>} A new VTClient instance
+   * @param options - The options for creating a new val
+   * @param options.rootPath - The root path where the VT instance will be initialized
+   * @param options.valName - The name of the Val to create
+   * @param options.username - The username of the Val owner
+   * @param options.privacy - The privacy setting for the val
+   * @param [options.description] - Optional description for the val
+   * @returns A new VTClient instance
    */
   public static async create({
     rootPath,
@@ -307,15 +306,15 @@ export default class VTClient {
   /**
    * Remix an existing Val Town Val and initialize a VT instance for it.
    *
-   * @param {Object} options - The options for remixing a val
-   * @param {string} options.rootPath - The root path where the VT instance will be initialized
-   * @param {string} options.srcValUsername - The username of the source Val owner
-   * @param {string} options.srcValName - The name of the source Val to remix
-   * @param {string} [options.srcBranchName] - The branch name of the source Val to remix (defaults to main)
-   * @param {string} options.dstValName - The name for the new remixed val
-   * @param {'public' | 'private' | 'unlisted'} options.dstValPrivacy - The privacy setting for the new val
-   * @param {string} [options.description] - Optional description for the new val
-   * @returns {Promise<VTClient>} A new VTClient instance
+   * @param options - The options for remixing a val
+   * @param options.rootPath - The root path where the VT instance will be initialized
+   * @param options.srcValUsername - The username of the source Val owner
+   * @param options.srcValName - The name of the source Val to remix
+   * @param [options.srcBranchName] - The branch name of the source Val to remix (defaults to main)
+   * @param options.dstValName - The name for the new remixed val
+   * @param ['public | 'private' | 'unlisted'} options.dstValPrivacy - The privacy setting for the new val
+   * @param [options.description] - Optional description for the new val
+   * @returns A new VTClient instance
    */
   public static async remix({
     rootPath,
@@ -367,13 +366,13 @@ export default class VTClient {
   /**
    * Clone a Val Town Val into a directory.
    *
-   * @param {object} params - Clone parameters
-   * @param {string} params.rootPath - The directory to clone the Val into
-   * @param {string} params.username - The username of the Val owner
-   * @param {string} params.valName - The name of the Val to clone
-   * @param {number} [params.version] - Optional specific version to clone, defaults to latest
-   * @param {string} [params.branchName] - Optional branch name to clone, defaults to main
-   * @returns {Promise<VTClient>} A new VTClient instance for the cloned val
+   * @param params Clone parameters
+   * @param params.rootPath The directory to clone the Val into
+   * @param params.username The username of the Val owner
+   * @param params.valName The name of the Val to clone
+   * @param [params.version] Optional specific version to clone, defaults to latest
+   * @param [params.branchName] Optional branch name to clone, defaults to main
+   * @returns A new VTClient instance for the cloned val
    */
   public static async clone({
     rootPath,
@@ -433,9 +432,9 @@ export default class VTClient {
    * Get the status of files in the Val directory compared to the Val Town
    * val.
    *
-   * @param {Object} options - Options for status check
-   * @param {string} [options.branchId] - Optional branch ID to check against. Defaults to current branch.
-   * @returns {Promise<FileStateChanges>} A StatusResult object containing categorized files.
+   * @param options - Options for status check
+   * @param [options.branchId] - Optional branch ID to check against. Defaults to current branch.
+   * @returns A StatusResult object containing categorized files.
    */
   public async status(
     { branchId }: { branchId?: string } = {},
@@ -444,13 +443,15 @@ export default class VTClient {
       // Use provided branchId or fall back to the current branch from state
       const targetBranchId = branchId || vtState.branch.id;
 
-      return status({
+      const { itemStateChanges } = await status({
         targetDir: this.rootPath,
         valId: vtState.val.id,
         branchId: targetBranchId,
         gitignoreRules: await this.getMeta().loadGitignoreRules(),
         version: await getLatestVersion(vtState.val.id, targetBranchId),
       });
+
+      return itemStateChanges;
     });
   }
 
@@ -459,13 +460,13 @@ export default class VTClient {
    * directory. If the contents are dirty (files have been updated but not
    * pushed) then this fails.
    *
-   * @param {Partial<Parameters<typeof pull>[0]>} options - Optional parameters for pull
+   * @param options Optional parameters for pull
    */
   public async pull(
     options?: Partial<Parameters<typeof pull>[0]>,
   ): Promise<ItemStatusManager> {
     return await this.getMeta().doWithVtState(async (vtState) => {
-      const result = await pull({
+      const { itemStateChanges: result } = await pull({
         ...{
           targetDir: this.rootPath,
           valId: vtState.val.id,
@@ -495,8 +496,8 @@ export default class VTClient {
   /**
    * Push changes from the local directory to the Val Town val.
    *
-   * @param {Partial<Parameters<typeof pull>[0]>} options - Optional parameters for push
-   * @returns {Promise<FileStateChanges>} The StatusResult after pushing
+   * @param options Optional parameters for push
+   * @returns The StatusResult after pushing
    */
   public async push(
     options?: Partial<Parameters<typeof push>[0]>,
@@ -528,13 +529,12 @@ export default class VTClient {
   }
 
   /**
-  * Check out a different branch of the val.
-  *
-  * @param {string} branchName The name of the branch to check out to
-  * @param {Partial<BranchCheckoutParams | ForkCheckoutParams>} options -
- Optional parameters
-  * @returns {Promise<CheckoutResult>}
-  */
+   * Check out a different branch of the val.
+   *
+   * @param branchName The name of the branch to check out to
+   * @param options Optional parameters
+   * @returns  The result of the checkout operation
+   */
   public async checkout(
     branchName: string,
     options?: Partial<ForkCheckoutParams>,
@@ -617,8 +617,9 @@ export default class VTClient {
 
 /**
  * Ensures the specified directory is safe to use (either doesn't exist or is empty)
- * @param {string} rootPath - The path to the directory to check
- * @throws {Error} If the directory exists and is not empty
+ *
+ * @param rootPath - The path to the directory to check
+ * @throws If the directory exists and is not empty
  */
 async function assertSafeDirectory(rootPath: string) {
   // If the directory exists, that is only OK if it is empty

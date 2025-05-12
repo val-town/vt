@@ -1,5 +1,5 @@
 import type { ValFileType, ValItemType } from "~/types.ts";
-import sdk, { getLatestVersion, getValItem, listValItems } from "~/sdk.ts";
+import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
 import { basename, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
@@ -11,6 +11,7 @@ import {
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 
+/** Result of push operation  */
 export interface PushResult {
   /** Changes made to Val items during the push process */
   itemStateChanges: ItemStatusManager;
@@ -38,7 +39,7 @@ export interface PushParams {
  * Pushes latest changes from a vt folder into a Val Town val. Note that
  * this is NOT atomic and you could end up with partial updates.
  *
- * @param {PushParams} params Options for push operation.
+ * @param params Options for push operation.
  * @returns Promise that resolves with changes that were applied or would be applied (if dryRun=true)
  */
 export async function push(params: PushParams): Promise<PushResult> {
@@ -54,7 +55,8 @@ export async function push(params: PushParams): Promise<PushResult> {
 
   assert(await exists(targetDir), "target directory doesn't exist");
 
-  const itemStateChanges = await status({
+  // Retrieve the status
+  const { itemStateChanges } = await status({
     targetDir,
     valId,
     branchId,
@@ -105,7 +107,6 @@ export async function push(params: PushParams): Promise<PushResult> {
     existingDirs,
     itemStateChanges,
   );
-  const versionAfterDirectories = await getLatestVersion(valId, branchId);
 
   // Define all file operations that will occur
   const fileOperations: (() => Promise<unknown>)[] = [];
@@ -114,38 +115,13 @@ export async function push(params: PushParams): Promise<PushResult> {
   safeItemStateChanges.renamed
     .filter((f) => f.type !== "directory")
     .forEach((f) =>
-      fileOperations.push(async () => {
-        const parent = await getValItem(
-          valId,
-          branchId,
-          versionAfterDirectories,
-          dirname(f.path),
-        );
-
-        const isAtRoot = basename(f.path) == f.path;
-
-        if (isAtRoot) {
-          await doReqMaybeApplyWarning(
-            async () =>
-              await sdk.vals.files.update(valId, {
-                branch_id: branchId,
-                name: undefined,
-                parent_path: null,
-                path: f.oldPath,
-              }),
-            f.path,
-            itemStateChanges,
-          );
-        }
-
-        // To move the file to the root dir parent_id must be null and the name
-        // must be undefined (the api is very picky about this!)
-        return await doReqMaybeApplyWarning(
+      fileOperations.push(() => {
+        return doReqMaybeApplyWarning(
           async () =>
             await sdk.vals.files.update(valId, {
               branch_id: branchId,
-              name: isAtRoot ? undefined : basename(f.path),
-              parent_path: parent?.path || null,
+              name: basename(f.path),
+              parent_path: dirname(f.path) === "." ? null : dirname(f.path),
               path: f.oldPath,
               content: f.content,
             }),

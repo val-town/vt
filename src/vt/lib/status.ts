@@ -15,6 +15,11 @@ import { join } from "@std/path";
 import { isFileModified } from "~/vt/lib/utils/misc.ts";
 import { exists } from "@std/fs";
 
+/** Result of status operation  */
+export interface StatusResult {
+  itemStateChanges: ItemStatusManager;
+}
+
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town val.
  */
@@ -39,7 +44,7 @@ export interface StatusParams {
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status(params: StatusParams): Promise<ItemStatusManager> {
+export async function status(params: StatusParams): Promise<StatusResult> {
   const {
     targetDir,
     valId,
@@ -143,7 +148,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  return result.consolidateRenames();
+  return { itemStateChanges: result.consolidateRenames() };
 }
 
 async function getValFiles({

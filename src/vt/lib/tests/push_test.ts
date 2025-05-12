@@ -11,6 +11,63 @@ import { join } from "@std/path";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
+  name: "test renaming file at root",
+  permissions: "inherit",
+  async fn() {
+    await doWithNewVal(async ({ val, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        const oldFilePath = join(tempDir, "rootFile.txt");
+
+        // Create and push the original file
+        await Deno.writeTextFile(oldFilePath, "root file content");
+        await push({
+          targetDir: tempDir,
+          valId: val.id,
+          branchId: branch.id,
+        });
+
+        // Rename the file at the root
+        const newFilePath = join(tempDir, "renamedRootFile.txt");
+        await Deno.rename(oldFilePath, newFilePath);
+
+        // Push the renamed file
+        const { itemStateChanges: result } = await push({
+          targetDir: tempDir,
+          valId: val.id,
+          branchId: branch.id,
+        });
+
+        // Verify rename was detected
+        assertEquals(result.renamed.length, 1);
+        assertEquals(result.renamed[0].oldPath, "rootFile.txt");
+        assertEquals(result.renamed[0].path, "renamedRootFile.txt");
+
+        // If this doesn't throw it means it exists
+        assert(
+          await valItemExists(
+            val.id,
+            branch.id,
+            "renamedRootFile.txt",
+            await getLatestVersion(val.id, branch.id),
+          ),
+          "file should exist at new location",
+        );
+
+        assert(
+          !await valItemExists(
+            val.id,
+            branch.id,
+            "rootFile.txt",
+            await getLatestVersion(val.id, branch.id),
+          ),
+          "file should not exist at old location",
+        );
+      });
+    });
+  },
+});
+
+Deno.test({
   name: "test moving file from subdirectory to root",
   permissions: "inherit",
   async fn(t) {

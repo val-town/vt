@@ -8,6 +8,7 @@ import {
   AUTH_CACHE_TTL,
 } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
+import sdk from "~/sdk.ts";
 
 await ensureGlobalVtConfig();
 
@@ -55,7 +56,8 @@ async function ensureValidApiKey() {
       await onboardFlow();
     } else {
       console.log("Let's set up your Val Town API key.");
-      await onboardFlow();
+      console.log();
+      await onboardFlow({ showWelcome: true });
     }
   }
 
@@ -77,5 +79,8 @@ async function startVt() {
 
 if (import.meta.main) {
   await ensureValidApiKey();
+  sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
   await startVt();
 }
+
+export * from "./mod.ts";
