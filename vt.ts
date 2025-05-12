@@ -72,9 +72,9 @@ async function ensureValidApiKey() {
   }
 }
 
-async function startVt() {
+async function startVt(...args: string[]) {
   const vt = (await import("~/cmd/root.ts")).cmd;
-  await vt.parse(Deno.args);
+  await vt.parse([...Deno.args, ...args]);
 }
 
 if (import.meta.main) {
