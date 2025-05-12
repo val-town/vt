@@ -1,6 +1,8 @@
 import ValTown from "@valtown/sdk";
 import { join } from "@std/path";
 import Kia from "kia";
+import { colors } from "@cliffy/ansi/colors";
+import { toListBranchesCmdMsg } from "~/cmd/lib/utils/messages.ts";
 
 /**
  * Determines the clone path based on the provided directory and Val name
@@ -24,14 +26,23 @@ export function getClonePath(
  */
 export function sanitizeErrors(error: unknown): string {
   if (error instanceof ValTown.APIError) {
+    let suffixedExtra = "";
     if (error.status === 404) {
-      return "Resource not found. Please check the Val name or ID. " +
-        "You may not own this resource.";
+      if (error.message.toLowerCase().includes("branch")) {
+        suffixedExtra = "You may have deleted the current branch. " +
+          "To recover, check out a branch that still exists. " +
+          toListBranchesCmdMsg;
+      }
     }
 
     // Remove leading numbers from error message and convert to sentence case
     const cleanedMessage = error.message.replace(/^\d+\s+/, "");
-    return cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1);
+    return colors
+      .red(
+        cleanedMessage.charAt(0).toUpperCase() +
+          cleanedMessage.slice(1) +
+          ".\n",
+      ) + colors.yellow(suffixedExtra);
   }
 
   if (error instanceof Error) return error.message;
