@@ -33,16 +33,20 @@ export function sanitizeErrors(error: unknown): string {
           "To recover, check out a branch that still exists. " +
           toListBranchesCmdMsg;
       }
+      if (error.message.toLowerCase().includes("project")) {
+        suffixedExtra = "You may have deleted the current Val. " +
+          "This folder is no longer usable with `vt`. " +
+          "If you have important files, create a new Val and copy them over.";
+      }
     }
 
-    // Remove leading numbers from error message and convert to sentence case
+    // Remove leading numbers from error message
     const cleanedMessage = error.message.replace(/^\d+\s+/, "");
-    return colors
-      .red(
-        cleanedMessage.charAt(0).toUpperCase() +
-          cleanedMessage.slice(1) +
-          ".\n",
-      ) + colors.yellow(suffixedExtra);
+    const message = colors.red(
+      cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1) +
+        (suffixedExtra.length > 0 ? ".\n" : "."),
+    ) + colors.yellow(suffixedExtra);
+    return message;
   }
 
   if (error instanceof Error) return error.message;
