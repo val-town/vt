@@ -41,7 +41,9 @@ export function sanitizeErrors(error: unknown): string {
     }
 
     // Remove leading numbers from error message
-    const cleanedMessage = error.message.replace(/^\d+\s+/, "");
+    const cleanedMessage = error.message
+      .replace(/^\d+\s+/, "")
+      .replace(/[pP]roject/, "Val");
     const message = colors.red(
       cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1) +
         (suffixedExtra.length > 0 ? ".\n" : "."),
