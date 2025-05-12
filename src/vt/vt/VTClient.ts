@@ -199,9 +199,6 @@ export default class VTClient {
 
     const watcher = Deno.watchFs(this.rootPath);
 
-    // Store paths that were accessed after the last call
-    let postLastCallPaths: string[] = [];
-
     // Track if we're currently processing changes
     let inGracePeriod = false;
     const debouncedCallback = debounce(async () => {
@@ -218,13 +215,11 @@ export default class VTClient {
           gitignoreRules: [
             ...(await this.getMeta().loadGitignoreRules()),
             ...(await Array.fromAsync(walk(this.rootPath)))
-              .map((entry) => entry.path)
-              .filter((path) => !postLastCallPaths.includes(path)),
+              .map((entry) => entry.path),
           ],
         });
         if (fileState.changes() > 0) {
           await callback(fileState);
-          postLastCallPaths = [];
         }
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
@@ -246,8 +241,6 @@ export default class VTClient {
     // Process events and debounce changes
     for await (const event of watcher) {
       if (event.kind === "access") continue; // Nothing to do
-
-      event.paths.forEach((path) => postLastCallPaths.push(path));
 
       // If we're in a grace period, ignore the event
       if (inGracePeriod) continue;
