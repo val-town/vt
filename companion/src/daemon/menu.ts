@@ -3,13 +3,13 @@ import { VTDaemon } from "./VTDaemon.js";
 
 export function setupContextMenu(daemon: VTDaemon) {
   browser.runtime.onInstalled.addListener(() => {
-    browser.contextMenus.create({
+    chrome.contextMenus.create({
       id: "wakeUpDaemon",
       title: "Connect to VT CLI",
       contexts: ["browser_action"],
     });
 
-    browser.contextMenus.create({
+    chrome.contextMenus.create({
       id: "aboutMenu",
       title: "About VT Companion",
       contexts: ["browser_action"],

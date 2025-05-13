@@ -1,32 +1,14 @@
 import * as esbuild from "esbuild";
-import * as fs from "fs/promises";
 import * as path from "path";
+import * as fs from "fs-extra";
+import klaw from "klaw";
 
 const outputDir = "./dist";
 const publicDir = "./public";
 
-async function copyDir(src, dest) {
-  await fs.mkdir(dest, { recursive: true });
-  const entries = await fs.readdir(src, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-
-    if (entry.isDirectory()) {
-      await copyDir(srcPath, destPath);
-    } else {
-      await fs.copyFile(srcPath, destPath);
-    }
-  }
-}
-
 async function build() {
-  try {
-    await fs.rm(outputDir, { recursive: true, force: true });
-  } catch (e) {
-    // Ignore if directory doesn't exist
-  }
+  // Clean up the output directory
+  await fs.emptyDir(outputDir);
 
   const isDev = process.argv.includes("--dev");
   const browserType = process.argv.includes("firefox") ? "firefox" : "chrome";
@@ -34,6 +16,7 @@ async function build() {
     ? "manifest-firefox.json"
     : "manifest-chrome.json";
 
+  // Build the extension
   await esbuild.build({
     entryPoints: ["src/daemon/main.ts", "src/content.ts"],
     outdir: outputDir,
@@ -43,12 +26,15 @@ async function build() {
     treeShaking: true,
   });
 
-  await copyDir(publicDir, outputDir);
-  await fs.copyFile(
+  // Copy public files and manifest
+  await fs.copy(publicDir, outputDir);
+  await fs.copy(
     path.join(publicDir, manifestFile),
     path.join(outputDir, "manifest.json"),
   );
-  await fs.copyFile(
+
+  // Copy browser polyfill
+  await fs.copy(
     path.join(
       "node_modules",
       "webextension-polyfill",
@@ -58,10 +44,22 @@ async function build() {
     path.join(outputDir, "browser-polyfill.js"),
   );
 
-  esbuild.stop();
+  console.log(`Build completed for ${browserType} browser`);
+}
+
+async function prependToFile(filePath, content) {
+  try {
+    const originalContent = await fs.readFile(filePath, "utf8");
+    await fs.writeFile(filePath, content + originalContent);
+    console.log(`Prepended content to ${filePath}`);
+  } catch (error) {
+    console.error(`Error prepending to ${filePath}:`, error);
+  }
 }
 
 build().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+
+esbuild.stop();

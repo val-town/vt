@@ -1,3 +1,5 @@
+importScripts("../browser-polyfill.js");
+
 import { setupContextMenu } from "./menu.js";
 import { VTDaemon } from "./VTDaemon.js";
 
