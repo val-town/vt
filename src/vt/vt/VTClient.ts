@@ -359,46 +359,70 @@ export default class VTClient {
   /**
    * Clone a Val Town Val into a directory.
    *
+   * Overloaded method that allows cloning by either:
+   * 1. Specifying username and valName
+   * 2. Directly providing valId
+   *
    * @param params Clone parameters
-   * @param params.rootPath The directory to clone the Val into
-   * @param params.username The username of the Val owner
-   * @param params.valName The name of the Val to clone
-   * @param [params.version] Optional specific version to clone, defaults to latest
-   * @param [params.branchName] Optional branch name to clone, defaults to main
    * @returns A new VTClient instance for the cloned val
    */
-  public static async clone({
-    rootPath,
-    username,
-    valName,
-    version,
-    branchName = DEFAULT_BRANCH_NAME,
-  }: {
-    rootPath: string;
-    username: string;
-    valName: string;
-    version?: number;
-    branchName?: string;
-  }): Promise<VTClient> {
-    await assertSafeDirectory(rootPath);
+  public static async clone(
+    params:
+      & ({
+        rootPath: string;
+        username: string;
+        valName: string;
+        version?: number;
+        branchName?: string;
+      } | {
+        rootPath: string;
+        valId: string;
+        version?: number;
+        branchName?: string;
+      })
+      & { skipSafeDirCheck?: boolean },
+  ): Promise<VTClient> {
+    if (!params.skipSafeDirCheck) {
+      await assertSafeDirectory(params.rootPath);
+    }
 
-    const vt = await VTClient.init({
-      rootPath,
-      username,
-      valName,
-      version,
-      branchName,
+    // Determine if we're using username/valName or direct valId
+    let valId: string;
+    if ("valId" in params) {
+      valId = params.valId;
+    } else {
+      // Get valId from username and valName
+      const val = await sdk.alias.username.valName.retrieve(
+        params.username,
+        params.valName,
+      );
+      valId = val.id;
+    }
+
+    // Get or create branch
+    const branchName = params.branchName || DEFAULT_BRANCH_NAME;
+    const branch = await branchNameToBranch(valId, branchName);
+    if (!branch) throw new Error(`Branch "${branchName}" not found`);
+
+    // Determine version
+    const version = params.version || await getLatestVersion(valId, branch.id);
+
+    // Create VTClient instance
+    const vt = new VTClient(params.rootPath);
+
+    // Save the VT state
+    await vt.getMeta().saveVtState({
+      val: { id: valId },
+      branch: { id: branch.id, version },
     });
 
-    await vt.getMeta().doWithVtState(async (config) => {
-      // Do the clone using the configuration
-      await clone({
-        targetDir: rootPath,
-        valId: config.val.id,
-        branchId: config.branch.id,
-        version: config.branch.version,
-        gitignoreRules: await vt.getMeta().loadGitignoreRules(),
-      });
+    // Perform the clone
+    await clone({
+      targetDir: params.rootPath,
+      valId: valId,
+      branchId: branch.id,
+      version: version,
+      gitignoreRules: await vt.getMeta().loadGitignoreRules(),
     });
 
     return vt;

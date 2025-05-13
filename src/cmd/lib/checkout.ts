@@ -1,33 +1,45 @@
 import { Command } from "@cliffy/command";
-import ValTown from "@valtown/sdk";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  getCurrentUser,
+  getLatestVersion,
+} from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
-import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
+import {
+  noChangesDryRunMsg,
+  toListBranchesCmdMsg,
+} from "~/cmd/lib/utils/messages.ts";
 
-const toListBranchesCmd = "Use `vt branch` to list branches.";
+const skippedCheckoutMsg = colors
+  .green("Skipped checkout. No changes made.");
 const noChangesToStateMsg = "No changes were made to local state";
+const currentBranchDoesntExistMsg = colors
+  .red("The branch you currently are no longer exists.\n");
 
 export const checkoutCmd = new Command()
   .name("checkout")
   .description("Check out a different branch")
-  .arguments("[existingBranchName:string]")
+  .arguments("<existingBranchName:string>")
   .option(
-    "-b, --branch <newBranchName:string>",
+    "-b, --branch",
     "Create a new branch with the specified name",
+    { default: false },
   )
   .option(
     "-d, --dry-run",
     "Show what would be changed during checkout without making any changes",
+    { default: false },
   )
   .option(
     "-f, --force",
     "Force checkout by ignoring local changes",
+    { default: false },
   )
   .example(
     "Switch to an existing branch",
@@ -51,56 +63,81 @@ export const checkoutCmd = new Command()
   )
   .action(
     async (
-      { branch, force, dryRun }: {
-        branch?: string;
-        force?: boolean;
-        dryRun?: boolean;
-      },
-      existingBranchName?: string,
+      { branch: isNewBranch, force, dryRun },
+      branchName,
     ) => {
       await doWithSpinner(
         dryRun
           ? "Checking for changes that would occur..."
           : "Checking out branch...",
         async (spinner) => {
-          const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+          const rootPath = await findVtRoot(Deno.cwd());
+          const vt = VTClient.from(rootPath);
           const vtState = await vt.getMeta().loadVtState();
           const user = await getCurrentUser();
 
           // Get the current branch data
-          const currentBranchData = await sdk.vals.branches.retrieve(
-            vtState.val.id,
-            vtState.branch.id,
-          );
+          const currentBranchData = await sdk.vals.branches
+            .retrieve(vtState.val.id, vtState.branch.id)
+            .catch(() => null);
 
-          // Validate input parameters
-          if (!branch && !existingBranchName) {
-            throw new Error(
-              "Branch name is required. Use -b to create a new branch " +
-                toListBranchesCmd,
-            );
+          // Handle the case where the current branch no longer exists as a
+          // special case
+          if (!currentBranchData) {
+            spinner.stop();
+            if (isNewBranch) {
+              throw new Error(
+                currentBranchDoesntExistMsg +
+                  colors.yellow(
+                    "To continue, check out a branch that exists. " +
+                      toListBranchesCmdMsg,
+                  ),
+              );
+            }
+
+            const shouldProceed = await Confirm.prompt({
+              message: colors.yellow(
+                currentBranchDoesntExistMsg +
+                  "It is possible that you have made changes locally since " +
+                  "the branch got deleted.\nDo you want to proceed with checkout anyway?",
+              ),
+              default: false,
+            });
+            if (!shouldProceed) {
+              console.log(skippedCheckoutMsg);
+              Deno.exit(0);
+            } else {
+              spinner.start("Checking out branch...");
+              await VTClient.clone({
+                branchName,
+                version: await getLatestVersion(
+                  vtState.val.id,
+                  (await branchNameToBranch(vtState.val.id, branchName)).id,
+                ),
+                rootPath,
+                valId: vtState.val.id,
+                skipSafeDirCheck: true, // They just agreed that there's nothing important in the dir
+              });
+              // We don't know the name of the branch we checked out from :(
+              spinner.succeed(`Switched to branch "${branchName}"`);
+              return;
+            }
           }
 
           try {
-            const targetBranch = branch || existingBranchName!;
-            const isNewBranch = Boolean(branch);
-
-            if (isNewBranch) {
-              // Early exit if they are trying to make a new branch on a
-              // Val that they don't own
-              const valToPush = await sdk.vals.retrieve(
-                vtState.val.id,
+            // If they are creating a new branch, ensure that they are the owner of this Val
+            if (
+              isNewBranch &&
+              (await sdk.vals.retrieve(vtState.val.id)).author.id !== user.id
+            ) {
+              throw new Error(
+                "You are not the owner of this Val, you cannot make a new branch.",
               );
-              if (valToPush.author.id !== user.id) {
-                throw new Error(
-                  "You are not the owner of this Val, you cannot make a new branch.",
-                );
-              }
             }
 
             // Always do a dry checkout first to check for changes
             const dryCheckoutResult = await vt.checkout(
-              branch || existingBranchName!,
+              branchName,
               {
                 toBranchVersion: vtState.branch.version,
                 forkedFromId: isNewBranch ? vtState.branch.id : undefined,
@@ -108,7 +145,12 @@ export const checkoutCmd = new Command()
               },
             );
 
-            if (currentBranchData.name === existingBranchName) {
+            // Note that if they try to check out to the same branch, we can't
+            // even figure that out, because we store the branch ID, not the
+            // branch name. So this warning, while useful, won't show up if they
+            // are checking out FROM a branch that has been deleted and currently
+            // does not exist.
+            if (currentBranchData.name === branchName) {
               spinner.warn(
                 `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,
               );
@@ -158,6 +200,9 @@ export const checkoutCmd = new Command()
                   .filter((fileStatus) => fileStatus.status === "not_modified"),
               );
 
+            // If we are not creating a new branch we might be in a situation
+            // where the result of checking out could cause the current local
+            // state to lose unsaved changes
             let prepareForResult = () => {};
             if (!isNewBranch) {
               if (
@@ -174,8 +219,8 @@ export const checkoutCmd = new Command()
                       colors.underline("that would occur when")
                     } ${
                       isNewBranch
-                        ? `creating branch "${targetBranch}"`
-                        : `checking out "${targetBranch}"`
+                        ? `creating branch "${branchName}"`
+                        : `checking out "${branchName}"`
                     }:`,
                     summaryText: "Would change:",
                     emptyMessage: noChangesToStateMsg,
@@ -196,11 +241,12 @@ export const checkoutCmd = new Command()
                 });
 
                 // Exit if user doesn't want to proceed
-                if (!shouldProceed) Deno.exit(0);
-                else {
-                  prepareForResult = () =>
-                    tty.eraseLines(dangerousChanges.split("\n").length + 3);
+                if (!shouldProceed) {
+                  console.log(skippedCheckoutMsg);
+                  Deno.exit(0);
                 }
+                prepareForResult = () =>
+                  tty.eraseLines(dangerousChanges.split("\n").length + 3);
               }
             }
 
@@ -216,8 +262,8 @@ export const checkoutCmd = new Command()
                     colors.underline("that would occur")
                   } when ${
                     isNewBranch
-                      ? `creating branch "${targetBranch}"`
-                      : `checking out "${targetBranch}"`
+                      ? `creating branch "${branchName}"`
+                      : `checking out "${branchName}"`
                   }:`,
                   summaryText: "Would change:",
                   emptyMessage: noChangesToStateMsg,
@@ -230,7 +276,7 @@ export const checkoutCmd = new Command()
             } else {
               // Perform the actual checkout
               const checkoutResult = await vt.checkout(
-                targetBranch,
+                branchName,
                 {
                   dryRun: false,
                   // Undefined --> use current branch
@@ -262,24 +308,24 @@ export const checkoutCmd = new Command()
               tty.scrollDown(1);
               spinner.succeed(
                 isNewBranch
-                  ? `\nCreated and switched to new branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`
-                  : `Switched to branch "${targetBranch}" from "${checkoutResult.fromBranch.name}"`,
+                  ? `Created and switched to new branch "${branchName}" from "${checkoutResult.fromBranch.name}"`
+                  : `Switched to branch "${branchName}" from "${checkoutResult.fromBranch.name}"`,
               );
             }
           } catch (e) {
-            if (e instanceof ValTown.APIError) {
-              if (e.status === 409 && branch) {
-                throw new Error(
-                  `Branch "${branch}" already exists. Choose a new branch name. ` +
-                    toListBranchesCmd,
-                );
-              } else if (e.status === 404 && existingBranchName) {
-                throw new Error(
-                  `Branch "${existingBranchName}" does not exist in val. ` +
-                    toListBranchesCmd,
-                );
-              }
-            }
+            //   if (e instanceof ValTown.APIError) {
+            //     if (e.status === 409 && isNewBranch) {
+            //       throw new Error(
+            //         `Branch "${isNewBranch}" already exists. Choose a new branch name. ` +
+            //           toListBranchesCmd,
+            //       );
+            //     } else if (e.status === 404 && branchName) {
+            //       throw new Error(
+            //         `Branch "${branchName}" does not exist in val. ` +
+            //           toListBranchesCmd,
+            //       );
+            //     }
+            //   }
             throw e;
           }
         },

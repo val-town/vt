@@ -169,3 +169,57 @@ Deno.test({
   },
   sanitizeResources: false,
 });
+
+Deno.test({
+  name: "branch command shows warning tip when current branch no longer exists",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val, branch: mainBranch }) => {
+        const fullPath = join(tmpDir, val.name);
+        let tempBranch: ValTown.Vals.BranchListResponse;
+
+        await t.step("create temporary branch", async () => {
+          tempBranch = await sdk.vals.branches.create(
+            val.id,
+            { name: "temp-branch", branchId: mainBranch.id },
+          );
+
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "temp.ts",
+              content: "// Temporary file",
+              branch_id: tempBranch.id,
+              type: "script",
+            },
+          );
+        });
+
+        await t.step("clone and checkout to temporary branch", async () => {
+          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
+          await runVtCommand(["checkout", "temp-branch"], fullPath);
+        });
+
+        await t.step("delete the branch remotely", async () => {
+          await sdk.vals.branches.delete(val.id, tempBranch.id);
+        });
+
+        await t.step("run branch command and verify warning", async () => {
+          const [output] = await runVtCommand(["branch"], fullPath);
+
+          // Check that the branch list shows available branches
+          assertStringIncludes(output, "main");
+
+          // Check that it shows the warning about current branch
+          assertStringIncludes(
+            output,
+            "Note that the current branch no longer exists. You will have to check out to a branch that exists.",
+            "Should warn that current branch no longer exists",
+          );
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});

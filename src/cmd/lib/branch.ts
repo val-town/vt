@@ -8,10 +8,10 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 
 async function listBranches(vt: VTClient) {
   return await doWithSpinner("Loading branches...", async (spinner) => {
-    const meta = await vt.getMeta().loadVtState();
+    const vtState = await vt.getMeta().loadVtState();
 
     const branches = await Array.fromAsync(
-      sdk.vals.branches.list(meta.val.id, {}),
+      sdk.vals.branches.list(vtState.val.id, {}),
     );
 
     const formatter = new Intl.DateTimeFormat("en-US", {
@@ -23,10 +23,10 @@ async function listBranches(vt: VTClient) {
     // Separate current branch, place it at the top, and then sort the rest
     // by update time
     const currentBranch = branches
-      .find((branch) => branch.id === meta.branch.id);
+      .find((branch) => branch.id === vtState.branch.id);
 
     const otherBranches = branches
-      .filter((branch) => branch.id !== meta.branch.id)
+      .filter((branch) => branch.id !== vtState.branch.id)
       .sort((a, b) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
@@ -47,7 +47,7 @@ async function listBranches(vt: VTClient) {
       ],
       ...sortedBranches.map(
         (branch) => [
-          branch.id === meta.branch.id
+          branch.id === vtState.branch.id
             ? colors.green(`* ${branch.name}`)
             : branch.name,
           colors.cyan(branch.version.toString()),
@@ -58,6 +58,19 @@ async function listBranches(vt: VTClient) {
     ]);
 
     console.log(branchesTableList.toString());
+
+    // A helpful FYI to let the user know that their current state is going to
+    // cause them issues
+    if (!sortedBranches.some((branch) => branch.id === vtState.branch.id)) {
+      console.log();
+      console.log(
+        colors
+          .yellow(
+            "Note that the current branch no longer exists. " +
+              "You will have to check out to a branch that exists.",
+          ),
+      );
+    }
   });
 }
 
