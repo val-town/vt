@@ -21,7 +21,7 @@ import {
   FIRST_VERSION_NUMBER,
   META_FOLDER_NAME,
 } from "~/consts.ts";
-import { exists } from "@std/fs";
+import { exists, walk } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
@@ -172,7 +172,7 @@ export default class VTClient {
    */
   public async watch(
     callback: (fileState: ItemStatusManager) => void | Promise<void>,
-    debounceDelay: number = 1000,
+    debounceDelay: number = 250,
     gracePeriod: number = 250,
   ): Promise<void> {
     // Ensure there are not multiple watchers at once
@@ -209,7 +209,15 @@ export default class VTClient {
       inGracePeriod = true;
 
       try {
-        const fileState = await this.push();
+        // Ignore paths that were not modified since the last push, since they
+        // won't need to be pushed
+        const fileState = await this.push({
+          gitignoreRules: [
+            ...(await this.getMeta().loadGitignoreRules()),
+            ...(await Array.fromAsync(walk(this.rootPath)))
+              .map((entry) => entry.path),
+          ],
+        });
         if (fileState.changes() > 0) {
           await callback(fileState);
         }

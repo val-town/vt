@@ -136,6 +136,28 @@ export const getValItem = memoize(async (
 });
 
 /**
+ * Get the content of a Val item.
+ *
+ * @param {string} valId The ID of the Val
+ * @param {string} branchId The ID of the Val branch to reference
+ * @param {number} version The version of the Val
+ * @param {string} filePath The path to the file
+ * @returns {Promise<string>} Promise resolving to the file content
+ */
+export const getValItemContent = memoize(
+  async (
+    valId: string,
+    branchId: string,
+    version: number,
+    filePath: string,
+  ): Promise<string> => {
+    return await sdk.vals.files
+      .getContent(valId, { path: filePath, branch_id: branchId, version })
+      .then((resp) => resp.text());
+  },
+);
+
+/**
  * Lists all file paths in a Val with pagination support.
  *
  * @param valId ID of the val
