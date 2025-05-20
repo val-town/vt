@@ -15,6 +15,7 @@ import {
   noChangesDryRunMsg,
   toListBranchesCmdMsg,
 } from "~/cmd/lib/utils/messages.ts";
+import ValTown from "@valtown/sdk";
 
 const skippedCheckoutMsg = colors
   .green("Skipped checkout. No changes made.");
@@ -316,8 +317,7 @@ export const checkoutCmd = new Command()
             if (e instanceof ValTown.APIError) {
               if (e.status === 409 && isNewBranch) {
                 throw new Error(
-                  `Branch "${isNewBranch}" already exists. Choose a new branch name. ` +
-                    toListBranchesCmd,
+                  `Branch "${isNewBranch}" already exists. Choose a new branch name.`,
                 );
               } else throw e;
             }
