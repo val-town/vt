@@ -313,19 +313,14 @@ export const checkoutCmd = new Command()
               );
             }
           } catch (e) {
-            //   if (e instanceof ValTown.APIError) {
-            //     if (e.status === 409 && isNewBranch) {
-            //       throw new Error(
-            //         `Branch "${isNewBranch}" already exists. Choose a new branch name. ` +
-            //           toListBranchesCmd,
-            //       );
-            //     } else if (e.status === 404 && branchName) {
-            //       throw new Error(
-            //         `Branch "${branchName}" does not exist in val. ` +
-            //           toListBranchesCmd,
-            //       );
-            //     }
-            //   }
+            if (e instanceof ValTown.APIError) {
+              if (e.status === 409 && isNewBranch) {
+                throw new Error(
+                  `Branch "${isNewBranch}" already exists. Choose a new branch name. ` +
+                    toListBranchesCmd,
+                );
+              } else throw e;
+            }
             throw e;
           }
         },
