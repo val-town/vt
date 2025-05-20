@@ -34,8 +34,8 @@ Commands:
 ## Installation
 
 `vt` is built with the Deno TypeScript runtime. To use `vt`, you need to make
-sure you have `Deno` installed. To install `Deno`, see [their installation
-page](https://docs.deno.com/runtime/getting_started/installation/).
+sure you have `Deno` installed. To install `Deno`, see
+[their installation page](https://docs.deno.com/runtime/getting_started/installation/).
 
 To install or update to the latest version, run:
 
