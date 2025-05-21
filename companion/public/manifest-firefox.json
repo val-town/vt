@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "VT companion",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Companion for the Val Town CLI",
   "background": {
     "scripts": ["daemon/main.js"],
