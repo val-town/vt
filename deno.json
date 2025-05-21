@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/denoland/deno/348900b8b79f4a434cab4c74b3bc8d4d2fa8ee74/cli/schemas/config-file.v1.json",
   "name": "@valtown/vt",
   "description": "The Val Town CLI",
-  "version": "0.1.29",
+  "version": "0.1.31",
   "exports": "./vt.ts",
   "license": "MIT",
   "tasks": {
@@ -11,6 +11,7 @@
     "test:cmd": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --fail-fast ./src/cmd",
     "test:lib": "env DENO_NO_PROMPT=1 deno test -A --trace-leaks --parallel ./src/vt/lib",
     "check": "env DENO_NO_PROMPT=1 deno check src *.ts",
+    "profile": "deno run -A ./profile.ts ./vt.ts",
     "fmt:check": "env DENO_NO_PROMPT=1 deno fmt --check"
   },
   "imports": {

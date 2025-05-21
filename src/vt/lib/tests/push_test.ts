@@ -1,5 +1,10 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
+import sdk, {
+  getLatestVersion,
+  getValItemContent,
+  listValItems,
+  valItemExists,
+} from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -327,12 +332,13 @@ Deno.test({
           });
 
           // Pull and assert that the creation worked
-          const originalFileContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: vtFilePath,
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const originalFileContent = await getValItemContent(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            vtFilePath,
+          );
+
           assertEquals(
             originalFileContent,
             "test",
@@ -348,12 +354,13 @@ Deno.test({
           });
 
           // Pull and assert that the modification worked
-          const newFileContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: vtFilePath,
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const newFileContent = await getValItemContent(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            vtFilePath,
+          );
+
           assertEquals(newFileContent, "test2");
         });
 
@@ -512,12 +519,13 @@ Deno.test({
           assertEquals(renamedFile.type, "http");
 
           // Verify content is preserved
-          const content = await sdk.vals.files
-            .getContent(val.id, {
-              path: "val/new.tsx",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const content = await getValItemContent(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            "val/new.tsx",
+          );
+
           assertEquals(content, "contentt");
         });
 
@@ -835,26 +843,28 @@ Deno.test({
 
         await t.step("verify server state after push", async () => {
           // Check content on the server to verify the push succeeded
-          const writableContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: "writable.txt",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const latestVersion = await getLatestVersion(val.id, branch.id);
 
-          const readOnlyContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: "readonly.txt",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const writableContent = await getValItemContent(
+            val.id,
+            branch.id,
+            latestVersion,
+            "writable.txt",
+          );
 
-          const anotherContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: "another.txt",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const readOnlyContent = await getValItemContent(
+            val.id,
+            branch.id,
+            latestVersion,
+            "readonly.txt",
+          );
+
+          const anotherContent = await getValItemContent(
+            val.id,
+            branch.id,
+            latestVersion,
+            "another.txt",
+          );
 
           // Verify the content matches what we expect
           assertEquals(

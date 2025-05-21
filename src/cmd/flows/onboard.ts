@@ -84,8 +84,8 @@ export async function onboardFlow(
   const apiKey = await Secret.prompt({
     message: "Please enter your Val Town API key:",
     validate: (input) => {
-      if (input.length !== 33) {
-        return "API key must be exactly 33 characters long";
+      if (!(input.length === 32 || input.length === 33)) {
+        return "API key must be 32-33 characters long";
       }
       return true;
     },

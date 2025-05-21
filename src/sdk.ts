@@ -1,11 +1,13 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
+import manifest from "../deno.json" with { type: "json" };
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
   // It needs to be passed here though as *something*
   bearerToken: Deno.env.get(API_KEY_KEY) ?? crypto.randomUUID(),
+  defaultHeaders: { "x-vt-version": String(manifest.version) },
 });
 
 /**
@@ -134,6 +136,28 @@ export const getValItem = memoize(async (
 
   return undefined;
 });
+
+/**
+ * Get the content of a Val item.
+ *
+ * @param {string} valId The ID of the Val
+ * @param {string} branchId The ID of the Val branch to reference
+ * @param {number} version The version of the Val
+ * @param {string} filePath The path to the file
+ * @returns {Promise<string>} Promise resolving to the file content
+ */
+export const getValItemContent = memoize(
+  async (
+    valId: string,
+    branchId: string,
+    version: number,
+    filePath: string,
+  ): Promise<string> => {
+    return await sdk.vals.files
+      .getContent(valId, { path: filePath, branch_id: branchId, version })
+      .then((resp) => resp.text());
+  },
+);
 
 /**
  * Lists all file paths in a Val with pagination support.
