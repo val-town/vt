@@ -8,7 +8,7 @@
     "build:chrome": "node build.js chrome && cd dist && zip -r vt-extension *",
     "build:firefox": "node build.js firefox && cd dist && zip -r vt-extension *",
     "clean": "rm -rf dist",
-    "dev:chrome": "nodemon --watch src --watch build.js --ext js,ts,json,css,html --polling --exec 'npm run build:chrome --dev'"
+    "dev:chrome": "nodemon --watch src --watch build.js --ext js,ts,json,css,html --polling --exec 'npm run build:chrome --dev && node ./scripts/chrome.js chromium'"
   },
   "dependencies": {
     "@std/async": "npm:@jsr/std__async@^1.0.12",
