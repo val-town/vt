@@ -42,14 +42,15 @@ export class VTDaemon {
 
           console.log("Reloading tabs with link ", link);
           const normalizedLink = normalizeUrl(link);
-            (await browser.tabs.query({}))
+          (await browser.tabs.query({}))
             .filter((tab) => {
               if (!tab.url) return false;
               const tabUrl = normalizeUrl(tab.url);
               // Check if tabUrl is a substring of normalizedLink (tab is parent of link)
               // or if normalizedLink is a substring of tabUrl (link is parent of tab).
               // Libraries like React Router may use a fake URL for routing.
-              return tabUrl.includes(normalizedLink) || normalizedLink.includes(tabUrl);
+              return tabUrl.includes(normalizedLink) ||
+                normalizedLink.includes(tabUrl);
             })
             .forEach(async (tab) => await browser.tabs.reload(tab.id!));
         });
