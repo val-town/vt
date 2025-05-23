@@ -27,6 +27,7 @@ export function getClonePath(
 export function sanitizeErrors(error: unknown): string {
   if (error instanceof ValTown.APIError) {
     let suffixedExtra = "";
+
     if (error.status === 404) {
       if (error.message.toLowerCase().includes("branch")) {
         suffixedExtra = "You may have deleted the current branch. " +
@@ -38,6 +39,14 @@ export function sanitizeErrors(error: unknown): string {
           "This folder is no longer usable with `vt`. " +
           "If you have important files, create a new Val and copy them over.";
       }
+    } else if (error.status === 401) {
+      suffixedExtra =
+        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`";
+    }
+
+    if (error.message.includes("required permissions")) {
+      suffixedExtra +=
+        "To set a new API key, use `vt config set apiKey new_api_key`";
     }
 
     // Remove leading numbers from error message
