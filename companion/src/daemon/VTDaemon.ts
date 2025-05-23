@@ -1,3 +1,4 @@
+import browser from "webextension-polyfill";
 import { deadline } from "@std/async";
 import { VTConnector } from "./VTConnector.js";
 import { normalizeUrl } from "./utils.js";
@@ -37,6 +38,15 @@ export class VTDaemon {
           this.ws = null;
         });
 
+        ws.addEventListener("error", (e) => {
+          console.error("VT Connector websocket error: ", e);
+          this.ws = null;
+        });
+
+        ws.addEventListener("open", () => {
+          console.log("VT Connector websocket opened");
+        });
+
         ws.addEventListener("message", async (e) => {
           const link = JSON.parse(e.data).link as string;
 
@@ -52,7 +62,10 @@ export class VTDaemon {
               return tabUrl.includes(normalizedLink) ||
                 normalizedLink.includes(tabUrl);
             })
-            .forEach(async (tab) => await browser.tabs.reload(tab.id!));
+            .forEach(async (tab) => {
+              console.log("Reloading tab ", tab.id, " with link ", link);
+              await browser.tabs.reload(tab.id!)
+            });
         });
       })
       .catch((err) =>
