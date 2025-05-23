@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "VT companion",
+  "version": "0.0.2",
+  "description": "Companion for the Val Town CLI",
+  "background": {
+    "service_worker": "daemon/main.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*:\/\/*.val.run\/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "/assets/logo16.png",
+    "32": "/assets/logo32.png",
+    "48": "/assets/logo48.png",
+    "128": "/assets/logo128.png"
+  },
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "tabs",
+    "contextMenus"
+  ]
+}
