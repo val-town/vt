@@ -1,3 +1,4 @@
+import browser from "webextension-polyfill";
 import { LOG_PREFIX } from "./consts.js";
 
 browser.runtime.sendMessage({ action: "pageLoaded" })
