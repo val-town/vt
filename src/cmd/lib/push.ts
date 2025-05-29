@@ -17,8 +17,8 @@ export const pushCmd = new Command()
     "-d, --dry-run",
     "Show what would be pushed without making any changes",
   )
-  .action(({ dryRun }: { dryRun?: boolean }) => {
-    doWithSpinner(
+  .action(async ({ dryRun }: { dryRun?: boolean }) => {
+    await doWithSpinner(
       dryRun
         ? "Checking for local changes that would be pushed..."
         : "Pushing local changes...",
