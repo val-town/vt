@@ -2,7 +2,7 @@ import browser from "webextension-polyfill";
 import { HOME_PAGE } from "../consts.js";
 import { VTDaemon } from "./VTDaemon.js";
 
-const isFirefox = self.navigator.userAgent.includes('Firefox')
+const isFirefox = self.navigator.userAgent.includes("Firefox");
 
 export function setupContextMenu(daemon: VTDaemon) {
   browser.runtime.onInstalled.addListener(() => {

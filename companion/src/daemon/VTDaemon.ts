@@ -64,7 +64,7 @@ export class VTDaemon {
             })
             .forEach(async (tab) => {
               console.log("Reloading tab ", tab.id, " with link ", link);
-              await browser.tabs.reload(tab.id!)
+              await browser.tabs.reload(tab.id!);
             });
         });
       })
