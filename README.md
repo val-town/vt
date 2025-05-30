@@ -218,12 +218,14 @@ will automatically run `vt push` when any Val files are modified **locally**.
 
 To have your tabs automatically reload, `vt` features a companion browser
 extension. This extension is available via the Chrome or Mozilla web store.
+
 - [Chrome Web Store Link](https://chromewebstore.google.com/detail/vt-companion/jjpaicfaaobmjlcppnooejnjnbefalfo)
 - [Mozilla Web Store Link](https://addons.mozilla.org/en-US/firefox/addon/vt-companion/)
 
-When you run `vt watch`, you can load a `*.val.run` website, and as you edit
-the project and the `vt watch` pushes changes, the tab should reload. `vt
-watch` should inform you when your browser is connected.
+When you run `vt watch`, you can load a `*.val.run` website, and as you edit the
+project and the `vt watch` pushes changes, the tab should reload. `vt
+watch`
+should inform you when your browser is connected.
 
 ![Connecting to the CLI](https://filedumpthing.val.run/blob?key=blob_file_1748617655943_9a5c5688-be2e-45be-9747-f9a0e8ba9621.gif)
 
