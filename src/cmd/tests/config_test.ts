@@ -28,7 +28,7 @@ Deno.test({
 
         await t.step("set a fake api key locally", async () => {
           const [setOutput] = await runVtCommand(
-            ["config", "set", "apiKey", localFakeApiKey],
+            ["config", "set", "--local", "apiKey", localFakeApiKey],
             valDir,
             { env: { "XDG_CONFIG_HOME": tmpDir } },
           );
@@ -64,12 +64,12 @@ Deno.test({
 
         await t.step("set a fake api key globally", async () => {
           const [setOutput] = await runVtCommand(
-            ["config", "set", "--global", "apiKey", globalFakeApiKey],
+            ["config", "set", "apiKey", globalFakeApiKey],
             valDir,
             { env: { "XDG_CONFIG_HOME": tmpDir } },
           );
 
-          // Verify set output shows it's set in local configuration
+          // Verify set output shows it's set in global configuration
           assertStringIncludes(
             setOutput,
             `Set apiKey=${globalFakeApiKey} in global configuration`,
