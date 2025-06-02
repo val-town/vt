@@ -33,6 +33,10 @@ Commands:
 
 ## Installation
 
+`vt` is built with the Deno TypeScript runtime. To use `vt`, you need to make
+sure you have `Deno` installed. To install `Deno`, see
+[their installation page](https://docs.deno.com/runtime/getting_started/installation/).
+
 To install or update to the latest version, run:
 
 ```bash
@@ -212,9 +216,20 @@ Oftentimes you'll end up in a workflow that looks like
 `vt`'s solution to tightening this loop is `vt watch`. With `vt watch`, `vt`
 will automatically run `vt push` when any Val files are modified **locally**.
 
-To get automatic website reloading, check out
-[this live reload middleware](https://www.val.town/x/stevekrouse/live-reload)
-that works by polling Val Town for updates.
+To have your tabs automatically reload, `vt` features a companion browser
+extension. This extension is available via the Chrome or Mozilla web store.
+- [Chrome Web Store Link](https://chromewebstore.google.com/detail/vt-companion/jjpaicfaaobmjlcppnooejnjnbefalfo)
+- [Mozilla Web Store Link](https://addons.mozilla.org/en-US/firefox/addon/vt-companion/)
+
+When you run `vt watch`, you can load a `*.val.run` website, and as you edit
+the project and the `vt watch` pushes changes, the tab should reload. `vt
+watch` should inform you when your browser is connected.
+
+![Connecting to the CLI](https://filedumpthing.val.run/blob?key=blob_file_1748617655943_9a5c5688-be2e-45be-9747-f9a0e8ba9621.gif)
+
+If you are using a custom domain or for some reason automatic connection does
+not work, you can pin the browser extension, and then right click it, and press
+the "Connect to VT" button.
 
 ### Branching Out
 

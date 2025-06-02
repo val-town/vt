@@ -5,6 +5,7 @@ import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
+import type ValTown from "@valtown/sdk";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
@@ -448,6 +449,101 @@ Deno.test({
         // Verify we're still on main branch
         const [statusOutput] = await runVtCommand(["status"], fullPath);
         assertStringIncludes(statusOutput, "On branch main@");
+      });
+    });
+  },
+  sanitizeResources: false,
+  sanitizeExit: false,
+});
+
+Deno.test({
+  name: "checkout after current branch was deleted",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val, branch: mainBranch }) => {
+        const fullPath = join(tmpDir, val.name);
+        let tempBranch: ValTown.Vals.BranchCreateResponse;
+
+        await t.step("set up branches and files", async () => {
+          // Create initial file on main branch
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "main.ts",
+              content: "// Main branch",
+              branch_id: mainBranch.id,
+              type: "script",
+            },
+          );
+
+          // Create a temporary branch that will be deleted
+          tempBranch = await sdk.vals.branches.create(
+            val.id,
+            { name: "temp-branch", branchId: mainBranch.id },
+          );
+
+          await sdk.vals.files.create(
+            val.id,
+            {
+              path: "temp.ts",
+              content: "// Temporary file",
+              branch_id: tempBranch.id,
+              type: "script",
+            },
+          );
+        });
+
+        await t.step("clone the Val and checkout temp branch", async () => {
+          // Clone the Val (defaults to main branch)
+          await runVtCommand(
+            ["clone", val.name, "--no-editor-files"],
+            tmpDir,
+          );
+
+          // Switch to temp branch
+          await runVtCommand(["checkout", "temp-branch"], fullPath);
+
+          // Verify we're on temp branch
+          const [statusOutput] = await runVtCommand(["status"], fullPath);
+          assertStringIncludes(statusOutput, "On branch temp-branch@");
+
+          // Delete the temp branch remotely
+          await sdk.vals.branches.delete(val.id, tempBranch.id);
+        });
+
+        await t.step("attempt checkout after branch deletion", async () => {
+          // Try to checkout to main - should show warning about deleted branch
+          // Note that runVtCommand will spam yes to proceed
+          const [checkoutOutput, exitCode] = await runVtCommand([
+            "checkout",
+            "main",
+          ], fullPath);
+
+          assertStringIncludes(
+            checkoutOutput,
+            "The branch you currently are no longer exists",
+            "should warn about current branch being deleted",
+          );
+
+          assertStringIncludes(
+            checkoutOutput,
+            'Switched to branch "main"',
+            "should successfully switch to main branch",
+          );
+
+          assert(exitCode === 0, "checkout command should succeed");
+
+          // Verify we're now on main branch
+          const [statusOutput] = await runVtCommand(["status"], fullPath);
+          assertStringIncludes(statusOutput, "On branch main@");
+
+          // Verify main.ts exists
+          assert(
+            await exists(join(fullPath, "main.ts")),
+            "main.ts should exist after checkout to main",
+          );
+        });
       });
     });
   },
