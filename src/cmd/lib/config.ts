@@ -39,23 +39,23 @@ function showConfigOptions() {
 
 export const configSetCmd = new Command()
   .description("Set a configuration value")
-  .option("--global", "Set in the global configuration")
+  .option("--local", "Set in the local configuration (val-specific)")
   .arguments("<key:string> <value:string>")
   .example(
-    "Set your valtown API key",
+    "Set your valtown API key (global)",
     "vt config set apiKey vtwn_notRealnotRealnotRealnotReal",
   )
   .example(
-    "Set whether to prompt for dangerous actions",
-    "vt config set dangerousOperations.confirmation false",
+    "Set whether to prompt for dangerous actions (local)",
+    "vt config set --local dangerousOperations.confirmation false",
   )
   .action(
-    async ({ global }: { global?: boolean }, key: string, value: string) => {
+    async ({ local }: { local?: boolean }, key: string, value: string) => {
       await doWithSpinner("Updating configuration...", async (spinner) => {
         // Check if we're in a Val Town Val directory
         const vtRoot = await findVtRoot(Deno.cwd()).catch(() => undefined);
 
-        const useGlobal = global || !vtRoot;
+        const useGlobal = !local;
         const vtConfig = new VTConfig(vtRoot);
 
         const config = await vtConfig.loadConfig();
