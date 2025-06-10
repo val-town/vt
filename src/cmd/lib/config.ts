@@ -60,7 +60,7 @@ export const configSetCmd = new Command()
 
         const config = await vtConfig.loadConfig();
         const updatedConfig = setNestedProperty(config, key, value);
-        const oldProperty = getNestedProperty(config, key, value) as
+        const oldProperty = getNestedProperty(config, key) as
           | string
           | undefined;
 
