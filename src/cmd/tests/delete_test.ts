@@ -3,7 +3,7 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import { runVtCommand, runVtProc } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
-import { valExists } from "~/sdk.ts";
+import sdk, { randomValName, valExists } from "~/sdk.ts";
 import stripAnsi from "strip-ansi";
 import { exists } from "@std/fs";
 import { META_FOLDER_NAME } from "~/consts.ts";
@@ -55,33 +55,37 @@ Deno.test({
   permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewVal(async ({ val }) => {
-        await t.step("clone the val", async () => {
-          await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-        });
+      const val = await sdk.vals.create({
+        name: randomValName(),
+        description: "This is a test val",
+        privacy: "public",
+      });
 
-        const fullPath = join(tmpDir, val.name);
+      await t.step("clone the val", async () => {
+        await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
+      });
 
-        await t.step("run delete with force option", async () => {
-          const [output] = await runVtCommand(["delete", "--force"], fullPath);
-          assertStringIncludes(
-            output,
-            `Val "${val.name}" has been deleted`,
-          );
+      const fullPath = join(tmpDir, val.name);
 
-          // Verify the Val no longer exists
-          assert(
-            !await valExists(val.id),
-            "Val should no longer exist",
-          );
-        });
+      await t.step("run delete with force option", async () => {
+        const [output] = await runVtCommand(["delete", "--force"], fullPath);
+        assertStringIncludes(
+          output,
+          `Val "${val.name}" has been deleted`,
+        );
 
-        await t.step("directory should be de-inited", async () => {
-          assert(
-            !await exists(join(fullPath, META_FOLDER_NAME)),
-            "directory should be de-inited",
-          );
-        });
+        // Verify the Val no longer exist
+        assert(
+          !await valExists(val.id),
+          "Val should no longer exist",
+        );
+      });
+
+      await t.step("directory should be de-inited", async () => {
+        assert(
+          !await exists(join(fullPath, META_FOLDER_NAME)),
+          "directory should be de-inited",
+        );
       });
     });
   },

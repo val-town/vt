@@ -17,8 +17,8 @@ export const pushCmd = new Command()
     "-d, --dry-run",
     "Show what would be pushed without making any changes",
   )
-  .action(({ dryRun }: { dryRun?: boolean }) => {
-    doWithSpinner(
+  .action(async ({ dryRun }: { dryRun?: boolean }) => {
+    await doWithSpinner(
       dryRun
         ? "Checking for local changes that would be pushed..."
         : "Pushing local changes...",
@@ -29,10 +29,9 @@ export const pushCmd = new Command()
         const vtState = await vt.getMeta().loadVtState();
         const valToPush = await sdk.vals.retrieve(vtState.val.id);
         if (valToPush.author.id !== user.id) {
-          console.log(valToPush.author.id, user.id);
           throw new Error(
-            "You are not the owner of this val, you cannot push." +
-              "\nTo make a PR, go to the website, fork the Val, clone the fork, make changes, push them, and then PR on the website.",
+            "You are not the owner of this Val, you cannot push." +
+              "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",
           );
         }
 

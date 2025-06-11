@@ -137,7 +137,7 @@ export class ItemStatusManager {
   /**
    * Create a new ItemStatusManager.
    *
-   * @param {Partial<ItemStatus>} initialState The initial state of the file status manager. This is a partial object that can contain any of the file states.
+   * @param initialState The initial state of the file status manager. This is a partial object that can contain any of the file states.
    */
   public constructor(
     initialState?: Partial<{
@@ -315,8 +315,8 @@ export class ItemStatusManager {
   /**
    * Removes an item with the specified path from any status category.
    *
-   * @param path - The path of the item to remove
-   * @returns true if the item was found and removed, false otherwise
+   * @param path The path of the item to remove
+   * @returns Whether the item was found and removed
    */
   public remove(path: string): boolean {
     if (this.#modified.has(path)) {
@@ -399,7 +399,7 @@ export class ItemStatusManager {
   /**
    * Gets the item with the specified path from any status category.
    *
-   * @param path - The path of the item to get
+   * @param path The path of the item to get
    * @returns The item with the specified path, or undefined if not found
    * @throws Error if item with the specified path doesn't exist
    */
@@ -561,8 +561,8 @@ export class ItemStatusManager {
    * Files in the source take precedence over existing files with the same path.
    * This acts like a right intersection where source values override existing ones.
    *
-   * @param source - The FileState object to merge from
-   * @returns this - The current FileState instance for chaining
+   * @param source The FileState object to merge from
+   * @returns The current FileState instance for chaining
    */
   public merge(source: ItemStatusManager): this {
     // Collect all paths from the source
@@ -594,7 +594,7 @@ export class ItemStatusManager {
   /**
    * Creates a new FileState with only the entries that pass the given predicate function.
    *
-   * @param predicate - Function that tests each entry. Takes a FileStateEntry and returns a boolean.
+   * @param predicate Function that tests each entry. Takes a FileStateEntry and returns a boolean.
    * @returns A new FileState containing only entries that pass the predicate test
    */
   public filter(
@@ -663,7 +663,7 @@ export class ItemStatusManager {
   /**
    * Checks if a file with the specified path exists in any status category.
    *
-   * @param path - The file path to check
+   * @param path The file path to check
    * @returns True if the path exists in any status, false otherwise
    */
   public has(path: string): boolean {
@@ -724,7 +724,7 @@ export class ItemStatusManager {
  * - Empty files
  * - Files exceeding maximum allowed size
  *
- * @param path - The filesystem path to check
+ * @param path The filesystem path to check
  * @returns A Promise that resolves to an array of ItemWarning strings
  * @throws May throw errors during file system operations
  */

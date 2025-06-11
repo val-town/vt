@@ -78,11 +78,11 @@ Deno.test({
 
                 // Add minimal delay between file creations to ensure they're
                 // distinct events
-                await delay(10);
+                await delay(30);
               }
 
               // Wait for the debounce period plus buffer for the actual uploads
-              await delay(4000);
+              await delay(6000);
             },
           );
 

@@ -1,23 +1,29 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
+import manifest from "../deno.json" with { type: "json" };
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
-const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
+const sdk = new ValTown({
+  // Must get set in vt.ts entrypoint if not set as an env var!
+  // It needs to be passed here though as *something*
+  bearerToken: Deno.env.get(API_KEY_KEY) ?? crypto.randomUUID(),
+  defaultHeaders: { "x-vt-version": String(manifest.version) },
+});
 
 /**
  * Checks if a Val exists.
  *
- * @param {string} valId The ID of the Val to check
- * @returns {Promise<boolean>} True if the Val exists, false otherwise
+ * @param projectId - The ID of the project to check
+ * @returns Promise resolving to whether the project exists
  */
 export async function valExists(valId: string): Promise<boolean>;
 /**
  * Checks if a Val exists.
  *
- * @param {object} options Val identification options
- * @param {string} options.username The username of the Val owner
- * @param {string} options.valName The name of the Val to check
- * @returns {Promise<boolean>} Promise resolving to true if the Val exists, false otherwise
+ * @param options Val identification options
+ * @param options.username The username of the Val owner
+ * @param options.valName The name of the Val to check
+ * @returns Promise resolving to true if the Val exists, false otherwise
  */
 export async function valExists(options: {
   username: string;
@@ -48,9 +54,9 @@ export async function valExists(
 /**
  * Checks if a branch with the given name exists in a val.
  *
- * @param {string} valId The ID of the Val to check
- * @param {string} branchName The name of the branch to check for
- * @returns {Promise<boolean>} Promise resolving to true if the branch exists, false otherwise
+ * @param valId The ID of the Val to check
+ * @param branchName The name of the branch to check for
+ * @returns Promise resolving to true if the branch exists, false otherwise
  */
 export async function branchExists(
   valId: string,
@@ -65,10 +71,10 @@ export async function branchExists(
 /**
  * Converts a branch name to its corresponding branch ID for a given val.
  *
- * @param {string} valId The ID of the Val containing the branch
- * @param {string} branchName The name of the branch to look up
- * @returns {Promise} Promise resolving to the branch ID
- * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
+ * @param valId The ID of the Val containing the branch
+ * @param branchName The name of the branch to look up
+ * @returns Promise resolving to the branch ID
+ * @throws if the branch is not found or if the API request fails
  */
 export async function branchNameToBranch(
   valId: string,
@@ -78,17 +84,17 @@ export async function branchNameToBranch(
     if (branch.name == branchName) return branch;
   }
 
-  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in val`);
+  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in Val`);
 }
 
 /**
  * Checks if a file exists at the specified path in a val
  *
- * @param {string} valId The ID of the Val containing the file
- * @param {string} filePath The file path to check
- * @param {string} branchId The ID of the Val branch to reference
- * @param {number} version The version of the Val to check
- * @returns {Promise<boolean>} Promise resolving to true if the file exists, false otherwise
+ * @param valId The ID of the Val containing the file
+ * @param filePath The file path to check
+ * @param branchId The ID of the Val branch to reference
+ * @param version The version of the Val to check
+ * @returns Promise resolving to true if the file exists, false otherwise
  */
 export async function valItemExists(
   valId: string,
@@ -109,12 +115,12 @@ export async function valItemExists(
 /**
  * Converts a file path to its corresponding Val item for a given val.
  *
- * @param {string} valId - The ID of the Val containing the file
- * @param {object} options - The options object
- * @param {string} options.branchId - The ID of the Val branch to reference
- * @param {number} [options.version] - The version of the Val for the file being found (optional)
- * @param {string} options.filePath - The file path to locate
- * @returns {Promise<ValTown.Vals.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
+ * @param valId - The ID of the Val containing the file
+ * @param options - The options object
+ * @param options.branchId - The ID of the Val branch to reference
+ * @param [options.version] - The version of the Val for the file being found (optional)
+ * @param options.filePath - The file path to locate
+ * @returns Promise resolving to the file data or undefined if not found
  */
 export const getValItem = memoize(async (
   valId: string,
@@ -132,17 +138,38 @@ export const getValItem = memoize(async (
 });
 
 /**
-  * Lists all file paths in a Val with pagination support.
-  *
-  * @param {string} valId The ID of the val.
-  * @param {Object} params The parameters for listing Val items.
-  * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for
- root.
-  * @param {string} [params.branch_id] The ID of the Val branch to reference. Defaults to main.
-  * @param {number} [params.version] - The version of the val. Defaults to latest.
-  * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
-  * @returns {Promise<ValTown.Vals.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
-  */
+ * Get the content of a Val item.
+ *
+ * @param {string} valId The ID of the Val
+ * @param {string} branchId The ID of the Val branch to reference
+ * @param {number} version The version of the Val
+ * @param {string} filePath The path to the file
+ * @returns {Promise<string>} Promise resolving to the file content
+ */
+export const getValItemContent = memoize(
+  async (
+    valId: string,
+    branchId: string,
+    version: number,
+    filePath: string,
+  ): Promise<string> => {
+    return await sdk.vals.files
+      .getContent(valId, { path: filePath, branch_id: branchId, version })
+      .then((resp) => resp.text());
+  },
+);
+
+/**
+ * Lists all file paths in a Val with pagination support.
+ *
+ * @param valId ID of the val
+ * @param params Parameters for listing Val items
+ * @param params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for root.
+ * @param [params.branch_id] The ID of the Val branch to reference. Defaults to main.
+ * @param [params.version] - The version of the val. Defaults to latest.
+ * @param [params.options.recursive] Whether to recursively list files in subdirectories
+ * @returns Promise resolving to a Set of file paths
+ */
 export const listValItems = memoize(async (
   valId: string,
   branchId: string,

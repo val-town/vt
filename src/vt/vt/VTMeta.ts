@@ -20,7 +20,7 @@ export default class VTMeta {
   /**
    * Creates an instance of VTMeta.
    *
-   * @param {string} rootPath - The root path where the state folder is located.
+   * @param rootPath The root path where the state folder is located.
    */
   #rootPath: string;
 
@@ -31,7 +31,7 @@ export default class VTMeta {
   /**
    * Gets the full path to the state file.
    *
-   * @returns {string} The full file path as a string.
+   * @returns The full file path as a string.
    */
   public getVtStateFileName(): string {
     return join(this.#rootPath, META_FOLDER_NAME, META_STATE_FILE_NAME);
@@ -40,7 +40,7 @@ export default class VTMeta {
   /**
    * Gets the full path to all ignore files.
    *
-   * @returns {Promise<string[]>} Array of full file paths as strings.
+   * @returns Array of full file paths as strings.
    */
   private async gitignoreFilePaths(): Promise<string[]> {
     const ignoreFiles: string[] = [];
@@ -70,8 +70,8 @@ export default class VTMeta {
   /**
    * Reads and parses the state file.
    *
-   * @returns {Promise} A promise that resolves with the parsed state data.
-   * @throws {Error} Will throw an error if the file cannot be read or parsed.
+   * @returns A promise that resolves with the parsed state data.
+   * @throws Will throw an error if the file cannot be read or parsed.
    */
   public async loadVtState(): Promise<z.infer<typeof VTStateSchema>> {
     const data = await Deno.readTextFile(this.getVtStateFileName());
@@ -118,9 +118,9 @@ export default class VTMeta {
   /**
    * Performs operations on the configuration and automatically saves it.
    *
-   * @param callback - A function that receives the current config and can modify it
-   * @returns {Promise<T>} A promise that resolves to the return value of the callback
-   * @throws {Error} Will throw an error if the config cannot be loaded or saved
+   * @param callback A function that receives the current config and can modify it
+   * @returns Promise that resolves to the return value of the callback
+   * @throws If the config cannot be loaded or saved
    */
   public async doWithVtState<T>(
     callback: (
@@ -134,9 +134,9 @@ export default class VTMeta {
   }
 
   /**
-   * Loads the ignore list of globs from ignore files.
+   * Get ignore list of globs from ignore files.
    *
-   * @returns {Promise} A promise that resolves with a list of glob strings.
+   * @returns Promise that resolves with a list of glob strings.
    */
   public async loadGitignoreRules(): Promise<string[]> {
     const gitignoreRules: string[] = [];

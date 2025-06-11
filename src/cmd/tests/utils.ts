@@ -113,7 +113,7 @@ export async function runVtCommand(
         writer.write(new TextEncoder().encode("\b".repeat(10) + "yes\n"))
           .catch(() => {}); // Ignore errors when writing to stdin
         writer.releaseLock();
-      }, 100);
+      }, 50);
     }
 
     try {

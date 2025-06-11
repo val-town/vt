@@ -1,9 +1,71 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
+import sdk, {
+  getLatestVersion,
+  getValItemContent,
+  listValItems,
+  valItemExists,
+} from "~/sdk.ts";
 import { push } from "~/vt/lib/push.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+
+Deno.test({
+  name: "test renaming file at root",
+  permissions: "inherit",
+  async fn() {
+    await doWithNewVal(async ({ val, branch }) => {
+      await doWithTempDir(async (tempDir) => {
+        const oldFilePath = join(tempDir, "rootFile.txt");
+
+        // Create and push the original file
+        await Deno.writeTextFile(oldFilePath, "root file content");
+        await push({
+          targetDir: tempDir,
+          valId: val.id,
+          branchId: branch.id,
+        });
+
+        // Rename the file at the root
+        const newFilePath = join(tempDir, "renamedRootFile.txt");
+        await Deno.rename(oldFilePath, newFilePath);
+
+        // Push the renamed file
+        const { itemStateChanges: result } = await push({
+          targetDir: tempDir,
+          valId: val.id,
+          branchId: branch.id,
+        });
+
+        // Verify rename was detected
+        assertEquals(result.renamed.length, 1);
+        assertEquals(result.renamed[0].oldPath, "rootFile.txt");
+        assertEquals(result.renamed[0].path, "renamedRootFile.txt");
+
+        // If this doesn't throw it means it exists
+        assert(
+          await valItemExists(
+            val.id,
+            branch.id,
+            "renamedRootFile.txt",
+            await getLatestVersion(val.id, branch.id),
+          ),
+          "file should exist at new location",
+        );
+
+        assert(
+          !await valItemExists(
+            val.id,
+            branch.id,
+            "rootFile.txt",
+            await getLatestVersion(val.id, branch.id),
+          ),
+          "file should not exist at old location",
+        );
+      });
+    });
+  },
+});
 
 Deno.test({
   name: "test moving file from subdirectory to root",
@@ -270,12 +332,13 @@ Deno.test({
           });
 
           // Pull and assert that the creation worked
-          const originalFileContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: vtFilePath,
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const originalFileContent = await getValItemContent(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            vtFilePath,
+          );
+
           assertEquals(
             originalFileContent,
             "test",
@@ -291,12 +354,13 @@ Deno.test({
           });
 
           // Pull and assert that the modification worked
-          const newFileContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: vtFilePath,
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const newFileContent = await getValItemContent(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            vtFilePath,
+          );
+
           assertEquals(newFileContent, "test2");
         });
 
@@ -455,12 +519,13 @@ Deno.test({
           assertEquals(renamedFile.type, "http");
 
           // Verify content is preserved
-          const content = await sdk.vals.files
-            .getContent(val.id, {
-              path: "val/new.tsx",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const content = await getValItemContent(
+            val.id,
+            branch.id,
+            await getLatestVersion(val.id, branch.id),
+            "val/new.tsx",
+          );
+
           assertEquals(content, "contentt");
         });
 
@@ -778,26 +843,28 @@ Deno.test({
 
         await t.step("verify server state after push", async () => {
           // Check content on the server to verify the push succeeded
-          const writableContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: "writable.txt",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const latestVersion = await getLatestVersion(val.id, branch.id);
 
-          const readOnlyContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: "readonly.txt",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const writableContent = await getValItemContent(
+            val.id,
+            branch.id,
+            latestVersion,
+            "writable.txt",
+          );
 
-          const anotherContent = await sdk.vals.files
-            .getContent(val.id, {
-              path: "another.txt",
-              branch_id: branch.id,
-            })
-            .then((resp) => resp.text());
+          const readOnlyContent = await getValItemContent(
+            val.id,
+            branch.id,
+            latestVersion,
+            "readonly.txt",
+          );
+
+          const anotherContent = await getValItemContent(
+            val.id,
+            branch.id,
+            latestVersion,
+            "another.txt",
+          );
 
           // Verify the content matches what we expect
           assertEquals(
