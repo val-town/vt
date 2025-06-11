@@ -30,6 +30,8 @@ export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
 export const DEFAULT_WRAP_WIDTH = 80;
 export const MAX_WALK_UP_LEVELS = 100;
 
+export const DEFAULT_WRAP_AMOUNT = 80;
+
 export const FIRST_VERSION_NUMBER = 0;
 
 export const STATUS_STYLES: Record<

@@ -131,6 +131,7 @@ export function pull(params: PullParams): Promise<PushResult> {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
       }));
+
       return [{ itemStateChanges: changes }, !dryRun];
     },
     { targetDir, prefix: "vt_pull_" },
