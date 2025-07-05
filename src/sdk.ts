@@ -345,6 +345,18 @@ export async function createNewVal(options: {
 }
 
 /**
+ * Deletes a Val by its ID.
+ *
+ * @param valId The ID of the Val to delete
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteVal(
+  valId: string,
+): Promise<ReturnType<typeof sdk.vals.delete>> {
+  return await sdk.vals.delete(valId);
+}
+
+/**
  * Creates a new branch in a Val.
  *
  * @param valId The ID of the Val to create the branch in

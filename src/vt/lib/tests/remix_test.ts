@@ -4,7 +4,12 @@ import { exists } from "@std/fs";
 import { remix } from "~/vt/lib/remix.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, {
+  createValItem,
+  getCurrentUser,
+  getLatestVersion,
+  getValItem,
+} from "~/sdk.ts";
 
 Deno.test({
   name: "remix preserves HTTP Val type",
@@ -12,16 +17,17 @@ Deno.test({
   async fn(t) {
     const user = await getCurrentUser();
 
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       // Create an HTTP Val in the source val
       const httpValName = "foo_http";
-      await sdk.vals.files.create(
+      await createValItem(
         val.id,
         {
           path: `${httpValName}.ts`,
           content: "export default function handler(req: Request) {\n" +
             '  return new Response("Hello from HTTP val!");\n' +
             "}",
+          branchId: branch.id,
           type: "http",
         },
       );
@@ -38,6 +44,10 @@ Deno.test({
             valName: remixedValName,
             privacy: "public",
           });
+          const branch = await sdk.vals.branches.retrieve(
+            result.toValId,
+            "main",
+          );
 
           // Check that the result contains expected data
           assert(result.toValId, "Should return a Val ID");
@@ -63,13 +73,19 @@ Deno.test({
           );
 
           // Verify the file type was preserved
-          const remixedFile = await sdk.vals.files.retrieve(
+          const latestVersion = await getLatestVersion(
             result.toValId,
-            { path: `${httpValName}.ts`, recursive: true },
-          ).then((resp) => resp.data[0]);
+            branch.id,
+          );
+          const remixedFile = await getValItem(
+            result.toValId,
+            "main",
+            latestVersion,
+            `${httpValName}.ts`,
+          );
 
           assertEquals(
-            remixedFile.type,
+            remixedFile?.type,
             "http",
             "HTTP Val type should be preserved in remixed val",
           );
@@ -159,25 +175,27 @@ Deno.test({
   name: "remix basic functionality",
   permissions: "inherit",
   async fn(t) {
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       const user = await getCurrentUser();
 
       // Create a few files in the source val
-      await sdk.vals.files.create(
+      await createValItem(
         val.id,
         {
           path: "regular.ts",
           content: "export const hello = () => 'world';",
           type: "script",
+          branchId: branch.id,
         },
       );
 
-      await sdk.vals.files.create(
+      await createValItem(
         val.id,
         {
           path: join("nested", "file.txt"),
           content: "This is a nested text file",
           type: "file",
+          branchId: branch.id,
         },
       );
 

@@ -798,6 +798,11 @@ Deno.test({
   name: "test push with read-only files",
   permissions: "inherit",
   async fn(t) {
+    if (Deno.build.os === "windows") {
+      console.warn("Skipping read-only file test on Windows");
+      return;
+    }
+
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create multiple files - some will be made read-only
