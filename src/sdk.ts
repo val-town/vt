@@ -17,20 +17,26 @@ const sdk = new ValTown({
 });
 
 /**
+ * Generate a random (valid) Val name. Useful for tests.
+ */
+export function randomValName(label = "") {
+  return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
+}
+
+/**
+ * Get the owner of the API key used to auth the current ValTown instance.
+ */
+export const getCurrentUser = memoize(async () => {
+  return await sdk.me.profile.retrieve();
+});
+
+/**
  * Checks if a Val exists.
  *
  * @param projectId - The ID of the project to check
  * @returns Promise resolving to whether the project exists
  */
 export async function valExists(valId: string): Promise<boolean>;
-/**
- * Checks if a Val exists.
- *
- * @param options Val identification options
- * @param options.username The username of the Val owner
- * @param options.valName The name of the Val to check
- * @returns Promise resolving to true if the Val exists, false otherwise
- */
 export async function valExists(options: {
   username: string;
   valName: string;
@@ -55,6 +61,79 @@ export async function valExists(
     }
     throw error; // Re-throw if it's not a 404 error
   }
+}
+
+/**
+ * Creates a new Val with the provided metadata.
+ *
+ * @param options Create options
+ * @param options.name The name for the new val
+ * @param options.description The description for the new val (optional)
+ * @param options.privacy The privacy setting for the new val (optional)
+ * @returns Promise resolving to the create response
+ */
+export async function createNewVal(options: {
+  name: string;
+  description?: string;
+  privacy?: ValPrivacy;
+}): Promise<ReturnType<typeof sdk.vals.create>> {
+  const { name, description, privacy = DEFAULT_VAL_PRIVACY } = options;
+
+  return await sdk.vals.create({
+    name,
+    description,
+    privacy,
+  });
+}
+
+/**
+ * Deletes a Val by its ID.
+ *
+ * @param valId The ID of the Val to delete
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteVal(
+  valId: string,
+): Promise<ReturnType<typeof sdk.vals.delete>> {
+  return await sdk.vals.delete(valId);
+}
+
+/**
+ * Retrieves a Val by its ID.
+ *
+ * @param valId The ID of the Val to retrieve
+ * @returns Promise resolving to the Val data
+ */
+export async function getVal(
+  valId: string,
+): Promise<ReturnType<typeof sdk.vals.retrieve>> {
+  return await sdk.vals.retrieve(valId);
+}
+
+/**
+ * Lists all Val Town vals owned by the current user.
+ *
+ * @returns Promise resolving to an array of Val Town vals
+ */
+export async function listMyVals(
+  n: number = Number.POSITIVE_INFINITY,
+): Promise<ValTown.Val[]> {
+  return (await arrayFromAsyncN(sdk.me.vals.list({}), n))[0];
+}
+
+/**
+ * Retrieves a Val by its name and the owner's username.
+ *
+ * @param username The username of the Val owner
+ * @param valName The name of the Val to retrieve
+ * @returns Promise resolving to the Val
+ */
+export async function valNameToVal(
+  username: string,
+  valName: string,
+): Promise<ValTown.Val> {
+  const { id } = await sdk.alias.username.valName.retrieve(username, valName);
+  return await sdk.vals.retrieve(id);
 }
 
 /**
@@ -91,6 +170,77 @@ export async function branchNameToBranch(
   }
 
   throw new Deno.errors.NotFound(`Branch "${branchName}" not found in Val`);
+}
+
+/**
+ * Lists all branches in a Val.
+ *
+ * @param valId The ID of the Val to list branches for
+ * @returns Promise resolving to an array of branchs
+ */
+export async function listBranches(
+  valId: string,
+): Promise<ValTown.Vals.Branches.BranchListResponse[]> {
+  return await Array.fromAsync(sdk.vals.branches.list(valId, {}));
+}
+
+/**
+ * Deletes a branch in a Val.
+ *
+ * @param valId The ID of the Val to delete the branch from
+ * @param branchId The ID of the branch to delete
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteBranch(
+  valId: string,
+  branchId: string,
+): Promise<ReturnType<typeof sdk.vals.branches.delete>> {
+  return await sdk.vals.branches.delete(valId, branchId);
+}
+
+/**
+ * Retrieves a branch by its id in a Val.
+ *
+ * @param valId The ID of the Val to retrieve the branch from
+ * @param branchId The ID of the branch to retrieve
+ * @returns Promise resolving to the branch data
+ */
+export async function getBranch(
+  valId: string,
+  branchId: string,
+): Promise<ValTown.Vals.Branches.BranchRetrieveResponse> {
+  return await sdk.vals.branches.retrieve(valId, branchId);
+}
+
+/**
+ * Get the latest version of a branch.
+ */
+export async function getLatestVersion(valId: string, branchId: string) {
+  return (await sdk.vals.branches.retrieve(valId, branchId)).version;
+}
+
+/**
+ * Creates a new branch in a Val.
+ *
+ * @param valId The ID of the Val to create the branch in
+ * @param options Branch creation options
+ * @param options.name The name for the new branch
+ * @param options.branchId The ID of the branch to fork from (optional)
+ * @returns Promise resolving to the create response
+ */
+export async function createNewBranch(
+  valId: string,
+  options: {
+    name: string;
+    branchId?: string;
+  },
+): Promise<ReturnType<typeof sdk.vals.branches.create>> {
+  const { name, branchId } = options;
+
+  return await sdk.vals.branches.create(valId, {
+    name,
+    branchId,
+  });
 }
 
 /**
@@ -208,67 +358,6 @@ export const listValItems = memoize(async (
 });
 
 /**
- * Lists all branches in a Val.
- *
- * @param valId The ID of the Val to list branches for
- * @returns Promise resolving to an array of branchs
- */
-export async function listBranches(
-  valId: string,
-): Promise<ValTown.Vals.Branches.BranchListResponse[]> {
-  return await Array.fromAsync(sdk.vals.branches.list(valId, {}));
-}
-
-/**
- * Deletes a branch in a Val.
- *
- * @param valId The ID of the Val to delete the branch from
- * @param branchId The ID of the branch to delete
- * @returns Promise resolving to the delete response
- */
-export async function deleteBranch(
-  valId: string,
-  branchId: string,
-): Promise<ReturnType<typeof sdk.vals.branches.delete>> {
-  return await sdk.vals.branches.delete(valId, branchId);
-}
-
-/**
- * Retrieves a branch by its id in a Val.
- *
- * @param valId The ID of the Val to retrieve the branch from
- * @param branchId The ID of the branch to retrieve
- * @returns Promise resolving to the branch data
- */
-export async function getBranch(
-  valId: string,
-  branchId: string,
-): Promise<ValTown.Vals.Branches.BranchRetrieveResponse> {
-  return await sdk.vals.branches.retrieve(valId, branchId);
-}
-
-/**
- * Get the latest version of a branch.
- */
-export async function getLatestVersion(valId: string, branchId: string) {
-  return (await sdk.vals.branches.retrieve(valId, branchId)).version;
-}
-
-/**
- * Generate a random (valid) Val name. Useful for tests.
- */
-export function randomValName(label = "") {
-  return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
-}
-
-/**
- * Get the owner of the API key used to auth the current ValTown instance.
- */
-export const getCurrentUser = memoize(async () => {
-  return await sdk.me.profile.retrieve();
-});
-
-/**
  * Updates a Val file with the provided content and metadata.
  *
  * @param valId The ID of the Val to update
@@ -367,105 +456,8 @@ export async function deleteValItem(
 }
 
 /**
- * Creates a new Val with the provided metadata.
- *
- * @param options Create options
- * @param options.name The name for the new val
- * @param options.description The description for the new val (optional)
- * @param options.privacy The privacy setting for the new val (optional)
- * @returns Promise resolving to the create response
- */
-export async function createNewVal(options: {
-  name: string;
-  description?: string;
-  privacy?: ValPrivacy;
-}): Promise<ReturnType<typeof sdk.vals.create>> {
-  const { name, description, privacy = DEFAULT_VAL_PRIVACY } = options;
-
-  return await sdk.vals.create({
-    name,
-    description,
-    privacy,
-  });
-}
-
-/**
- * Deletes a Val by its ID.
- *
- * @param valId The ID of the Val to delete
- * @returns Promise resolving to the delete response
- */
-export async function deleteVal(
-  valId: string,
-): Promise<ReturnType<typeof sdk.vals.delete>> {
-  return await sdk.vals.delete(valId);
-}
-
-/**
- * Retrieves a Val by its ID.
- *
- * @param valId The ID of the Val to retrieve
- * @returns Promise resolving to the Val data
- */
-export async function getVal(
-  valId: string,
-): Promise<ReturnType<typeof sdk.vals.retrieve>> {
-  return await sdk.vals.retrieve(valId);
-}
-
-/**
- * Creates a new branch in a Val.
- *
- * @param valId The ID of the Val to create the branch in
- * @param options Branch creation options
- * @param options.name The name for the new branch
- * @param options.branchId The ID of the branch to fork from (optional)
- * @returns Promise resolving to the create response
- */
-export async function createNewBranch(
-  valId: string,
-  options: {
-    name: string;
-    branchId?: string;
-  },
-): Promise<ReturnType<typeof sdk.vals.branches.create>> {
-  const { name, branchId } = options;
-
-  return await sdk.vals.branches.create(valId, {
-    name,
-    branchId,
-  });
-}
-
-/**
- * Lists all Val Town vals owned by the current user.
- *
- * @returns Promise resolving to an array of Val Town vals
- */
-export async function listMyVals(
-  n: number = Number.POSITIVE_INFINITY,
-): Promise<ValTown.Val[]> {
-  return (await arrayFromAsyncN(sdk.me.vals.list({}), n))[0];
-}
-
-/**
- * Retrieves a Val by its name and the owner's username.
- *
- * @param username The username of the Val owner
- * @param valName The name of the Val to retrieve
- * @returns Promise resolving to the Val
- */
-export async function valNameToVal(
-  username: string,
-  valName: string,
-): Promise<ValTown.Val> {
-  const { id } = await sdk.alias.username.valName.retrieve(username, valName);
-  return await sdk.vals.retrieve(id);
-}
-
-/**
  * The actual stainless SDK instance for interacting with Val Town.
- * 
+ *
  * In most cases, you should use the utility functions exported from this module, which
  * handle common operations and cases like file path normalization, etc.
  */

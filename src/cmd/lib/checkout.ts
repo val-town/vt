@@ -8,9 +8,9 @@ import { tty } from "@cliffy/ansi/tty";
 import {
   branchNameToBranch,
   getBranch,
-  getVal,
   getCurrentUser,
   getLatestVersion,
+  getVal,
 } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import {
