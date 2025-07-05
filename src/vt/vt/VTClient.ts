@@ -10,10 +10,12 @@ import type {
   CheckoutResult,
   ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import sdk, {
+import {
   branchNameToBranch,
+  deleteVal,
   getCurrentUser,
   getLatestVersion,
+  valNameToVal,
 } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
@@ -77,7 +79,7 @@ export default class VTClient {
       editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
       user.username!,
     );
-    const templateVal = await sdk.alias.username.valName.retrieve(
+    const templateVal = await valNameToVal(
       ownerName,
       valName,
     );
@@ -122,7 +124,7 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
-    const valId = await sdk.alias.username.valName.retrieve(
+    const valId = await valNameToVal(
       username,
       valName,
     )
@@ -133,8 +135,7 @@ export default class VTClient {
 
     const branch = await branchNameToBranch(valId, branchName);
 
-    version = version ??
-      (await sdk.vals.branches.retrieve(valId, branch.id)).version;
+    version = version ?? await getLatestVersion(valId, branch.id);
 
     const vt = new VTClient(rootPath);
 
@@ -328,7 +329,7 @@ export default class VTClient {
   }): Promise<VTClient> {
     await assertSafeDirectory(rootPath);
 
-    const srcVal = await sdk.alias.username.valName.retrieve(
+    const srcVal = await valNameToVal(
       srcValUsername,
       srcValName,
     );
@@ -392,7 +393,7 @@ export default class VTClient {
       valId = params.valId;
     } else {
       // Get valId from username and valName
-      const val = await sdk.alias.username.valName.retrieve(
+      const val = await valNameToVal(
         params.username,
         params.valName,
       );
@@ -436,7 +437,7 @@ export default class VTClient {
     const vtState = await this.getMeta().loadVtState();
 
     // Delete the val
-    await sdk.vals.delete(vtState.val.id);
+    await deleteVal(vtState.val.id);
 
     // De-init the directory
     await Deno.remove(
@@ -581,7 +582,7 @@ export default class VTClient {
       let result: CheckoutResult;
 
       // Check if we're forking from another branch
-      if (options && options.forkedFromId) {
+      if (options?.forkedFromId) {
         const forkParams: ForkCheckoutParams = {
           ...baseParams,
           forkedFromId: options.forkedFromId,
