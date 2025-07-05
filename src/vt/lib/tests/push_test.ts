@@ -116,11 +116,11 @@ Deno.test({
             branchId: branch.id,
           });
           assertEquals(secondPush.renamed.length, 1);
-          assertEquals(
+          assertPathEquals(
             secondPush.renamed[0].oldPath,
             join("subdir", "test.txt"),
           );
-          assertEquals(secondPush.renamed[0].path, "test.txt");
+          assertPathEquals(secondPush.renamed[0].path, "test.txt");
         });
 
         await t.step("ensure push is idempotent", async () => {
@@ -453,7 +453,10 @@ Deno.test({
           statusResult.renamed[0].oldPath,
           join("val", "original.ts"),
         );
-        assertPathEquals(statusResult.renamed[0].path, join("val", "renamed.ts"));
+        assertPathEquals(
+          statusResult.renamed[0].path,
+          join("val", "renamed.ts"),
+        );
         assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Verify file ID is preserved (same file)
@@ -527,11 +530,14 @@ Deno.test({
           // Verify rename was detected
           assertEquals(statusResult.renamed.length, 1);
           assertEquals(statusResult.renamed[0].type, "http");
-          assertEquals(
+          assertPathEquals(
             statusResult.renamed[0].oldPath,
             join("val", "old.http.ts"),
           );
-          assertPathEquals(statusResult.renamed[0].path, join("val", "new.tsx"));
+          assertPathEquals(
+            statusResult.renamed[0].path,
+            join("val", "new.tsx"),
+          );
           assertEquals(statusResult.renamed[0].status, "renamed");
         });
 

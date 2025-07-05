@@ -40,11 +40,11 @@ Deno.test({
           const result = await remix({
             targetDir: destTmpDir,
             srcValId: val.id,
-            srcBranchId: "main",
+            srcBranchId: branch.id,
             valName: remixedValName,
             privacy: "public",
           });
-          const branch = await sdk.vals.branches.retrieve(
+          const remixBranch = await sdk.vals.branches.retrieve(
             result.toValId,
             "main",
           );
@@ -75,7 +75,7 @@ Deno.test({
           // Verify the file type was preserved
           const latestVersion = await getLatestVersion(
             result.toValId,
-            branch.id,
+            remixBranch.id,
           );
           const remixedFile = await getValItem(
             result.toValId,
