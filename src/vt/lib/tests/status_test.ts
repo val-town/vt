@@ -1,5 +1,5 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import { createValItem, getLatestVersion } from "~/sdk.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
@@ -96,17 +96,17 @@ Deno.test({
         const localOnlyFile = "local.txt";
 
         await t.step("create a local and remote layout", async () => {
-          await sdk.vals.files.create(val.id, {
+          await createValItem(val.id, {
             path: remoteFile1,
             content: "Remote file 1",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           });
 
-          await sdk.vals.files.create(val.id, {
+          await createValItem(val.id, {
             path: remoteFile2,
             content: "Remote file 2",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           });
 
@@ -206,17 +206,17 @@ Deno.test({
           await Deno.writeTextFile(oldPathB, "differentContent");
 
           // Push original files to remote
-          await sdk.vals.files.create(val.id, {
+          await createValItem(val.id, {
             path: join("folder", "oldA.txt"),
             content: "content",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           });
 
-          await sdk.vals.files.create(val.id, {
+          await createValItem(val.id, {
             path: join("folder", "oldB.txt"),
             content: "differentContent",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           });
 
