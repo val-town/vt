@@ -70,7 +70,7 @@ export async function remix(
 
   const srcVal = await sdk.vals.retrieve(srcValId);
 
-  const srcBranch = params.srcBranchId 
+  const srcBranch = params.srcBranchId
     ? await sdk.vals.branches.retrieve(srcValId, params.srcBranchId) // Use provided branch ID directly
     : await branchNameToBranch(srcValId, DEFAULT_BRANCH_NAME); // Default to main branch
 

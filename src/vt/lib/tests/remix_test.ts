@@ -4,7 +4,12 @@ import { exists } from "@std/fs";
 import { remix } from "~/vt/lib/remix.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import { branchNameToBranch, createValItem, getCurrentUser, getValItem } from "~/sdk.ts";
+import {
+  branchNameToBranch,
+  createValItem,
+  getCurrentUser,
+  getValItem,
+} from "~/sdk.ts";
 import sdk from "~/sdk.ts";
 
 Deno.test({
