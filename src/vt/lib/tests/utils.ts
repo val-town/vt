@@ -1,9 +1,11 @@
+import { assertEquals } from "@std/assert";
 import {
   branchNameToBranch,
   createNewVal,
   deleteVal,
   randomValName,
 } from "~/sdk.ts";
+import { ensurePosixPath } from "~/utils.ts";
 
 export interface ExpectedValInode {
   path: string;
@@ -42,4 +44,12 @@ export async function doWithNewVal<T>(
   } finally {
     await deleteVal(val.id);
   }
+}
+
+export function assertPathEquals(
+  actual: string,
+  expected: string,
+  msg?: string,
+) {
+  assertEquals(ensurePosixPath(actual), ensurePosixPath(expected), msg);
 }

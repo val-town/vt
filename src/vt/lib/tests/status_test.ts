@@ -1,6 +1,6 @@
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import { assertPathEquals, doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { createValItem, getLatestVersion } from "~/sdk.ts";
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { status } from "~/vt/lib/status.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
@@ -70,14 +70,12 @@ Deno.test({
         );
 
         // Verify the file with invalid name is detected and has the bad_name warning
-        assertEquals(
+        assert(
           invalidFile !== undefined,
-          true,
           "file with invalid name should be detected",
         );
-        assertEquals(
+        assert(
           invalidFile?.warnings?.includes("bad_name"),
-          true,
           "file with invalid name should have bad_name warning",
         );
       });
@@ -134,15 +132,15 @@ Deno.test({
 
           // Test file that exists in both places but was modified locally
           assertEquals(statusResult.modified.length, 1);
-          assertEquals(statusResult.modified[0].path, remoteFile1);
+          assertPathEquals(statusResult.modified[0].path, remoteFile1);
 
           // Test local-only file (should be created)
           assertEquals(statusResult.created.length, 1);
-          assertEquals(statusResult.created[0].path, localOnlyFile);
+          assertPathEquals(statusResult.created[0].path, localOnlyFile);
 
           // Test file missing locally (should be deleted)
           assertEquals(statusResult.deleted.length, 1);
-          assertEquals(statusResult.deleted[0].path, remoteFile2);
+          assertPathEquals(statusResult.deleted[0].path, remoteFile2);
         });
       });
     });
@@ -176,11 +174,7 @@ Deno.test({
         const createdDir = statusResult.created.find(
           (item) => item.type === "directory" && item.path === "empty_dir",
         );
-        assertEquals(
-          !!createdDir,
-          true,
-          "empty directory should be detected as created",
-        );
+        assert(!!createdDir, "empty directory should be detected as created");
       });
     });
   },
@@ -245,17 +239,17 @@ Deno.test({
           // Check not_modified array
           assertEquals(statusResult.not_modified.length, 1);
           assertEquals(statusResult.not_modified[0].type, "directory");
-          assertEquals(statusResult.not_modified[0].path, "folder");
+          assertPathEquals(statusResult.not_modified[0].path, "folder");
           assertEquals(statusResult.not_modified[0].status, "not_modified");
 
           // Check renamed array - should have the file with unchanged content
           assertEquals(statusResult.renamed.length, 1);
           assertEquals(statusResult.renamed[0].type, "file");
-          assertEquals(
+          assertPathEquals(
             statusResult.renamed[0].path,
             join("folder", "renamedB.txt"),
           );
-          assertEquals(
+          assertPathEquals(
             statusResult.renamed[0].oldPath,
             join("folder", "oldB.txt"),
           );
@@ -264,7 +258,7 @@ Deno.test({
           // Check created array - should have the file with modified content
           assertEquals(statusResult.created.length, 1);
           assertEquals(statusResult.created[0].type, "file");
-          assertEquals(
+          assertPathEquals(
             statusResult.created[0].path,
             join("folder", "renamedA.txt"),
           );
@@ -273,7 +267,7 @@ Deno.test({
           // Check deleted array - should have the old file that was "modified"
           assertEquals(statusResult.deleted.length, 1);
           assertEquals(statusResult.deleted[0].type, "file");
-          assertEquals(
+          assertPathEquals(
             statusResult.deleted[0].path,
             join("folder", "oldA.txt"),
           );

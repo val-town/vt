@@ -1,4 +1,4 @@
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import { assertPathEquals, doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import {
   getLatestVersion,
   getValItem,
@@ -40,8 +40,8 @@ Deno.test({
 
         // Verify rename was detected
         assertEquals(result.renamed.length, 1);
-        assertEquals(result.renamed[0].oldPath, "rootFile.txt");
-        assertEquals(result.renamed[0].path, "renamedRootFile.txt");
+        assertPathEquals(result.renamed[0].oldPath, "rootFile.txt");
+        assertPathEquals(result.renamed[0].path, "renamedRootFile.txt");
 
         // If this doesn't throw it means it exists
         assert(
@@ -641,7 +641,7 @@ Deno.test({
 
         // Verify that FileState reports correct changes
         assertEquals(result.created.length, 1);
-        assertEquals(result.created[0].path, vtFilePath);
+        assertPathEquals(result.created[0].path, vtFilePath);
         assertEquals(result.created[0].status, "created");
         assertEquals(result.created[0].type, "file");
 

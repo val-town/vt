@@ -1,4 +1,4 @@
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import { assertPathEquals, doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import {
   createValItem,
   deleteValItem,
@@ -46,11 +46,7 @@ Deno.test({
 
             // Check file exists
             const fileExists = await exists(localFilePath);
-            assertEquals(
-              fileExists,
-              true,
-              `File ${vtFilePath} should exist after pulling`,
-            );
+            assert(fileExists, `File ${vtFilePath} should exist after pulling`);
 
             // Check content matches
             const content = await Deno.readTextFile(localFilePath);
@@ -162,17 +158,12 @@ Deno.test({
         // Verify remote file was pulled
         const localRemotePath = join(tempDir, vtFilePath);
         const remoteFileExists = await exists(localRemotePath);
-        assertEquals(
-          remoteFileExists,
-          true,
-          "Remote file should exist after pulling",
-        );
+        assert(remoteFileExists, "Remote file should exist after pulling");
 
         // Verify ignored file was preserved
         const ignoredFileExists = await exists(localIgnoredPath);
-        assertEquals(
+        assert(
           ignoredFileExists,
-          true,
           "Ignored local file should be preserved after pulling",
         );
 
@@ -225,7 +216,7 @@ Deno.test({
             1,
             "dry run should detect one file to create",
           );
-          assertEquals(
+          assertPathEquals(
             itemStateChanges.created[0].path,
             vtFilePath,
             "correct file path should be detected",
@@ -276,7 +267,7 @@ Deno.test({
             1,
             "dry run should detect one file to modify",
           );
-          assertEquals(
+          assertPathEquals(
             itemStateChanges.modified[0].path,
             vtFilePath,
             "correct file path should be detected for modification",
@@ -328,16 +319,14 @@ Deno.test({
           // Verify directories were created
           const localDirPath = join(tempDir, nestedDirPath);
           const dirExists = await exists(localDirPath);
-          assertEquals(
+          assert(
             dirExists,
-            true,
             `Directory ${nestedDirPath} should exist after pulling`,
           );
 
           // Verify changes were detected
-          assertEquals(
+          assert(
             firstPullChanges.created.length > 0,
-            true,
             "First pull should detect directory creation",
           );
         });
