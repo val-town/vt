@@ -95,8 +95,6 @@ export function pull(params: PullParams): Promise<PushResult> {
       // Scan the temp directory to identify files that should be deleted
       const pathsToDelete: string[] = [];
       for await (const entry of walk(tmpDir)) {
-        entry.path = asPosixPath(entry.path);
-        
         const relativePath = relative(tmpDir, entry.path);
         const targetDirPath = join(targetDir, relativePath);
         const tmpDirPath = entry.path;
@@ -107,7 +105,7 @@ export function pull(params: PullParams): Promise<PushResult> {
 
         const stat = await Deno.stat(entry.path);
         const fileStatus: ItemStatus = {
-          path: relativePath,
+          path: asPosixPath(relativePath),
           status: "deleted",
           type: stat.isDirectory ? "directory" : await getValItemType(
             valId,
