@@ -175,20 +175,18 @@ export const listValItems = memoize(async (
   branchId: string,
   version: number,
 ): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
-  const files: ValTown.Vals.FileRetrieveResponse[] = [];
-
   branchId = branchId ||
     (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
-      .then((resp) => resp.id))!;
+      .then((resp) => resp.id));
 
-  for await (
-    const file of sdk.vals.files.retrieve(valId, {
+  const files = await Array.fromAsync(
+    sdk.vals.files.retrieve(valId, {
       path: "",
       branch_id: branchId,
       version,
       recursive: true,
-    })
-  ) files.push(file);
+    }),
+  );
 
   return files;
 });
