@@ -295,6 +295,33 @@ export async function createValItem(
 }
 
 /**
+ * Deletes a Val file at the specified path.
+ *
+ * @param valId The ID of the Val containing the file to delete
+ * @param options Delete options
+ * @param options.path The path of the file to delete
+ * @param options.branchId The ID of the branch to delete from
+ * @param options.recursive Whether to recursively delete directories (optional)
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteValItem(
+  valId: string,
+  options: {
+    path: string;
+    branchId: string;
+    recursive?: boolean;
+  },
+): Promise<ReturnType<typeof sdk.vals.files.delete>> {
+  const { path, branchId, recursive } = options;
+
+  return await sdk.vals.files.delete(valId, {
+    path: ensurePosixPath(path),
+    branch_id: branchId,
+    recursive: !!recursive,
+  });
+}
+
+/**
  * Creates a new Val with the provided metadata.
  *
  * @param options Create options
@@ -318,29 +345,26 @@ export async function createNewVal(options: {
 }
 
 /**
- * Deletes a Val file at the specified path.
+ * Creates a new branch in a Val.
  *
- * @param valId The ID of the Val containing the file to delete
- * @param options Delete options
- * @param options.path The path of the file to delete
- * @param options.branchId The ID of the branch to delete from
- * @param options.recursive Whether to recursively delete directories (optional)
- * @returns Promise resolving to the delete response
+ * @param valId The ID of the Val to create the branch in
+ * @param options Branch creation options
+ * @param options.name The name for the new branch
+ * @param options.branchId The ID of the branch to fork from (optional)
+ * @returns Promise resolving to the create response
  */
-export async function deleteValFile(
+export async function createNewBranch(
   valId: string,
   options: {
-    path: string;
-    branchId: string;
-    recursive?: boolean;
+    name: string;
+    branchId?: string;
   },
-): Promise<ReturnType<typeof sdk.vals.files.delete>> {
-  const { path, branchId, recursive } = options;
+): Promise<ValTown.Vals.BranchCreateResponse> {
+  const { name, branchId } = options;
 
-  return await sdk.vals.files.delete(valId, {
-    path: ensurePosixPath(path),
-    branch_id: branchId,
-    recursive: !!recursive,
+  return await sdk.vals.branches.create(valId, {
+    name,
+    branchId,
   });
 }
 

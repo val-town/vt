@@ -1,5 +1,11 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { branchExists, getLatestVersion } from "~/sdk.ts";
+import {
+  branchExists,
+  createNewBranch,
+  createValItem,
+  getLatestVersion,
+  updateValFile,
+} from "~/sdk.ts";
 import { checkout } from "~/vt/lib/checkout.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -16,24 +22,24 @@ Deno.test({
 
       await t.step("create files on main and feature branches", async () => {
         // Create a file on main branch
-        await sdk.vals.files.create(val.id, {
+        await createValItem(val.id, {
           path: "main.txt",
           content: "file on main branch",
-          branch_id: mainBranch.id,
+          branchId: mainBranch.id,
           type: "file",
         });
 
         // Create a new branch from main
-        featureBranch = await sdk.vals.branches.create(
+        featureBranch = await createNewBranch(
           val.id,
           { branchId: mainBranch.id, name: "feature" },
         );
 
         // Add a file to the feature branch
-        await sdk.vals.files.create(val.id, {
+        await createValItem(val.id, {
           path: "feature.txt",
           content: "file on feature branch",
-          branch_id: featureBranch.id,
+          branchId: featureBranch.id,
           type: "file",
         });
       });
@@ -104,10 +110,10 @@ Deno.test({
   async fn() {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.vals.files.create(val.id, {
+      await createValItem(val.id, {
         path: "main.txt",
         content: "main branch content",
-        branch_id: mainBranch.id,
+        branchId: mainBranch.id,
         type: "file",
       });
 
@@ -187,24 +193,24 @@ Deno.test({
   async fn() {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.vals.files.create(val.id, {
+      await createValItem(val.id, {
         path: "main.txt",
         content: "file on main branch",
-        branch_id: mainBranch.id,
+        branchId: mainBranch.id,
         type: "file",
       });
 
       // Create a new branch from main
-      const featureBranch = await sdk.vals.branches.create(
+      const featureBranch = await createNewBranch(
         val.id,
         { branchId: mainBranch.id, name: "feature" },
       );
 
       // Add a file to feature branch
-      await sdk.vals.files.create(val.id, {
+      await createValItem(val.id, {
         path: "feature-only.txt",
         content: "file on feature branch only",
-        branch_id: featureBranch.id,
+        branchId: featureBranch.id,
         type: "file",
       });
 
@@ -294,14 +300,16 @@ Deno.test({
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a feature branch
-      const featureBranch = await sdk.vals.branches
-        .create(val.id, { name: "feature" });
+      const featureBranch = await createNewBranch(
+        val.id,
+        { name: "feature" },
+      );
 
       await t.step("add file to feature branch", async () => {
-        await sdk.vals.files.create(val.id, {
+        await createValItem(val.id, {
           path: "feature.txt",
           content: "feature content",
-          branch_id: featureBranch.id,
+          branchId: featureBranch.id,
           type: "file",
         });
       });
@@ -367,10 +375,10 @@ Deno.test({
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.vals.files.create(val.id, {
+      await createValItem(val.id, {
         path: "main.txt",
         content: "file on main branch",
-        branch_id: mainBranch.id,
+        branchId: mainBranch.id,
         type: "file",
       });
 
@@ -467,10 +475,10 @@ Deno.test({
   async fn(t) {
     await doWithNewVal(async ({ val, branch: mainBranch }) => {
       // Create a file on main branch
-      await sdk.vals.files.create(val.id, {
+      await createValItem(val.id, {
         path: "original.txt",
         content: "original content",
-        branch_id: mainBranch.id,
+        branchId: mainBranch.id,
         type: "file",
       });
 
@@ -534,18 +542,17 @@ Deno.test({
         // Verify we can push the changes to the new branch
         await t.step("push changes to new branch", async () => {
           // Push changes to the new branch (this would be a separate operation in real usage)
-          await sdk.vals.files.create(val.id, {
+          await createValItem(val.id, {
             path: "new-file.txt",
             content: "new file content",
-            branch_id: result.toBranch!.id,
+            branchId: result.toBranch!.id,
             type: "file",
           });
 
-          await sdk.vals.files.update(val.id, {
+          await updateValFile(val.id, {
             path: "original.txt",
             content: "modified content",
-            branch_id: result.toBranch!.id,
-            type: "file",
+            branchId: result.toBranch!.id,
           });
 
           // Checkout main branch again to verify changes aren't there

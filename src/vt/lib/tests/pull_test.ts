@@ -1,5 +1,10 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import {
+  createValItem,
+  deleteValItem,
+  getLatestVersion,
+  updateValFile,
+} from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -17,12 +22,12 @@ Deno.test({
         const fileContent = "This is a test file";
 
         await t.step("create initial file", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: vtFilePath,
               content: fileContent,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -60,12 +65,12 @@ Deno.test({
             const updatedContent = "This is an updated test file";
 
             // Update file on server
-            await sdk.vals.files.update(
+            await updateValFile(
               val.id,
               {
                 path: vtFilePath,
                 content: updatedContent,
-                branch_id: branch.id,
+                branchId: branch.id,
               },
             );
 
@@ -89,11 +94,11 @@ Deno.test({
 
           await t.step("delete file on server", async () => {
             // Delete file on server
-            await sdk.vals.files.delete(
+            await deleteValItem(
               val.id,
               {
                 path: vtFilePath,
-                branch_id: branch.id,
+                branchId: branch.id,
                 recursive: true,
               },
             );
@@ -131,12 +136,12 @@ Deno.test({
         const ignoredFilePath = "ignored.log";
 
         // Create remote file
-        await sdk.vals.files.create(
+        await createValItem(
           val.id,
           {
             path: vtFilePath,
             content: "Remote file",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           },
         );
@@ -193,12 +198,12 @@ Deno.test({
         const fileContent = "This is a server file";
 
         await t.step("create file on server", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: vtFilePath,
               content: fileContent,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -247,12 +252,12 @@ Deno.test({
         await t.step("test dry run for modified files", async () => {
           // Update file on server
           const updatedContent = "This file has been updated on the server";
-          await sdk.vals.files.update(
+          await updateValFile(
             val.id,
             {
               path: vtFilePath,
               content: updatedContent,
-              branch_id: branch.id,
+              branchId: branch.id,
             },
           );
 
@@ -301,11 +306,11 @@ Deno.test({
         const nestedDirPath = join("parent", "child", "grandchild");
 
         await t.step("create nested directories on server", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: nestedDirPath,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "directory",
             },
           );

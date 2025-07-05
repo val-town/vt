@@ -1,6 +1,7 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, {
+import {
   getLatestVersion,
+  getValItem,
   getValItemContent,
   listValItems,
   valItemExists,
@@ -164,13 +165,20 @@ Deno.test({
           branchId: branch.id,
         });
 
-        // Get original file IDs
-        const file1 = await sdk.vals.files
-          .retrieve(val.id, { path: join("val", "file1.ts"), recursive: true })
-          .then((resp) => resp.data[0]);
-        const file2 = await sdk.vals.files
-          .retrieve(val.id, { path: join("val", "file2.ts"), recursive: true })
-          .then((resp) => resp.data[0]);
+        // Get file IDs using utility function
+        const version = await getLatestVersion(val.id, branch.id);
+        const file1 = await getValItem(
+          val.id,
+          branch.id,
+          version,
+          join("val", "file1.ts"),
+        );
+        const file2 = await getValItem(
+          val.id,
+          branch.id,
+          version,
+          join("val", "file2.ts"),
+        );
 
         // Delete both files and create two new files with the same content
         await Deno.remove(join(valDir, "file1.ts"));
@@ -203,25 +211,26 @@ Deno.test({
         );
 
         // Verify new files have different IDs than original files
-        const newFile1 = await sdk.vals.files
-          .retrieve(val.id, {
-            path: join("val", "newfile1.ts"),
-            recursive: true,
-          })
-          .then((resp) => resp.data[0]);
-        const newFile2 = await sdk.vals.files
-          .retrieve(val.id, {
-            path: join("val", "newfile2.ts"),
-            recursive: true,
-          })
-          .then((resp) => resp.data[0]);
+        const newVersion = await getLatestVersion(val.id, branch.id);
+        const newFile1 = await getValItem(
+          val.id,
+          branch.id,
+          newVersion,
+          join("val", "newfile1.ts"),
+        );
+        const newFile2 = await getValItem(
+          val.id,
+          branch.id,
+          newVersion,
+          join("val", "newfile2.ts"),
+        );
 
         assert(
-          newFile1.id !== file1.id,
+          newFile1!.id !== file1!.id,
           "new file should have different id than original file",
         );
         assert(
-          newFile2.id !== file2.id,
+          newFile2!.id !== file2!.id,
           "new file should have different id than original file",
         );
       });
@@ -256,10 +265,14 @@ Deno.test({
           assert(fileExists, "file should exist after creation");
         });
 
-        // Get the original file ID
-        const originalFile = await sdk.vals.files
-          .retrieve(val.id, { path: "test_cron.ts", recursive: true })
-          .then((resp) => resp.data[0]);
+        // Get the original file ID using utility function
+        const version = await getLatestVersion(val.id, branch.id);
+        const originalFile = await getValItem(
+          val.id,
+          branch.id,
+          version,
+          "test_cron.ts",
+        );
 
         await t.step("move file to subdirectory", async () => {
           // Move file to subdirectory
@@ -291,7 +304,7 @@ Deno.test({
           const fileExistsAtOldPath = await valItemExists(
             val.id,
             branch.id,
-            "test_file.ts",
+            "test_cron.ts",
             await getLatestVersion(val.id, branch.id),
           );
           assert(
@@ -300,15 +313,16 @@ Deno.test({
           );
 
           // Verify the file ID is preserved (same file)
-          const movedFile = await sdk.vals.files
-            .retrieve(val.id, {
-              path: join("subdir", "moved_file.ts"),
-              recursive: true,
-            })
-            .then((resp) => resp.data[0]);
+          const newVersion = await getLatestVersion(val.id, branch.id);
+          const movedFile = await getValItem(
+            val.id,
+            branch.id,
+            newVersion,
+            join("subdir", "moved_file.ts"),
+          );
           assertEquals(
-            originalFile.id,
-            movedFile.id,
+            originalFile!.id,
+            movedFile!.id,
             "file id should be preserved after move",
           );
         });
@@ -410,13 +424,14 @@ Deno.test({
           branchId: branch.id,
         });
 
-        // Get the id of the original file
-        const originalFile = await sdk.vals.files
-          .retrieve(val.id, {
-            path: join("val", "original.ts"),
-            recursive: true,
-          })
-          .then((resp) => resp.data[0]);
+        // Get the id of the original file using utility function
+        const version = await getLatestVersion(val.id, branch.id);
+        const originalFile = await getValItem(
+          val.id,
+          branch.id,
+          version,
+          join("val", "original.ts"),
+        );
 
         // Rename file without changing content
         await Deno.remove(join(valDir, "original.ts"));
@@ -442,11 +457,14 @@ Deno.test({
         assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Verify file ID is preserved (same file)
-        const renamedFile = await sdk.vals.files.retrieve(
+        const newVersion = await getLatestVersion(val.id, branch.id);
+        const renamedFile = await getValItem(
           val.id,
-          { path: join("val", "renamed.ts"), recursive: true },
-        ).then((resp) => resp.data[0]);
-        assertEquals(originalFile.id, renamedFile.id);
+          branch.id,
+          newVersion,
+          join("val", "renamed.ts"),
+        );
+        assertEquals(originalFile!.id, renamedFile!.id);
 
         // Verify old file is gone
         const oldFileExists = await valItemExists(
@@ -484,13 +502,14 @@ Deno.test({
           });
         });
 
-        // Get the id of the original file
-        const originalFile = await sdk.vals.files
-          .retrieve(val.id, {
-            path: join("val", "old.http.ts"),
-            recursive: true,
-          })
-          .then((resp) => resp.data[0]);
+        // Get the id of the original file using utility function
+        const version = await getLatestVersion(val.id, branch.id);
+        const originalFile = await getValItem(
+          val.id,
+          branch.id,
+          version,
+          join("val", "old.http.ts"),
+        );
 
         await t.step("rename the file and push changes", async () => {
           // Rename file (delete old, create new)
@@ -518,14 +537,17 @@ Deno.test({
 
         await t.step("verify file content, type, and uuid", async () => {
           // Verify file ID is preserved (same file)
-          const renamedFile = await sdk.vals.files.retrieve(
+          const newVersion = await getLatestVersion(val.id, branch.id);
+          const renamedFile = await getValItem(
             val.id,
-            { path: join("val", "new.tsx"), recursive: true },
-          ).then((resp) => resp.data[0]);
-          assertEquals(originalFile.id, renamedFile.id);
+            branch.id,
+            newVersion,
+            join("val", "new.tsx"),
+          );
+          assertEquals(originalFile!.id, renamedFile!.id);
 
           // Verify file type is preserved
-          assertEquals(renamedFile.type, "http");
+          assertEquals(renamedFile!.type, "http");
 
           // Verify content is preserved
           const content = await getValItemContent(

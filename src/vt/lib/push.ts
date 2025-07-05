@@ -1,7 +1,7 @@
 import type { ValFileType, ValItemType } from "~/types.ts";
 import {
   createValItem,
-  deleteValFile,
+  deleteValItem,
   getLatestVersion,
   listValItems,
   updateValFile,
@@ -182,7 +182,7 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await deleteValFile(valId, {
+            await deleteValItem(valId, {
               path: f.path,
               branchId,
               recursive: true,
