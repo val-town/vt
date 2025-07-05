@@ -135,9 +135,10 @@ export const getValItem = memoize(async (
   filePath: string,
 ): Promise<ValTown.Vals.FileRetrieveResponse | undefined> => {
   const valItems = await listValItems(valId, branchId, version);
+  const normalizedPath = slash(filePath);
 
   for (const filepath of valItems) {
-    if (filepath.path === filePath) return filepath;
+    if (filepath.path === normalizedPath) return filepath;
   }
 
   return undefined;
@@ -160,7 +161,11 @@ export const getValItemContent = memoize(
     filePath: string,
   ): Promise<string> => {
     return await sdk.vals.files
-      .getContent(valId, { path: filePath, branch_id: branchId, version })
+      .getContent(valId, {
+        path: slash(filePath),
+        branch_id: branchId,
+        version,
+      })
       .then((resp) => resp.text());
   },
 );

@@ -16,7 +16,6 @@ import {
   getItemWarnings,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import slash from "slash";
 
 /** Result of push operation  */
 export interface PushResult {
@@ -140,7 +139,7 @@ export async function push(params: PushParams): Promise<PushResult> {
 
   // Created files
   safeItemStateChanges.created
-    .filter((f) => f.type !== "directory")
+    .filter((f) => f.type !== "directory" && f.content !== undefined)
     .forEach((f) =>
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
@@ -165,7 +164,7 @@ export async function push(params: PushParams): Promise<PushResult> {
         return await doReqMaybeApplyWarning(
           async () =>
             await updateValFile(valId, {
-              path: slash(f.path),
+              path: f.path,
               branchId,
               content: f.content,
               name: basename(f.path),
