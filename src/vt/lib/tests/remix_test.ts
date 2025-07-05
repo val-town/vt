@@ -175,7 +175,7 @@ Deno.test({
       await sdk.vals.files.create(
         val.id,
         {
-          path: "nested/file.txt",
+          path: join("nested", "file.txt"),
           content: "This is a nested text file",
           type: "file",
         },
@@ -202,7 +202,7 @@ Deno.test({
           );
 
           // Verify nested file was remixed and directory structure preserved
-          const nestedFilePath = join(destTmpDir, "nested/file.txt");
+          const nestedFilePath = join(destTmpDir, "nested", "file.txt");
           assert(
             await exists(nestedFilePath),
             "nested file should exist in remixed Val with directory structure preserved",

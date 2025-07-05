@@ -42,7 +42,7 @@ Deno.test({
             type: "script",
           },
           {
-            path: "nested/folder/data.json",
+            path: join("nested", "folder", "data.json"),
             content: '{"key": "value"}',
             type: "file",
           },
@@ -111,7 +111,7 @@ Deno.test({
 
             // Verify directory structure was created correctly
             const nestedDirExists = await exists(
-              join(tempDir, "nested/folder"),
+              join(tempDir, "nested", "folder"),
             );
             assertEquals(
               nestedDirExists,
@@ -131,7 +131,7 @@ Deno.test({
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await t.step("test cloning empty directories", async (t) => {
-        const emptyDirPath = "empty/directory";
+        const emptyDirPath = join("empty", "directory");
 
         await t.step("create empty directory", async () => {
           // Create an empty directory to test explicit directory creation

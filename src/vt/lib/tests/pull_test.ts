@@ -298,7 +298,7 @@ Deno.test({
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create nested directories on the server
-        const nestedDirPath = "parent/child/grandchild";
+        const nestedDirPath = join("parent", "child", "grandchild");
 
         await t.step("create nested directories on server", async () => {
           await sdk.vals.files.create(

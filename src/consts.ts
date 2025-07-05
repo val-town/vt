@@ -102,7 +102,7 @@ export const TYPE_PRIORITY: Record<ValItemType, number> = {
   "interval": 5,
 };
 
-export const VAL_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
+export const VAL_ITEM_NAME_REGEX = /^[a-zA-Z0-9\\-_.\\\\]+$/;
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
 export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";

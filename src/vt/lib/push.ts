@@ -1,7 +1,7 @@
 import type { ValFileType, ValItemType } from "~/types.ts";
 import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
-import { basename, dirname, join } from "@std/path";
+import { basename, DELIMITER, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
 import { exists } from "@std/fs/exists";
 import ValTown from "@valtown/sdk";
@@ -235,13 +235,12 @@ async function createRequiredDirectories(
   // Sort directories by depth to ensure parent directories are created first
   const sortedDirsToCreate = [...new Set(dirsToCreate)]
     .sort((a, b) => {
-      const segmentsA = a.split("/").filter(Boolean).length;
-      const segmentsB = b.split("/").filter(Boolean).length;
+      const segmentsA = a.split(DELIMITER).filter(Boolean).length;
+      const segmentsB = b.split(DELIMITER).filter(Boolean).length;
       return segmentsA - segmentsB; // Sort by segment count (fewest first)
     });
 
   // Create all necessary directories
-  let createdCount = 0;
   for (const path of sortedDirsToCreate) {
     await doReqMaybeApplyWarning(
       () =>
@@ -254,7 +253,6 @@ async function createRequiredDirectories(
     );
     // Add to existing dirs set after creation
     existingDirs.add(path);
-    createdCount++;
   }
 }
 

@@ -94,7 +94,7 @@ Deno.test({
             await valItemExists(
               val.id,
               branch.id,
-              "subdir/test.txt",
+              join("subdir", "test.txt"),
               await getLatestVersion(val.id, branch.id),
             ),
             "file should exist in subdir",
@@ -115,7 +115,10 @@ Deno.test({
             branchId: branch.id,
           });
           assertEquals(secondPush.renamed.length, 1);
-          assertEquals(secondPush.renamed[0].oldPath, "subdir/test.txt");
+          assertEquals(
+            secondPush.renamed[0].oldPath,
+            join("subdir", "test.txt"),
+          );
           assertEquals(secondPush.renamed[0].path, "test.txt");
         });
 
@@ -163,10 +166,10 @@ Deno.test({
 
         // Get original file IDs
         const file1 = await sdk.vals.files
-          .retrieve(val.id, { path: "val/file1.ts", recursive: true })
+          .retrieve(val.id, { path: join("val", "file1.ts"), recursive: true })
           .then((resp) => resp.data[0]);
         const file2 = await sdk.vals.files
-          .retrieve(val.id, { path: "val/file2.ts", recursive: true })
+          .retrieve(val.id, { path: join("val", "file2.ts"), recursive: true })
           .then((resp) => resp.data[0]);
 
         // Delete both files and create two new files with the same content
@@ -202,13 +205,13 @@ Deno.test({
         // Verify new files have different IDs than original files
         const newFile1 = await sdk.vals.files
           .retrieve(val.id, {
-            path: "val/newfile1.ts",
+            path: join("val", "newfile1.ts"),
             recursive: true,
           })
           .then((resp) => resp.data[0]);
         const newFile2 = await sdk.vals.files
           .retrieve(val.id, {
-            path: "val/newfile2.ts",
+            path: join("val", "newfile2.ts"),
             recursive: true,
           })
           .then((resp) => resp.data[0]);
@@ -279,7 +282,7 @@ Deno.test({
           const fileExistsAtNewPath = await valItemExists(
             val.id,
             branch.id,
-            "subdir/moved_file.ts",
+            join("subdir", "moved_file.ts"),
             await getLatestVersion(val.id, branch.id),
           );
           assert(fileExistsAtNewPath, "file should exist at new location");
@@ -299,7 +302,7 @@ Deno.test({
           // Verify the file ID is preserved (same file)
           const movedFile = await sdk.vals.files
             .retrieve(val.id, {
-              path: "subdir/moved_file.ts",
+              path: join("subdir", "moved_file.ts"),
               recursive: true,
             })
             .then((resp) => resp.data[0]);
@@ -410,7 +413,7 @@ Deno.test({
         // Get the id of the original file
         const originalFile = await sdk.vals.files
           .retrieve(val.id, {
-            path: "val/original.ts",
+            path: join("val", "original.ts"),
             recursive: true,
           })
           .then((resp) => resp.data[0]);
@@ -431,14 +434,17 @@ Deno.test({
 
         // Verify rename was detected
         assertEquals(statusResult.renamed.length, 1);
-        assertEquals(statusResult.renamed[0].oldPath, "val/original.ts");
-        assertEquals(statusResult.renamed[0].path, "val/renamed.ts");
+        assertEquals(
+          statusResult.renamed[0].oldPath,
+          join("val", "original.ts"),
+        );
+        assertEquals(statusResult.renamed[0].path, join("val", "renamed.ts"));
         assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Verify file ID is preserved (same file)
         const renamedFile = await sdk.vals.files.retrieve(
           val.id,
-          { path: "val/renamed.ts", recursive: true },
+          { path: join("val", "renamed.ts"), recursive: true },
         ).then((resp) => resp.data[0]);
         assertEquals(originalFile.id, renamedFile.id);
 
@@ -446,7 +452,7 @@ Deno.test({
         const oldFileExists = await valItemExists(
           val.id,
           branch.id,
-          "val/original.ts",
+          join("val", "original.ts"),
           await getLatestVersion(val.id, branch.id),
         );
         assert(!oldFileExists, "Old file should not exist after rename");
@@ -481,7 +487,7 @@ Deno.test({
         // Get the id of the original file
         const originalFile = await sdk.vals.files
           .retrieve(val.id, {
-            path: "val/old.http.ts",
+            path: join("val", "old.http.ts"),
             recursive: true,
           })
           .then((resp) => resp.data[0]);
@@ -502,8 +508,11 @@ Deno.test({
           // Verify rename was detected
           assertEquals(statusResult.renamed.length, 1);
           assertEquals(statusResult.renamed[0].type, "http");
-          assertEquals(statusResult.renamed[0].oldPath, "val/old.http.ts");
-          assertEquals(statusResult.renamed[0].path, "val/new.tsx");
+          assertEquals(
+            statusResult.renamed[0].oldPath,
+            join("val", "old.http.ts"),
+          );
+          assertEquals(statusResult.renamed[0].path, join("val", "new.tsx"));
           assertEquals(statusResult.renamed[0].status, "renamed");
         });
 
@@ -511,7 +520,7 @@ Deno.test({
           // Verify file ID is preserved (same file)
           const renamedFile = await sdk.vals.files.retrieve(
             val.id,
-            { path: "val/new.tsx", recursive: true },
+            { path: join("val", "new.tsx"), recursive: true },
           ).then((resp) => resp.data[0]);
           assertEquals(originalFile.id, renamedFile.id);
 
@@ -523,7 +532,7 @@ Deno.test({
             val.id,
             branch.id,
             await getLatestVersion(val.id, branch.id),
-            "val/new.tsx",
+            join("val", "new.tsx"),
           );
 
           assertEquals(content, "contentt");
@@ -534,7 +543,7 @@ Deno.test({
           const oldFileExists = await valItemExists(
             val.id,
             branch.id,
-            "val/old.http.ts",
+            join("val", "old.http.ts"),
             await getLatestVersion(val.id, branch.id),
           );
           assert(!oldFileExists, "Old file should not exist after rename");

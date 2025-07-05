@@ -207,14 +207,14 @@ Deno.test({
 
           // Push original files to remote
           await sdk.vals.files.create(val.id, {
-            path: "folder/oldA.txt",
+            path: join("folder", "oldA.txt"),
             content: "content",
             branch_id: branch.id,
             type: "file",
           });
 
           await sdk.vals.files.create(val.id, {
-            path: "folder/oldB.txt",
+            path: join("folder", "oldB.txt"),
             content: "differentContent",
             branch_id: branch.id,
             type: "file",
@@ -251,20 +251,32 @@ Deno.test({
           // Check renamed array - should have the file with unchanged content
           assertEquals(statusResult.renamed.length, 1);
           assertEquals(statusResult.renamed[0].type, "file");
-          assertEquals(statusResult.renamed[0].path, "folder/renamedB.txt");
-          assertEquals(statusResult.renamed[0].oldPath, "folder/oldB.txt");
+          assertEquals(
+            statusResult.renamed[0].path,
+            join("folder", "renamedB.txt"),
+          );
+          assertEquals(
+            statusResult.renamed[0].oldPath,
+            join("folder", "oldB.txt"),
+          );
           assertEquals(statusResult.renamed[0].status, "renamed");
 
           // Check created array - should have the file with modified content
           assertEquals(statusResult.created.length, 1);
           assertEquals(statusResult.created[0].type, "file");
-          assertEquals(statusResult.created[0].path, "folder/renamedA.txt");
+          assertEquals(
+            statusResult.created[0].path,
+            join("folder", "renamedA.txt"),
+          );
           assertEquals(statusResult.created[0].status, "created");
 
           // Check deleted array - should have the old file that was "modified"
           assertEquals(statusResult.deleted.length, 1);
           assertEquals(statusResult.deleted[0].type, "file");
-          assertEquals(statusResult.deleted[0].path, "folder/oldA.txt");
+          assertEquals(
+            statusResult.deleted[0].path,
+            join("folder", "oldA.txt"),
+          );
           assertEquals(statusResult.deleted[0].status, "deleted");
         });
       });
