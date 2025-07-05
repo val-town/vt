@@ -449,11 +449,11 @@ Deno.test({
 
         // Verify rename was detected
         assertEquals(statusResult.renamed.length, 1);
-        assertEquals(
+        assertPathEquals(
           statusResult.renamed[0].oldPath,
           join("val", "original.ts"),
         );
-        assertEquals(statusResult.renamed[0].path, join("val", "renamed.ts"));
+        assertPathEquals(statusResult.renamed[0].path, join("val", "renamed.ts"));
         assertEquals(statusResult.renamed[0].status, "renamed");
 
         // Verify file ID is preserved (same file)
@@ -531,7 +531,7 @@ Deno.test({
             statusResult.renamed[0].oldPath,
             join("val", "old.http.ts"),
           );
-          assertEquals(statusResult.renamed[0].path, join("val", "new.tsx"));
+          assertPathEquals(statusResult.renamed[0].path, join("val", "new.tsx"));
           assertEquals(statusResult.renamed[0].status, "renamed");
         });
 

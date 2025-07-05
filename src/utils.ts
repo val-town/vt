@@ -167,7 +167,7 @@ export async function arrayFromAsyncN<T>(
  * @param path The file path to normalize
  * @returns The path with forward slashes, relative paths preserved
  */
-export function ensurePosixPath(path: string): string {
+export function asPosixPath(path: string): string {
   // Convert backslashes to forward slashes
   let normalized = path.replace(/\\/g, "/");
 

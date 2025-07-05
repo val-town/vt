@@ -1,91 +1,91 @@
 import { assertEquals } from "@std/assert";
-import { ensurePosixPath } from "./utils.ts";
+import { asPosixPath } from "./utils.ts";
 
 Deno.test("ensurePosixPath converts backslashes to forward slashes", () => {
-  assertEquals(ensurePosixPath("path\\to\\file.txt"), "path/to/file.txt");
+  assertEquals(asPosixPath("path\\to\\file.txt"), "path/to/file.txt");
   assertEquals(
-    ensurePosixPath("folder\\subfolder\\index.js"),
+    asPosixPath("folder\\subfolder\\index.js"),
     "folder/subfolder/index.js",
   );
-  assertEquals(ensurePosixPath("single\\path"), "single/path");
+  assertEquals(asPosixPath("single\\path"), "single/path");
 });
 
 Deno.test("ensurePosixPath handles mixed path separators", () => {
-  assertEquals(ensurePosixPath("path/to\\file.txt"), "path/to/file.txt");
+  assertEquals(asPosixPath("path/to\\file.txt"), "path/to/file.txt");
   assertEquals(
-    ensurePosixPath("folder\\subfolder/index.js"),
+    asPosixPath("folder\\subfolder/index.js"),
     "folder/subfolder/index.js",
   );
-  assertEquals(ensurePosixPath("mixed\\path/to\\file"), "mixed/path/to/file");
+  assertEquals(asPosixPath("mixed\\path/to\\file"), "mixed/path/to/file");
 });
 
 Deno.test("ensurePosixPath preserves forward slashes", () => {
-  assertEquals(ensurePosixPath("path/to/file.txt"), "path/to/file.txt");
+  assertEquals(asPosixPath("path/to/file.txt"), "path/to/file.txt");
   assertEquals(
-    ensurePosixPath("folder/subfolder/index.js"),
+    asPosixPath("folder/subfolder/index.js"),
     "folder/subfolder/index.js",
   );
-  assertEquals(ensurePosixPath("/absolute/path"), "/absolute/path");
+  assertEquals(asPosixPath("/absolute/path"), "/absolute/path");
 });
 
 Deno.test("ensurePosixPath handles absolute Windows paths", () => {
   assertEquals(
-    ensurePosixPath("C:\\Users\\user\\file.txt"),
+    asPosixPath("C:\\Users\\user\\file.txt"),
     "/Users/user/file.txt",
   );
   assertEquals(
-    ensurePosixPath("D:\\Projects\\myapp\\src\\index.ts"),
+    asPosixPath("D:\\Projects\\myapp\\src\\index.ts"),
     "/Projects/myapp/src/index.ts",
   );
-  assertEquals(ensurePosixPath("E:\\temp\\file"), "/temp/file");
+  assertEquals(asPosixPath("E:\\temp\\file"), "/temp/file");
 });
 
 Deno.test("ensurePosixPath handles absolute Windows paths with forward slashes", () => {
   assertEquals(
-    ensurePosixPath("C:/Users/user/file.txt"),
+    asPosixPath("C:/Users/user/file.txt"),
     "/Users/user/file.txt",
   );
   assertEquals(
-    ensurePosixPath("D:/Projects/myapp/src/index.ts"),
+    asPosixPath("D:/Projects/myapp/src/index.ts"),
     "/Projects/myapp/src/index.ts",
   );
-  assertEquals(ensurePosixPath("Z:/temp/file"), "/temp/file");
+  assertEquals(asPosixPath("Z:/temp/file"), "/temp/file");
 });
 
 Deno.test("ensurePosixPath handles relative paths correctly", () => {
-  assertEquals(ensurePosixPath("..\\parent\\file.txt"), "../parent/file.txt");
-  assertEquals(ensurePosixPath(".\\current\\file.txt"), "./current/file.txt");
-  assertEquals(ensurePosixPath("relative\\path"), "relative/path");
+  assertEquals(asPosixPath("..\\parent\\file.txt"), "../parent/file.txt");
+  assertEquals(asPosixPath(".\\current\\file.txt"), "./current/file.txt");
+  assertEquals(asPosixPath("relative\\path"), "relative/path");
 });
 
 Deno.test("ensurePosixPath handles edge cases", () => {
-  assertEquals(ensurePosixPath(""), "");
-  assertEquals(ensurePosixPath("\\"), "/");
-  assertEquals(ensurePosixPath("/"), "/");
-  assertEquals(ensurePosixPath("file.txt"), "file.txt");
-  assertEquals(ensurePosixPath("C:"), "");
-  assertEquals(ensurePosixPath("C:\\"), "/");
+  assertEquals(asPosixPath(""), "");
+  assertEquals(asPosixPath("\\"), "/");
+  assertEquals(asPosixPath("/"), "/");
+  assertEquals(asPosixPath("file.txt"), "file.txt");
+  assertEquals(asPosixPath("C:"), "");
+  assertEquals(asPosixPath("C:\\"), "/");
 });
 
 Deno.test("ensurePosixPath handles UNC paths", () => {
   // UNC paths should be preserved but with forward slashes
   assertEquals(
-    ensurePosixPath("\\\\server\\share\\file.txt"),
+    asPosixPath("\\\\server\\share\\file.txt"),
     "//server/share/file.txt",
   );
   assertEquals(
-    ensurePosixPath("//server/share/file.txt"),
+    asPosixPath("//server/share/file.txt"),
     "//server/share/file.txt",
   );
 });
 
 Deno.test("ensurePosixPath handles nested directories", () => {
   assertEquals(
-    ensurePosixPath("parent\\child\\grandchild\\file.txt"),
+    asPosixPath("parent\\child\\grandchild\\file.txt"),
     "parent/child/grandchild/file.txt",
   );
   assertEquals(
-    ensurePosixPath("C:\\Program Files\\MyApp\\bin\\app.exe"),
+    asPosixPath("C:\\Program Files\\MyApp\\bin\\app.exe"),
     "/Program Files/MyApp/bin/app.exe",
   );
 });

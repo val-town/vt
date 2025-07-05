@@ -5,7 +5,7 @@ import {
   deleteVal,
   randomValName,
 } from "~/sdk.ts";
-import { ensurePosixPath } from "~/utils.ts";
+import { asPosixPath } from "~/utils.ts";
 
 export interface ExpectedValInode {
   path: string;
@@ -51,5 +51,5 @@ export function assertPathEquals(
   expected: string,
   msg?: string,
 ) {
-  assertEquals(ensurePosixPath(actual), ensurePosixPath(expected), msg);
+  assertEquals(asPosixPath(actual), asPosixPath(expected), msg);
 }
