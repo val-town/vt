@@ -7,7 +7,7 @@ import {
   DEFAULT_VAL_PRIVACY,
 } from "~/consts.ts";
 import type { ValFileType, ValPrivacy } from "./types.ts";
-import slash from "slash";
+import { ensurePosixPath } from "./utils.ts";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -135,7 +135,7 @@ export const getValItem = memoize(async (
   filePath: string,
 ): Promise<ValTown.Vals.FileRetrieveResponse | undefined> => {
   const valItems = await listValItems(valId, branchId, version);
-  const normalizedPath = slash(filePath);
+  const normalizedPath = ensurePosixPath(filePath);
 
   for (const filepath of valItems) {
     if (filepath.path === normalizedPath) return filepath;
@@ -162,7 +162,7 @@ export const getValItemContent = memoize(
   ): Promise<string> => {
     return await sdk.vals.files
       .getContent(valId, {
-        path: slash(filePath),
+        path: ensurePosixPath(filePath),
         branch_id: branchId,
         version,
       })
@@ -250,11 +250,11 @@ export async function updateValFile(
   const { path, branchId, content, name, parentPath, type } = options;
 
   return await sdk.vals.files.update(valId, {
-    path: slash(path),
+    path: ensurePosixPath(path),
     branch_id: branchId,
     content,
     name,
-    parent_path: parentPath ? slash(parentPath) : parentPath,
+    parent_path: parentPath ? ensurePosixPath(parentPath) : parentPath,
     type,
   });
 }
@@ -279,7 +279,7 @@ export async function createValItem(
   if (options.type === "directory") {
     // For directories, content is not needed
     return await sdk.vals.files.create(valId, {
-      path: slash(options.path),
+      path: ensurePosixPath(options.path),
       branch_id: options.branchId,
       type: options.type,
     });
@@ -287,7 +287,7 @@ export async function createValItem(
 
   // For files, content is needed
   return await sdk.vals.files.create(valId, {
-    path: slash(options.path),
+    path: ensurePosixPath(options.path),
     branch_id: options.branchId,
     content: options.content,
     type: options.type,
@@ -338,7 +338,7 @@ export async function deleteValFile(
   const { path, branchId, recursive } = options;
 
   return await sdk.vals.files.delete(valId, {
-    path: slash(path),
+    path: ensurePosixPath(path),
     branch_id: branchId,
     recursive: !!recursive,
   });

@@ -158,3 +158,27 @@ export async function arrayFromAsyncN<T>(
 
   return [results, hasMore];
 }
+
+/**
+ * Ensures a file path uses POSIX-style forward slashes.
+ * Converts Windows backslashes to forward slashes for API compatibility.
+ * Also handles absolute Windows paths (C:\path) by removing drive letters.
+ *
+ * @param path The file path to normalize
+ * @returns The path with forward slashes, relative paths preserved
+ */
+export function ensurePosixPath(path: string): string {
+  // Convert backslashes to forward slashes
+  let normalized = path.replace(/\\/g, "/");
+
+  // Handle absolute Windows paths (C:/ or C:\) and bare drive letters (C:)
+  // Remove drive letter and colon for absolute paths
+  if (/^[a-zA-Z]:\//.test(normalized)) {
+    normalized = normalized.substring(2);
+  } else if (/^[a-zA-Z]:$/.test(normalized)) {
+    // Handle bare drive letter like "C:"
+    normalized = "";
+  }
+
+  return normalized;
+}
