@@ -7,10 +7,12 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import {
   branchNameToBranch,
   createValItem,
+  deleteVal,
   getCurrentUser,
+  getVal,
   getValItem,
+  valNameToVal,
 } from "~/sdk.ts";
-import sdk from "~/sdk.ts";
 
 Deno.test({
   name: "remix preserves HTTP Val type",
@@ -86,11 +88,11 @@ Deno.test({
         });
 
         // Clean up the remixed val
-        const { id } = await sdk.alias.username.valName.retrieve(
+        const { id } = await valNameToVal(
           user.username!,
           remixedValName,
         );
-        await sdk.vals.delete(id);
+        await deleteVal(id);
       });
     });
   },
@@ -114,7 +116,7 @@ Deno.test({
         });
 
         // Verify the Val was created with private visibility
-        const remixedVal = await sdk.vals.retrieve(result.toValId);
+        const remixedVal = await getVal(result.toValId);
 
         assertEquals(
           remixedVal.privacy,
@@ -123,7 +125,7 @@ Deno.test({
         );
 
         // Clean up
-        await sdk.vals.delete(remixedVal.id);
+        await deleteVal(remixedVal.id);
       });
     });
   },
@@ -150,7 +152,7 @@ Deno.test({
         });
 
         // Verify the description was set correctly
-        const remixedVal = await sdk.vals.retrieve(result.toValId);
+        const remixedVal = await getVal(result.toValId);
 
         assertEquals(
           remixedVal.description,
@@ -159,7 +161,7 @@ Deno.test({
         );
 
         // Clean up
-        await sdk.vals.delete(remixedVal.id);
+        await deleteVal(remixedVal.id);
       });
     });
   },
@@ -236,9 +238,7 @@ Deno.test({
           );
 
           // Verify the Val exists on Val Town
-          const remixedVal = await sdk.vals.retrieve(
-            result.toValId,
-          );
+          const remixedVal = await getVal(result.toValId);
 
           assertEquals(
             remixedVal.name,
@@ -248,11 +248,11 @@ Deno.test({
         });
 
         // Clean up the remixed val
-        const { id } = await sdk.alias.username.valName.retrieve(
+        const { id } = await valNameToVal(
           user.username!,
           remixedValName,
         );
-        await sdk.vals.delete(id);
+        await deleteVal(id);
       });
     });
   },

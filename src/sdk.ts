@@ -7,7 +7,7 @@ import {
   DEFAULT_VAL_PRIVACY,
 } from "~/consts.ts";
 import type { ValFileType, ValPrivacy } from "./types.ts";
-import { asPosixPath } from "./utils.ts";
+import { arrayFromAsyncN, asPosixPath } from "./utils.ts";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -208,6 +208,46 @@ export const listValItems = memoize(async (
 });
 
 /**
+ * Lists all branches in a Val.
+ *
+ * @param valId The ID of the Val to list branches for
+ * @returns Promise resolving to an array of branchs
+ */
+export async function listBranches(
+  valId: string,
+): Promise<ValTown.Vals.Branches.BranchListResponse[]> {
+  return await Array.fromAsync(sdk.vals.branches.list(valId, {}));
+}
+
+/**
+ * Deletes a branch in a Val.
+ *
+ * @param valId The ID of the Val to delete the branch from
+ * @param branchId The ID of the branch to delete
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteBranch(
+  valId: string,
+  branchId: string,
+): Promise<ReturnType<typeof sdk.vals.branches.delete>> {
+  return await sdk.vals.branches.delete(valId, branchId);
+}
+
+/**
+ * Retrieves a branch by its id in a Val.
+ *
+ * @param valId The ID of the Val to retrieve the branch from
+ * @param branchId The ID of the branch to retrieve
+ * @returns Promise resolving to the branch data
+ */
+export async function getBranch(
+  valId: string,
+  branchId: string,
+): Promise<ValTown.Vals.Branches.BranchRetrieveResponse> {
+  return await sdk.vals.branches.retrieve(valId, branchId);
+}
+
+/**
  * Get the latest version of a branch.
  */
 export async function getLatestVersion(valId: string, branchId: string) {
@@ -251,7 +291,7 @@ export async function updateValFile(
     parentPath?: string | null;
     type?: ValFileType;
   },
-): Promise<ValTown.Vals.FileUpdateResponse> {
+): Promise<ReturnType<typeof sdk.vals.files.update>> {
   const { path, branchId, content, name, parentPath, type } = options;
 
   return await sdk.vals.files.update(valId, {
@@ -280,7 +320,7 @@ export async function createValItem(
   options:
     & { path: string; branchId: string }
     & ({ type: "directory" } | { content: string; type: ValFileType }),
-): Promise<ValTown.Vals.FileCreateResponse> {
+): Promise<ReturnType<typeof sdk.vals.files.create>> {
   if (options.type === "directory") {
     // For directories, content is not needed
     return await sdk.vals.files.create(valId, {
@@ -362,6 +402,18 @@ export async function deleteVal(
 }
 
 /**
+ * Retrieves a Val by its ID.
+ *
+ * @param valId The ID of the Val to retrieve
+ * @returns Promise resolving to the Val data
+ */
+export async function getVal(
+  valId: string,
+): Promise<ReturnType<typeof sdk.vals.retrieve>> {
+  return await sdk.vals.retrieve(valId);
+}
+
+/**
  * Creates a new branch in a Val.
  *
  * @param valId The ID of the Val to create the branch in
@@ -376,7 +428,7 @@ export async function createNewBranch(
     name: string;
     branchId?: string;
   },
-): Promise<ValTown.Vals.BranchCreateResponse> {
+): Promise<ReturnType<typeof sdk.vals.branches.create>> {
   const { name, branchId } = options;
 
   return await sdk.vals.branches.create(valId, {
@@ -385,4 +437,36 @@ export async function createNewBranch(
   });
 }
 
+/**
+ * Lists all Val Town vals owned by the current user.
+ *
+ * @returns Promise resolving to an array of Val Town vals
+ */
+export async function listMyVals(
+  n: number = Number.POSITIVE_INFINITY,
+): Promise<ValTown.Val[]> {
+  return (await arrayFromAsyncN(sdk.me.vals.list({}), n))[0];
+}
+
+/**
+ * Retrieves a Val by its name and the owner's username.
+ *
+ * @param username The username of the Val owner
+ * @param valName The name of the Val to retrieve
+ * @returns Promise resolving to the Val
+ */
+export async function valNameToVal(
+  username: string,
+  valName: string,
+): Promise<ValTown.Val> {
+  const { id } = await sdk.alias.username.valName.retrieve(username, valName);
+  return await sdk.vals.retrieve(id);
+}
+
+/**
+ * The actual stainless SDK instance for interacting with Val Town.
+ * 
+ * In most cases, you should use the utility functions exported from this module, which
+ * handle common operations and cases like file path normalization, etc.
+ */
 export default sdk;

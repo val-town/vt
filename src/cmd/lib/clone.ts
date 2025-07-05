@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import { getCurrentUser, listMyVals } from "~/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
@@ -10,7 +10,6 @@ import { Confirm } from "@cliffy/prompt";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
 import { parseValUrl } from "~/cmd/parsing.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
-import { arrayFromAsyncN } from "~/utils.ts";
 
 export const cloneCmd = new Command()
   .name("clone")
@@ -58,10 +57,7 @@ export const cloneCmd = new Command()
         const vals = await doWithSpinner(
           "Loading vals...",
           async (spinner) => {
-            const [allVals, _] = await arrayFromAsyncN(
-              sdk.me.vals.list({}),
-              500,
-            );
+            const allVals = await listMyVals(100);
             spinner.stop();
             return allVals;
           },

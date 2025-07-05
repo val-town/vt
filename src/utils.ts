@@ -132,7 +132,7 @@ export function hasNullBytes(str: string): boolean {
  *
  * @param asyncGenerator An asynchronous generator function.
  * @param N Number of iterations to perform.
- * @returns A promise that resolves to an array containing the collected items.
+ * @returns A promise that resolves to an array containing the collected items and whether there are more items available.
  */
 export async function arrayFromAsyncN<T>(
   asyncGenerator: AsyncIterable<T>,
