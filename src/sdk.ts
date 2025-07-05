@@ -2,6 +2,7 @@ import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { normalize } from "@std/path";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -63,7 +64,7 @@ export async function branchExists(
   branchName: string,
 ): Promise<boolean> {
   for await (const branch of sdk.vals.branches.list(valId, {})) {
-    if (branch.name == branchName) return true;
+    if (branch.name === branchName) return true;
   }
   return false;
 }
@@ -81,7 +82,7 @@ export async function branchNameToBranch(
   branchName: string,
 ): Promise<ValTown.Vals.Branches.BranchListResponse> {
   for await (const branch of sdk.vals.branches.list(valId, {})) {
-    if (branch.name == branchName) return branch;
+    if (branch.name === branchName) return branch;
   }
 
   throw new Deno.errors.NotFound(`Branch "${branchName}" not found in Val`);
@@ -118,7 +119,7 @@ export async function valItemExists(
  * @param valId - The ID of the Val containing the file
  * @param options - The options object
  * @param options.branchId - The ID of the Val branch to reference
- * @param [options.version] - The version of the Val for the file being found (optional)
+ * @param options.version - The version of the Val for the file being found (optional)
  * @param options.filePath - The file path to locate
  * @returns Promise resolving to the file data or undefined if not found
  */
@@ -140,11 +141,11 @@ export const getValItem = memoize(async (
 /**
  * Get the content of a Val item.
  *
- * @param {string} valId The ID of the Val
- * @param {string} branchId The ID of the Val branch to reference
- * @param {number} version The version of the Val
- * @param {string} filePath The path to the file
- * @returns {Promise<string>} Promise resolving to the file content
+ * @param valId The ID of the Val
+ * @param branchId The ID of the Val branch to reference
+ * @param version The version of the Val
+ * @param filePath The path to the file
+ * @returns Promise resolving to the file content
  */
 export const getValItemContent = memoize(
   async (
@@ -179,14 +180,15 @@ export const listValItems = memoize(async (
     (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id));
 
-  const files = await Array.fromAsync(
+  const files = (await Array.fromAsync(
     sdk.vals.files.retrieve(valId, {
       path: "",
       branch_id: branchId,
       version,
       recursive: true,
     }),
-  );
+  ))
+    .map((f) => ({ ...f, path: normalize(f.path) }));
 
   return files;
 });
