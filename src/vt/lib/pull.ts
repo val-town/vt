@@ -101,7 +101,7 @@ export function pull(params: PullParams): Promise<PushResult> {
 
         if (shouldIgnore(relativePath, gitignoreRules)) continue;
         if (relativePath === "." || entry.path === tmpDir) continue;
-        if (valItemsSet.has(relativePath)) continue;
+        if (valItemsSet.has(asPosixPath(relativePath))) continue;
 
         const stat = await Deno.stat(entry.path);
         const fileStatus: ItemStatus = {

@@ -4,12 +4,8 @@ import { exists } from "@std/fs";
 import { remix } from "~/vt/lib/remix.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, {
-  createValItem,
-  getCurrentUser,
-  getLatestVersion,
-  getValItem,
-} from "~/sdk.ts";
+import { branchNameToBranch, createValItem, getCurrentUser, getValItem } from "~/sdk.ts";
+import sdk from "~/sdk.ts";
 
 Deno.test({
   name: "remix preserves HTTP Val type",
@@ -27,8 +23,8 @@ Deno.test({
           content: "export default function handler(req: Request) {\n" +
             '  return new Response("Hello from HTTP val!");\n' +
             "}",
-          branchId: branch.id,
           type: "http",
+          branchId: branch.id,
         },
       );
 
@@ -44,10 +40,6 @@ Deno.test({
             valName: remixedValName,
             privacy: "public",
           });
-          const remixBranch = await sdk.vals.branches.retrieve(
-            result.toValId,
-            "main",
-          );
 
           // Check that the result contains expected data
           assert(result.toValId, "Should return a Val ID");
@@ -73,14 +65,11 @@ Deno.test({
           );
 
           // Verify the file type was preserved
-          const latestVersion = await getLatestVersion(
-            result.toValId,
-            remixBranch.id,
-          );
+          const toBranchId = await branchNameToBranch(result.toValId, "main");
           const remixedFile = await getValItem(
             result.toValId,
-            "main",
-            latestVersion,
+            toBranchId.id,
+            result.toVersion,
             `${httpValName}.ts`,
           );
 
@@ -106,7 +95,7 @@ Deno.test({
   name: "remix respects privacy settings",
   permissions: "inherit",
   async fn() {
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (destTmpDir) => {
         const remixedValName = `${val.name}_private`;
 
@@ -114,7 +103,7 @@ Deno.test({
         const result = await remix({
           targetDir: destTmpDir,
           srcValId: val.id,
-          srcBranchId: "main",
+          srcBranchId: branch.id,
           valName: remixedValName,
           privacy: "private",
         });
@@ -139,7 +128,7 @@ Deno.test({
   name: "remix with custom description",
   permissions: "inherit",
   async fn() {
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (destTmpDir) => {
         const remixedValName = `${val.name}_with_desc`;
         const customDescription =
@@ -149,7 +138,7 @@ Deno.test({
         const result = await remix({
           targetDir: destTmpDir,
           srcValId: val.id,
-          srcBranchId: "main",
+          srcBranchId: branch.id,
           valName: remixedValName,
           description: customDescription,
           privacy: "public",
@@ -192,7 +181,7 @@ Deno.test({
       await createValItem(
         val.id,
         {
-          path: join("nested", "file.txt"),
+          path: "nested/file.txt",
           content: "This is a nested text file",
           type: "file",
           branchId: branch.id,
@@ -207,7 +196,7 @@ Deno.test({
           const result = await remix({
             targetDir: destTmpDir,
             srcValId: val.id,
-            srcBranchId: "main",
+            srcBranchId: branch.id,
             valName: remixedValName,
             privacy: "public",
           });
@@ -220,7 +209,7 @@ Deno.test({
           );
 
           // Verify nested file was remixed and directory structure preserved
-          const nestedFilePath = join(destTmpDir, "nested", "file.txt");
+          const nestedFilePath = join(destTmpDir, "nested/file.txt");
           assert(
             await exists(nestedFilePath),
             "nested file should exist in remixed Val with directory structure preserved",

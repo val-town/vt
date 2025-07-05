@@ -68,11 +68,11 @@ export async function remix(
     gitignoreRules,
   } = params;
 
-  const srcBranch = await branchNameToBranch(
-    srcValId,
-    params.srcBranchId ?? DEFAULT_BRANCH_NAME,
-  );
   const srcVal = await sdk.vals.retrieve(srcValId);
+
+  const srcBranch = params.srcBranchId 
+    ? await sdk.vals.branches.retrieve(srcValId, params.srcBranchId) // Use provided branch ID directly
+    : await branchNameToBranch(srcValId, DEFAULT_BRANCH_NAME); // Default to main branch
 
   const description = (params.description ?? srcVal.description) || "";
   const privacy = (params.privacy ?? srcVal.privacy) ||
