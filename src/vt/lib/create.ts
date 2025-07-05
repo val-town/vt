@@ -1,5 +1,5 @@
 import { push } from "~/vt/lib/push.ts";
-import sdk, { branchNameToBranch } from "~/sdk.ts";
+import { branchNameToBranch, createNewVal } from "~/sdk.ts";
 import type { ValPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
@@ -54,7 +54,7 @@ export async function create(
   await ensureDir(sourceDir);
 
   // Create a new Val in Val Town
-  const newVal = await sdk.vals.create({
+  const newVal = await createNewVal({
     name: valName,
     description,
     privacy,

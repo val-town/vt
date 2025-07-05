@@ -1,8 +1,13 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
-import { normalize } from "@std/path";
+import {
+  API_KEY_KEY,
+  DEFAULT_BRANCH_NAME,
+  DEFAULT_VAL_PRIVACY,
+} from "~/consts.ts";
+import type { ValFileType, ValPrivacy } from "./types.ts";
+import slash from "slash";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -180,15 +185,14 @@ export const listValItems = memoize(async (
     (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
       .then((resp) => resp.id));
 
-  const files = (await Array.fromAsync(
+  const files = await Array.fromAsync(
     sdk.vals.files.retrieve(valId, {
       path: "",
       branch_id: branchId,
       version,
       recursive: true,
     }),
-  ))
-    .map((f) => ({ ...f, path: normalize(f.path) }));
+  );
 
   return files;
 });
@@ -213,5 +217,126 @@ export function randomValName(label = "") {
 export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
+
+/**
+ * Updates a Val file with the provided content and metadata.
+ *
+ * @param valId The ID of the Val to update
+ * @param options Update options
+ * @param options.path The current path of the file
+ * @param options.branchId The ID of the branch to update
+ * @param options.content The new content for the file
+ * @param options.name The new name for the file (optional)
+ * @param options.parentPath The new parent path for the file (optional)
+ * @param options.type The type of the file (optional)
+ * @returns Promise resolving to the update response
+ */
+export async function updateValFile(
+  valId: string,
+  options: {
+    path: string;
+    branchId: string;
+    content?: string;
+    name?: string;
+    parentPath?: string | null;
+    type?: ValFileType;
+  },
+): Promise<ValTown.Vals.FileUpdateResponse> {
+  const { path, branchId, content, name, parentPath, type } = options;
+
+  return await sdk.vals.files.update(valId, {
+    path: slash(path),
+    branch_id: branchId,
+    content,
+    name,
+    parent_path: parentPath ? slash(parentPath) : parentPath,
+    type,
+  });
+}
+
+/**
+ * Creates a new Val item with the provided content and metadata.
+ *
+ * @param valId The ID of the Val to create the file in
+ * @param options Create options
+ * @param options.path The path for the new file
+ * @param options.branchId The ID of the branch to create in
+ * @param options.content The content for the file (optional for directories)
+ * @param options.type The type of the file
+ * @returns Promise resolving to the create response
+ */
+export async function createValItem(
+  valId: string,
+  options:
+    & { path: string; branchId: string }
+    & ({ type: "directory" } | { content: string; type: ValFileType }),
+): Promise<ValTown.Vals.FileCreateResponse> {
+  if (options.type === "directory") {
+    // For directories, content is not needed
+    return await sdk.vals.files.create(valId, {
+      path: slash(options.path),
+      branch_id: options.branchId,
+      type: options.type,
+    });
+  }
+
+  // For files, content is needed
+  return await sdk.vals.files.create(valId, {
+    path: slash(options.path),
+    branch_id: options.branchId,
+    content: options.content,
+    type: options.type,
+  });
+}
+
+/**
+ * Creates a new Val with the provided metadata.
+ *
+ * @param options Create options
+ * @param options.name The name for the new val
+ * @param options.description The description for the new val (optional)
+ * @param options.privacy The privacy setting for the new val (optional)
+ * @returns Promise resolving to the create response
+ */
+export async function createNewVal(options: {
+  name: string;
+  description?: string;
+  privacy?: ValPrivacy;
+}): Promise<ReturnType<typeof sdk.vals.create>> {
+  const { name, description, privacy = DEFAULT_VAL_PRIVACY } = options;
+
+  return await sdk.vals.create({
+    name,
+    description,
+    privacy,
+  });
+}
+
+/**
+ * Deletes a Val file at the specified path.
+ *
+ * @param valId The ID of the Val containing the file to delete
+ * @param options Delete options
+ * @param options.path The path of the file to delete
+ * @param options.branchId The ID of the branch to delete from
+ * @param options.recursive Whether to recursively delete directories (optional)
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteValFile(
+  valId: string,
+  options: {
+    path: string;
+    branchId: string;
+    recursive?: boolean;
+  },
+): Promise<ReturnType<typeof sdk.vals.files.delete>> {
+  const { path, branchId, recursive } = options;
+
+  return await sdk.vals.files.delete(valId, {
+    path: slash(path),
+    branch_id: branchId,
+    recursive: !!recursive,
+  });
+}
 
 export default sdk;

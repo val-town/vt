@@ -1,5 +1,11 @@
 import type { ValFileType, ValItemType } from "~/types.ts";
-import sdk, { getLatestVersion, listValItems } from "~/sdk.ts";
+import {
+  createValItem,
+  deleteValFile,
+  getLatestVersion,
+  listValItems,
+  updateValFile,
+} from "~/sdk.ts";
 import { status } from "~/vt/lib/status.ts";
 import { basename, DELIMITER, dirname, join } from "@std/path";
 import { assert } from "@std/assert";
@@ -10,6 +16,7 @@ import {
   getItemWarnings,
   ItemStatusManager,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
+import slash from "slash";
 
 /** Result of push operation  */
 export interface PushResult {
@@ -118,11 +125,11 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(() => {
         return doReqMaybeApplyWarning(
           async () =>
-            await sdk.vals.files.update(valId, {
-              branch_id: branchId,
+            await updateValFile(valId, {
+              path: f.oldPath!,
+              branchId,
               name: basename(f.path),
-              parent_path: dirname(f.path) === "." ? null : dirname(f.path),
-              path: f.oldPath,
+              parentPath: dirname(f.path) === "." ? null : dirname(f.path),
               content: f.content,
             }),
           f.path,
@@ -138,15 +145,12 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.vals.files.create(
-              valId,
-              {
-                path: f.path,
-                content: f.content!, // It's a file not a dir so this should be defined
-                branch_id: branchId,
-                type: f.type as Exclude<ValItemType, "directory">,
-              },
-            ),
+            await createValItem(valId, {
+              path: f.path,
+              content: f.content!,
+              branchId,
+              type: f.type as Exclude<ValItemType, "directory">,
+            }),
           f.path,
           itemStateChanges,
         );
@@ -160,16 +164,13 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.vals.files.update(
-              valId,
-              {
-                path: f.path,
-                branch_id: branchId,
-                content: f.content,
-                name: basename(f.path),
-                type: f.type as ValFileType,
-              },
-            ),
+            await updateValFile(valId, {
+              path: slash(f.path),
+              branchId,
+              content: f.content,
+              name: basename(f.path),
+              type: f.type as ValFileType,
+            }),
           f.path,
           itemStateChanges,
         );
@@ -182,9 +183,9 @@ export async function push(params: PushParams): Promise<PushResult> {
       fileOperations.push(async () => {
         return await doReqMaybeApplyWarning(
           async () =>
-            await sdk.vals.files.delete(valId, {
+            await deleteValFile(valId, {
               path: f.path,
-              branch_id: branchId,
+              branchId,
               recursive: true,
             }),
           f.path,
@@ -244,10 +245,11 @@ async function createRequiredDirectories(
   for (const path of sortedDirsToCreate) {
     await doReqMaybeApplyWarning(
       () =>
-        sdk.vals.files.create(
-          valId,
-          { path, type: "directory", branch_id: branchId },
-        ),
+        createValItem(valId, {
+          path,
+          type: "directory",
+          branchId,
+        }),
       path,
       itemStateChanges,
     );
