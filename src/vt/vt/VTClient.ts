@@ -278,7 +278,7 @@ export default class VTClient {
     await assertSafeDirectory(rootPath);
 
     // First create the val
-    const { newValId: newValId } = await create({
+    const { newValId } = await create({
       sourceDir: rootPath,
       valName,
       privacy,
@@ -300,14 +300,14 @@ export default class VTClient {
   /**
    * Remix an existing Val Town Val and initialize a VT instance for it.
    *
-   * @param options - The options for remixing a val
-   * @param options.rootPath - The root path where the VT instance will be initialized
-   * @param options.srcValUsername - The username of the source Val owner
-   * @param options.srcValName - The name of the source Val to remix
-   * @param [options.srcBranchName] - The branch name of the source Val to remix (defaults to main)
-   * @param options.dstValName - The name for the new remixed val
+   * @param options The options for remixing a val
+   * @param options.rootPath The root path where the VT instance will be initialized
+   * @param options.srcValUsername The username of the source Val owner
+   * @param options.srcValName The name of the source Val to remix
+   * @param [options.srcBranchName] The branch name of the source Val to remix (defaults to main)
+   * @param options.dstValName The name for the new remixed val
    * @param ['public | 'private' | 'unlisted'} options.dstValPrivacy - The privacy setting for the new val
-   * @param [options.description] - Optional description for the new val
+   * @param [options.description] Optional description for the new val
    * @returns A new VTClient instance
    */
   public static async remix({
@@ -337,7 +337,7 @@ export default class VTClient {
     const { toValId, toVersion } = await remix({
       targetDir: rootPath,
       srcValId: srcVal.id,
-      srcBranchId: srcBranchName,
+      srcBranchId: (await branchNameToBranch(srcVal.id, srcBranchName)).id,
       valName: dstValName,
       description,
       privacy: dstValPrivacy,
