@@ -8,6 +8,7 @@ const sdk = new ValTown({
   // It needs to be passed here though as *something*
   bearerToken: Deno.env.get(API_KEY_KEY) ?? crypto.randomUUID(),
   defaultHeaders: { "x-vt-version": String(manifest.version) },
+  baseURL: Deno.env.get("VT_API_BASE_URL"),
 });
 
 /**
