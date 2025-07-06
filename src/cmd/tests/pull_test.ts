@@ -1,9 +1,9 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
 import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { createValItem } from "~/sdk.ts";
 
 Deno.test({
   name: "pull command with no changes",
@@ -42,12 +42,12 @@ Deno.test({
         });
 
         await t.step("make a remote change", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "remote-new.js",
               content: "console.log('Added remotely');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );

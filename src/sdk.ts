@@ -113,12 +113,16 @@ export async function getVal(
 /**
  * Lists all Val Town vals owned by the current user.
  *
+ * @param [n=Infinity] The maximum number of vals to retrieve
+ * @param [offset=0] The offset for pagination
+ *
  * @returns Promise resolving to an array of Val Town vals
  */
 export async function listMyVals(
   n: number = Number.POSITIVE_INFINITY,
-): Promise<ValTown.Val[]> {
-  return (await arrayFromAsyncN(sdk.me.vals.list({}), n))[0];
+  offset: number = 0,
+): Promise<[ValTown.Val[], boolean]> {
+  return await arrayFromAsyncN(sdk.me.vals.list({ offset }), n);
 }
 
 /**
@@ -455,10 +459,4 @@ export async function deleteValItem(
   });
 }
 
-/**
- * The actual stainless SDK instance for interacting with Val Town.
- *
- * In most cases, you should use the utility functions exported from this module, which
- * handle common operations and cases like file path normalization, etc.
- */
-export default sdk;
+export const _sdk = sdk;

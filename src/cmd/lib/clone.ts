@@ -54,7 +54,7 @@ export const cloneCmd = new Command()
 
       // If no Val URI is provided, show interactive Val selection
       if (!valUri) {
-        const vals = await doWithSpinner(
+        const [vals, _] = await doWithSpinner(
           "Loading vals...",
           async (spinner) => {
             const allVals = await listMyVals(100);

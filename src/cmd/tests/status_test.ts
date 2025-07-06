@@ -1,9 +1,9 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { createValItem } from "~/sdk.ts";
 
 Deno.test({
   name: "status command with local changes",
@@ -12,12 +12,12 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create a file and clone the val", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "test.js",
               content: "console.log('Initial content');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -70,12 +70,12 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create a file and clone the val", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "initial.js",
               content: "console.log('Initial content');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -90,12 +90,12 @@ Deno.test({
 
         await t.step("make a remote change", async () => {
           // Create a new file remotely
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "remote-file.js",
               content: "console.log('Remote file');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );

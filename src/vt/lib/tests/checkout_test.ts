@@ -144,7 +144,7 @@ Deno.test({
 
         // Verify branch creation
         assertEquals(result.createdNew, true);
-        assertEquals(result.toBranch!.name, "new-feature");
+        assertEquals(result.toBranch.name, "new-feature");
 
         // Verify files exist
         assert(
@@ -167,7 +167,7 @@ Deno.test({
           targetDir: tempDir,
           valId: val.id,
           toBranchId: mainBranch.id,
-          fromBranchId: result.toBranch!.id,
+          fromBranchId: result.toBranch.id,
           toBranchVersion: 3,
         });
 

@@ -8,7 +8,7 @@ import {
 import { walk } from "@std/fs";
 import { clone } from "~/vt/lib/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
-import { asPosixPath } from "../../utils.ts";
+import { asPosixPath } from "~/utils.ts";
 
 /** Result of pull operation  */
 export interface PushResult {
