@@ -1,11 +1,16 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
+import {
+  createNewBranch,
+  createValItem,
+  deleteBranch,
+  updateValFile,
+} from "~/sdk.ts";
 
 Deno.test({
   name: "checkout with remote modifications on current branch is allowed",
@@ -17,27 +22,27 @@ Deno.test({
 
         await t.step("set up the state of the val", async () => {
           // Create initial file on main branch
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "main.ts",
               content: "// Main branch",
-              branch_id: mainBranch.id,
+              branchId: mainBranch.id,
               type: "script",
             },
           );
 
-          const featureBranch = await sdk.vals.branches.create(
+          const featureBranch = await createNewBranch(
             val.id,
             { name: "feature-branch", branchId: mainBranch.id },
           );
 
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "feature.ts",
               content: "// Feature",
-              branch_id: featureBranch.id,
+              branchId: featureBranch.id,
               type: "script",
             },
           );
@@ -51,10 +56,10 @@ Deno.test({
           );
 
           // Make a remote change to main branch after cloning
-          await sdk.vals.files.update(
+          await updateValFile(
             val.id,
             {
-              branch_id: mainBranch.id,
+              branchId: mainBranch.id,
               path: "main.ts",
               content: "// Modified main branch",
             },
@@ -110,12 +115,12 @@ Deno.test({
         let newFilePath: string;
 
         await t.step("create file on main branch", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "original.txt",
               content: "original content",
-              branch_id: mainBranch.id,
+              branchId: mainBranch.id,
               type: "file",
             },
           );
@@ -203,29 +208,29 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         // Create initial file on main branch
-        await sdk.vals.files.create(
+        await createValItem(
           val.id,
           {
             path: "main-file.js",
             content: "console.log('Main branch file');",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           },
         );
 
         // Create a new branch using SDK
-        const newBranch = await sdk.vals.branches.create(
+        const newBranch = await createNewBranch(
           val.id,
           { name: "feature-branch", branchId: branch.id },
         );
 
         // Create a file on the new branch
-        await sdk.vals.files.create(
+        await createValItem(
           val.id,
           {
             path: "feature-file.js",
             content: "console.log('Feature branch file');",
-            branch_id: newBranch.id,
+            branchId: newBranch.id,
             type: "file",
           },
         );
@@ -278,12 +283,12 @@ Deno.test({
   async fn() {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
-        await sdk.vals.files.create(
+        await createValItem(
           val.id,
           {
             path: "main.tsx",
             content: "console.log('Main branch file');",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "script",
           },
         );
@@ -339,12 +344,12 @@ Deno.test({
         let fullPath: string;
 
         await t.step("create initial file on main branch", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "shared.ts",
               content: "// Original content",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "script",
             },
           );
@@ -352,16 +357,16 @@ Deno.test({
 
         await t.step("create and modify file on feature branch", async () => {
           // Create a feature branch
-          const featureBranch = await sdk.vals.branches.create(
+          const featureBranch = await createNewBranch(
             val.id,
             { name: "feature", branchId: branch.id },
           );
 
           // Modify the file on feature branch
-          await sdk.vals.files.update(
+          await updateValFile(
             val.id,
             {
-              branch_id: featureBranch.id,
+              branchId: featureBranch.id,
               path: "shared.ts",
               content: "// Modified content on feature branch",
             },
@@ -420,12 +425,12 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         // Create initial file on main branch
-        await sdk.vals.files.create(
+        await createValItem(
           val.id,
           {
             path: "main-file.js",
             content: "console.log('Main branch file');",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           },
         );
@@ -467,28 +472,28 @@ Deno.test({
 
         await t.step("set up branches and files", async () => {
           // Create initial file on main branch
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "main.ts",
               content: "// Main branch",
-              branch_id: mainBranch.id,
+              branchId: mainBranch.id,
               type: "script",
             },
           );
 
           // Create a temporary branch that will be deleted
-          tempBranch = await sdk.vals.branches.create(
+          tempBranch = await createNewBranch(
             val.id,
             { name: "temp-branch", branchId: mainBranch.id },
           );
 
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "temp.ts",
               content: "// Temporary file",
-              branch_id: tempBranch.id,
+              branchId: tempBranch.id,
               type: "script",
             },
           );
@@ -509,7 +514,7 @@ Deno.test({
           assertStringIncludes(statusOutput, "On branch temp-branch@");
 
           // Delete the temp branch remotely
-          await sdk.vals.branches.delete(val.id, tempBranch.id);
+          await deleteBranch(val.id, tempBranch.id);
         });
 
         await t.step("attempt checkout after branch deletion", async () => {

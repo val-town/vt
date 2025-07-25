@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
     "jsr:@404wolf/xdg-portable@0.1": "0.1.0",
     "jsr:@cfa/gitignore-parser@~0.1.4": "0.1.4",
@@ -45,7 +45,7 @@
     "jsr:@std/text@~1.0.7": "1.0.12",
     "jsr:@std/yaml@^1.0.5": "1.0.5",
     "jsr:@valtown/sdk@0.38": "0.38.2",
-    "jsr:@valtown/sdk@1": "1.1.0",
+    "jsr:@valtown/sdk@^1.5.0": "1.5.0",
     "npm:@types/express@4": "4.17.21",
     "npm:@types/node@*": "22.12.0",
     "npm:emphasize@7": "7.0.0",
@@ -230,8 +230,8 @@
     "@valtown/sdk@1.0.0": {
       "integrity": "dc4fd0865a5b19fcc344dd3f18dd1ce11c8e2f338addeb7317ee62cd3fbd0b0a"
     },
-    "@valtown/sdk@1.1.0": {
-      "integrity": "b495098335baf406e862b4a7b6947a93b7420b59433e535001578ec7e2279d3d"
+    "@valtown/sdk@1.5.0": {
+      "integrity": "7ae404a13f33d3d7bf7a3c628cad9ca26d0c2e053bd784322df1ea5bfb618e08"
     }
   },
   "npm": {
@@ -358,13 +358,15 @@
       "integrity": "sha512-fJ7cW7fQGCYAkgv4CPfwFHrfd/cLS4Hau96JuJ+ZTOWhjnhoeN1ub1tFmALm/+lW5z4WCAuAV9bm05AP0mS6Gw=="
     },
     "is-docker@3.0.0": {
-      "integrity": "sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ=="
+      "integrity": "sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ==",
+      "bin": true
     },
     "is-inside-container@1.0.0": {
       "integrity": "sha512-KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA==",
       "dependencies": [
         "is-docker"
-      ]
+      ],
+      "bin": true
     },
     "is-wsl@3.1.0": {
       "integrity": "sha512-UcVfVfaK4Sc4m7X3dUSoHoozQGBEFeDC+zVo06t98xe8CzHSZZBekNXH+tu0NalHolcJ/QAGqS46Hef7QXBIMw==",
@@ -466,7 +468,7 @@
       "jsr:@std/random@0.1",
       "jsr:@std/text@^1.0.12",
       "jsr:@std/yaml@^1.0.5",
-      "jsr:@valtown/sdk@1",
+      "jsr:@valtown/sdk@^1.5.0",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
       "npm:open@^10.1.0",

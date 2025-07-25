@@ -1,5 +1,9 @@
 import { Command } from "@cliffy/command";
-import sdk, { branchNameToBranch } from "~/sdk.ts";
+import {
+  branchNameToBranch,
+  deleteBranch as deleteValbranch,
+  listBranches as listValBranches,
+} from "~/sdk.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
 import { doWithSpinner } from "~/cmd/utils.ts";
@@ -10,9 +14,7 @@ async function listBranches(vt: VTClient) {
   return await doWithSpinner("Loading branches...", async (spinner) => {
     const vtState = await vt.getMeta().loadVtState();
 
-    const branches = await Array.fromAsync(
-      sdk.vals.branches.list(vtState.val.id, {}),
-    );
+    const branches = await listValBranches(vtState.val.id);
 
     const formatter = new Intl.DateTimeFormat("en-US", {
       year: "numeric",
@@ -88,7 +90,7 @@ async function deleteBranch(vt: VTClient, toDeleteName: string) {
       );
     }
 
-    await sdk.vals.branches.delete(meta.val.id, toDeleteBranch.id);
+    await deleteValbranch(meta.val.id, toDeleteBranch.id);
     spinner.succeed(`Branch '${toDeleteName}' has been deleted.`);
   });
 }

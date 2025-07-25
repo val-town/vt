@@ -13,7 +13,13 @@ import {
   waitForStable,
 } from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
+import {
+  createValItem,
+  deleteVal,
+  getCurrentUser,
+  randomValName,
+  valNameToVal,
+} from "~/sdk.ts";
 import type { ValFileType } from "~/types.ts";
 
 Deno.test({
@@ -27,23 +33,23 @@ Deno.test({
 
         await t.step("set up custom config files", async () => {
           // Create custom deno.json
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "deno.json",
               content: customDenoJson,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file" as ValFileType,
             },
           );
 
           // Create custom .vtignore
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: ".vtignore",
               content: customVtignore,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file" as ValFileType,
             },
           );
@@ -88,32 +94,32 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("set up the Val structure", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "foo",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "directory",
             },
           );
 
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "test.js",
               content: "",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
 
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "foo/test_inner.js",
               content:
                 "export function test() { return 'Hello from test_inner'; }",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -190,11 +196,11 @@ Deno.test({
           assert(await exists(targetDir), "val directory was not created");
         });
       } finally {
-        const { id } = await sdk.alias.username.valName.retrieve(
+        const { id } = await valNameToVal(
           user.username!,
           valName,
         );
-        await sdk.vals.delete(id);
+        await deleteVal(id);
       }
     });
   },

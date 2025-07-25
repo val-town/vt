@@ -1,5 +1,10 @@
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion } from "~/sdk.ts";
+import { assertPathEquals, doWithNewVal } from "~/vt/lib/tests/utils.ts";
+import {
+  createValItem,
+  deleteValItem,
+  getLatestVersion,
+  updateValFile,
+} from "~/sdk.ts";
 import { pull } from "~/vt/lib/pull.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -17,12 +22,12 @@ Deno.test({
         const fileContent = "This is a test file";
 
         await t.step("create initial file", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: vtFilePath,
               content: fileContent,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -41,11 +46,7 @@ Deno.test({
 
             // Check file exists
             const fileExists = await exists(localFilePath);
-            assertEquals(
-              fileExists,
-              true,
-              `File ${vtFilePath} should exist after pulling`,
-            );
+            assert(fileExists, `File ${vtFilePath} should exist after pulling`);
 
             // Check content matches
             const content = await Deno.readTextFile(localFilePath);
@@ -60,12 +61,12 @@ Deno.test({
             const updatedContent = "This is an updated test file";
 
             // Update file on server
-            await sdk.vals.files.update(
+            await updateValFile(
               val.id,
               {
                 path: vtFilePath,
                 content: updatedContent,
-                branch_id: branch.id,
+                branchId: branch.id,
               },
             );
 
@@ -89,11 +90,11 @@ Deno.test({
 
           await t.step("delete file on server", async () => {
             // Delete file on server
-            await sdk.vals.files.delete(
+            await deleteValItem(
               val.id,
               {
                 path: vtFilePath,
-                branch_id: branch.id,
+                branchId: branch.id,
                 recursive: true,
               },
             );
@@ -131,12 +132,12 @@ Deno.test({
         const ignoredFilePath = "ignored.log";
 
         // Create remote file
-        await sdk.vals.files.create(
+        await createValItem(
           val.id,
           {
             path: vtFilePath,
             content: "Remote file",
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           },
         );
@@ -157,17 +158,12 @@ Deno.test({
         // Verify remote file was pulled
         const localRemotePath = join(tempDir, vtFilePath);
         const remoteFileExists = await exists(localRemotePath);
-        assertEquals(
-          remoteFileExists,
-          true,
-          "Remote file should exist after pulling",
-        );
+        assert(remoteFileExists, "Remote file should exist after pulling");
 
         // Verify ignored file was preserved
         const ignoredFileExists = await exists(localIgnoredPath);
-        assertEquals(
+        assert(
           ignoredFileExists,
-          true,
           "Ignored local file should be preserved after pulling",
         );
 
@@ -193,12 +189,12 @@ Deno.test({
         const fileContent = "This is a server file";
 
         await t.step("create file on server", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: vtFilePath,
               content: fileContent,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -220,7 +216,7 @@ Deno.test({
             1,
             "dry run should detect one file to create",
           );
-          assertEquals(
+          assertPathEquals(
             itemStateChanges.created[0].path,
             vtFilePath,
             "correct file path should be detected",
@@ -247,12 +243,12 @@ Deno.test({
         await t.step("test dry run for modified files", async () => {
           // Update file on server
           const updatedContent = "This file has been updated on the server";
-          await sdk.vals.files.update(
+          await updateValFile(
             val.id,
             {
               path: vtFilePath,
               content: updatedContent,
-              branch_id: branch.id,
+              branchId: branch.id,
             },
           );
 
@@ -271,7 +267,7 @@ Deno.test({
             1,
             "dry run should detect one file to modify",
           );
-          assertEquals(
+          assertPathEquals(
             itemStateChanges.modified[0].path,
             vtFilePath,
             "correct file path should be detected for modification",
@@ -298,14 +294,14 @@ Deno.test({
     await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (tempDir) => {
         // Create nested directories on the server
-        const nestedDirPath = "parent/child/grandchild";
+        const nestedDirPath = join("parent", "child", "grandchild");
 
         await t.step("create nested directories on server", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: nestedDirPath,
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "directory",
             },
           );
@@ -323,16 +319,14 @@ Deno.test({
           // Verify directories were created
           const localDirPath = join(tempDir, nestedDirPath);
           const dirExists = await exists(localDirPath);
-          assertEquals(
+          assert(
             dirExists,
-            true,
             `Directory ${nestedDirPath} should exist after pulling`,
           );
 
           // Verify changes were detected
-          assertEquals(
+          assert(
             firstPullChanges.created.length > 0,
-            true,
             "First pull should detect directory creation",
           );
         });

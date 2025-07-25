@@ -1,7 +1,13 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getCurrentUser, getLatestVersion, listValItems } from "~/sdk.ts";
+import {
+  getBranch,
+  getCurrentUser,
+  getLatestVersion,
+  getVal,
+  listValItems,
+} from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -28,12 +34,12 @@ export const watchCmd = new Command()
 
       // Get initial branch information for display
       const vtState = await vt.getMeta().loadVtState();
-      const currentBranch = await sdk.vals.branches.retrieve(
+      const currentBranch = await getBranch(
         vtState.val.id,
         vtState.branch.id,
       );
 
-      const valToWatch = await sdk.vals.retrieve(vtState.val.id);
+      const valToWatch = await getVal(vtState.val.id);
       if (valToWatch.author.id !== user.id) {
         console.log(valToWatch.author.id, user.id);
         throw new Error(
