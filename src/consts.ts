@@ -102,10 +102,36 @@ export const TYPE_PRIORITY: Record<ValItemType, number> = {
   "interval": 5,
 };
 
-export const VAL_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
+export const VAL_ITEM_NAME_REGEX = /^[a-zA-Z0-9\-_.]+$/;
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
 export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
 
 export const AUTH_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const AUTH_CACHE_LOCALSTORE_ENTRY = "vt_last_auth_cache";
+
+export const HEADERS_TO_EXCLUDE_PATTERNS = [
+  /-forwarded-for$/i,
+  /-forwarded-proto$/i,
+  /-forwarded-port$/i,
+  /-amzn-trace-id$/i,
+  /ser-agent$/i,
+  /ccept$/i,
+  /ccept-language$/i,
+  /ccept-encoding$/i,
+  /pgrade-insecure-requests$/i,
+  /ec-fetch-dest$/i,
+  /ec-fetch-mode$/i,
+  /ec-fetch-site$/i,
+  /ec-fetch-user$/i,
+  /priority$/i,
+  /ost$/i,
+  /x-ratelimit-limit$/i,
+  /x-ratelimit-remaining$/i,
+  /x-ratelimit-reset$/i,
+  /vary$/i,
+  /content-length$/i,
+  /date$/i,
+  /access-control-allow-origin$/i,
+  /access-control-allow-methods$/i,
+];

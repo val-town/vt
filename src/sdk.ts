@@ -2,6 +2,7 @@ import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
 import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { delay } from "@std/async";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -175,22 +176,14 @@ export const listValItems = memoize(async (
   branchId: string,
   version: number,
 ): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
-  const files: ValTown.Vals.FileRetrieveResponse[] = [];
-
-  branchId = branchId ||
-    (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
-      .then((resp) => resp.id))!;
-
-  for await (
-    const file of sdk.vals.files.retrieve(valId, {
+  return await Array.fromAsync(
+    sdk.vals.files.retrieve(valId, {
       path: "",
       branch_id: branchId,
       version,
       recursive: true,
-    })
-  ) files.push(file);
-
-  return files;
+    }),
+  );
 });
 
 /**
@@ -213,5 +206,158 @@ export function randomValName(label = "") {
 export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
+
+/**
+ * Fetches all traces between start and end times, handling pagination
+ */
+async function getTracesFromStartToEnd(
+  branchIds: string[],
+  fileId: string | undefined,
+  startTime: Date,
+  endTime: Date,
+): Promise<ValTown.Telemetry.Traces.TraceListResponse.Data[]> {
+  const allTraces: ValTown.Telemetry.Traces.TraceListResponse.Data[] = [];
+  let currentStartTime = startTime;
+  let prevNextLink = "";
+
+  while (true) {
+    const { links, data } = await sdk.telemetry.traces.list({
+      limit: 20,
+      start: currentStartTime.toISOString(),
+      end: endTime.toISOString(),
+      branch_ids: branchIds,
+      ...(fileId && { file_id: fileId }),
+    });
+
+    // Add the traces to our result array
+    allTraces.push(...data);
+
+    // Check if we've reached the end of pagination
+    if (!links.next || links.next === prevNextLink) break;
+
+    // Update for the next pagination request
+    prevNextLink = links.next;
+    const newStartTime = new Date(
+      new URL(links.next).searchParams.get("end")!,
+    );
+
+    // If we're not making progress, break
+    if (newStartTime.getTime() === currentStartTime.getTime()) break;
+
+    currentStartTime = newStartTime;
+  }
+
+  return allTraces;
+}
+
+export async function* getTraces(
+  branchIds: string[],
+  fileId?: string,
+  frequency: number = 1_000,
+): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
+  const backlog = new Map<string, number>(); // Map traceId to startTime for better lookup
+
+  while (true) {
+    // Check backlog for unfinished traces
+    if (backlog.size > 0) {
+      for (const [traceId, traceStartTime] of [...backlog.entries()]) {
+        const backlogStartTime = new Date(traceStartTime / 1000000);
+        const backlogTraces = await getTracesFromStartToEnd(
+          branchIds,
+          fileId,
+          backlogStartTime,
+          new Date(Array.from(backlog.values()).toSorted()[0] / 1000000),
+        );
+
+        // Look for our trace in the results
+        const foundTrace = backlogTraces.find((trace) =>
+          trace.traceId === traceId
+        );
+
+        if (foundTrace) {
+          if (foundTrace.endTimeUnixNano !== "0") {
+            yield foundTrace;
+            backlog.delete(traceId); // Remove from backlog once complete
+          }
+          // If still running, keep in backlog
+        }
+      }
+    }
+
+    // Get new traces from the last frequency milliseconds
+    const startTime = new Date(Date.now() - frequency);
+    const endTime = new Date();
+
+    const newTraces = await getTracesFromStartToEnd(
+      branchIds,
+      fileId,
+      startTime,
+      endTime,
+    );
+
+    // Process new traces
+    for (const trace of newTraces) {
+      if (trace.endTimeUnixNano === "0") {
+        // It's not done yet, add to backlog
+        backlog.set(trace.traceId, parseInt(trace.startTimeUnixNano));
+      } else {
+        yield trace;
+      }
+    }
+
+    // Wait before next polling interval
+    await new Promise((resolve) => setTimeout(resolve, frequency));
+  }
+}
+
+/**
+ * Get all logs for a specific trace ID.
+ *
+ * @param traceId The trace ID to get logs for
+ * @returns AsyncGenerator yielding all log entries for the trace
+ */
+export async function* getLogsForTraces(
+  traceIds: string[],
+): AsyncGenerator<ValTown.Telemetry.Logs.LogListResponse.Data> {
+  let nextUrl: string | undefined;
+
+  do {
+    const response = await sdk.telemetry.logs.list({
+      limit: 100,
+      trace_ids: traceIds,
+      ...(nextUrl && {
+        end: new URL(nextUrl).searchParams.get("end")!,
+      }),
+    });
+
+    for (const log of response.data) {
+      yield log;
+    }
+
+    nextUrl = response.links.next;
+  } while (nextUrl);
+}
+
+/**
+ * Converts a file ID to its corresponding Val file for a given val.
+ *
+ * @param valId The ID of the Val containing the file
+ * @param branchId The ID of the Val branch to reference
+ * @param fileId The ID of the file to retrieve
+ * @returns Promise resolving to the Val file data
+ * @throws if the file is not found or if the API request fails
+ */
+export async function fileIdToValFile(
+  valId: string,
+  branchId: string,
+  fileId: string,
+  version?: number,
+): Promise<ValTown.Vals.FileRetrieveResponse> {
+  version = version ?? (await getLatestVersion(valId, branchId));
+  const files = await listValItems(valId, branchId, version);
+  const file = files.find((f) => f.id === fileId);
+  if (!file) throw new Deno.errors.NotFound(`File with ID ${fileId} not found`);
+  return file;
+}
 
 export default sdk;
