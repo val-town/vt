@@ -255,35 +255,7 @@ export async function* getTraces(
   fileId?: string,
   frequency: number = 1_000,
 ): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
-  const backlog = new Map<string, number>(); // Map traceId to startTime for better lookup
-
   while (true) {
-    // Check backlog for unfinished traces
-    if (backlog.size > 0) {
-      for (const [traceId, traceStartTime] of [...backlog.entries()]) {
-        const backlogStartTime = new Date(traceStartTime / 1000000);
-        const backlogTraces = await getTracesFromStartToEnd(
-          branchIds,
-          fileId,
-          backlogStartTime,
-          new Date(Array.from(backlog.values()).toSorted()[0] / 1000000),
-        );
-
-        // Look for our trace in the results
-        const foundTrace = backlogTraces.find((trace) =>
-          trace.traceId === traceId
-        );
-
-        if (foundTrace) {
-          if (foundTrace.endTimeUnixNano !== "0") {
-            yield foundTrace;
-            backlog.delete(traceId); // Remove from backlog once complete
-          }
-          // If still running, keep in backlog
-        }
-      }
-    }
-
     // Get new traces from the last frequency milliseconds
     const startTime = new Date(Date.now() - frequency);
     const endTime = new Date();
@@ -295,12 +267,9 @@ export async function* getTraces(
       endTime,
     );
 
-    // Process new traces
+    // Only yield traces that are finished
     for (const trace of newTraces) {
-      if (trace.endTimeUnixNano === "0") {
-        // It's not done yet, add to backlog
-        backlog.set(trace.traceId, parseInt(trace.startTimeUnixNano));
-      } else {
+      if (trace.endTimeUnixNano !== "0") {
         yield trace;
       }
     }

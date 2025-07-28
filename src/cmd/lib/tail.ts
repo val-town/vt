@@ -4,11 +4,16 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import type ValTown from "@valtown/sdk";
 import { basename, dirname, join } from "@std/path";
 import { colors } from "@cliffy/ansi/colors";
-import { HEADERS_TO_EXCLUDE_PATTERNS, ValItemColors } from "../../consts.ts";
+import {
+  HEADERS_TO_EXCLUDE_PATTERNS,
+  TypeToTypeStr,
+  ValItemColors,
+} from "~/consts.ts";
 import type { ValItemType } from "../../types.ts";
 import { Command } from "@cliffy/command";
 import { delay } from "@std/async/delay";
 import { SlidingWindowCounter } from "./utils/SlidingWindowCounter.ts";
+import { extractAttributes } from "./utils/attributeExtract.ts";
 
 export const tailCmd = new Command()
   .name("tail")
@@ -21,6 +26,11 @@ export const tailCmd = new Command()
     { default: 5 },
   )
   .option(
+    "--print-headers",
+    "Print HTTP request/response headers",
+    { default: false },
+  )
+  .option(
     "--wait-for-logs",
     "How long to wait for logs before logging a trace",
     { default: 2000 },
@@ -28,6 +38,16 @@ export const tailCmd = new Command()
   .option(
     "--reverse-logs",
     "Show logs from latest to earliest (default: earliest to latest)",
+    { default: false },
+  )
+  .option(
+    "--use-timezone <timezone:string>",
+    "Display timestamps in the specified time zone (default: local, options: local, utc, or IANA time zone string)",
+    { default: "local" },
+  )
+  .option(
+    "--24-hour-time",
+    "Display timestamps in 24-hour format (default: 12-hour AM/PM)",
     { default: false },
   )
   .action(async (options) => {
@@ -40,10 +60,18 @@ export const tailCmd = new Command()
     const currentBranchData = await sdk.vals.branches
       .retrieve(vtState.val.id, vtState.branch.id)
       .catch(() => null);
-    const printedLogsForTraces = new Set<string>();
+
     if (!currentBranchData) {
       throw new Error("Failed to get current branch data");
     }
+
+    console.log(
+      `Tailing logs for branch ${
+        colors.cyan(currentBranchData.name)
+      }@${currentBranchData.version}`,
+    );
+    console.log(colors.dim("Press Ctrl+C to stop."));
+    console.log();
 
     for await (const trace of getTraces([currentBranchData.id])) {
       await delay(
@@ -60,109 +88,227 @@ export const tailCmd = new Command()
       }
       requestCounter.increment();
       printTrace(
-        trace,
-        vtState.val.id,
-        printedLogsForTraces,
-        options.reverseLogs,
+        {
+          trace,
+          valId: vtState.val.id,
+          printHeaders: options.printHeaders,
+          reverseLogs: options.reverseLogs,
+          timeZone: options.useTimezone,
+          use24HourTime: options["24HourTime"],
+        },
       );
     }
   });
 
 async function printTrace(
-  trace: ValTown.Telemetry.TraceListResponse.Data,
-  valId: string,
-  printedLogsForTraces: Set<string> = new Set(),
-  reverseLogs: boolean = false,
+  {
+    trace,
+    valId,
+    printHeaders,
+    reverseLogs = false,
+    timeZone = "local",
+    use24HourTime = false,
+  }: {
+    trace: ValTown.Telemetry.TraceListResponse.Data;
+    valId: string;
+    printHeaders?: boolean;
+    reverseLogs?: boolean;
+    timeZone?: string;
+    use24HourTime?: boolean;
+  },
 ): Promise<void> {
   const attributes = extractAttributes(trace.attributes);
   const valFile = await fileIdToValFile(
     valId,
-    attributes["val.branch_id"],
-    attributes["val.file_id"],
+    attributes.valBranchId,
+    attributes.valFileId,
   );
   const prettyPath = prettyPrintFilePath(valFile.path, valFile.type);
-
-  if (valFile.type !== "http") return;
-
+  const typeName = (TypeToTypeStr[valFile.type] || "Unknown").toUpperCase();
   const start = parseInt(trace.startTimeUnixNano);
   const end = parseInt(trace.endTimeUnixNano);
   const duration = Math.round((end - start) / 1e6);
-  const receivedAt = formatTimeFromUnixNano(start);
-  const method = attributes["http.request.method"]?.toUpperCase() || "";
-  const url = attributes["url.full"] || "";
-  const urlPath = url ? new URL(url).pathname : "";
-  const status = parseInt(attributes["http.response.status_code"] || "0");
 
-  if (method && urlPath) {
-    console.log(
-      `[${receivedAt}] ${colors.bold(method)} ${colors.bold(urlPath)}`,
-    );
-  }
+  let status: string | undefined = String(
+    valFile.type === "http"
+      ? parseInt(attributes.httpResStatusCode)
+      : trace.status?.code,
+  );
+  status = status === "NaN" ? undefined : status;
 
-  if (prettyPath && duration) {
-    console.log(
-      `  ${colors.dim(`${duration.toString()}ms`)} ${
-        colors.yellow(status.toString())
-      } ${prettyPath}`,
-    );
-  }
+  switch (valFile.type) {
+    case "http": {
+      const start = parseInt(trace.startTimeUnixNano);
+      const end = parseInt(trace.endTimeUnixNano);
+      const duration = Math.round((end - start) / 1e6);
+      const receivedAt = formatTimeFromUnixNano(start, timeZone, use24HourTime);
+      const method = attributes.httpReqMethod.toUpperCase();
+      const url = attributes.urlFull;
+      const urlPath = new URL(url).pathname;
 
-  const requestHeaders = Object.entries(attributes)
-    .filter(([key]) =>
-      key.startsWith("http.request.header.") &&
-      !HEADERS_TO_EXCLUDE_PATTERNS.some((pattern) => key.match(pattern))
-    );
-
-  const responseHeaders = Object.entries(attributes)
-    .filter(([key]) =>
-      key.startsWith("http.response.header.") &&
-      !HEADERS_TO_EXCLUDE_PATTERNS.some((pattern) => key.match(pattern))
-    );
-
-  // Compute max key length for both request and response headers
-  const allHeaderKeys = [
-    ...requestHeaders.map(([key]) => key.replace("http.request.header.", "")),
-    ...responseHeaders.map(([key]) => key.replace("http.response.header.", "")),
-  ];
-  const maxKeyLen = allHeaderKeys.length
-    ? Math.max(...allHeaderKeys.map((k) => k.length))
-    : 0;
-
-  if (requestHeaders.length) {
-    console.log("    Req Headers:");
-    requestHeaders.forEach(([key, value]) => {
-      const rawKey = key.replace("http.request.header.", "");
+      // Print out request trace meta
       console.log(
-        `      ${
-          colors.blue(formatHeaderKey(`${rawKey}:`).padEnd(maxKeyLen + 1, " "))
-        } ${value}`,
+        `[${receivedAt}] ${colors.dim(typeName)} ${colors.bold(method)} ${
+          colors.bold(urlPath)
+        }`,
       );
-    });
-  }
-
-  if (responseHeaders.length) {
-    console.log("    Resp Headers:");
-    responseHeaders.forEach(([key, value]) => {
-      const rawKey = key.replace("http.response.header.", "");
       console.log(
-        `      ${
-          colors.blue(formatHeaderKey(`${rawKey}:`).padEnd(maxKeyLen + 1, " "))
-        } ${value}`,
+        `  ${colors.dim(`${duration.toString()}ms`)} ${
+          colors.yellow(status ?? "??")
+        } ${prettyPath}`,
       );
-    });
+
+      if (printHeaders) {
+        // Get the headers, then filter out our internal headers
+        const requestHeaders = Object.entries(attributes)
+          .filter(([key]) =>
+            key.startsWith("http.request.header.") &&
+            !HEADERS_TO_EXCLUDE_PATTERNS.some((pattern) => key.match(pattern))
+          );
+        const responseHeaders = Object.entries(attributes)
+          .filter(([key]) =>
+            key.startsWith("http.response.header.") &&
+            !HEADERS_TO_EXCLUDE_PATTERNS.some((pattern) => key.match(pattern))
+          );
+
+        // Compute max key length for both request and response headers
+        const allHeaderKeys = [
+          ...requestHeaders.map(([key]) =>
+            key.replace("http.request.header.", "")
+          ),
+          ...responseHeaders.map(([key]) =>
+            key.replace("http.response.header.", "")
+          ),
+        ];
+
+        // Find the maximum length of all header keys for alignment
+        const maxKeyLen = allHeaderKeys.length
+          ? Math.max(...allHeaderKeys.map((k) => k.length))
+          : 0;
+
+        // Formatter for header keys to use title case
+        const formatHeaderKey = (headerKey: string): string => {
+          const segments = headerKey.split("-");
+          return segments.map((segment) =>
+            segment.charAt(0).toUpperCase() + segment.slice(1)
+          ).join("-");
+        };
+
+        if (requestHeaders.length) {
+          console.log("    Req Headers:");
+          requestHeaders.forEach(([key, value]) => {
+            const rawKey = key.replace("http.request.header.", "");
+            console.log(
+              `      ${
+                colors.blue(
+                  formatHeaderKey(`${rawKey}:`).padEnd(maxKeyLen + 1, " "),
+                )
+              } ${value}`,
+            );
+          });
+        }
+
+        if (responseHeaders.length) {
+          console.log("    Resp Headers:");
+          responseHeaders.forEach(([key, value]) => {
+            const rawKey = key.replace("http.response.header.", "");
+            console.log(
+              `      ${
+                colors.blue(
+                  formatHeaderKey(`${rawKey}:`).padEnd(maxKeyLen + 1, " "),
+                )
+              } ${value}`,
+            );
+          });
+        }
+      }
+
+      await printTraceLogs(
+        trace,
+        reverseLogs,
+        valFile.type,
+        timeZone,
+        use24HourTime,
+      );
+      break;
+    }
+    case "interval":
+    case "script": {
+      console.log(
+        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}]${
+          status !== "" ? ` (${colors.yellow(status ?? "??")})` : ""
+        } ${colors.dim(typeName)} ${colors.bold(basename(prettyPath))}`,
+      );
+
+      if (prettyPath && duration) {
+        console.log(
+          `  ${colors.dim(`${duration.toString()}ms`)} ${prettyPath}`,
+        );
+      }
+
+      await printTraceLogs(
+        trace,
+        reverseLogs,
+        valFile.type,
+        timeZone,
+        use24HourTime,
+      );
+      break;
+    }
+    case "email": {
+      const emailAddress = extractEmailFromValFile(valFile);
+      console.log(emailAddress);
+      console.log(
+        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}] ${
+          colors.dim(typeName)
+        } ${colors.bold(basename(prettyPath))} ${emailAddress}`,
+      );
+
+      if (prettyPath && duration) {
+        console.log(
+          `  ${colors.dim(`${duration.toString()}ms`)} ${prettyPath}`,
+        );
+      }
+
+      await printTraceLogs(
+        trace,
+        reverseLogs,
+        valFile.type,
+        timeZone,
+        use24HourTime,
+      );
+      break;
+    }
   }
 
+  console.log();
+}
+
+// Print all logs for a trace by ID
+async function printTraceLogs(
+  trace: ValTown.Telemetry.TraceListResponse.Data,
+  reverseLogs: boolean,
+  valType: ValItemType,
+  timeZone: string = "local",
+  use24HourTime: boolean = false,
+): Promise<void> {
   const logs = await Array.fromAsync(getLogsForTraces([trace.traceId]));
   // Sort logs by timeUnixNano (earliest to latest by default)
   logs.sort((a, b) => {
     const diff = Number(a.timeUnixNano) - Number(b.timeUnixNano);
     return reverseLogs ? -diff : diff;
   });
-  if (logs.length && !printedLogsForTraces.has(trace.traceId)) {
+  if (logs.length) {
     for (const log of logs) {
-      const { severityText: stderrOrStdout } = log as { severityText: string };
+      const { severityText: stderrOrStdout } = log as {
+        severityText: string;
+      };
 
-      const ts = formatTimeFromUnixNano(+log.timeUnixNano);
+      const ts = formatTimeFromUnixNano(
+        +log.timeUnixNano,
+        timeZone,
+        use24HourTime,
+      );
       let streamLabel: string;
       if (stderrOrStdout === "stderr") {
         streamLabel = colors.dim(colors.red(stderrOrStdout));
@@ -175,11 +321,9 @@ async function printTrace(
         );
       }
     }
-    printedLogsForTraces.add(trace.traceId);
-  } else if (!logs.length && valFile.type !== "http") {
-    console.log("  No logs found for this trace.");
+  } else if (!logs.length && valType !== "http") {
+    console.log(colors.dim("  (no logs found for this trace)"));
   }
-  console.log();
 }
 
 // Pretty print a file path
@@ -190,43 +334,52 @@ function prettyPrintFilePath(path: string, type: ValItemType): string {
   return join(dirname(path), coloredBaseName);
 }
 
+// Extract the email address from a Val file
+export function extractEmailFromValFile(
+  valFile: ValTown.Vals.FileRetrieveResponse,
+) {
+  let label = valFile.id;
+  if (valFile.links.endpoint) {
+    label = URL.parse(valFile.links.endpoint)?.hostname.split(".")[0] || label;
+  }
+  return `${label}@valtown.email`;
+}
+
 // Format a timestamp from nanoseconds to a human-readable string
-function formatTimeFromUnixNano(unixNanoTimestamp: number) {
+function formatTimeFromUnixNano(
+  unixNanoTimestamp: number,
+  timeZone: string = "local",
+  use24HourTime: boolean = false,
+) {
   // Convert nanoseconds to milliseconds
   const milliseconds = unixNanoTimestamp / 1000000;
-
-  // Create a Date object
   const date = new Date(milliseconds);
 
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const seconds = date.getSeconds().toString().padStart(2, "0");
+  const tz = (timeZone || "local").toLowerCase();
+  const localeOpts: Intl.DateTimeFormatOptions = {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: !use24HourTime,
+    timeZone: tz === "local" ? undefined : (tz === "utc" ? "UTC" : timeZone),
+  };
+
+  // Use Intl.DateTimeFormat for time zone support
+  const parts = new Intl.DateTimeFormat(
+    undefined,
+    localeOpts,
+  ).formatToParts(date);
+
+  const hourPart = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const minutePart = parts.find((p) => p.type === "minute")?.value ?? "00";
+  const secondPart = parts.find((p) => p.type === "second")?.value ?? "00";
+  const dayPeriod = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
   const millisecondsPart = date.getMilliseconds().toString().padStart(3, "0");
 
-  return `${hours}:${minutes}:${seconds}.${millisecondsPart}`;
-}
+  const displayHours = hourPart.padStart(2, "0");
+  const minutes = minutePart.padStart(2, "0");
+  const seconds = secondPart.padStart(2, "0");
+  const ampm = use24HourTime ? "" : (dayPeriod ? ` ${dayPeriod}` : "");
 
-// Extracts attributes from a log entry and returns them as a key-value object
-function extractAttributes(
-  attributes: ValTown.Telemetry.Logs.LogListResponse.Data.Attribute[],
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const attr of attributes) {
-    if (attr.value.stringValue) {
-      result[attr.key] = attr.value.stringValue;
-    } else if (attr.value.intValue !== undefined) {
-      result[attr.key] = attr.value.intValue.toString();
-    } else if (attr.value.boolValue !== undefined) {
-      result[attr.key] = attr.value.boolValue.toString();
-    }
-  }
-  return result;
-}
-
-// Makes header keys use capital first letters for each segment
-function formatHeaderKey(headerKey: string): string {
-  const segments = headerKey.split("-");
-  return segments.map((segment) =>
-    segment.charAt(0).toUpperCase() + segment.slice(1)
-  ).join("-");
+  return `${displayHours}:${minutes}:${seconds}.${millisecondsPart}${ampm}`;
 }
