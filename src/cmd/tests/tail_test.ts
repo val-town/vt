@@ -54,7 +54,7 @@ Deno.test({
 
           assert(resp.ok, "Response should be OK");
           assert(await resp.text() === "OK", "Response body should be 'OK'");
-          
+
           await delay(1000);
 
           const logsOutput = outputLines.join("\n");
@@ -135,5 +135,5 @@ async function waitForTailToStart(outputLines: string[]) {
   } while (
     !outputLines.some((line) => line.includes("Press Ctrl+C to stop."))
   );
-  await delay(1000); 
+  await delay(1000);
 }
