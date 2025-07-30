@@ -11,7 +11,6 @@ import {
 } from "~/consts.ts";
 import type { ValItemType } from "../../types.ts";
 import { Command } from "@cliffy/command";
-import { delay } from "@std/async/delay";
 import { SlidingWindowCounter } from "./utils/SlidingWindowCounter.ts";
 import { extractAttributes } from "./utils/attributeExtract.ts";
 
@@ -19,7 +18,6 @@ export const tailCmd = new Command()
   .name("tail")
   .description("Stream logs of a Val")
   .example("vt tail", "Stream the logs of a val")
-  .example("vt tail > logs.txt", "Stream the logs of a val to a file")
   .option(
     "--rate-limit <limit:number>",
     "Maximum requests to log per second (default: 100)",
@@ -28,13 +26,11 @@ export const tailCmd = new Command()
   .option(
     "--print-headers",
     "Print HTTP request/response headers",
-    { default: false },
+    { default: true },
   )
-  .option(
-    "--wait-for-logs",
-    "How long to wait for logs before logging a trace",
-    { default: 2000 },
-  )
+  .option("--poll-frequency <ms:number>", "Polling frequency in milliseconds", {
+    default: 1000,
+  })
   .option(
     "--reverse-logs",
     "Show logs from latest to earliest (default: earliest to latest)",
@@ -73,21 +69,23 @@ export const tailCmd = new Command()
     console.log(colors.dim("Press Ctrl+C to stop."));
     console.log();
 
-    for await (const trace of getTraces([currentBranchData.id])) {
-      await delay(
-        typeof options.waitForLogs === "number" ? options.waitForLogs : 2000,
-      );
+    for await (
+      const trace of getTraces({
+        branchIds: [currentBranchData.id],
+        frequency: options.pollFrequency,
+      })
+    ) {
       if (requestCounter.count >= REQUESTS_PER_SECOND_LIMIT) {
         if (!limitWarningPrinted) {
           console.warn(
-            colors.red("Receiving high request volume, sampling logs..."),
+            colors.red("Receiving high request volume, sampling logs...\n"),
           );
           limitWarningPrinted = true;
         }
         continue;
       }
       requestCounter.increment();
-      printTrace(
+      await printTrace(
         {
           trace,
           valId: vtState.val.id,

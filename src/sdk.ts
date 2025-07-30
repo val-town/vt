@@ -1,7 +1,7 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { API_KEY_KEY } from "~/consts.ts";
 import { delay } from "@std/async";
 
 const sdk = new ValTown({
@@ -207,75 +207,47 @@ export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
 
-/**
- * Fetches all traces between start and end times, handling pagination
- */
-async function getTracesFromStartToEnd(
-  branchIds: string[],
-  fileId: string | undefined,
-  startTime: Date,
-  endTime: Date,
-): Promise<ValTown.Telemetry.Traces.TraceListResponse.Data[]> {
-  const allTraces: ValTown.Telemetry.Traces.TraceListResponse.Data[] = [];
-  let currentStartTime = startTime;
-  let prevNextLink = "";
-
+export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
+  branchIds: string[];
+  fileId?: string;
+  frequency?: number;
+}): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
   while (true) {
-    const { links, data } = await sdk.telemetry.traces.list({
-      limit: 20,
-      start: currentStartTime.toISOString(),
-      end: endTime.toISOString(),
-      branch_ids: branchIds,
-      ...(fileId && { file_id: fileId }),
-    });
+    let startTime = new Date(Date.now() - frequency);
 
-    // Add the traces to our result array
-    allTraces.push(...data);
+    // Gather the range startTime:=(now - frequency) --> now
+    let prevNextLink = "";
+    while (true) {
+      const listParams = {
+        limit: 50,
+        start: startTime.toISOString(),
+        branch_ids: branchIds,
+        file_id: fileId,
+        order_by: "end_time",
+      } satisfies ValTown.Telemetry.Traces.TraceListParams;
 
-    // Check if we've reached the end of pagination
-    if (!links.next || links.next === prevNextLink) break;
+      const { links: newLinks, data: newData } = await sdk
+        .telemetry
+        .traces
+        .list(listParams);
 
-    // Update for the next pagination request
-    prevNextLink = links.next;
-    const newStartTime = new Date(
-      new URL(links.next).searchParams.get("end")!,
-    );
+      if (newLinks.next === prevNextLink) break; // No new data, stop
 
-    // If we're not making progress, break
-    if (newStartTime.getTime() === currentStartTime.getTime()) break;
+      if (!newLinks.next) break;
+      prevNextLink = newLinks.next;
 
-    currentStartTime = newStartTime;
-  }
+      // The tail of the range we just received is the start of the new range
+      const newStartTime = new Date(
+        new URL(newLinks.next).searchParams.get("end")!,
+      );
+      if (newStartTime.getTime() === startTime.getTime()) break; // No new data, stop
 
-  return allTraces;
-}
+      yield* newData;
 
-export async function* getTraces(
-  branchIds: string[],
-  fileId?: string,
-  frequency: number = 1_000,
-): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
-  while (true) {
-    // Get new traces from the last frequency milliseconds
-    const startTime = new Date(Date.now() - frequency);
-    const endTime = new Date();
-
-    const newTraces = await getTracesFromStartToEnd(
-      branchIds,
-      fileId,
-      startTime,
-      endTime,
-    );
-
-    // Only yield traces that are finished
-    for (const trace of newTraces) {
-      if (trace.endTimeUnixNano !== "0") {
-        yield trace;
-      }
+      startTime = newStartTime; // Update startTime to the new start time
     }
 
-    // Wait before next polling interval
-    await new Promise((resolve) => setTimeout(resolve, frequency));
+    await delay(frequency);
   }
 }
 
