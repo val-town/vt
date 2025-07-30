@@ -327,33 +327,15 @@ function formatTimeFromUnixNano(
   unixNanoTimestamp: number,
   use24HourTime: boolean = false,
 ) {
-  // Convert nanoseconds to milliseconds
-  const milliseconds = unixNanoTimestamp / 1000000;
-  const date = new Date(milliseconds);
+  const date = new Date(unixNanoTimestamp / 1000000);
 
-  const localeOpts: Intl.DateTimeFormatOptions = {
+  const timeString = date.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: !use24HourTime,
-  };
+  });
 
-  // Use Intl.DateTimeFormat for time zone support
-  const parts = new Intl.DateTimeFormat(
-    undefined,
-    localeOpts,
-  ).formatToParts(date);
-
-  const hourPart = parts.find((p) => p.type === "hour")?.value ?? "00";
-  const minutePart = parts.find((p) => p.type === "minute")?.value ?? "00";
-  const secondPart = parts.find((p) => p.type === "second")?.value ?? "00";
-  const dayPeriod = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
-  const millisecondsPart = date.getMilliseconds().toString().padStart(3, "0");
-
-  const displayHours = hourPart.padStart(2, "0");
-  const minutes = minutePart.padStart(2, "0");
-  const seconds = secondPart.padStart(2, "0");
-  const ampm = use24HourTime ? "" : (dayPeriod ? ` ${dayPeriod}` : "");
-
-  return `${displayHours}:${minutes}:${seconds}.${millisecondsPart}${ampm}`;
+  const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
+  return `${timeString}.${milliseconds}`;
 }
