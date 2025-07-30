@@ -46,8 +46,15 @@ export const tailCmd = new Command()
     "Display timestamps in 24-hour format (default: 12-hour AM/PM)",
     { default: false },
   )
-  .action(async (options) => {
-    const REQUESTS_PER_SECOND_LIMIT = options.rateLimit;
+  .action(async ({
+    rateLimit,
+    printHeaders,
+    pollFrequency,
+    reverseLogs,
+    useTimezone: timeZone,
+    "24HourTime": use24HourTime,
+  }) => {
+    const REQUESTS_PER_SECOND_LIMIT = rateLimit;
     const requestCounter = new SlidingWindowCounter(1000);
     let limitWarningPrinted = false;
 
@@ -72,7 +79,7 @@ export const tailCmd = new Command()
     for await (
       const trace of getTraces({
         branchIds: [currentBranchData.id],
-        frequency: options.pollFrequency,
+        frequency: pollFrequency,
       })
     ) {
       if (requestCounter.count >= REQUESTS_PER_SECOND_LIMIT) {
@@ -89,10 +96,10 @@ export const tailCmd = new Command()
         {
           trace,
           valId: vtState.val.id,
-          printHeaders: options.printHeaders,
-          reverseLogs: options.reverseLogs,
-          timeZone: options.useTimezone,
-          use24HourTime: options["24HourTime"],
+          printHeaders,
+          reverseLogs,
+          timeZone,
+          use24HourTime,
         },
       );
     }
