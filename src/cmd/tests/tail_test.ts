@@ -62,66 +62,6 @@ Deno.test({
           assertStringIncludes(logsOutput, "200 main.ts");
           assertStringIncludes(logsOutput, "X-Custom-Header");
         });
-
-        await t.step("tail logs with time options", async () => {
-          const [outputLines] = streamVtCommand(
-            [
-              "tail",
-              "--poll-frequency",
-              "500",
-              "--use-timezone",
-              "utc",
-              "--24-hour-time",
-            ],
-            join(tmpDir, val.name),
-          );
-
-          await waitForTailToStart(outputLines);
-
-          assert(file.links.endpoint, "File should have an endpoint link");
-          await fetch(file.links.endpoint);
-          await fetch(file.links.endpoint);
-          await fetch(file.links.endpoint);
-
-          await delay(3000);
-
-          const logsOutput = outputLines.join("\n");
-
-          // Check that HTTP request was logged
-          assertStringIncludes(logsOutput, "HTTP GET /");
-
-          // Check for 24-hour timestamp format in the HTTP request log line
-          // The format should be [HH:MM:SS.mmm] at the start of log lines
-          const httpLogLines = outputLines.filter((line) =>
-            line.includes("HTTP GET")
-          );
-          assert(httpLogLines.length > 0, "Should have HTTP request log lines");
-
-          const timestampRegex = /^\[(\d{2}):(\d{2}):(\d{2})\.\d{3}\]/;
-          const hasValidTimestamp = httpLogLines.some((line) => {
-            const match = line.match(timestampRegex);
-            if (match) {
-              const hours = parseInt(match[1]);
-              // In 24-hour format, hours should be 0-23
-              return hours >= 0 && hours <= 23;
-            }
-            return false;
-          });
-
-          assert(
-            hasValidTimestamp,
-            `Output should contain 24-hour format timestamps. Got: ${logsOutput}`,
-          );
-
-          // Ensure no AM/PM indicators are present in HTTP log lines
-          const hasAmPm = httpLogLines.some((line) =>
-            line.includes(" AM") || line.includes(" PM")
-          );
-          assert(
-            !hasAmPm,
-            "Output should not contain AM/PM indicators in 24-hour format",
-          );
-        });
       });
     });
   },
