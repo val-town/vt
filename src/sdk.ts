@@ -274,9 +274,7 @@ export async function* getLogsForTraces(
       }),
     });
 
-    for (const log of response.data) {
-      yield log;
-    }
+    yield* response.data;
 
     nextUrl = response.links.next;
   } while (nextUrl);
