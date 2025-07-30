@@ -10,9 +10,9 @@ import {
   TypeToTypeStr,
   ValItemColors,
 } from "~/consts.ts";
-import type { ValItemType } from "../../types.ts";
+import type { ValItemType } from "~/types.ts";
 import { Command } from "@cliffy/command";
-import { extractAttributes } from "./utils/attributeExtract.ts";
+import { extractAttributes } from "~/cmd/lib/utils/extractAttributes.ts";
 
 export const tailCmd = new Command()
   .name("tail")
