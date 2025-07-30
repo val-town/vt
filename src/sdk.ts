@@ -213,7 +213,8 @@ export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
   frequency?: number;
 }): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
   while (true) {
-    let startTime = new Date(Date.now() - frequency);
+    let startTime = new Date(Date.now() - frequency - 1);
+    let endTime = new Date();
 
     // Gather the range startTime:=(now - frequency) --> now
     let prevNextLink = "";
@@ -221,6 +222,7 @@ export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
       const listParams = {
         limit: 50,
         start: startTime.toISOString(),
+        end: endTime.toISOString(),
         branch_ids: branchIds,
         file_id: fileId,
         order_by: "end_time",
@@ -245,6 +247,7 @@ export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
       yield* newData;
 
       startTime = newStartTime; // Update startTime to the new start time
+      endTime = new Date(); // Update endTime to now
     }
 
     await delay(frequency);

@@ -4,6 +4,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import type ValTown from "@valtown/sdk";
 import { basename, dirname, join } from "@std/path";
 import { colors } from "@cliffy/ansi/colors";
+import { throttle } from "@std/async/unstable-throttle";
 import {
   HEADERS_TO_EXCLUDE_PATTERNS,
   TypeToTypeStr,
@@ -11,7 +12,6 @@ import {
 } from "~/consts.ts";
 import type { ValItemType } from "../../types.ts";
 import { Command } from "@cliffy/command";
-import { SlidingWindowCounter } from "./utils/SlidingWindowCounter.ts";
 import { extractAttributes } from "./utils/attributeExtract.ts";
 
 export const tailCmd = new Command()
@@ -19,9 +19,9 @@ export const tailCmd = new Command()
   .description("Stream logs of a Val")
   .example("vt tail", "Stream the logs of a val")
   .option(
-    "--rate-limit <limit:number>",
-    "Maximum requests to log per second (default: 100)",
-    { default: 5 },
+    "--throttle-to-every <limit:number>",
+    "Only log 1 request every n milliseconds",
+    { default: 100 },
   )
   .option(
     "--print-headers",
@@ -47,16 +47,18 @@ export const tailCmd = new Command()
     { default: false },
   )
   .action(async ({
-    rateLimit,
+    throttleToEvery,
     printHeaders,
     pollFrequency,
     reverseLogs,
     useTimezone: timeZone,
     "24HourTime": use24HourTime,
   }) => {
-    const REQUESTS_PER_SECOND_LIMIT = rateLimit;
-    const requestCounter = new SlidingWindowCounter(1000);
-    let limitWarningPrinted = false;
+    if (throttleToEvery < 0) {
+      throw new Error("Throttle limit must be positive.");
+    }
+
+    let saidWeWereThrottling = false;
 
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));
     const vtState = await vt.getMeta().loadVtState();
@@ -76,32 +78,46 @@ export const tailCmd = new Command()
     console.log(colors.dim("Press Ctrl+C to stop."));
     console.log();
 
-    for await (
-      const trace of getTraces({
-        branchIds: [currentBranchData.id],
-        frequency: pollFrequency,
-      })
-    ) {
-      if (requestCounter.count >= REQUESTS_PER_SECOND_LIMIT) {
-        if (!limitWarningPrinted) {
-          console.warn(
-            colors.red("Receiving high request volume, sampling logs...\n"),
-          );
-          limitWarningPrinted = true;
-        }
-        continue;
-      }
-      requestCounter.increment();
-      await printTrace(
-        {
+    const throttledPrintTrace = throttle(
+      async (trace: ValTown.Telemetry.TraceListResponse.Data) => {
+        await printTrace({
           trace,
           valId: vtState.val.id,
           printHeaders,
           reverseLogs,
           timeZone,
           use24HourTime,
-        },
-      );
+        });
+      },
+      throttleToEvery,
+    );
+
+    for await (
+      const trace of getTraces({
+        branchIds: [currentBranchData.id],
+        frequency: pollFrequency,
+      })
+    ) {
+      if (throttledPrintTrace.throttling) {
+        if (!saidWeWereThrottling) {
+          console.log(
+            colors.brightRed(colors.bold(`Receiving high request volume.`)) +
+              " " +
+              colors.yellow(
+                `Throttling output to at most 1 request every ${throttleToEvery} milliseconds.\nThis may cause some logs to be skipped.`,
+              ),
+          );
+          console.log("\n");
+
+          saidWeWereThrottling = true;
+
+          // Let them know again after some amount of time
+          setTimeout(() => {
+            saidWeWereThrottling = false;
+          }, SAY_WE_ARE_THROTTLING_AGAIN_AFTER_SECONDS * 1000);
+        }
+      }
+      throttledPrintTrace(trace);
     }
   });
 
@@ -388,3 +404,5 @@ function formatTimeFromUnixNano(
 
   return `${displayHours}:${minutes}:${seconds}.${millisecondsPart}${ampm}`;
 }
+
+const SAY_WE_ARE_THROTTLING_AGAIN_AFTER_SECONDS = 20;
