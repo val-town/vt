@@ -244,7 +244,7 @@ export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
       );
       if (newStartTime.getTime() === startTime.getTime()) break; // No new data, stop
 
-      yield* newData;
+      yield* newData.reverse();
 
       startTime = newStartTime; // Update startTime to the new start time
       endTime = new Date(); // Update endTime to now
