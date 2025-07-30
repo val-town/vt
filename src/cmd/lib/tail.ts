@@ -75,16 +75,17 @@ export const tailCmd = new Command()
         colors.cyan(currentBranchData.name)
       }@${currentBranchData.version}`,
     );
-    console.log(colors.dim("Press Ctrl+C to stop."));
+    console.log(colors.dim("ress Ctrl+C to stop."));
     console.log();
 
-    const throttledPrintTrace = throttle(
+    const printedTraceIds = new Set<string>();
+
+    const throttledPrintTraceStart = throttle(
       async (trace: ValTown.Telemetry.TraceListResponse.Data) => {
-        await printTrace({
+        printedTraceIds.add(trace.traceId);
+        await printTraceStart({
           trace,
           valId: vtState.val.id,
-          printHeaders,
-          reverseLogs,
           timeZone,
           use24HourTime,
         });
@@ -98,7 +99,7 @@ export const tailCmd = new Command()
         frequency: pollFrequency,
       })
     ) {
-      if (throttledPrintTrace.throttling) {
+      if (throttledPrintTraceStart.throttling) {
         if (!saidWeWereThrottling) {
           console.log(
             colors.brightRed(colors.bold(`Receiving high request volume.`)) +
@@ -117,11 +118,102 @@ export const tailCmd = new Command()
           }, SAY_WE_ARE_THROTTLING_AGAIN_AFTER_SECONDS * 1000);
         }
       }
-      throttledPrintTrace(trace);
+
+      // We throttle the start trace printing to avoid overwhelming the console
+      // with too many starts at once, and only print end traces corresponding to
+      // start traces that got printed.
+
+      switch (trace.kind) {
+        case "finished": {
+          let timeoutCount = 0;
+          const intervalId = setInterval(async () => {
+            if (timeoutCount++ > 100) {
+              clearInterval(intervalId);
+              return;
+            }
+
+            if (printedTraceIds.has(trace.trace.traceId)) {
+              clearInterval(intervalId);
+              await printTraceEnd({
+                trace: trace.trace,
+                valId: vtState.val.id,
+                printHeaders,
+                reverseLogs,
+                timeZone,
+                use24HourTime,
+              });
+            }
+          }, 10);
+          break;
+        }
+        case "started":
+          throttledPrintTraceStart(trace.trace);
+          break;
+      }
     }
   });
 
-async function printTrace(
+async function printTraceStart(
+  {
+    trace,
+    valId,
+    timeZone = "local",
+    use24HourTime = false,
+  }: {
+    trace: ValTown.Telemetry.TraceListResponse.Data;
+    valId: string;
+    timeZone?: string;
+    use24HourTime?: boolean;
+  },
+): Promise<void> {
+  const attributes = extractAttributes(trace.attributes);
+  const valFile = await fileIdToValFile(
+    valId,
+    attributes.valBranchId,
+    attributes.valFileId,
+  );
+  const prettyPath = prettyPrintFilePath(valFile.path, valFile.type);
+  const typeName = (TypeToTypeStr[valFile.type] || "Unknown").toUpperCase();
+  const start = parseInt(trace.startTimeUnixNano);
+
+  switch (valFile.type) {
+    case "http": {
+      const receivedAt = formatTimeFromUnixNano(start, timeZone, use24HourTime);
+      const method = attributes.httpReqMethod.toUpperCase();
+      const url = attributes.urlFull;
+      const urlPath = new URL(url).pathname;
+
+      console.log(
+        `[${receivedAt}] ${colors.dim(typeName)} ${colors.bold(method)} ${
+          colors.bold(urlPath)
+        } ${colors.dim("started")} ${prettyPath}`,
+      );
+      break;
+    }
+    case "interval":
+    case "script": {
+      console.log(
+        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}] ${
+          colors.dim(typeName)
+        } ${colors.bold(basename(prettyPath))} ${colors.dim("started")}`,
+      );
+      break;
+    }
+    case "email": {
+      const emailAddress = extractEmailFromValFile(valFile);
+      console.log(
+        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}] ${
+          colors.dim(typeName)
+        } ${colors.bold(basename(prettyPath))} ${emailAddress} ${
+          colors.dim("started")
+        }`,
+      );
+      break;
+    }
+  }
+}
+
+async function printTraceEnd(
   {
     trace,
     valId,
