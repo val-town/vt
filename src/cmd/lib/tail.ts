@@ -4,7 +4,6 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import type ValTown from "@valtown/sdk";
 import { basename, dirname, join } from "@std/path";
 import { colors } from "@cliffy/ansi/colors";
-import { throttle } from "@std/async/unstable-throttle";
 import {
   HEADERS_TO_EXCLUDE_PATTERNS,
   TypeToTypeStr,
@@ -19,11 +18,6 @@ export const tailCmd = new Command()
   .description("Stream logs of a Val")
   .example("vt tail", "Stream the logs of a val")
   .option(
-    "--throttle-to-every <limit:number>",
-    "Only log 1 request every n milliseconds",
-    { default: 100 },
-  )
-  .option(
     "--print-headers",
     "Print HTTP request/response headers",
     { default: true },
@@ -37,29 +31,16 @@ export const tailCmd = new Command()
     { default: false },
   )
   .option(
-    "--use-timezone <timezone:string>",
-    "Display timestamps in the specified time zone (default: local, options: local, utc, or IANA time zone string)",
-    { default: "local" },
-  )
-  .option(
     "--24-hour-time",
     "Display timestamps in 24-hour format (default: 12-hour AM/PM)",
     { default: false },
   )
   .action(async ({
-    throttleToEvery,
     printHeaders,
     pollFrequency,
     reverseLogs,
-    useTimezone: timeZone,
     "24HourTime": use24HourTime,
   }) => {
-    if (throttleToEvery < 0) {
-      throw new Error("Throttle limit must be positive.");
-    }
-
-    let saidWeWereThrottling = false;
-
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));
     const vtState = await vt.getMeta().loadVtState();
     const currentBranchData = await sdk.vals.branches
@@ -75,23 +56,8 @@ export const tailCmd = new Command()
         colors.cyan(currentBranchData.name)
       }@${currentBranchData.version}`,
     );
-    console.log(colors.dim("ress Ctrl+C to stop."));
+    console.log(colors.dim("Press Ctrl+C to stop."));
     console.log();
-
-    const printedTraceIds = new Set<string>();
-
-    const throttledPrintTraceStart = throttle(
-      async (trace: ValTown.Telemetry.TraceListResponse.Data) => {
-        printedTraceIds.add(trace.traceId);
-        await printTraceStart({
-          trace,
-          valId: vtState.val.id,
-          timeZone,
-          use24HourTime,
-        });
-      },
-      throttleToEvery,
-    );
 
     for await (
       const trace of getTraces({
@@ -99,119 +65,15 @@ export const tailCmd = new Command()
         frequency: pollFrequency,
       })
     ) {
-      if (throttledPrintTraceStart.throttling) {
-        if (!saidWeWereThrottling) {
-          console.log(
-            colors.brightRed(colors.bold(`Receiving high request volume.`)) +
-              " " +
-              colors.yellow(
-                `Throttling output to at most 1 request every ${throttleToEvery} milliseconds.\nThis may cause some logs to be skipped.`,
-              ),
-          );
-          console.log("\n");
-
-          saidWeWereThrottling = true;
-
-          // Let them know again after some amount of time
-          setTimeout(() => {
-            saidWeWereThrottling = false;
-          }, SAY_WE_ARE_THROTTLING_AGAIN_AFTER_SECONDS * 1000);
-        }
-      }
-
-      // We throttle the start trace printing to avoid overwhelming the console
-      // with too many starts at once, and only print end traces corresponding to
-      // start traces that got printed.
-
-      switch (trace.kind) {
-        case "finished": {
-          let timeoutCount = 0;
-          const intervalId = setInterval(async () => {
-            if (timeoutCount++ > 100) {
-              clearInterval(intervalId);
-              return;
-            }
-
-            if (printedTraceIds.has(trace.trace.traceId)) {
-              clearInterval(intervalId);
-              await printTraceEnd({
-                trace: trace.trace,
-                valId: vtState.val.id,
-                printHeaders,
-                reverseLogs,
-                timeZone,
-                use24HourTime,
-              });
-            }
-          }, 10);
-          break;
-        }
-        case "started":
-          throttledPrintTraceStart(trace.trace);
-          break;
-      }
+      await printTraceEnd({
+        trace: trace,
+        valId: vtState.val.id,
+        printHeaders,
+        reverseLogs,
+        use24HourTime,
+      });
     }
   });
-
-async function printTraceStart(
-  {
-    trace,
-    valId,
-    timeZone = "local",
-    use24HourTime = false,
-  }: {
-    trace: ValTown.Telemetry.TraceListResponse.Data;
-    valId: string;
-    timeZone?: string;
-    use24HourTime?: boolean;
-  },
-): Promise<void> {
-  const attributes = extractAttributes(trace.attributes);
-  const valFile = await fileIdToValFile(
-    valId,
-    attributes.valBranchId,
-    attributes.valFileId,
-  );
-  const prettyPath = prettyPrintFilePath(valFile.path, valFile.type);
-  const typeName = (TypeToTypeStr[valFile.type] || "Unknown").toUpperCase();
-  const start = parseInt(trace.startTimeUnixNano);
-
-  switch (valFile.type) {
-    case "http": {
-      const receivedAt = formatTimeFromUnixNano(start, timeZone, use24HourTime);
-      const method = attributes.httpReqMethod.toUpperCase();
-      const url = attributes.urlFull;
-      const urlPath = new URL(url).pathname;
-
-      console.log(
-        `[${receivedAt}] ${colors.dim(typeName)} ${colors.bold(method)} ${
-          colors.bold(urlPath)
-        } ${colors.dim("started")} ${prettyPath}`,
-      );
-      break;
-    }
-    case "interval":
-    case "script": {
-      console.log(
-        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}] ${
-          colors.dim(typeName)
-        } ${colors.bold(basename(prettyPath))} ${colors.dim("started")}`,
-      );
-      break;
-    }
-    case "email": {
-      const emailAddress = extractEmailFromValFile(valFile);
-      console.log(
-        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}] ${
-          colors.dim(typeName)
-        } ${colors.bold(basename(prettyPath))} ${emailAddress} ${
-          colors.dim("started")
-        }`,
-      );
-      break;
-    }
-  }
-}
 
 async function printTraceEnd(
   {
@@ -219,14 +81,12 @@ async function printTraceEnd(
     valId,
     printHeaders,
     reverseLogs = false,
-    timeZone = "local",
     use24HourTime = false,
   }: {
     trace: ValTown.Telemetry.TraceListResponse.Data;
     valId: string;
     printHeaders?: boolean;
     reverseLogs?: boolean;
-    timeZone?: string;
     use24HourTime?: boolean;
   },
 ): Promise<void> {
@@ -254,7 +114,7 @@ async function printTraceEnd(
       const start = parseInt(trace.startTimeUnixNano);
       const end = parseInt(trace.endTimeUnixNano);
       const duration = Math.round((end - start) / 1e6);
-      const receivedAt = formatTimeFromUnixNano(start, timeZone, use24HourTime);
+      const receivedAt = formatTimeFromUnixNano(start, use24HourTime);
       const method = attributes.httpReqMethod.toUpperCase();
       const url = attributes.urlFull;
       const urlPath = new URL(url).pathname;
@@ -308,7 +168,7 @@ async function printTraceEnd(
         };
 
         if (requestHeaders.length) {
-          console.log("    Req Headers:");
+          console.log(`    Req Headers:`);
           requestHeaders.forEach(([key, value]) => {
             const rawKey = key.replace("http.request.header.", "");
             console.log(
@@ -322,7 +182,7 @@ async function printTraceEnd(
         }
 
         if (responseHeaders.length) {
-          console.log("    Resp Headers:");
+          console.log(`    Resp Headers:`);
           responseHeaders.forEach(([key, value]) => {
             const rawKey = key.replace("http.response.header.", "");
             console.log(
@@ -336,21 +196,22 @@ async function printTraceEnd(
         }
       }
 
-      await printTraceLogs(
+      await printTraceLogs({
         trace,
         reverseLogs,
-        valFile.type,
-        timeZone,
+        valType: valFile.type,
         use24HourTime,
-      );
+      });
       break;
     }
     case "interval":
     case "script": {
       console.log(
-        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}]${
-          status !== "" ? ` (${colors.yellow(status ?? "??")})` : ""
-        } ${colors.dim(typeName)} ${colors.bold(basename(prettyPath))}`,
+        `[${formatTimeFromUnixNano(start, use24HourTime)}] ${
+          colors.dim(typeName)
+        } ${colors.bold(basename(prettyPath))}${
+          status ? ` ${colors.yellow(status)}` : ""
+        }`,
       );
 
       if (prettyPath && duration) {
@@ -359,20 +220,18 @@ async function printTraceEnd(
         );
       }
 
-      await printTraceLogs(
+      await printTraceLogs({
         trace,
         reverseLogs,
-        valFile.type,
-        timeZone,
+        valType: valFile.type,
         use24HourTime,
-      );
+      });
       break;
     }
     case "email": {
       const emailAddress = extractEmailFromValFile(valFile);
-      console.log(emailAddress);
       console.log(
-        `[${formatTimeFromUnixNano(start, timeZone, use24HourTime)}] ${
+        `[${formatTimeFromUnixNano(start, use24HourTime)}] ${
           colors.dim(typeName)
         } ${colors.bold(basename(prettyPath))} ${emailAddress}`,
       );
@@ -383,13 +242,12 @@ async function printTraceEnd(
         );
       }
 
-      await printTraceLogs(
+      await printTraceLogs({
         trace,
         reverseLogs,
-        valFile.type,
-        timeZone,
+        valType: valFile.type,
         use24HourTime,
-      );
+      });
       break;
     }
   }
@@ -398,14 +256,19 @@ async function printTraceEnd(
 }
 
 // Print all logs for a trace by ID
-async function printTraceLogs(
-  trace: ValTown.Telemetry.TraceListResponse.Data,
-  reverseLogs: boolean,
-  valType: ValItemType,
-  timeZone: string = "local",
-  use24HourTime: boolean = false,
-): Promise<void> {
+async function printTraceLogs({
+  trace,
+  reverseLogs,
+  valType,
+  use24HourTime = false,
+}: {
+  trace: ValTown.Telemetry.TraceListResponse.Data;
+  reverseLogs: boolean;
+  valType: ValItemType;
+  use24HourTime?: boolean;
+}): Promise<void> {
   const logs = await Array.fromAsync(getLogsForTraces([trace.traceId]));
+
   // Sort logs by timeUnixNano (earliest to latest by default)
   logs.sort((a, b) => {
     const diff = Number(a.timeUnixNano) - Number(b.timeUnixNano);
@@ -419,7 +282,6 @@ async function printTraceLogs(
 
       const ts = formatTimeFromUnixNano(
         +log.timeUnixNano,
-        timeZone,
         use24HourTime,
       );
       let streamLabel: string;
@@ -435,7 +297,9 @@ async function printTraceLogs(
       }
     }
   } else if (!logs.length && valType !== "http") {
-    console.log(colors.dim("  (no logs found for this trace)"));
+    console.log(
+      `  ${colors.dim("(no logs found for this trace)")}`,
+    );
   }
 }
 
@@ -461,20 +325,17 @@ export function extractEmailFromValFile(
 // Format a timestamp from nanoseconds to a human-readable string
 function formatTimeFromUnixNano(
   unixNanoTimestamp: number,
-  timeZone: string = "local",
   use24HourTime: boolean = false,
 ) {
   // Convert nanoseconds to milliseconds
   const milliseconds = unixNanoTimestamp / 1000000;
   const date = new Date(milliseconds);
 
-  const tz = (timeZone || "local").toLowerCase();
   const localeOpts: Intl.DateTimeFormatOptions = {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: !use24HourTime,
-    timeZone: tz === "local" ? undefined : (tz === "utc" ? "UTC" : timeZone),
   };
 
   // Use Intl.DateTimeFormat for time zone support
@@ -496,5 +357,3 @@ function formatTimeFromUnixNano(
 
   return `${displayHours}:${minutes}:${seconds}.${millisecondsPart}${ampm}`;
 }
-
-const SAY_WE_ARE_THROTTLING_AGAIN_AFTER_SECONDS = 20;

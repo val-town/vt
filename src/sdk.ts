@@ -212,68 +212,47 @@ export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
   branchIds: string[];
   fileId?: string;
   frequency?: number;
-}): AsyncGenerator<
-  {
-    kind: "finished" | "started";
-    trace: ValTown.Telemetry.Traces.TraceListResponse.Data;
-  }
-> {
-  const getTracesOfAType = async function* (
-    kind: "finished" | "started",
-  ) {
+}): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
+  while (true) {
+    let startTime = new Date(Date.now() - frequency - 1);
+    let endTime = new Date();
+
+    // Gather the range startTime:=(now - frequency) --> now
+    let prevNextLink = "";
     while (true) {
-      let startTime = new Date(Date.now() - frequency - 1);
-      let endTime = new Date();
+      const listParams = {
+        limit: 50,
+        start: startTime.toISOString(),
+        end: endTime.toISOString(),
+        branch_ids: branchIds,
+        file_id: fileId,
+        order_by: "end_time",
+      } satisfies ValTown.Telemetry.Traces.TraceListParams;
 
-      // Gather the range startTime:=(now - frequency) --> now
-      let prevNextLink = "";
-      while (true) {
-        const listParams = {
-          limit: 50,
-          start: startTime.toISOString(),
-          end: endTime.toISOString(),
-          branch_ids: branchIds,
-          file_id: fileId,
-          order_by: kind === "finished" ? "end_time" : "start_time",
-        } satisfies ValTown.Telemetry.Traces.TraceListParams;
+      const { links: newLinks, data: newData } = await sdk
+        .telemetry
+        .traces
+        .list(listParams);
 
-        const { links: newLinks, data: newData } = await sdk
-          .telemetry
-          .traces
-          .list(listParams);
+      if (newLinks.next === prevNextLink) break; // No new data, stop
 
-        if (newLinks.next === prevNextLink) break; // No new data, stop
+      if (!newLinks.next) break;
+      prevNextLink = newLinks.next;
 
-        if (!newLinks.next) break;
-        prevNextLink = newLinks.next;
+      // The tail of the range we just received is the start of the new range
+      const newStartTime = new Date(
+        new URL(newLinks.next).searchParams.get("end")!,
+      );
+      if (newStartTime.getTime() === startTime.getTime()) break; // No new data, stop
 
-        // The tail of the range we just received is the start of the new range
-        const newStartTime = new Date(
-          new URL(newLinks.next).searchParams.get("end")!,
-        );
-        if (newStartTime.getTime() === startTime.getTime()) break; // No new data, stop
+      yield* newData;
 
-        for (const trace of newData) {
-          yield { kind, trace };
-        }
-
-        startTime = newStartTime; // Update startTime to the new start time
-        endTime = new Date(); // Update endTime to now
-      }
-
-      await delay(frequency);
+      startTime = newStartTime; // Update startTime to the new start time
+      endTime = new Date(); // Update endTime to now
     }
-  };
 
-  const mux = new MuxAsyncIterator<{
-    kind: "finished" | "started";
-    trace: ValTown.Telemetry.Traces.TraceListResponse.Data;
-  }>();
-
-  mux.add(getTracesOfAType("started"));
-  mux.add(getTracesOfAType("finished"));
-
-  yield* mux;
+    await delay(frequency);
+  }
 }
 
 /**
