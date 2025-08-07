@@ -61,7 +61,7 @@ export const tailCmd = new Command()
 
     for await (
       const trace of getTraces({
-        branchIds: [currentBranchData.id],
+        branch_ids: [currentBranchData.id],
         frequency: pollFrequency,
       })
     ) {
@@ -72,6 +72,7 @@ export const tailCmd = new Command()
         reverseLogs,
         use24HourTime,
       });
+      await new Promise((res) => setTimeout(res, 70)); // Prevents crazy console spam. TODO: real throttling
     }
   });
 

@@ -207,47 +207,42 @@ export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
 
-export async function* getTraces({ branchIds, fileId, frequency = 1000 }: {
-  branchIds: string[];
-  fileId?: string;
+export async function* getTraces({
+  frequency = 1000,
+  signal,
+  ...params
+}: {
   frequency?: number;
-}): AsyncGenerator<ValTown.Telemetry.Traces.TraceListResponse.Data> {
+  signal?: AbortSignal;
+} & Partial<ValTown.Telemetry.Traces.TraceListParams>): AsyncGenerator<
+  ValTown.Telemetry.Traces.TraceListResponse.Data
+> {
+  let cursor = new Date();
+
   while (true) {
-    let startTime = new Date(Date.now() - frequency - 1);
-    let endTime = new Date();
-
-    // Gather the range startTime:=(now - frequency) --> now
-    let prevNextLink = "";
     while (true) {
-      const listParams = {
+      if (signal?.aborted) break;
+
+      const resp = await sdk.telemetry.traces.list({
+        ...params,
         limit: 50,
-        start: startTime.toISOString(),
-        end: endTime.toISOString(),
-        branch_ids: branchIds,
-        file_id: fileId,
+        start: cursor.toISOString(),
         order_by: "end_time",
-      } satisfies ValTown.Telemetry.Traces.TraceListParams;
+        direction: "asc",
+      });
+      yield* resp.data;
 
-      const { links: newLinks, data: newData } = await sdk
-        .telemetry
-        .traces
-        .list(listParams);
+      const nextUrl = resp.links.next;
+      if (!nextUrl) break;
 
-      if (newLinks.next === prevNextLink) break; // No new data, stop
+      const nextStart = new URL(nextUrl).searchParams.get("start");
+      if (!nextStart) break;
+      if (new Date(nextStart).getTime() === cursor.getTime()) {
+        cursor = new Date(cursor.getTime() + 1);
+        break;
+      }
 
-      if (!newLinks.next) break;
-      prevNextLink = newLinks.next;
-
-      // The tail of the range we just received is the start of the new range
-      const newStartTime = new Date(
-        new URL(newLinks.next).searchParams.get("end")!,
-      );
-      if (newStartTime.getTime() === startTime.getTime()) break; // No new data, stop
-
-      yield* newData.reverse();
-
-      startTime = newStartTime; // Update startTime to the new start time
-      endTime = new Date(); // Update endTime to now
+      cursor = new Date(nextStart);
     }
 
     await delay(frequency);
@@ -266,12 +261,17 @@ export async function* getLogsForTraces(
   let nextUrl: string | undefined;
 
   do {
+    const nextStart = nextUrl
+      ? new URL(nextUrl).searchParams.get("start")
+      : undefined;
+
     const response = await sdk.telemetry.logs.list({
-      limit: 100,
+      limit: 1,
       trace_ids: traceIds,
-      ...(nextUrl && {
-        end: new URL(nextUrl).searchParams.get("end")!,
+      ...(nextUrl && nextStart && {
+        start: nextStart,
       }),
+      direction: "asc",
     });
 
     yield* response.data;
