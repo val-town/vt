@@ -24,7 +24,7 @@ export const listCmd = new Command()
           sdk.me.vals.list({ offset }),
           batchSize,
         );
-      console.log(result)
+        console.log(result);
         spinner.stop();
         return result;
       },
