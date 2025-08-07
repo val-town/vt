@@ -290,16 +290,9 @@ export async function* getLogsForTraces(
  * @throws if the file is not found or if the API request fails
  */
 export async function fileIdToValFile(
-  valId: string,
-  branchId: string,
   fileId: string,
-  version?: number,
 ): Promise<ValTown.Vals.FileRetrieveResponse> {
-  version = version ?? (await getLatestVersion(valId, branchId));
-  const files = await listValItems(valId, branchId, version);
-  const file = files.find((f) => f.id === fileId);
-  if (!file) throw new Deno.errors.NotFound(`File with ID ${fileId} not found`);
-  return file;
+  return await sdk.files.retrieve(fileId);
 }
 
 export default sdk;
