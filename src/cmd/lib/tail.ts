@@ -92,11 +92,7 @@ async function printTraceEnd(
   },
 ): Promise<void> {
   const attributes = extractAttributes(trace.attributes);
-  const valFile = await fileIdToValFile(
-    valId,
-    attributes.valBranchId,
-    attributes.valFileId,
-  );
+  const valFile = await fileIdToValFile(valId);
   const prettyPath = prettyPrintFilePath(valFile.path, valFile.type);
   const typeName = (TypeToTypeStr[valFile.type] || "Unknown").toUpperCase();
   const start = parseInt(trace.startTimeUnixNano);
