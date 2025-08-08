@@ -67,7 +67,6 @@ export const tailCmd = new Command()
     ) {
       await printTraceEnd({
         trace: trace,
-        valId: vtState.val.id,
         printHeaders,
         reverseLogs,
         use24HourTime,
@@ -79,20 +78,18 @@ export const tailCmd = new Command()
 async function printTraceEnd(
   {
     trace,
-    valId,
     printHeaders,
     reverseLogs = false,
     use24HourTime = false,
   }: {
     trace: ValTown.Telemetry.TraceListResponse.Data;
-    valId: string;
     printHeaders?: boolean;
     reverseLogs?: boolean;
     use24HourTime?: boolean;
   },
 ): Promise<void> {
   const attributes = extractAttributes(trace.attributes);
-  const valFile = await fileIdToValFile(valId);
+  const valFile = await fileIdToValFile(attributes.valFileId);
   const prettyPath = prettyPrintFilePath(valFile.path, valFile.type);
   const typeName = (TypeToTypeStr[valFile.type] || "Unknown").toUpperCase();
   const start = parseInt(trace.startTimeUnixNano);
