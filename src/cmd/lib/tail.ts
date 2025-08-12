@@ -16,7 +16,7 @@ export const tailCmd = new Command()
   .option(
     "--print-headers",
     "Print HTTP request/response headers",
-    { default: true },
+    { default: false },
   )
   .option("--poll-frequency <ms:number>", "Polling frequency in milliseconds", {
     default: 1000,
