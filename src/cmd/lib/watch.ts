@@ -1,7 +1,12 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { canWriteToVal, getCurrentUser, getLatestVersion, listValItems } from "~/sdk.ts";
+import sdk, {
+  canWriteToVal,
+  getCurrentUser,
+  getLatestVersion,
+  listValItems,
+} from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
