@@ -196,10 +196,14 @@ export const listValItems = memoize(async (
 export async function canWriteToVal(valId: string) {
   try {
     await sdk.vals.files.update(valId, { path: crypto.randomUUID() });
-    return true;
+    // Success means that we broke someone's file. Oops!
+    throw new Error("Something went wrong writing to Val");
   } catch (e) {
-    if (e instanceof ValTown.APIError && e.status === 403) return false;
-    else throw e;
+    if (e instanceof ValTown.APIError) {
+      if (e.status === 403) return false;
+      if (e.status === 404) return true;
+      else throw e;
+    } else throw e;
   }
 }
 
