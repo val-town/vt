@@ -4,12 +4,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import type ValTown from "@valtown/sdk";
 import { basename, dirname, join } from "@std/path";
 import { colors } from "@cliffy/ansi/colors";
-import {
-  DEFAULT_HOSTNAME,
-  HEADERS_TO_EXCLUDE_PATTERNS,
-  TypeToTypeStr,
-  ValItemColors,
-} from "~/consts.ts";
+import { DEFAULT_HOSTNAME, TypeToTypeStr, ValItemColors } from "~/consts.ts";
 import type { ValItemType } from "~/types.ts";
 import { Command } from "@cliffy/command";
 import { extractAttributes } from "~/cmd/lib/utils/extractAttributes.ts";
@@ -129,15 +124,9 @@ async function printTraceEnd(
       if (printHeaders) {
         // Get the headers, then filter out our internal headers
         const requestHeaders = Object.entries(attributes)
-          .filter(([key]) =>
-            key.startsWith("http.request.header.") &&
-            !HEADERS_TO_EXCLUDE_PATTERNS.some((pattern) => key.match(pattern))
-          );
+          .filter(([key]) => key.startsWith("http.request.header."));
         const responseHeaders = Object.entries(attributes)
-          .filter(([key]) =>
-            key.startsWith("http.response.header.") &&
-            !HEADERS_TO_EXCLUDE_PATTERNS.some((pattern) => key.match(pattern))
-          );
+          .filter(([key]) => key.startsWith("http.response.header."));
 
         // Compute max key length for both request and response headers
         const allHeaderKeys = [
