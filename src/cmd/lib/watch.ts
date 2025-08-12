@@ -34,7 +34,7 @@ export const watchCmd = new Command()
       );
 
       const valToWatch = await sdk.vals.retrieve(vtState.val.id);
-      if (await canWriteToVal(valToWatch.id)) {
+      if (!(await canWriteToVal(valToWatch.id))) {
         console.log(valToWatch.author.id, user.id);
         throw new Error(
           "You do not have write access to this Val, you cannot watch." +

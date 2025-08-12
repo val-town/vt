@@ -27,7 +27,7 @@ export const pushCmd = new Command()
 
         const vtState = await vt.getMeta().loadVtState();
         const valToPush = await sdk.vals.retrieve(vtState.val.id);
-        if (await canWriteToVal(valToPush.id)) {
+        if (!(await canWriteToVal(valToPush.id))) {
           throw new Error(
             "You do not have write access to this Val, you cannot push." +
               "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",
