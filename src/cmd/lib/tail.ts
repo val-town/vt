@@ -5,6 +5,7 @@ import type ValTown from "@valtown/sdk";
 import { basename, dirname, join } from "@std/path";
 import { colors } from "@cliffy/ansi/colors";
 import {
+  DEFAULT_HOSTNAME,
   HEADERS_TO_EXCLUDE_PATTERNS,
   TypeToTypeStr,
   ValItemColors,
@@ -110,13 +111,13 @@ async function printTraceEnd(
       const duration = Math.round((end - start) / 1e6);
       const receivedAt = formatTimeFromUnixNano(start, use24HourTime);
       const method = attributes.httpReqMethod.toUpperCase();
-      const url = attributes.urlFull;
-      const urlPath = new URL(url).pathname;
+      const fullUrl = attributes.urlFull;
+      const prettyUrl = prettyPrintUrl(new URL(fullUrl));
 
       // Print out request trace meta
       console.log(
         `[${receivedAt}] ${colors.dim(typeName)} ${colors.bold(method)} ${
-          colors.bold(urlPath)
+          colors.bold(prettyUrl)
         }`,
       );
       console.log(
@@ -295,6 +296,20 @@ async function printTraceLogs({
       `  ${colors.dim("(no logs found for this trace)")}`,
     );
   }
+}
+
+// Pretty print a URL with colored components
+function prettyPrintUrl(url: URL): string {
+  const hostname = !DEFAULT_HOSTNAME.test(url.hostname)
+    ? url.hostname
+    : colors.cyan(url.hostname);
+
+  const pathPart = colors.bold(
+    colors.blue(`${url.pathname}${url.search || ""}${url.hash || ""}`),
+  );
+
+  const port = url.port ? ":" + url.port : "";
+  return `${url.protocol}//${hostname}${port}${pathPart}`;
 }
 
 // Pretty print a file path
