@@ -58,7 +58,7 @@ Deno.test({
           await delay(1000);
 
           const logsOutput = outputLines.join("\n");
-          assertStringIncludes(logsOutput, "HTTP GET /");
+          assertStringIncludes(logsOutput, "HTTP GET https://");
           assertStringIncludes(logsOutput, "200 main.ts");
           assertStringIncludes(logsOutput, "X-Custom-Header");
         });
