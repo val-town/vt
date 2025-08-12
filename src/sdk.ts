@@ -193,6 +193,16 @@ export const listValItems = memoize(async (
   return files;
 });
 
+export async function canWriteToVal(valId: string) {
+  try {
+    await sdk.vals.files.update(valId, { path: crypto.randomUUID() });
+    return true;
+  } catch (e) {
+    if (e instanceof ValTown.APIError && e.status === 403) return false;
+    else throw e;
+  }
+}
+
 /**
  * Get the latest version of a branch.
  */
