@@ -102,6 +102,10 @@ export async function doWithSpinner<T>(
 
     return await callback(spinner);
   } catch (e) {
+    if (Deno.env.get("VT_DEBUG") === "true") {
+      throw e;
+    }
+
     // Use the provided or default error cleaning function
     const cleanedErrorMessage = cleanError(e);
 
