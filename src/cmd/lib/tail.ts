@@ -21,6 +21,14 @@ export const tailCmd = new Command()
   .description("Stream logs of a Val")
   .arguments("[valUri:string] [branchName:string]")
   .example("vt tail", "Stream the logs of a val")
+  .example(
+    "vt tail @wolf/someval",
+    "Stream the logs all branches on @wolf/someval",
+  )
+  .example(
+    "vt tail @wolf/someval main",
+    "Stream the logs of the main branch on @wolf/someval",
+  )
   .option(
     "--print-headers",
     "Print HTTP request/response headers",
