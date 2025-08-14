@@ -29,6 +29,10 @@ export const tailCmd = new Command()
     "vt tail @wolf/someval main",
     "Stream the logs of the main branch on @wolf/someval",
   )
+  .example(
+    "vt tail https://www.val.town/x/wolf/someval --print-headers",
+    "Stream the logs of a Val using its URL, including HTTP headers in logs",
+  )
   .option(
     "--print-headers",
     "Print HTTP request/response headers",
