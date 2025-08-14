@@ -44,6 +44,10 @@ vim index.tsx
 vt push`,
   )
   .example(
+    "Upload existing files to a new Val",
+    `vt create my-val ./folder/that/has/files/already`,
+  )
+  .example(
     "Check out a new branch",
     `
 cd ./valName
