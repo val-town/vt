@@ -1,7 +1,12 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getCurrentUser, getLatestVersion, listValItems } from "~/sdk.ts";
+import sdk, {
+  canWriteToVal,
+  getCurrentUser,
+  getLatestVersion,
+  listValItems,
+} from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -34,10 +39,10 @@ export const watchCmd = new Command()
       );
 
       const valToWatch = await sdk.vals.retrieve(vtState.val.id);
-      if (valToWatch.author.id !== user.id) {
+      if (!(await canWriteToVal(valToWatch.id))) {
         console.log(valToWatch.author.id, user.id);
         throw new Error(
-          "You are not the owner of this Val, you cannot watch." +
+          "You do not have write access to this Val, you cannot watch." +
             "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",
         );
       }
