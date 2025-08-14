@@ -200,7 +200,7 @@ export async function canWriteToVal(valId: string) {
     throw new Error("Something went wrong writing to Val");
   } catch (e) {
     if (e instanceof ValTown.APIError) {
-      if (e.status === 403) return false;
+      if (e.status === 403 || e.status === 401) return false;
       if (e.status === 404) return true;
       else throw e;
     } else throw e;
