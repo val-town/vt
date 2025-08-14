@@ -69,7 +69,7 @@ vt checkout main`,
       unlisted?: boolean;
       description?: string;
       editorFiles?: boolean;
-      uploadIfExists: boolean;
+      uploadIfExists?: boolean;
     },
     valName: string,
     targetDir?: string,
