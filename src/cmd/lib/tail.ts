@@ -1,4 +1,10 @@
-import sdk, { fileIdToValFile, getLogsForTraces, getTraces } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  fileIdToValFile,
+  getCurrentUser,
+  getLogsForTraces,
+  getTraces,
+} from "~/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import type ValTown from "@valtown/sdk";
@@ -8,10 +14,12 @@ import { DEFAULT_HOSTNAME, TypeToTypeStr, ValItemColors } from "~/consts.ts";
 import type { ValItemType } from "~/types.ts";
 import { Command } from "@cliffy/command";
 import { extractAttributes } from "~/cmd/lib/utils/extractAttributes.ts";
+import { parseValUrl } from "~/cmd/parsing.ts";
 
 export const tailCmd = new Command()
   .name("tail")
   .description("Stream logs of a Val")
+  .arguments("[valUri:string] [branchName:string]")
   .example("vt tail", "Stream the logs of a val")
   .option(
     "--print-headers",
@@ -31,33 +39,71 @@ export const tailCmd = new Command()
     "Display timestamps in 24-hour format (default: 12-hour AM/PM)",
     { default: false },
   )
-  .action(async ({
-    printHeaders,
-    pollFrequency,
-    reverseLogs,
-    "24HourTime": use24HourTime,
-  }) => {
-    const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-    const vtState = await vt.getMeta().loadVtState();
-    const currentBranchData = await sdk.vals.branches
-      .retrieve(vtState.val.id, vtState.branch.id)
-      .catch(() => null);
+  .action(async (
+    {
+      printHeaders,
+      pollFrequency,
+      reverseLogs,
+      "24HourTime": use24HourTime,
+    },
+    valUri,
+    branchName,
+  ) => {
+    let branchIds: string[];
+    null;
+    if (valUri) {
+      const user = await getCurrentUser();
+      const parsed = parseValUrl(valUri, user.username!);
+      const val = await sdk.alias.username.valName.retrieve(
+        parsed.ownerName,
+        parsed.valName,
+      );
 
-    if (!currentBranchData) {
-      throw new Error("Failed to get current branch data");
+      if (!branchName) {
+        const branchesInVal = await Array.fromAsync(
+          sdk.vals.branches.list(val.id, {}),
+        );
+        branchIds = branchesInVal.map((b) => b.id);
+      } else {
+        const branch = await branchNameToBranch(val.id, branchName);
+        if (!branch) {
+          throw new Error(
+            `Branch "${branchName}" not found in Val`,
+          );
+        }
+        branchIds = [branch.id];
+      }
+
+      console.log(
+        `Tailing logs for ${
+          colors.cyan(
+            `@${parsed.ownerName}/${parsed.valName}${
+              branchName ? `:${branchName}` : ""
+            }`,
+          )
+        }`,
+      );
+    } else {
+      const vt = VTClient.from(await findVtRoot(Deno.cwd()));
+      const vtState = await vt.getMeta().loadVtState();
+      const currentBranchData = await sdk.vals.branches.retrieve(
+        vtState.val.id,
+        vtState.branch.id,
+      );
+      branchIds = [vtState.branch.id];
+      console.log(
+        `Tailing logs for branch ${
+          colors.cyan(currentBranchData.name)
+        }@${currentBranchData.version}`,
+      );
     }
 
-    console.log(
-      `Tailing logs for branch ${
-        colors.cyan(currentBranchData.name)
-      }@${currentBranchData.version}`,
-    );
     console.log(colors.dim("Press Ctrl+C to stop."));
     console.log();
 
     for await (
       const trace of getTraces({
-        branch_ids: [currentBranchData.id],
+        branch_ids: branchIds,
         frequency: pollFrequency,
       })
     ) {
