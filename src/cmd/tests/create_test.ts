@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
@@ -48,19 +48,22 @@ Deno.test({
       );
 
       await c.step(
-        "cannot create Val with name of non-empty directory",
+        "cannot create Val with name of non-empty directory without confirmation",
         async () => {
           // Create a non-empty directory
           const nonEmptyDirPath = join(tmpDir, nonEmptyDirValName);
           await Deno.mkdir(nonEmptyDirPath);
           await Deno.writeTextFile(join(nonEmptyDirPath, "file"), "content");
 
-          // Should fail with non-empty directory
-          const [_, status] = await runVtCommand([
+          const [stdout, _] = await runVtCommand([
             "create",
             nonEmptyDirValName,
           ], tmpDir);
-          assertEquals(status, 1);
+          console.log(stdout);
+          assertStringIncludes(
+            stdout,
+            "files will be uploaded",
+          );
         },
       );
     });
