@@ -41,7 +41,7 @@ Deno.test({
 
         await t.step("tail logs", async () => {
           const [outputLines] = streamVtCommand(
-            ["tail", "--poll-frequency", "500"],
+            ["tail", "--poll-frequency", "500", "--print-headers"],
             join(tmpDir, val.name),
           );
 
