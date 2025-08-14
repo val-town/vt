@@ -195,9 +195,14 @@ export const listValItems = memoize(async (
 
 export async function canWriteToVal(valId: string) {
   try {
-    await sdk.vals.files.update(valId, { path: crypto.randomUUID() });
+    const randomPath = crypto.randomUUID();
+    await sdk.vals.files.update(valId, { path: randomPath });
     // Success means that we broke someone's file. Oops!
-    throw new Error("Something went wrong writing to Val");
+    throw new Error(
+      "Something went wrong writing to Val. " +
+        `You had a file at ${randomPath} that we overwrote.` +
+        " You should revert the file on the website.",
+    );
   } catch (e) {
     if (e instanceof ValTown.APIError) {
       if (e.status === 403 || e.status === 401) return false;
