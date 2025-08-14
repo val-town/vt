@@ -199,9 +199,7 @@ export async function canWriteToVal(valId: string) {
     await sdk.vals.files.update(valId, { path: randomPath });
     // Success means that we broke someone's file. Oops!
     throw new Error(
-      "Something went wrong writing to Val. " +
-        `You had a file at ${randomPath} that we overwrote.` +
-        " You should revert the file on the website.",
+      `Got an unexpected response when trying to check write permissions. ${randomPath} may have gotten overwritten.`
     );
   } catch (e) {
     if (e instanceof ValTown.APIError) {
