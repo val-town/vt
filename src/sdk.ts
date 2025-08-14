@@ -193,6 +193,34 @@ export const listValItems = memoize(async (
   return files;
 });
 
+export async function canWriteToVal(valId: string) {
+  // There's no way to check if we can write to the Val without actually trying
+  // to write to it. So we try to write a random file (a uuid, so that they
+  // don't already have that file) and catch any errors.
+  //
+  // In `vt push`, we could technically just wait for an error to get thrown,
+  // but API errors about not having permissions aren't specific, so we'd need
+  // to wrap specific mutation promises to rethrow the error.
+  //
+  // If we get a 403 or 401, we know we can't write to it
+  // If we get a 404, we know the Val doesn't exist, and may also be able to see
+  // in the message if it's a permissions issue
+  try {
+    const randomPath = crypto.randomUUID();
+    await sdk.vals.files.update(valId, { path: randomPath });
+    // Success means that we broke someone's file. Oops!
+    throw new Error(
+      `Got an unexpected response when trying to check write permissions. ${randomPath} may have gotten overwritten.`,
+    );
+  } catch (e) {
+    if (e instanceof ValTown.APIError) {
+      if (e.status === 403 || e.status === 401) return false;
+      if (e.status === 404) return !e.message.includes("Not authorized");
+      else throw e;
+    } else throw e;
+  }
+}
+
 /**
  * Get the latest version of a branch.
  */
