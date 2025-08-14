@@ -201,7 +201,7 @@ export async function canWriteToVal(valId: string) {
   } catch (e) {
     if (e instanceof ValTown.APIError) {
       if (e.status === 403 || e.status === 401) return false;
-      if (e.status === 404) return true;
+      if (e.status === 404) return !e.message.includes("Not authorized");
       else throw e;
     } else throw e;
   }

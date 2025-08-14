@@ -6,7 +6,7 @@ Deno.test({
   name: "Checking if we can write to Vals",
   permissions: "inherit",
   async fn() {
-    const VAL_WE_CANT_WRITE_TO = "6b9c47c6-0ffc-11f0-aae0-569c3dd06744";
+    const VAL_WE_CANT_WRITE_TO = "b037fb4a-791b-11f0-b97e-0224a6c84d84";
 
     await doWithNewVal(async ({ val }) => {
       assert(await canWriteToVal(val.id));
