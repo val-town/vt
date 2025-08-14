@@ -1,6 +1,6 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
-import VTClient from "~/vt/vt/VTClient.ts";
+import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
 import { getCurrentUser } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
@@ -22,6 +22,10 @@ export const createCmd = new Command()
     conflicts: ["public", "private"],
   })
   .option("--no-editor-files", "Skip creating editor configuration files")
+  .option(
+    "--upload-if-exists", // useful for testing
+    "Upload existing files to the new Val if the directory is not empty",
+  )
   .option("-d, --description <desc:string>", "Val description")
   .example(
     "Start fresh",
@@ -54,12 +58,14 @@ vt checkout main`,
       unlisted,
       description,
       editorFiles,
+      uploadIfExists,
     }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
       description?: string;
       editorFiles?: boolean;
+      uploadIfExists: boolean;
     },
     valName: string,
     targetDir?: string,
@@ -72,12 +78,35 @@ vt checkout main`,
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       try {
+        try {
+          await assertSafeDirectory(clonePath);
+        } catch (e) {
+          if (e instanceof Error && e.message.includes("not empty")) {
+            if (!uploadIfExists) {
+              spinner.stop();
+              const confirmContinue = await Confirm.prompt(
+                `The directory "${
+                  basename(clonePath)
+                }" already exists and is not empty. Do you want to continue?` +
+                  " Existing files will be uploaded to the new Val.",
+              );
+
+              if (!confirmContinue) {
+                Deno.exit(0);
+              }
+            }
+          } else {
+            throw e;
+          }
+        }
+
         const vt = await VTClient.create({
           rootPath: clonePath,
           valName,
           username: user.username!,
           privacy,
           description,
+          skipSafeDirCheck: true,
         });
 
         if (editorFiles) {
