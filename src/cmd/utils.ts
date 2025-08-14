@@ -47,6 +47,11 @@ export function sanitizeErrors(error: unknown): string {
     if (error.message.includes("required permissions")) {
       suffixedExtra +=
         "To set a new API key, use `vt config set apiKey new_api_key`";
+
+      if (Deno.env.get("VT_API_KEY_FROM_ENV", "1")) {
+        suffixedExtra +=
+          " (Note: You are using an API key from the environment or .env)";
+      }
     }
 
     // Remove leading numbers from error message

@@ -6,6 +6,8 @@ import {
   API_KEY_KEY,
   AUTH_CACHE_LOCALSTORE_ENTRY,
   AUTH_CACHE_TTL,
+  WARNED_ABOUT_ENV_VAR,
+  WARNED_ABOUT_ENV_VAR_TTL,
 } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
@@ -38,7 +40,26 @@ async function isApiKeyValid(): Promise<boolean> {
 }
 
 async function ensureValidApiKey() {
-  if (Deno.env.has(API_KEY_KEY) && await isApiKeyValid()) return;
+  if (Deno.env.has(API_KEY_KEY) && await isApiKeyValid()) {
+    const lastShowedUsingFromEnv = localStorage
+      .getItem(WARNED_ABOUT_ENV_VAR);
+    if (
+      !lastShowedUsingFromEnv ||
+      (Date.now() - new Date(lastShowedUsingFromEnv).getTime() >
+        WARNED_ABOUT_ENV_VAR_TTL)
+    ) {
+      Deno.env.set("VT_API_KEY_FROM_ENV", "1");
+      localStorage.setItem(WARNED_ABOUT_ENV_VAR, new Date().toISOString());
+      addEventListener("unload", () => {
+        console.log(
+          colors.dim(
+            colors.yellow("(Using VAL_TOWN_API_KEY from environment or .env)"),
+          ),
+        );
+      });
+    }
+    return;
+  }
 
   {
     const { apiKey } = await globalConfig.loadConfig();

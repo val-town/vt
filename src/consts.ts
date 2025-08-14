@@ -109,3 +109,5 @@ export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
 
 export const AUTH_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const AUTH_CACHE_LOCALSTORE_ENTRY = "vt_last_auth_cache";
+export const WARNED_ABOUT_ENV_VAR_TTL = 60 * 1000; // 1 minutes
+export const WARNED_ABOUT_ENV_VAR = "vt_warned_about_env_var";
