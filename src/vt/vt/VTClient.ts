@@ -267,17 +267,21 @@ export default class VTClient {
     username,
     privacy,
     description,
+    skipSafeDirCheck = false,
   }: {
     rootPath: string;
     valName: string;
     username: string;
     privacy: "public" | "private" | "unlisted";
     description?: string;
+    skipSafeDirCheck: boolean;
   }): Promise<VTClient> {
-    await assertSafeDirectory(rootPath);
+    if (!skipSafeDirCheck) {
+      await assertSafeDirectory(rootPath);
+    }
 
-    // First create the val
-    const { newValId: newValId } = await create({
+    // First create the val (this uploads it too)
+    const { newValId } = await create({
       sourceDir: rootPath,
       valName,
       privacy,
@@ -293,6 +297,7 @@ export default class VTClient {
       username,
       valName,
       rootPath,
+      skipSafeDirCheck: true, // Already checked above
     });
   }
 
@@ -638,7 +643,7 @@ export default class VTClient {
  * @param rootPath - The path to the directory to check
  * @throws If the directory exists and is not empty
  */
-async function assertSafeDirectory(rootPath: string) {
+export async function assertSafeDirectory(rootPath: string) {
   // If the directory exists, that is only OK if it is empty
   if (await exists(rootPath) && !await dirIsEmpty(rootPath)) {
     throw new Error(
