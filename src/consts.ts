@@ -54,8 +54,6 @@ export const WARNING_MESSAGES: Record<ItemWarning, string> = {
 
 export const DEFAULT_VAL_TYPE = "script";
 
-export const DEFAULT_HOSTNAME = /[^\.]+\.(web\.)?val\.run/;
-
 export const ValItems = [
   "script",
   "http",

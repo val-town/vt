@@ -10,7 +10,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import type ValTown from "@valtown/sdk";
 import { basename, dirname, join } from "@std/path";
 import { colors } from "@cliffy/ansi/colors";
-import { DEFAULT_HOSTNAME, TypeToTypeStr, ValItemColors } from "~/consts.ts";
+import { TypeToTypeStr, ValItemColors } from "~/consts.ts";
 import type { ValItemType } from "~/types.ts";
 import { Command } from "@cliffy/command";
 import { extractAttributes } from "~/cmd/lib/utils/extractAttributes.ts";
@@ -345,18 +345,12 @@ async function printTraceLogs({
   }
 }
 
-// Pretty print a URL with colored components
+// Pretty print a URL with a bold path
 function prettyPrintUrl(url: URL): string {
-  const hostname = !DEFAULT_HOSTNAME.test(url.hostname)
-    ? url.hostname
-    : colors.cyan(url.hostname);
-
-  const pathPart = colors.bold(
-    colors.blue(`${url.pathname}${url.search || ""}${url.hash || ""}`),
-  );
-
-  const port = url.port ? ":" + url.port : "";
-  return `${url.protocol}//${hostname}${port}${pathPart}`;
+  const pathPart = colors
+    .bold(`${url.pathname}${url.search ?? ""}${url.hash ?? ""}`);
+  const port = url.port ? `:${url.port}` : "";
+  return `${url.protocol}//${url.hostname}${port}${pathPart}`;
 }
 
 // Pretty print a file path
@@ -368,7 +362,7 @@ function prettyPrintFilePath(path: string, type: ValItemType): string {
 }
 
 // Extract the email address from a Val file
-export function extractEmailFromValFile(
+function extractEmailFromValFile(
   valFile: ValTown.Vals.FileRetrieveResponse,
 ) {
   let label = valFile.id;
