@@ -109,3 +109,16 @@ export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
 
 export const AUTH_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const AUTH_CACHE_LOCALSTORE_ENTRY = "vt_last_auth_cache";
+
+export const SAW_IS_OUTDATED_FOR = "saw_is_outdated_for";
+
+export const JSR_ENTRY_NAME = "@valtown/vt";
+
+export const VT_MINIMUM_FLAGS = [
+  "--allow-read",
+  "--allow-write",
+  "--allow-env",
+  "--allow-net",
+  "--allow-sys",
+  "--allow-run",
+];
