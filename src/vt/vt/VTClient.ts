@@ -267,6 +267,7 @@ export default class VTClient {
     username,
     privacy,
     description,
+    doUpload = true,
     skipSafeDirCheck = false,
   }: {
     rootPath: string;
@@ -274,6 +275,7 @@ export default class VTClient {
     username: string;
     privacy: "public" | "private" | "unlisted";
     description?: string;
+    doUpload?: boolean;
     skipSafeDirCheck: boolean;
   }): Promise<VTClient> {
     if (!skipSafeDirCheck) {
@@ -286,6 +288,7 @@ export default class VTClient {
       valName,
       privacy,
       description,
+      doUpload,
     });
 
     // Get the Val branch

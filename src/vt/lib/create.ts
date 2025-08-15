@@ -3,7 +3,7 @@ import sdk, { branchNameToBranch } from "~/sdk.ts";
 import type { ValPrivacy } from "~/types.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
-import type { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
+import { ItemStatusManager } from "~/vt/lib/utils/ItemStatusManager.ts";
 
 /**
  * Result of a checkout operation containing branch information and file
@@ -26,6 +26,8 @@ export interface CreateParams {
   sourceDir: string;
   /** The name for the new val. */
   valName: string;
+  /** Whether to upload after creating. */
+  doUpload?: boolean;
   /** Optional Val description. Defaults to that of the Val being remixed. */
   description?: string;
   /** Privacy setting for the val. Defaults to that of the Val being remixed. */
@@ -49,6 +51,7 @@ export async function create(
     description = "",
     privacy = "private",
     gitignoreRules,
+    doUpload = true,
   } = params;
 
   await ensureDir(sourceDir);
@@ -64,13 +67,17 @@ export async function create(
     DEFAULT_BRANCH_NAME,
   );
 
-  // Push the local directory contents to the new val
-  const { itemStateChanges } = await push({
-    targetDir: sourceDir,
-    valId: newVal.id,
-    branchId: newBranch.id,
-    gitignoreRules,
-  });
+  // Push the local directory contents to the new val if requested
+  let itemStateChanges = new ItemStatusManager();
+  if (doUpload) {
+    const { itemStateChanges: changes } = await push({
+      targetDir: sourceDir,
+      valId: newVal.id,
+      branchId: newBranch.id,
+      gitignoreRules,
+    });
+    itemStateChanges = changes;
+  }
 
   return {
     itemStateChanges: itemStateChanges,
