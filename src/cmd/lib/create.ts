@@ -1,11 +1,11 @@
-import { Command } from "@cliffy/command";
+import { Command, EnumType } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
 import { getCurrentUser } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
-import { Confirm } from "@cliffy/prompt";
+import { Confirm, Select } from "@cliffy/prompt";
 import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
@@ -21,11 +21,12 @@ export const createCmd = new Command()
   .option("--unlisted", "Create as unlisted Val", {
     conflicts: ["public", "private"],
   })
-  .option("--no-editor-files", "Skip creating editor configuration files")
+  .type("if-exists", new EnumType(["continue", "yes-and-upload", "cancel"]))
   .option(
-    "--upload-if-exists", // useful for testing
+    "--if-exists <action:if-exists>", // useful for testing
     "Upload existing files to the new Val if the directory is not empty",
   )
+  .option("--no-editor-files", "Skip creating editor configuration files")
   .option("-d, --description <desc:string>", "Val description")
   .example(
     "Start fresh",
@@ -62,14 +63,14 @@ vt checkout main`,
       unlisted,
       description,
       editorFiles,
-      uploadIfExists,
+      ifExistsAction,
     }: {
       public?: boolean;
       private?: boolean;
       unlisted?: boolean;
       description?: string;
       editorFiles?: boolean;
-      uploadIfExists?: boolean;
+      ifExistsAction?: "continue" | "yes-and-upload" | "cancel";
     },
     valName: string,
     targetDir?: string,
@@ -80,23 +81,32 @@ vt checkout main`,
 
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
+      let doUpload = ifExistsAction === "yes-and-upload";
 
       try {
         try {
           await assertSafeDirectory(clonePath);
         } catch (e) {
           if (e instanceof Error && e.message.includes("not empty")) {
-            if (!uploadIfExists) {
+            if (ifExistsAction !== "cancel") {
               spinner.stop();
-              const confirmContinue = await Confirm.prompt(
-                `The directory "${
-                  basename(clonePath)
-                }" already exists and is not empty. Do you want to continue?` +
-                  " Existing files will be uploaded to the new Val.",
+              const confirmContinue = await Select.prompt(
+                {
+                  message: `The directory "${
+                    basename(clonePath)
+                  }" already exists and is not empty. Do you want to continue?`,
+                  options: [
+                    { name: "Yes", value: "yes" },
+                    { name: "Yes, and upload files", value: "yes_and_upload" },
+                    { name: "No, cancel", value: "no" },
+                  ],
+                },
               );
 
-              if (!confirmContinue) {
+              if (confirmContinue === "no") {
                 Deno.exit(0);
+              } else {
+                doUpload = confirmContinue === "yes_and_upload";
               }
             }
           } else {
@@ -111,6 +121,7 @@ vt checkout main`,
           privacy,
           description,
           skipSafeDirCheck: true,
+          doUpload,
         });
 
         if (editorFiles) {
