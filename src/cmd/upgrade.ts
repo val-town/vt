@@ -9,9 +9,9 @@ import {
 import manifest from "../../deno.json" with { type: "json" };
 import { colors } from "@cliffy/ansi/colors";
 
-export async function registerOutdatedWarning() {
-  const provider = new JsrProvider({ package: JSR_ENTRY_NAME });
+const provider = new JsrProvider({ package: JSR_ENTRY_NAME });
 
+export async function registerOutdatedWarning() {
   // If there is a new version, notify the user once (across runs) of that new version.
   const list = await provider.getVersions(JSR_ENTRY_NAME);
   const currentVersion = manifest.version;
