@@ -3,6 +3,9 @@ name: VT Testing
 on:
   push:
 
+env:
+  CI: true
+
 jobs:
   test-linux:
     runs-on: ubuntu-latest
