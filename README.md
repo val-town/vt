@@ -3,7 +3,7 @@
 `vt` is the official CLI to work with projects on the
 [Val Town](https://val.town) platform.
 
-![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
+![Vt in action!](https://filedumpthing.val.run/blob/blob_file_1744915159083_recording.gif)
 
 ```
 Usage:   vt    
@@ -97,7 +97,7 @@ $ vt remix std/reactHonoStarter myNewWebsite
 $ cd myNewWebsite
 ```
 
-![Your new Val!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
+![Your new Val!](https://filedumpthing.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
 
 Alternatively, you can use `vt create` to create a new empty val. If you don't
 specify a path, the name of the Val will automatically be used.
@@ -121,7 +121,7 @@ those packages installed (or "cached"). Occasionally you'll want to run
 `deno cache .` to make sure that all the libraries you use in your Val Town val
 are installed locally.
 
-![Making changes](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
+![Making changes](https://filedumpthing.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
 
 Let's start editing our val! Fire up your favorite editor, and then make a
 change to `README.md`.
@@ -156,7 +156,7 @@ until you run `vt push`. If you don't want this behavior, then you can delete
 them and add `deno.json` and `.vtignore` to the `.vtignore`(the `.vtignore` will
 respect itself being ignored!).
 
-![Browse the Val on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
+![Browse the Val on the website](https://filedumpthing.val.run/blob/blob_file_1744522722640_recording.gif)
 
 Now run `vt browse` to see your file in the Val Town website UI. We advise you
 use `vt` in conjunction with the Val Town website. The CLI can do a lot, but not
