@@ -110,7 +110,8 @@ export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
 export const AUTH_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 export const AUTH_CACHE_LOCALSTORE_ENTRY = "vt_last_auth_cache";
 
-export const SAW_IS_OUTDATED_FOR = "saw_is_outdated_for";
+/** The latest version they were notified they could upgrade to */
+export const SAW_AS_LATEST_VERSION = "saw_as_latest_version";
 
 export const JSR_ENTRY_NAME = "@valtown/vt";
 
