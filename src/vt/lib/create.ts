@@ -51,6 +51,7 @@ export async function create(
     description = "",
     privacy = "private",
     gitignoreRules,
+    doUpload = true,
   } = params;
 
   await ensureDir(sourceDir);
@@ -68,7 +69,7 @@ export async function create(
 
   // Push the local directory contents to the new val if requested
   let itemStateChanges = new ItemStatusManager();
-  if (params.doUpload) {
+  if (doUpload) {
     const { itemStateChanges: changes } = await push({
       targetDir: sourceDir,
       valId: newVal.id,
