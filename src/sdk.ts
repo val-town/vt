@@ -237,10 +237,6 @@ export async function* getTraces({
 
       const nextStart = new URL(nextUrl).searchParams.get("start");
       if (!nextStart) break;
-      if (new Date(nextStart).getTime() === cursor.getTime()) {
-        cursor = new Date(cursor.getTime() + 1);
-        break;
-      }
 
       cursor = new Date(nextStart);
     }
