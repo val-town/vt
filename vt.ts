@@ -9,6 +9,7 @@ import {
 } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
+import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
 
 await ensureGlobalVtConfig();
 
@@ -78,6 +79,7 @@ async function startVt(...args: string[]) {
 if (import.meta.main) {
   await ensureValidApiKey();
   sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
+  await registerOutdatedWarning();
   await startVt();
 }
 
