@@ -77,7 +77,7 @@ async function startVt(...args: string[]) {
 }
 
 if (import.meta.main) {
-  if (Deno.env.has(API_KEY_KEY)) { // this is our "heuristic" for ci-ish ness
+  if (!Deno.env.has(API_KEY_KEY)) { // this is our "heuristic" for ci-ish ness
     await registerOutdatedWarning();
   }
   await ensureValidApiKey();
