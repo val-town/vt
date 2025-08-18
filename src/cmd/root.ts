@@ -1,6 +1,7 @@
 import { Command } from "@cliffy/command";
 import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "~/cmd/lib/mod.ts";
+import { upgradeCmd } from "./upgrade.ts";
 
 const cmd = new Command()
   .name("vt")
@@ -8,6 +9,7 @@ const cmd = new Command()
   .help({ colors: Deno.stdout.isTerminal() })
   .action(() => cmd.showHelp());
 
+cmd.command("upgrade", upgradeCmd);
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("push", cmds.pushCmd);
 cmd.command("pull", cmds.pullCmd);
