@@ -1,7 +1,8 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { API_KEY_KEY } from "~/consts.ts";
+import { delay } from "@std/async";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -175,22 +176,14 @@ export const listValItems = memoize(async (
   branchId: string,
   version: number,
 ): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
-  const files: ValTown.Vals.FileRetrieveResponse[] = [];
-
-  branchId = branchId ||
-    (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
-      .then((resp) => resp.id))!;
-
-  for await (
-    const file of sdk.vals.files.retrieve(valId, {
+  return await Array.fromAsync(
+    sdk.vals.files.retrieve(valId, {
       path: "",
       branch_id: branchId,
       version,
       recursive: true,
-    })
-  ) files.push(file);
-
-  return files;
+    }),
+  );
 });
 
 export async function canWriteToVal(valId: string) {
@@ -241,5 +234,89 @@ export function randomValName(label = "") {
 export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
+
+export async function* getTraces({
+  frequency = 1000,
+  signal,
+  ...params
+}: {
+  frequency?: number;
+  signal?: AbortSignal;
+} & Partial<ValTown.Telemetry.Traces.TraceListParams>): AsyncGenerator<
+  ValTown.Telemetry.Traces.TraceListResponse.Data
+> {
+  let cursor = new Date();
+
+  while (true) {
+    while (true) {
+      if (signal?.aborted) break;
+
+      const resp = await sdk.telemetry.traces.list({
+        ...params,
+        limit: 50,
+        start: cursor.toISOString(),
+        order_by: "end_time",
+        direction: "asc",
+      });
+      yield* resp.data;
+
+      const nextUrl = resp.links.next;
+      if (!nextUrl) break;
+
+      const nextStart = new URL(nextUrl).searchParams.get("start");
+      if (!nextStart) break;
+
+      cursor = new Date(nextStart);
+    }
+
+    await delay(frequency);
+  }
+}
+
+/**
+ * Get all logs for a specific trace ID.
+ *
+ * @param traceId The trace ID to get logs for
+ * @returns AsyncGenerator yielding all log entries for the trace
+ */
+export async function* getLogsForTraces(
+  traceIds: string[],
+): AsyncGenerator<ValTown.Telemetry.Logs.LogListResponse.Data> {
+  let nextUrl: string | undefined;
+
+  do {
+    const nextStart = nextUrl
+      ? new URL(nextUrl).searchParams.get("start")
+      : undefined;
+
+    const response = await sdk.telemetry.logs.list({
+      limit: 1,
+      trace_ids: traceIds,
+      ...(nextUrl && nextStart && {
+        start: nextStart,
+      }),
+      direction: "asc",
+    });
+
+    yield* response.data;
+
+    nextUrl = response.links.next;
+  } while (nextUrl);
+}
+
+/**
+ * Converts a file ID to its corresponding Val file for a given val.
+ *
+ * @param valId The ID of the Val containing the file
+ * @param branchId The ID of the Val branch to reference
+ * @param fileId The ID of the file to retrieve
+ * @returns Promise resolving to the Val file data
+ * @throws if the file is not found or if the API request fails
+ */
+export async function fileIdToValFile(
+  fileId: string,
+): Promise<ValTown.Vals.FileRetrieveResponse> {
+  return await sdk.files.retrieve(fileId);
+}
 
 export default sdk;

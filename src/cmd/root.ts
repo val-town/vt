@@ -23,5 +23,6 @@ cmd.command("remix", cmds.remixCmd);
 cmd.command("config", cmds.configCmd);
 cmd.command("delete", cmds.deleteCmd);
 cmd.command("list", cmds.listCmd);
+cmd.command("tail", cmds.tailCmd);
 
 export { cmd };
