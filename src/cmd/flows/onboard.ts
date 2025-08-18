@@ -68,7 +68,9 @@ export async function onboardFlow(
   });
 
   if (goToWebsite) {
-    console.log("Ensure you select user read & Val read+write permissions");
+    console.log(
+      "Ensure you select user read, Val read+write, and telemetry read permissions",
+    );
     await delay(500);
     await open(GET_API_KEY_URL);
     console.log(`Browser opened to ${GET_API_KEY_URL}`);
