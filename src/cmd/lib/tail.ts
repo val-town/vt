@@ -125,7 +125,6 @@ export const tailCmd = new Command()
         reverseLogs,
         use24HourTime,
       });
-      await new Promise((res) => setTimeout(res, 70)); // Prevents crazy console spam. TODO: real throttling
     }
   });
 
@@ -387,5 +386,15 @@ function formatTimeFromUnixNano(
   });
 
   const milliseconds = date.getMilliseconds().toString().padStart(3, "0");
-  return `${timeString}.${milliseconds}`;
+
+  // Split by the first space to separate time from AM/PM
+  const parts = timeString.split(" ");
+
+  if (parts.length > 1) {
+    // If there's an AM/PM part
+    return `${parts[0]}.${milliseconds} ${parts[1]}`;
+  } else {
+    // For 24-hour format or locales without AM/PM
+    return `${timeString}.${milliseconds}`;
+  }
 }
