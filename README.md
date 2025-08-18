@@ -67,8 +67,8 @@ Welcome to the Val Town CLI!
 ? Would you like to open val.town/settings/api in a browser to get an API key? (y/n) ›
 ```
 
-Respond yes, and ensure you select to create an API key with user read & val
-read+write permissions.
+Respond yes, and ensure you select to create an API key with user read, val
+read+write, and telemetry read permissions.
 
 Alternatively, you can set the `VAL_TOWN_API_KEY` environment variable to
 authenticate. Either as an environment variable, or place it in a .env in your
