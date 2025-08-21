@@ -4,7 +4,7 @@ import { assert } from "@std/assert";
 import { exists } from "@std/fs";
 import { delay } from "@std/async";
 import VTClient from "~/vt/vt/VTClient.ts";
-import { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
+import sdk, { getLatestVersion, listValItems, valItemExists } from "~/sdk.ts";
 import {
   runVtCommand,
   streamVtCommand,
@@ -18,6 +18,11 @@ Deno.test({
   fn: async (t) => {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
+        await sdk.vals.branches.create(val.id, { name: "some-other-branch" });
+        // (we had an issue a bit back involving tail not working for multi
+        // branch vals due to a bug in the sdk's handling of array query params,
+        // so we run this test with two branches to make sure it doesn't regress)
+
         let valDir: string;
         let vt: VTClient;
         let watchChild: Deno.ChildProcess;
