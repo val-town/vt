@@ -12,6 +12,11 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
+        await sdk.vals.branches.create(val.id, { name: "some-other-branch" });
+        // (we had an issue a bit back involving tail not working for multi
+        // branch vals due to a bug in the sdk's handling of array query params,
+        // so we run this test with two branches to make sure it doesn't regress)
+
         await t.step("create a file and clone the val", async () => {
           await sdk.vals.files.create(
             val.id,
