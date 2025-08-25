@@ -1,4 +1,3 @@
-import { Command } from "@cliffy/command";
 import { UpgradeCommand } from "@cliffy/command/upgrade";
 import { JsrProvider } from "@cliffy/command/upgrade/provider/jsr";
 import {
@@ -30,13 +29,9 @@ export async function registerOutdatedWarning() {
   }
 }
 
-export const upgradeCmd = new Command()
-  .command(
-    "upgrade",
-    new UpgradeCommand({
-      main: ".",
-      args: VT_MINIMUM_FLAGS,
-      provider,
-      spinner: true,
-    }),
-  );
+export const upgradeCmd = new UpgradeCommand({
+  main: ".",
+  args: VT_MINIMUM_FLAGS,
+  provider,
+  spinner: true,
+});
