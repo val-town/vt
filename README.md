@@ -7,7 +7,7 @@
 
 ```
 Usage:   vt    
-Version: x.x.xx
+Version: 0.1.43
 
 Options:
 
@@ -16,19 +16,21 @@ Options:
 
 Commands:
 
+  upgrade                                          - Upgrade vt executable to latest or given version.     
   clone     [valUri] [targetDir] [branchName]      - Clone a Val                                           
   push                                             - Push local changes to a Val                           
   pull                                             - Pull the latest changes for the current Val           
   status                                           - Show the working tree status                          
   branch                                           - List or delete branches                               
-  checkout  [existingBranchName]                   - Check out a different branch                          
+  checkout  <existingBranchName>                   - Check out a different branch                          
   watch                                            - Watch for changes and automatically sync with Val Town
   browse                                           - Open a Val's main page in a web browser               
   create    <valName> [targetDir]                  - Create a new Val                                      
   remix     <fromValUri> [newValName] [targetDir]  - Remix a Val                                           
   config                                           - Manage vt configuration                               
   delete                                           - Delete the current Val                                
-  list                                             - List all your Vals
+  list      [offset]                               - List all your Vals                                    
+  tail      [valUri] [branchName]                  - Stream logs of a Val 
 ```
 
 ## Installation
