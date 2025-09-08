@@ -30,7 +30,7 @@ Commands:
   config                                           - Manage vt configuration                               
   delete                                           - Delete the current Val                                
   list      [offset]                               - List all your Vals                                    
-  tail      [valUri] [branchName]                  - Stream logs of a Val 
+  tail      [valUri] [branchName]                  - Stream logs of a Val
 ```
 
 ## Installation
