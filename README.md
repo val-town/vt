@@ -7,7 +7,7 @@
 
 ```
 Usage:   vt    
-Version: x.x.xx
+Version: 0.1.43
 
 Options:
 
@@ -16,19 +16,21 @@ Options:
 
 Commands:
 
+  upgrade                                          - Upgrade vt executable to latest or given version.     
   clone     [valUri] [targetDir] [branchName]      - Clone a Val                                           
   push                                             - Push local changes to a Val                           
   pull                                             - Pull the latest changes for the current Val           
   status                                           - Show the working tree status                          
   branch                                           - List or delete branches                               
-  checkout  [existingBranchName]                   - Check out a different branch                          
+  checkout  <existingBranchName>                   - Check out a different branch                          
   watch                                            - Watch for changes and automatically sync with Val Town
   browse                                           - Open a Val's main page in a web browser               
   create    <valName> [targetDir]                  - Create a new Val                                      
   remix     <fromValUri> [newValName] [targetDir]  - Remix a Val                                           
   config                                           - Manage vt configuration                               
   delete                                           - Delete the current Val                                
-  list                                             - List all your Vals
+  list      [offset]                               - List all your Vals                                    
+  tail      [valUri] [branchName]                  - Stream logs of a Val
 ```
 
 ## Installation
@@ -67,8 +69,8 @@ Welcome to the Val Town CLI!
 ? Would you like to open val.town/settings/api in a browser to get an API key? (y/n) ›
 ```
 
-Respond yes, and ensure you select to create an API key with user read & val
-read+write permissions.
+Respond yes, and ensure you select to create an API key with user read, val
+read+write, and telemetry read permissions.
 
 Alternatively, you can set the `VAL_TOWN_API_KEY` environment variable to
 authenticate. Either as an environment variable, or place it in a .env in your
