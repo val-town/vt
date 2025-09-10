@@ -238,5 +238,5 @@ Deno.test({
     });
   },
   sanitizeResources: false,
-  sanitizeExit: false
+  sanitizeExit: false,
 });
