@@ -59,10 +59,9 @@ Deno.test({
             "create",
             nonEmptyDirValName,
           ], tmpDir);
-          console.log(stdout);
           assertStringIncludes(
             stdout,
-            "files will be uploaded",
+            "already exists and is not empty",
           );
         },
       );
@@ -257,6 +256,88 @@ Deno.test({
         assert(
           fileNames.includes("another-file.ts"),
           "another-file.ts should be uploaded to Val",
+        );
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "create Val with --if-exists continue option",
+  permissions: "inherit",
+  async fn(t) {
+    const user = await getCurrentUser();
+    const newValName = randomValName();
+    let newVal: ValTown.Val | null = null;
+
+    await doWithTempDir(async (tmpDir) => {
+      await t.step("create files in target directory", async () => {
+        const targetDir = join(tmpDir, newValName);
+        await Deno.mkdir(targetDir);
+
+        // Create some files in the target directory
+        await Deno.writeTextFile(
+          join(targetDir, "existing-file.js"),
+          "console.log('Existing file content');",
+        );
+        await Deno.writeTextFile(
+          join(targetDir, "another-file.ts"),
+          "export const value = 42;",
+        );
+      });
+
+      await t.step("create Val with --if-exists continue", async () => {
+        // Create Val with --if-exists continue option
+        await runVtCommand([
+          "create",
+          newValName,
+          "--if-exists",
+          "continue",
+          "--no-editor-files",
+        ], tmpDir);
+
+        newVal = await sdk.alias.username.valName.retrieve(
+          user.username!,
+          newValName,
+        );
+
+        assertEquals(newVal.name, newValName);
+        assertEquals(newVal.author.username, user.username);
+      });
+
+      await t.step("verify files were NOT uploaded to the Val", async () => {
+        // Check that the existing files were NOT uploaded to the Val
+        const valItems = await listValItems(
+          newVal!.id,
+          (await branchNameToBranch(newVal!.id, DEFAULT_BRANCH_NAME)).id,
+          await getLatestVersion(
+            newVal!.id,
+            (await branchNameToBranch(newVal!.id, DEFAULT_BRANCH_NAME)).id,
+          ),
+        );
+
+        const fileNames = valItems.map((item) => item.path);
+        assert(
+          !fileNames.includes("existing-file.js"),
+          "existing-file.js should NOT be uploaded to Val with continue option",
+        );
+        assert(
+          !fileNames.includes("another-file.ts"),
+          "another-file.ts should NOT be uploaded to Val with continue option",
+        );
+      });
+
+      await t.step("verify local files still exist", async () => {
+        // Verify the local files still exist in the directory
+        const targetDir = join(tmpDir, newValName);
+        assert(
+          await exists(join(targetDir, "existing-file.js")),
+          "existing-file.js should still exist locally",
+        );
+        assert(
+          await exists(join(targetDir, "another-file.ts")),
+          "another-file.ts should still exist locally",
         );
       });
     });
