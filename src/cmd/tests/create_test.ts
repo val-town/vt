@@ -217,6 +217,14 @@ Deno.test({
           join(tmpDir, "another-file.ts"),
           "export const value = 42;",
         );
+        await Deno.writeTextFile(
+          join(tmpDir, ".gitignore"),
+          "ignored-file.txt",
+        );
+        await Deno.writeTextFile(
+          join(tmpDir, "ignored-file.txt"),
+          "This file should not be uploaded",
+        );
       });
 
       await t.step("create Val in current directory", async () => {
@@ -257,6 +265,10 @@ Deno.test({
         assert(
           fileNames.includes("another-file.ts"),
           "another-file.ts should be uploaded to Val",
+        );
+        assert(
+          !fileNames.includes("ignored-file.txt"),
+          "ignored-file.txt should be ignored and not uploaded to Val",
         );
       });
     });
