@@ -2,8 +2,8 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
 import {
+  canWriteToVal,
   getBranch,
-  getCurrentUser,
   getLatestVersion,
   getVal,
   listValItems,
@@ -30,7 +30,6 @@ export const watchCmd = new Command()
   .action(async ({ companion: useCompanion, debounceDelay }) => {
     await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-      const user = await getCurrentUser();
 
       // Get initial branch information for display
       const vtState = await vt.getMeta().loadVtState();
@@ -40,10 +39,9 @@ export const watchCmd = new Command()
       );
 
       const valToWatch = await getVal(vtState.val.id);
-      if (valToWatch.author.id !== user.id) {
-        console.log(valToWatch.author.id, user.id);
+      if (!(await canWriteToVal(valToWatch.id))) {
         throw new Error(
-          "You are not the owner of this Val, you cannot watch." +
+          "You do not have write access to this Val, you cannot watch." +
             "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",
         );
       }

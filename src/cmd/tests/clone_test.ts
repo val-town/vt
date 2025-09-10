@@ -218,7 +218,7 @@ Deno.test({
         "--no-editor-files",
       ], tmpDir);
 
-      assertStringIncludes(out, "Val not found");
+      assertStringIncludes(out, "This Val could not be found");
     });
   },
   sanitizeResources: false,

@@ -1,6 +1,8 @@
-import { assert, assertEquals, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertFalse, assertRejects } from "@std/assert";
+import { canWriteToVal } from "./sdk.ts";
+import { doWithNewVal } from "./vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
+
 import {
   branchExists,
   branchNameToBranch,
@@ -19,6 +21,20 @@ import {
   valItemExists,
 } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+
+Deno.test({
+  name: "Checking if we can write to Vals",
+  permissions: "inherit",
+  async fn() {
+    const VAL_WE_CANT_WRITE_TO = "b037fb4a-791b-11f0-b97e-0224a6c84d84";
+
+    await doWithNewVal(async ({ val }) => {
+      assert(await canWriteToVal(val.id));
+      assertFalse(await canWriteToVal(VAL_WE_CANT_WRITE_TO));
+    });
+  },
+  sanitizeResources: false,
+});
 
 Deno.test({
   name: "test valExists function",
