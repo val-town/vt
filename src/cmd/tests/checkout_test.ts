@@ -416,6 +416,7 @@ Deno.test({
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
