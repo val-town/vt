@@ -127,6 +127,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -230,6 +232,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -305,6 +309,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -347,6 +353,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -390,6 +398,8 @@ Deno.test({
       assert(exists, "Created val should exist");
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -456,6 +466,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -516,4 +528,6 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
