@@ -123,7 +123,21 @@ Deno.test({
       await t.step("get latest version", async () => {
         const version = await getLatestVersion(val.id, mainBranch.id);
         assert(typeof version === "number", "Version should be a number");
-        assert(version >= 1, `Version should be at least 1, got ${version}`);
+        assert(version === 0, `Version should be at least 1, got ${version}`);
+
+        // Create a new file to bump version
+        await createValItem(val.id, {
+          path: "bump-version.txt",
+          content: "Bump version",
+          branchId: mainBranch.id,
+          type: "file",
+        });
+
+        const newVersion = await getLatestVersion(val.id, mainBranch.id);
+        assert(
+          newVersion === version + 1,
+          `Version should increment by 1, got ${newVersion}`,
+        );
       });
     });
   },
