@@ -46,7 +46,7 @@ Deno.test({
       });
 
       await t.step("check non-existent val by ID", async () => {
-        const exists = await valExists("non-existent-id");
+        const exists = await valExists(crypto.randomUUID());
         assert(!exists, "Non-existent val should not exist");
       });
 
@@ -123,7 +123,7 @@ Deno.test({
       await t.step("get latest version", async () => {
         const version = await getLatestVersion(val.id, mainBranch.id);
         assert(typeof version === "number", "Version should be a number");
-        assert(version >= 1, "Version should be at least 1");
+        assert(version >= 1, `Version should be at least 1, got ${version}`);
       });
     });
   },
