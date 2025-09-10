@@ -280,12 +280,20 @@ export default class VTClient {
       await assertSafeDirectory(rootPath);
     }
 
+    // If the directory exists, make a VTMeta in it, and gather the gitignore rules
+    let gitignoreRules: string[] = [];
+    if (await exists(rootPath)) {
+      const meta = new VTMeta(rootPath);
+      gitignoreRules = await meta.loadGitignoreRules();
+    }
+
     // First create the val (this uploads it too)
     const { newValId } = await create({
       sourceDir: rootPath,
       valName,
       privacy,
       description,
+      gitignoreRules,
     });
 
     // Get the Val branch
