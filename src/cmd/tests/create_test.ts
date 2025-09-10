@@ -59,7 +59,6 @@ Deno.test({
             "create",
             nonEmptyDirValName,
           ], tmpDir);
-          console.log(stdout);
           assertStringIncludes(
             stdout,
             "files will be uploaded",
@@ -217,8 +216,9 @@ Deno.test({
           join(tmpDir, "another-file.ts"),
           "export const value = 42;",
         );
+        await Deno.mkdir(join(tmpDir, "foo"));
         await Deno.writeTextFile(
-          join(tmpDir, ".gitignore"),
+          join(tmpDir, "foo/.vtignore"),
           "ignored-file.txt",
         );
         await Deno.writeTextFile(
