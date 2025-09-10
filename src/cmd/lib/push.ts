@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
-import sdk, { canWriteToVal } from "~/sdk.ts";
+import { canWriteToVal, getVal } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
 
@@ -26,7 +26,7 @@ export const pushCmd = new Command()
         const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
         const vtState = await vt.getMeta().loadVtState();
-        const valToPush = await sdk.vals.retrieve(vtState.val.id);
+        const valToPush = await getVal(vtState.val.id);
         if (!(await canWriteToVal(valToPush.id))) {
           throw new Error(
             "You do not have write access to this Val, you cannot push." +

@@ -1,10 +1,11 @@
 import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, {
+import {
   canWriteToVal,
-  getCurrentUser,
+  getBranch,
   getLatestVersion,
+  getVal,
   listValItems,
 } from "~/sdk.ts";
 import { FIRST_VERSION_NUMBER } from "~/consts.ts";
@@ -29,18 +30,16 @@ export const watchCmd = new Command()
   .action(async ({ companion: useCompanion, debounceDelay }) => {
     await doWithSpinner("Starting watch...", async (spinner) => {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
-      const user = await getCurrentUser();
 
       // Get initial branch information for display
       const vtState = await vt.getMeta().loadVtState();
-      const currentBranch = await sdk.vals.branches.retrieve(
+      const currentBranch = await getBranch(
         vtState.val.id,
         vtState.branch.id,
       );
 
-      const valToWatch = await sdk.vals.retrieve(vtState.val.id);
+      const valToWatch = await getVal(vtState.val.id);
       if (!(await canWriteToVal(valToWatch.id))) {
-        console.log(valToWatch.author.id, user.id);
         throw new Error(
           "You do not have write access to this Val, you cannot watch." +
             "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",

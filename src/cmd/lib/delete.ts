@@ -2,9 +2,9 @@ import { Command } from "@cliffy/command";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import { Confirm } from "@cliffy/prompt";
-import sdk from "~/sdk.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
+import { getVal } from "~/sdk.ts";
 
 export const deleteCmd = new Command()
   .name("delete")
@@ -19,7 +19,7 @@ export const deleteCmd = new Command()
       const vtState = await meta.loadVtState();
 
       // Get Val name for display
-      const val = await sdk.vals.retrieve(vtState.val.id);
+      const val = await getVal(vtState.val.id);
       const valName = val.name;
 
       // Confirm deletion unless --force is used

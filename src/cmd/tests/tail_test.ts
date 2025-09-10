@@ -1,5 +1,10 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getLatestVersion, getValItem } from "~/sdk.ts";
+import {
+  createNewBranch,
+  createValItem,
+  getLatestVersion,
+  getValItem,
+} from "~/sdk.ts";
 import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
@@ -12,19 +17,19 @@ Deno.test({
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
-        await sdk.vals.branches.create(val.id, { name: "some-other-branch" });
+        await createNewBranch(val.id, { name: "some-other-branch" });
         // (we had an issue a bit back involving tail not working for multi
         // branch vals due to a bug in the sdk's handling of array query params,
         // so we run this test with two branches to make sure it doesn't regress)
 
         await t.step("create a file and clone the val", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "main.ts",
               content:
                 "export default (req: Request) => {\n  return new Response('OK');\n};",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "http",
             },
           );

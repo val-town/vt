@@ -2,11 +2,12 @@ import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
 import stripAnsi from "strip-ansi";
 import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
-import sdk, {
+import {
   branchNameToBranch,
   getCurrentUser,
   getLatestVersion,
   listValItems,
+  valNameToVal,
 } from "~/sdk.ts";
 import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
@@ -110,7 +111,7 @@ export async function runVtCommand(
       autoConfirmInterval = setInterval(() => {
         if (process.stdin.locked) return;
         const writer = process.stdin.getWriter();
-        writer.write(new TextEncoder().encode("\b".repeat(10) + "yes\n"))
+        writer.write(new TextEncoder().encode(`${"\b".repeat(10)}yes\n`))
           .catch(() => {}); // Ignore errors when writing to stdin
         writer.releaseLock();
       }, 50);
@@ -182,7 +183,7 @@ export async function removeAllEditorFiles(dirPath: string): Promise<void> {
     DEFAULT_EDITOR_TEMPLATE,
     user.username!,
   );
-  const templateProject = await sdk.alias.username.valName.retrieve(
+  const templateProject = await valNameToVal(
     ownerName,
     valName,
   );

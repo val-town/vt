@@ -1,11 +1,11 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk, { getCurrentUser } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { META_FOLDER_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { deleteVal, getCurrentUser, valNameToVal } from "~/sdk.ts";
 
 Deno.test({
   name: "remix command basic functionality",
@@ -47,15 +47,16 @@ Deno.test({
         });
 
         // Clean up the remixed val
-        const { id } = await sdk.alias.username.valName.retrieve(
+        const { id } = await valNameToVal(
           user.username!,
           remixedValName,
         );
-        await sdk.vals.delete(id);
+        await deleteVal(id);
       });
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -84,11 +85,11 @@ Deno.test({
             "output should indicate private Val",
           );
 
-          const { id } = await sdk.alias.username.valName.retrieve(
+          const { id } = await valNameToVal(
             user.username!,
             privateValName,
           );
-          await sdk.vals.delete(id);
+          await deleteVal(id);
         });
 
         await t.step("remix as unlisted Val", async () => {
@@ -107,16 +108,17 @@ Deno.test({
             "output should indicate unlisted Val",
           );
 
-          const { id } = await sdk.alias.username.valName.retrieve(
+          const { id } = await valNameToVal(
             user.username!,
             unlistedValName,
           );
-          await sdk.vals.delete(id);
+          await deleteVal(id);
         });
       });
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -146,16 +148,17 @@ Deno.test({
             ".vscode directory should not exist",
           );
 
-          const { id } = await sdk.alias.username.valName.retrieve(
+          const { id } = await valNameToVal(
             user.username!,
             remixedValName,
           );
-          await sdk.vals.delete(id);
+          await deleteVal(id);
         });
       });
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -225,14 +228,15 @@ Deno.test({
           });
 
           // Clean up the remixed val
-          const { id } = await sdk.alias.username.valName.retrieve(
+          const { id } = await valNameToVal(
             user.username!,
             remixedValName,
           );
-          await sdk.vals.delete(id);
+          await deleteVal(id);
         });
       });
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
