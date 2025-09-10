@@ -59,10 +59,9 @@ Deno.test({
             "create",
             nonEmptyDirValName,
           ], tmpDir);
-          console.log(stdout);
           assertStringIncludes(
             stdout,
-            "files will be uploaded",
+            "Already exists and is not empty",
           );
         },
       );
