@@ -61,7 +61,7 @@ Deno.test({
           ], tmpDir);
           assertStringIncludes(
             stdout,
-            "Already exists and is not empty",
+            "already exists and is not empty",
           );
         },
       );
