@@ -9,6 +9,7 @@ import manifest from "../../deno.json" with { type: "json" };
 import { colors } from "@cliffy/ansi/colors";
 
 const provider = new JsrProvider({ package: JSR_ENTRY_NAME });
+let didUpgrade = false;
 
 export async function registerOutdatedWarning() {
   // If there is a new version, notify the user once (across runs) of that new version.
@@ -16,7 +17,7 @@ export async function registerOutdatedWarning() {
   const currentVersion = manifest.version;
   if (list.latest !== currentVersion) {
     const lastSawAsLatestVersion = localStorage.getItem(SAW_AS_LATEST_VERSION);
-    if (lastSawAsLatestVersion !== list.latest) {
+    if (lastSawAsLatestVersion !== list.latest && !didUpgrade) {
       addEventListener("unload", () => { // The last thing logged
         localStorage.setItem(SAW_AS_LATEST_VERSION, currentVersion);
         console.log(
@@ -29,7 +30,18 @@ export async function registerOutdatedWarning() {
   }
 }
 
-export const upgradeCmd = new UpgradeCommand({
+// @ts-ignore execute is private
+class VTUpgradeCommand extends UpgradeCommand {
+  // @ts-ignore execute is private
+  async execute(options: Record<string, unknown>, args: unknown[]) {
+    //@ts-ignore execute is private
+    const result = await super.execute(options, args);
+    didUpgrade = true;
+    return result;
+  }
+}
+
+export const upgradeCmd = new VTUpgradeCommand({
   main: ".",
   args: VT_MINIMUM_FLAGS,
   provider,
