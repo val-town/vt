@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertFalse, assertRejects } from "@std/assert";
 import { canWriteToVal } from "./sdk.ts";
-import { doWithNewVal } from "./vt/lib/tests/utils.ts";
+import { assertPathEquals, doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 
 import {
@@ -265,7 +265,7 @@ Deno.test({
         });
 
         assertEquals(result.type, "directory", "Should be a directory");
-        assertEquals(result.path, dirPath, "Should have correct path");
+        assertPathEquals(result.path, dirPath, "Should have correct path");
       });
 
       await t.step("create file in directory", async () => {
