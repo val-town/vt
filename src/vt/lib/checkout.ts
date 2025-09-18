@@ -1,4 +1,4 @@
-import sdk, { listValItems } from "~/sdk.ts";
+import { createNewBranch, getBranch, listValItems } from "~/sdk.ts";
 import type ValTown from "@valtown/sdk";
 import { pull } from "~/vt/lib/pull.ts";
 import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
@@ -63,18 +63,25 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 
 /**
  * Checks out a specific existing branch of a val.
+ *
  * @param params Options for the checkout operation.
  * @returns Promise that resolves with checkout information.
  */
 export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
-  * Creates a new branch from a val's branch and checks it out.
+  * Creates a new branch from a Val's branch and checks it out.
+  *
   * @param params Options for the checkout operation.
   * @returns Promise that resolves with checkout information (including the new branch
  details).
   */
-export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
+export function checkout(
+  params: ForkCheckoutParams,
+): Promise<
+  (typeof params)["dryRun"] extends true ? (CheckoutResult & { toBranch: null })
+    : (CheckoutResult & { toBranch: ValTown.Vals.BranchCreateResponse })
+>;
 export function checkout(
   params: BranchCheckoutParams | ForkCheckoutParams,
 ): Promise<CheckoutResult> {
@@ -99,22 +106,17 @@ async function handleForkCheckout(
   const fileStateChanges = new ItemStatusManager();
 
   // Get the source branch info
-  const fromBranch:
-    | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
-    | null = await sdk.vals.branches.retrieve(
-      params.valId,
-      params.forkedFromId,
-    );
+  const fromBranch = await getBranch(
+    params.valId,
+    params.forkedFromId,
+  );
 
   // Create the new branch if not a dry run
   const toBranch = (!params.dryRun)
-    ? await sdk.vals.branches.create(
-      params.valId,
-      {
-        branchId: params.forkedFromId,
-        name: params.name,
-      },
-    )
+    ? await createNewBranch(params.valId, {
+      branchId: params.forkedFromId,
+      name: params.name,
+    })
     : null;
 
   // Ensure everything is marked as not changed
@@ -162,16 +164,14 @@ async function handleBranchCheckout(
       const fileStateChanges = new ItemStatusManager();
 
       // Get the target branch info
-      let toBranch:
-        | Awaited<ReturnType<typeof sdk.vals.branches.retrieve>>
-        | null = await sdk.vals.branches.retrieve(
-          params.valId,
-          params.toBranchId,
-        );
+      const toBranch = await getBranch(
+        params.valId,
+        params.toBranchId,
+      );
       toBranch.version = params.toBranchVersion || toBranch.version;
 
       // Get the source branch info
-      const fromBranch = await sdk.vals.branches.retrieve(
+      const fromBranch = await getBranch(
         params.valId,
         params.fromBranchId,
       );
@@ -249,12 +249,10 @@ async function handleBranchCheckout(
         }
       }));
 
-      // If it is a dry run then the toBranch was only for use temporarily
-      if (params.dryRun) toBranch = null;
-
       return [{
         fromBranch,
-        toBranch,
+        // If it is a dry run then the toBranch was only for use temporarily
+        toBranch: params.dryRun ? null : toBranch,
         createdNew: false,
         fileStateChanges,
       }, !params.dryRun];

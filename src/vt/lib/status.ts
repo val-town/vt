@@ -1,7 +1,5 @@
 import { getValItemContent, listValItems } from "~/sdk.ts";
 import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
-import * as fs from "@std/fs";
-import * as path from "@std/path";
 import {
   type CreatedItemStatus,
   type DeletedItemStatus,
@@ -11,9 +9,9 @@ import {
   type ModifiedItemStatus,
   type NotModifiedItemStatus,
 } from "~/vt/lib/utils/ItemStatusManager.ts";
-import { join } from "@std/path";
+import { join, relative } from "@std/path";
 import { isFileModified } from "~/vt/lib/utils/misc.ts";
-import { exists } from "@std/fs";
+import { exists, walk } from "@std/fs";
 
 /** Result of status operation  */
 export interface StatusResult {
@@ -88,7 +86,7 @@ export async function status(params: StatusParams): Promise<StatusResult> {
       result.insert(createdFileState);
     } else {
       if (localFile.type !== "directory") {
-        const localStat = await Deno.stat(path.join(targetDir, localFile.path));
+        const localStat = await Deno.stat(join(targetDir, localFile.path));
 
         // File exists in both places, check if modified
         const isModified = isFileModified({
@@ -218,10 +216,10 @@ async function getLocalFiles({
 }): Promise<ItemInfo[]> {
   const filePromises: Promise<ItemInfo | null>[] = [];
 
-  for await (const entry of fs.walk(targetDir)) {
+  for await (const entry of walk(targetDir)) {
     filePromises.push((async () => {
       // Check if this is on the ignore list
-      const relativePath = path.relative(targetDir, entry.path);
+      const relativePath = relative(targetDir, entry.path);
       if (shouldIgnore(relativePath, gitignoreRules)) return null;
       if (entry.path === targetDir) return null;
 

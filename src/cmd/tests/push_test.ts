@@ -1,9 +1,9 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assertStringIncludes } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { createValItem } from "~/sdk.ts";
 
 Deno.test({
   name: "push command output",
@@ -12,12 +12,12 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create initial file and clone the val", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -52,6 +52,7 @@ Deno.test({
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -83,12 +84,12 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create initial file and clone the val", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -139,6 +140,7 @@ Deno.test({
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -148,12 +150,12 @@ Deno.test({
     await doWithTempDir(async (tmpDir) => {
       await doWithNewVal(async ({ val, branch }) => {
         await t.step("create initial file and clone the val", async () => {
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
               path: "initial.js",
               content: "console.log('Initial file');",
-              branch_id: branch.id,
+              branchId: branch.id,
               type: "file",
             },
           );
@@ -185,4 +187,5 @@ Deno.test({
     });
   },
   sanitizeResources: false,
+  sanitizeExit: false,
 });

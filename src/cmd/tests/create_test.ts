@@ -3,12 +3,14 @@ import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, {
+import {
   branchNameToBranch,
+  deleteVal,
   getCurrentUser,
   getLatestVersion,
   listValItems,
   randomValName,
+  valNameToVal,
 } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
@@ -32,7 +34,7 @@ Deno.test({
 
           // Should succeed with empty directory
           await runVtCommand(["create", emptyDirValName], tmpDir);
-          emptyDirVal = await sdk.alias.username.valName.retrieve(
+          emptyDirVal = await valNameToVal(
             user.username!,
             emptyDirValName,
           );
@@ -41,7 +43,7 @@ Deno.test({
 
           // Clean up
           if (emptyDirVal) {
-            await sdk.vals.delete(emptyDirVal.id);
+            await deleteVal(emptyDirVal.id);
             emptyDirVal = null;
           }
         },
@@ -84,7 +86,7 @@ Deno.test({
         await c.step("create a new val", async () => {
           await runVtCommand(["create", newValName], tmpDir);
 
-          newVal = await sdk.alias.username.valName.retrieve(
+          newVal = await valNameToVal(
             user.username!,
             newValName,
           );
@@ -102,7 +104,7 @@ Deno.test({
       });
     } finally {
       // @ts-ignore newVal is defined but something went wrong
-      await sdk.vals.delete(newVal.id);
+      await deleteVal(newVal.id);
     }
   },
   sanitizeResources: false,
@@ -125,7 +127,7 @@ Deno.test({
             "--private",
           ], tmpDir);
 
-          newVal = await sdk.alias.username.valName.retrieve(
+          newVal = await valNameToVal(
             user.username!,
             newValName,
           );
@@ -148,7 +150,7 @@ Deno.test({
       });
     } finally {
       // @ts-ignore newVal is defined but something went wrong
-      if (newVal) await sdk.vals.delete(newVal.id);
+      if (newVal) await deleteVal(newVal.id);
     }
   },
   sanitizeResources: false,
@@ -170,7 +172,7 @@ Deno.test({
             newValName,
           ], tmpDir);
 
-          newVal = await sdk.alias.username.valName.retrieve(
+          newVal = await valNameToVal(
             user.username!,
             newValName,
           );
@@ -191,7 +193,7 @@ Deno.test({
       });
     } finally {
       // @ts-ignore newVal is defined but something went wrong
-      if (newVal) await sdk.vals.delete(newVal.id);
+      if (newVal) await deleteVal(newVal.id);
     }
   },
   sanitizeResources: false,
@@ -237,7 +239,7 @@ Deno.test({
           "--no-editor-files",
         ], tmpDir);
 
-        newVal = await sdk.alias.username.valName.retrieve(
+        newVal = await valNameToVal(
           user.username!,
           newValName,
         );

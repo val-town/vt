@@ -1,9 +1,8 @@
 import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import { Table } from "@cliffy/table";
-import sdk from "~/sdk.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { arrayFromAsyncN } from "~/utils.ts";
+import { listMyVals } from "~/sdk.ts";
 
 const VAL_LIST_BATCH_SIZE = 20;
 
@@ -20,10 +19,7 @@ export const listCmd = new Command()
       "Loading Val list...",
       async (spinner) => {
         const batchSize = allVals ? Infinity : VAL_LIST_BATCH_SIZE;
-        const result = await arrayFromAsyncN(
-          sdk.me.vals.list({ offset }),
-          batchSize,
-        );
+        const result = await listMyVals(batchSize, offset);
         spinner.stop();
         return result;
       },

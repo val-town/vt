@@ -1,10 +1,10 @@
 import { Command } from "@cliffy/command";
 import open from "open";
-import sdk from "~/sdk.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { delay } from "@std/async";
+import { getBranch } from "~/sdk.ts";
 
 export const browseCmd = new Command()
   .name("browse")
@@ -14,7 +14,7 @@ export const browseCmd = new Command()
     const vt = VTClient.from(await findVtRoot(Deno.cwd()));
 
     const vtState = await vt.getMeta().loadVtState();
-    const branch = await sdk.vals.branches.retrieve(
+    const branch = await getBranch(
       vtState.val.id,
       vtState.branch.id,
     );

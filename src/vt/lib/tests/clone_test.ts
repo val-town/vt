@@ -1,6 +1,6 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import sdk, { getLatestVersion, getValItem } from "~/sdk.ts";
+import { createValItem, getLatestVersion, getValItem } from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
@@ -42,7 +42,7 @@ Deno.test({
             type: "script",
           },
           {
-            path: "nested/folder/data.json",
+            path: join("nested", "folder", "data.json"),
             content: '{"key": "value"}',
             type: "file",
           },
@@ -55,23 +55,23 @@ Deno.test({
             const pathParts = file.path.split("/");
             if (pathParts.length > 1) {
               const dirPath = pathParts.slice(0, -1).join("/");
-              await sdk.vals.files.create(
+              await createValItem(
                 val.id,
                 {
                   path: dirPath,
-                  branch_id: branch.id,
+                  branchId: branch.id,
                   type: "directory",
                 },
               );
             }
 
             // Create the file
-            await sdk.vals.files.create(
+            await createValItem(
               val.id,
               {
                 path: file.path,
                 content: file.content,
-                branch_id: branch.id,
+                branchId: branch.id,
                 type: file.type as ValFileType,
               },
             );
@@ -111,7 +111,7 @@ Deno.test({
 
             // Verify directory structure was created correctly
             const nestedDirExists = await exists(
-              join(tempDir, "nested/folder"),
+              join(tempDir, "nested", "folder"),
             );
             assertEquals(
               nestedDirExists,
@@ -123,6 +123,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -131,13 +133,13 @@ Deno.test({
   async fn(t) {
     await doWithNewVal(async ({ val, branch }) => {
       await t.step("test cloning empty directories", async (t) => {
-        const emptyDirPath = "empty/directory";
+        const emptyDirPath = join("empty", "directory");
 
         await t.step("create empty directory", async () => {
           // Create an empty directory to test explicit directory creation
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
-            { path: emptyDirPath, branch_id: branch.id, type: "directory" },
+            { path: emptyDirPath, branchId: branch.id, type: "directory" },
           );
         });
 
@@ -165,6 +167,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
@@ -179,10 +183,10 @@ Deno.test({
 
         await t.step("create and upload hello.md", async () => {
           // Create the hello.md file in the val
-          await sdk.vals.files.create(val.id, {
+          await createValItem(val.id, {
             path: filePath,
             content: fileContent,
-            branch_id: branch.id,
+            branchId: branch.id,
             type: "file",
           });
 
@@ -221,4 +225,6 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });

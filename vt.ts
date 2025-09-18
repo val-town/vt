@@ -8,7 +8,7 @@ import {
   AUTH_CACHE_TTL,
 } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
-import sdk from "~/sdk.ts";
+import { _sdk } from "~/sdk.ts";
 import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
 
 await ensureGlobalVtConfig();
@@ -19,7 +19,7 @@ async function isApiKeyValid(): Promise<boolean> {
 
   const lastAuthAt = localStorage.getItem(AUTH_CACHE_LOCALSTORE_ENTRY);
   const hoursSinceLastAuth = lastAuthAt
-    ? (new Date().getTime() - new Date(lastAuthAt).getTime())
+    ? (Date.now() - new Date(lastAuthAt).getTime())
     : Infinity;
   if (hoursSinceLastAuth < AUTH_CACHE_TTL) return true;
 
@@ -81,7 +81,7 @@ if (import.meta.main) {
     await registerOutdatedWarning();
   }
   await ensureValidApiKey();
-  sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
+  _sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? _sdk.bearerToken;
   await startVt();
 }
 

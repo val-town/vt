@@ -1,10 +1,10 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
-import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { createNewBranch, createValItem, deleteBranch } from "~/sdk.ts";
 
 Deno.test({
   name: "branch list command shows all branches",
@@ -15,12 +15,12 @@ Deno.test({
         const fullPath = join(tmpDir, val.name);
 
         await t.step("create additional branches", async () => {
-          await sdk.vals.branches.create(
+          await createNewBranch(
             val.id,
             { name: "feature", branchId: mainBranch.id },
           );
 
-          await sdk.vals.branches.create(
+          await createNewBranch(
             val.id,
             { name: "development", branchId: mainBranch.id },
           );
@@ -60,18 +60,18 @@ Deno.test({
         let featureBranch: ValTown.Vals.BranchListResponse;
 
         await t.step("create feature branch", async () => {
-          featureBranch = await sdk.vals.branches.create(
+          featureBranch = await createNewBranch(
             val.id,
-            { name: "feature-to-delete", branchId: mainBranch.id },
+            { name: "feature", branchId: mainBranch.id },
           );
 
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
-              path: "feaature.ts",
-              content: "console.log('Feature branch file');",
-              branch_id: featureBranch.id,
-              type: "script",
+              path: "feature.txt",
+              branchId: featureBranch.id,
+              content: "feature branch file",
+              type: "file",
             },
           );
         });
@@ -85,25 +85,25 @@ Deno.test({
           "verify feature branch exists in branch list",
           async () => {
             const [listOutput] = await runVtCommand(["branch"], fullPath);
-            assertStringIncludes(listOutput, "feature-to-delete");
+            assertStringIncludes(listOutput, "feature");
           },
         );
 
         await t.step("delete the feature branch", async () => {
           const [deleteOutput] = await runVtCommand(
-            ["branch", "-D", "feature-to-delete"],
+            ["branch", "-D", "feature"],
             fullPath,
           );
           assertStringIncludes(
             deleteOutput,
-            "Branch 'feature-to-delete' has been deleted",
+            "Branch 'feature' has been deleted",
           );
         });
 
         await t.step("verify branch is no longer listed", async () => {
           const [listOutput] = await runVtCommand(["branch"], fullPath);
           assert(
-            !listOutput.includes("feature-to-delete"),
+            !listOutput.includes("feature"),
             "deleted branch should not appear in branch list",
           );
         });
@@ -180,29 +180,29 @@ Deno.test({
         let tempBranch: ValTown.Vals.BranchListResponse;
 
         await t.step("create temporary branch", async () => {
-          tempBranch = await sdk.vals.branches.create(
+          tempBranch = await createNewBranch(
             val.id,
-            { name: "temp-branch", branchId: mainBranch.id },
+            { name: "temp", branchId: mainBranch.id },
           );
 
-          await sdk.vals.files.create(
+          await createValItem(
             val.id,
             {
-              path: "temp.ts",
-              content: "// Temporary file",
-              branch_id: tempBranch.id,
-              type: "script",
+              path: "temp.txt",
+              branchId: tempBranch.id,
+              content: "temp branch file",
+              type: "file",
             },
           );
         });
 
         await t.step("clone and checkout to temporary branch", async () => {
           await runVtCommand(["clone", val.name, "--no-editor-files"], tmpDir);
-          await runVtCommand(["checkout", "temp-branch"], fullPath);
+          await runVtCommand(["checkout", "temp"], fullPath);
         });
 
         await t.step("delete the branch remotely", async () => {
-          await sdk.vals.branches.delete(val.id, tempBranch.id);
+          await deleteBranch(val.id, tempBranch.id);
         });
 
         await t.step("run branch command and verify warning", async () => {
