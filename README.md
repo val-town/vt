@@ -166,17 +166,17 @@ everything.
 
 Sometimes, when working locally you want to create a specific type of val. In
 general, `vt` does not touch the metadata of your vals (this means that metadata
-like `cron` settings in general should get preserved when using `vt`. One
+like `cron` settings in general should get preserved when using `vt`). One
 exception to this is the type of vals created when uploading **new** files with
 `vt`.
 
-Now that we've written our text file, let's create a new HTTP val. Create new
+Now that we've written our text file, let's create a new HTTP val. Create a new
 file with the `.http.tsx` extension and we'll automatically create it as an HTTP
 val with an endpoint. Any file with "http" in the name is detected to be an http
 val, so `_http.tsx` also would work.
 
 ```bash
-$touch index.http.tsx
+$ touch index.http.tsx
 $ vt push
 
 Changes pushed:
@@ -262,8 +262,8 @@ One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 `<System Configuration Directory>/vt/config.yaml`. Right now, this file only
 stores your `config.yaml`, and some experimental options.
 
-This config can also be overridden locally for specific Vals by, when you are in
-a `.vt` directory, using `vt config set [-g for global]` (otherwise the global
+This config can also be overridden locally for specific Vals when you are in
+a `.vt` directory, by using `vt config set [-g for global]` (otherwise the global
 config is modified). This can be useful if someone shares an API key with you so
 you can collaborate on a Val. You can view all configuration options with
 `vt config`, and all the ones you've set with `vt config get`.
