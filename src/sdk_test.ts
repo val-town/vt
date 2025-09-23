@@ -21,6 +21,7 @@ import {
   valItemExists,
 } from "~/sdk.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { asPosixPath } from "./utils.ts";
 
 Deno.test({
   name: "Checking if we can write to Vals",
@@ -287,8 +288,12 @@ Deno.test({
         const version = await getLatestVersion(val.id, branch.id);
         const items = await listValItems(val.id, branch.id, version);
 
-        const directory = items.find((item) => item.path === dirPath);
-        const file = items.find((item) => item.path === filePath);
+        const directory = items.find((item) =>
+          asPosixPath(item.path) === asPosixPath(dirPath)
+        );
+        const file = items.find((item) =>
+          asPosixPath(item.path) === asPosixPath(filePath)
+        );
 
         assert(directory, "Should contain directory");
         assert(file, "Should contain nested file");
