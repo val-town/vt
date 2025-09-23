@@ -276,7 +276,11 @@ Deno.test({
           type: "file",
         });
 
-        assertPathEquals(result.path, filePath, "Should have correct nested path");
+        assertPathEquals(
+          result.path,
+          filePath,
+          "Should have correct nested path",
+        );
       });
 
       await t.step("list items includes directory and file", async () => {
