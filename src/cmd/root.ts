@@ -9,6 +9,7 @@ const cmd = new Command()
   .help({ colors: Deno.stdout.isTerminal() })
   .action(() => cmd.showHelp());
 
+cmd.command("profile", cmds.profileCmd);
 cmd.command("upgrade", upgradeCmd);
 cmd.command("clone", cmds.cloneCmd);
 cmd.command("push", cmds.pushCmd);
