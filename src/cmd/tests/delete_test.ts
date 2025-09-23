@@ -3,10 +3,10 @@ import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import { runVtCommand, runVtProc } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
-import sdk, { randomValName, valExists } from "~/sdk.ts";
 import stripAnsi from "strip-ansi";
 import { exists } from "@std/fs";
 import { META_FOLDER_NAME } from "~/consts.ts";
+import { createNewVal, randomValName, valExists } from "~/sdk.ts";
 
 Deno.test({
   name: "delete command with cancellation",
@@ -55,7 +55,7 @@ Deno.test({
   permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      const val = await sdk.vals.create({
+      const val = await createNewVal({
         name: randomValName(),
         description: "This is a test val",
         privacy: "public",

@@ -1,9 +1,12 @@
 import { clone } from "~/vt/lib/clone.ts";
 import { create } from "~/vt/lib/create.ts";
-import sdk, {
+import {
   branchNameToBranch,
+  getBranch,
   getLatestVersion,
+  getVal,
   listValItems,
+  updateValFile,
 } from "~/sdk.ts";
 import { doAtomically } from "~/vt/lib/utils/misc.ts";
 import { DEFAULT_BRANCH_NAME, DEFAULT_VAL_PRIVACY } from "~/consts.ts";
@@ -68,11 +71,11 @@ export async function remix(
     gitignoreRules,
   } = params;
 
-  const srcBranch = await branchNameToBranch(
-    srcValId,
-    params.srcBranchId ?? DEFAULT_BRANCH_NAME,
-  );
-  const srcVal = await sdk.vals.retrieve(srcValId);
+  const srcVal = await getVal(srcValId);
+
+  const srcBranch = params.srcBranchId
+    ? await getBranch(srcValId, params.srcBranchId) // Use provided branch ID directly
+    : await branchNameToBranch(srcValId, DEFAULT_BRANCH_NAME); // Default to main branch
 
   const description = (params.description ?? srcVal.description) || "";
   const privacy = (params.privacy ?? srcVal.privacy) ||
@@ -109,10 +112,10 @@ export async function remix(
         await getLatestVersion(srcValId, srcBranch.id),
       )).map(async (item) => {
         if (item.type === "directory") return;
-        await sdk.vals.files.update(newValId, {
+        await updateValFile(newValId, {
           path: item.path,
           type: item.type,
-          branch_id: newBranchId,
+          branchId: newBranchId,
         });
       }),
     );

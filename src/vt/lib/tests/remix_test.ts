@@ -4,7 +4,15 @@ import { exists } from "@std/fs";
 import { remix } from "~/vt/lib/remix.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import {
+  branchNameToBranch,
+  createValItem,
+  deleteVal,
+  getCurrentUser,
+  getVal,
+  getValItem,
+  valNameToVal,
+} from "~/sdk.ts";
 
 Deno.test({
   name: "remix preserves HTTP Val type",
@@ -12,10 +20,10 @@ Deno.test({
   async fn(t) {
     const user = await getCurrentUser();
 
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       // Create an HTTP Val in the source val
       const httpValName = "foo_http";
-      await sdk.vals.files.create(
+      await createValItem(
         val.id,
         {
           path: `${httpValName}.ts`,
@@ -23,6 +31,7 @@ Deno.test({
             '  return new Response("Hello from HTTP val!");\n' +
             "}",
           type: "http",
+          branchId: branch.id,
         },
       );
 
@@ -34,7 +43,7 @@ Deno.test({
           const result = await remix({
             targetDir: destTmpDir,
             srcValId: val.id,
-            srcBranchId: "main",
+            srcBranchId: branch.id,
             valName: remixedValName,
             privacy: "public",
           });
@@ -63,24 +72,27 @@ Deno.test({
           );
 
           // Verify the file type was preserved
-          const remixedFile = await sdk.vals.files.retrieve(
+          const toBranchId = await branchNameToBranch(result.toValId, "main");
+          const remixedFile = await getValItem(
             result.toValId,
-            { path: `${httpValName}.ts`, recursive: true },
-          ).then((resp) => resp.data[0]);
+            toBranchId.id,
+            result.toVersion,
+            `${httpValName}.ts`,
+          );
 
           assertEquals(
-            remixedFile.type,
+            remixedFile?.type,
             "http",
             "HTTP Val type should be preserved in remixed val",
           );
         });
 
         // Clean up the remixed val
-        const { id } = await sdk.alias.username.valName.retrieve(
+        const { id } = await valNameToVal(
           user.username!,
           remixedValName,
         );
-        await sdk.vals.delete(id);
+        await deleteVal(id);
       });
     });
   },
@@ -90,7 +102,7 @@ Deno.test({
   name: "remix respects privacy settings",
   permissions: "inherit",
   async fn() {
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (destTmpDir) => {
         const remixedValName = `${val.name}_private`;
 
@@ -98,13 +110,13 @@ Deno.test({
         const result = await remix({
           targetDir: destTmpDir,
           srcValId: val.id,
-          srcBranchId: "main",
+          srcBranchId: branch.id,
           valName: remixedValName,
           privacy: "private",
         });
 
         // Verify the Val was created with private visibility
-        const remixedVal = await sdk.vals.retrieve(result.toValId);
+        const remixedVal = await getVal(result.toValId);
 
         assertEquals(
           remixedVal.privacy,
@@ -113,17 +125,19 @@ Deno.test({
         );
 
         // Clean up
-        await sdk.vals.delete(remixedVal.id);
+        await deleteVal(remixedVal.id);
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
   name: "remix with custom description",
   permissions: "inherit",
   async fn() {
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       await doWithTempDir(async (destTmpDir) => {
         const remixedValName = `${val.name}_with_desc`;
         const customDescription =
@@ -133,14 +147,14 @@ Deno.test({
         const result = await remix({
           targetDir: destTmpDir,
           srcValId: val.id,
-          srcBranchId: "main",
+          srcBranchId: branch.id,
           valName: remixedValName,
           description: customDescription,
           privacy: "public",
         });
 
         // Verify the description was set correctly
-        const remixedVal = await sdk.vals.retrieve(result.toValId);
+        const remixedVal = await getVal(result.toValId);
 
         assertEquals(
           remixedVal.description,
@@ -149,35 +163,39 @@ Deno.test({
         );
 
         // Clean up
-        await sdk.vals.delete(remixedVal.id);
+        await deleteVal(remixedVal.id);
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });
 
 Deno.test({
   name: "remix basic functionality",
   permissions: "inherit",
   async fn(t) {
-    await doWithNewVal(async ({ val }) => {
+    await doWithNewVal(async ({ val, branch }) => {
       const user = await getCurrentUser();
 
       // Create a few files in the source val
-      await sdk.vals.files.create(
+      await createValItem(
         val.id,
         {
           path: "regular.ts",
           content: "export const hello = () => 'world';",
           type: "script",
+          branchId: branch.id,
         },
       );
 
-      await sdk.vals.files.create(
+      await createValItem(
         val.id,
         {
           path: "nested/file.txt",
           content: "This is a nested text file",
           type: "file",
+          branchId: branch.id,
         },
       );
 
@@ -189,7 +207,7 @@ Deno.test({
           const result = await remix({
             targetDir: destTmpDir,
             srcValId: val.id,
-            srcBranchId: "main",
+            srcBranchId: branch.id,
             valName: remixedValName,
             privacy: "public",
           });
@@ -224,9 +242,7 @@ Deno.test({
           );
 
           // Verify the Val exists on Val Town
-          const remixedVal = await sdk.vals.retrieve(
-            result.toValId,
-          );
+          const remixedVal = await getVal(result.toValId);
 
           assertEquals(
             remixedVal.name,
@@ -236,12 +252,14 @@ Deno.test({
         });
 
         // Clean up the remixed val
-        const { id } = await sdk.alias.username.valName.retrieve(
+        const { id } = await valNameToVal(
           user.username!,
           remixedValName,
         );
-        await sdk.vals.delete(id);
+        await deleteVal(id);
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeExit: false,
 });

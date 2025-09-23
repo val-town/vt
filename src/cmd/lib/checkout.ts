@@ -5,10 +5,12 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
 import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
-import sdk, {
+import {
   branchNameToBranch,
+  getBranch,
   getCurrentUser,
   getLatestVersion,
+  getVal,
 } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import {
@@ -78,9 +80,10 @@ export const checkoutCmd = new Command()
           const user = await getCurrentUser();
 
           // Get the current branch data
-          const currentBranchData = await sdk.vals.branches
-            .retrieve(vtState.val.id, vtState.branch.id)
-            .catch(() => null);
+          const currentBranchData = await getBranch(
+            vtState.val.id,
+            vtState.branch.id,
+          ).catch(() => null);
 
           // Handle the case where the current branch no longer exists as a
           // special case
@@ -129,7 +132,7 @@ export const checkoutCmd = new Command()
             // If they are creating a new branch, ensure that they are the owner of this Val
             if (
               isNewBranch &&
-              (await sdk.vals.retrieve(vtState.val.id)).author.id !== user.id
+              (await getVal(vtState.val.id)).author.id !== user.id
             ) {
               throw new Error(
                 "You are not the owner of this Val, you cannot make a new branch.",
@@ -173,8 +176,8 @@ export const checkoutCmd = new Command()
             const dangerousLocalChanges = dryCheckoutResult
               .fileStateChanges
               .filter(
-                (fileStatus) => (fileStatus.status == "deleted" ||
-                  fileStatus.status == "modified"),
+                (fileStatus) => (fileStatus.status === "deleted" ||
+                  fileStatus.status === "modified"),
               )
               .merge(
                 priorVtStatus

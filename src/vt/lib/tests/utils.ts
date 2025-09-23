@@ -1,4 +1,11 @@
-import sdk, { branchNameToBranch, randomValName } from "~/sdk.ts";
+import { assertEquals } from "@std/assert";
+import {
+  branchNameToBranch,
+  createNewVal,
+  deleteVal,
+  randomValName,
+} from "~/sdk.ts";
+import { asPosixPath } from "~/utils.ts";
 
 export interface ExpectedValInode {
   path: string;
@@ -22,7 +29,7 @@ export async function doWithNewVal<T>(
   ) => Promise<T>,
 ): Promise<T> {
   // Create a blank Val with a random name
-  const val = await sdk.vals.create({
+  const val = await createNewVal({
     name: randomValName(),
     description: "This is a test val",
     privacy: "public",
@@ -35,6 +42,14 @@ export async function doWithNewVal<T>(
     // Execute the provided operation with Val info
     return await op({ val, branch });
   } finally {
-    await sdk.vals.delete(val.id);
+    await deleteVal(val.id);
   }
+}
+
+export function assertPathEquals(
+  actual: string,
+  expected: string,
+  msg?: string,
+) {
+  assertEquals(asPosixPath(actual), asPosixPath(expected), msg);
 }

@@ -31,6 +31,24 @@ jobs:
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
 
+  test-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run deno tests
+        uses: nick-fields/retry@v3
+        with:
+          command: deno task test:lib
+          max_attempts: 2
+          timeout_seconds: 2000
+        env:
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
+
   test-mac:
     runs-on: ubuntu-latest
 

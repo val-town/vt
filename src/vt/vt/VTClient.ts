@@ -10,10 +10,12 @@ import type {
   CheckoutResult,
   ForkCheckoutParams,
 } from "~/vt/lib/checkout.ts";
-import sdk, {
+import {
   branchNameToBranch,
+  deleteVal,
   getCurrentUser,
   getLatestVersion,
+  valNameToVal,
 } from "~/sdk.ts";
 import {
   DEFAULT_BRANCH_NAME,
@@ -77,7 +79,7 @@ export default class VTClient {
       editorTemplate ?? DEFAULT_EDITOR_TEMPLATE,
       user.username!,
     );
-    const templateVal = await sdk.alias.username.valName.retrieve(
+    const templateVal = await valNameToVal(
       ownerName,
       valName,
     );
@@ -122,7 +124,7 @@ export default class VTClient {
     version?: number;
     branchName?: string;
   }): Promise<VTClient> {
-    const valId = await sdk.alias.username.valName.retrieve(
+    const valId = await valNameToVal(
       username,
       valName,
     )
@@ -133,8 +135,7 @@ export default class VTClient {
 
     const branch = await branchNameToBranch(valId, branchName);
 
-    version = version ??
-      (await sdk.vals.branches.retrieve(valId, branch.id)).version;
+    version = version ?? await getLatestVersion(valId, branch.id);
 
     const vt = new VTClient(rootPath);
 
@@ -312,14 +313,14 @@ export default class VTClient {
   /**
    * Remix an existing Val Town Val and initialize a VT instance for it.
    *
-   * @param options - The options for remixing a val
-   * @param options.rootPath - The root path where the VT instance will be initialized
-   * @param options.srcValUsername - The username of the source Val owner
-   * @param options.srcValName - The name of the source Val to remix
-   * @param [options.srcBranchName] - The branch name of the source Val to remix (defaults to main)
-   * @param options.dstValName - The name for the new remixed val
+   * @param options The options for remixing a val
+   * @param options.rootPath The root path where the VT instance will be initialized
+   * @param options.srcValUsername The username of the source Val owner
+   * @param options.srcValName The name of the source Val to remix
+   * @param [options.srcBranchName] The branch name of the source Val to remix (defaults to main)
+   * @param options.dstValName The name for the new remixed val
    * @param ['public | 'private' | 'unlisted'} options.dstValPrivacy - The privacy setting for the new val
-   * @param [options.description] - Optional description for the new val
+   * @param [options.description] Optional description for the new val
    * @returns A new VTClient instance
    */
   public static async remix({
@@ -341,7 +342,7 @@ export default class VTClient {
   }): Promise<VTClient> {
     await assertSafeDirectory(rootPath);
 
-    const srcVal = await sdk.alias.username.valName.retrieve(
+    const srcVal = await valNameToVal(
       srcValUsername,
       srcValName,
     );
@@ -349,7 +350,7 @@ export default class VTClient {
     const { toValId, toVersion } = await remix({
       targetDir: rootPath,
       srcValId: srcVal.id,
-      srcBranchId: srcBranchName,
+      srcBranchId: (await branchNameToBranch(srcVal.id, srcBranchName)).id,
       valName: dstValName,
       description,
       privacy: dstValPrivacy,
@@ -405,7 +406,7 @@ export default class VTClient {
       valId = params.valId;
     } else {
       // Get valId from username and valName
-      const val = await sdk.alias.username.valName.retrieve(
+      const val = await valNameToVal(
         params.username,
         params.valName,
       );
@@ -449,7 +450,7 @@ export default class VTClient {
     const vtState = await this.getMeta().loadVtState();
 
     // Delete the val
-    await sdk.vals.delete(vtState.val.id);
+    await deleteVal(vtState.val.id);
 
     // De-init the directory
     await Deno.remove(
@@ -594,7 +595,7 @@ export default class VTClient {
       let result: CheckoutResult;
 
       // Check if we're forking from another branch
-      if (options && options.forkedFromId) {
+      if (options?.forkedFromId) {
         const forkParams: ForkCheckoutParams = {
           ...baseParams,
           forkedFromId: options.forkedFromId,

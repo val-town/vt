@@ -8,6 +8,7 @@ import {
 import { walk } from "@std/fs";
 import { clone } from "~/vt/lib/clone.ts";
 import { doAtomically, gracefulRecursiveCopy } from "~/vt/lib/utils/misc.ts";
+import { asPosixPath } from "~/utils.ts";
 
 /** Result of pull operation  */
 export interface PushResult {
@@ -100,11 +101,11 @@ export function pull(params: PullParams): Promise<PushResult> {
 
         if (shouldIgnore(relativePath, gitignoreRules)) continue;
         if (relativePath === "." || entry.path === tmpDir) continue;
-        if (valItemsSet.has(relativePath)) continue;
+        if (valItemsSet.has(asPosixPath(relativePath))) continue;
 
         const stat = await Deno.stat(entry.path);
         const fileStatus: ItemStatus = {
-          path: relativePath,
+          path: asPosixPath(relativePath),
           status: "deleted",
           type: stat.isDirectory ? "directory" : await getValItemType(
             valId,

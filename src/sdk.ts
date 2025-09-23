@@ -1,8 +1,10 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
-import { API_KEY_KEY } from "~/consts.ts";
-import { delay } from "@std/async";
+import { API_KEY_KEY, DEFAULT_VAL_PRIVACY } from "~/consts.ts";
+import type { ValFileType, ValPrivacy } from "./types.ts";
+import { arrayFromAsyncN, asPosixPath } from "./utils.ts";
+import { delay } from "@std/async/delay";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
@@ -12,20 +14,19 @@ const sdk = new ValTown({
 });
 
 /**
+ * Generate a random (valid) Val name. Useful for tests.
+ */
+export function randomValName(label = "") {
+  return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
+}
+
+/**
  * Checks if a Val exists.
  *
  * @param projectId - The ID of the project to check
  * @returns Promise resolving to whether the project exists
  */
 export async function valExists(valId: string): Promise<boolean>;
-/**
- * Checks if a Val exists.
- *
- * @param options Val identification options
- * @param options.username The username of the Val owner
- * @param options.valName The name of the Val to check
- * @returns Promise resolving to true if the Val exists, false otherwise
- */
 export async function valExists(options: {
   username: string;
   valName: string;
@@ -53,6 +54,83 @@ export async function valExists(
 }
 
 /**
+ * Creates a new Val with the provided metadata.
+ *
+ * @param options Create options
+ * @param options.name The name for the new val
+ * @param options.description The description for the new val (optional)
+ * @param options.privacy The privacy setting for the new val (optional)
+ * @returns Promise resolving to the create response
+ */
+export async function createNewVal(options: {
+  name: string;
+  description?: string;
+  privacy?: ValPrivacy;
+}): Promise<ReturnType<typeof sdk.vals.create>> {
+  const { name, description, privacy = DEFAULT_VAL_PRIVACY } = options;
+
+  return await sdk.vals.create({
+    name,
+    description,
+    privacy,
+  });
+}
+
+/**
+ * Deletes a Val by its ID.
+ *
+ * @param valId The ID of the Val to delete
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteVal(
+  valId: string,
+): Promise<ReturnType<typeof sdk.vals.delete>> {
+  return await sdk.vals.delete(valId);
+}
+
+/**
+ * Retrieves a Val by its ID.
+ *
+ * @param valId The ID of the Val to retrieve
+ * @returns Promise resolving to the Val data
+ */
+export async function getVal(
+  valId: string,
+): Promise<ReturnType<typeof sdk.vals.retrieve>> {
+  return await sdk.vals.retrieve(valId);
+}
+
+/**
+ * Lists all Val Town vals owned by the current user.
+ *
+ * @param [n=Infinity] The maximum number of vals to retrieve
+ * @param [offset=0] The offset for pagination
+ *
+ * @returns Promise resolving to an array of Val Town vals
+ */
+export async function listMyVals(
+  n: number = Number.POSITIVE_INFINITY,
+  offset: number = 0,
+): Promise<[ValTown.Val[], boolean]> {
+  return await arrayFromAsyncN(sdk.me.vals.list({ offset }), n);
+}
+
+/**
+ * Retrieves a Val by its name and the owner's username.
+ *
+ * @param username The username of the Val owner
+ * @param valName The name of the Val to retrieve
+ * @returns Promise resolving to the Val
+ */
+export async function valNameToVal(
+  username: string,
+  valName: string,
+): Promise<ValTown.Val> {
+  const { id } = await sdk.alias.username.valName.retrieve(username, valName);
+  return await sdk.vals.retrieve(id);
+}
+
+/**
  * Checks if a branch with the given name exists in a val.
  *
  * @param valId The ID of the Val to check
@@ -64,7 +142,7 @@ export async function branchExists(
   branchName: string,
 ): Promise<boolean> {
   for await (const branch of sdk.vals.branches.list(valId, {})) {
-    if (branch.name == branchName) return true;
+    if (branch.name === branchName) return true;
   }
   return false;
 }
@@ -82,10 +160,81 @@ export async function branchNameToBranch(
   branchName: string,
 ): Promise<ValTown.Vals.Branches.BranchListResponse> {
   for await (const branch of sdk.vals.branches.list(valId, {})) {
-    if (branch.name == branchName) return branch;
+    if (branch.name === branchName) return branch;
   }
 
   throw new Deno.errors.NotFound(`Branch "${branchName}" not found in Val`);
+}
+
+/**
+ * Lists all branches in a Val.
+ *
+ * @param valId The ID of the Val to list branches for
+ * @returns Promise resolving to an array of branchs
+ */
+export async function listBranches(
+  valId: string,
+): Promise<ValTown.Vals.Branches.BranchListResponse[]> {
+  return await Array.fromAsync(sdk.vals.branches.list(valId, {}));
+}
+
+/**
+ * Deletes a branch in a Val.
+ *
+ * @param valId The ID of the Val to delete the branch from
+ * @param branchId The ID of the branch to delete
+ * @returns Promise resolving to the delete response
+ */
+export async function deleteBranch(
+  valId: string,
+  branchId: string,
+): Promise<ReturnType<typeof sdk.vals.branches.delete>> {
+  return await sdk.vals.branches.delete(valId, branchId);
+}
+
+/**
+ * Retrieves a branch by its id in a Val.
+ *
+ * @param valId The ID of the Val to retrieve the branch from
+ * @param branchId The ID of the branch to retrieve
+ * @returns Promise resolving to the branch data
+ */
+export async function getBranch(
+  valId: string,
+  branchId: string,
+): Promise<ValTown.Vals.Branches.BranchRetrieveResponse> {
+  return await sdk.vals.branches.retrieve(valId, branchId);
+}
+
+/**
+ * Get the latest version of a branch.
+ */
+export async function getLatestVersion(valId: string, branchId: string) {
+  return (await sdk.vals.branches.retrieve(valId, branchId)).version;
+}
+
+/**
+ * Creates a new branch in a Val.
+ *
+ * @param valId The ID of the Val to create the branch in
+ * @param options Branch creation options
+ * @param options.name The name for the new branch
+ * @param options.branchId The ID of the branch to fork from (optional)
+ * @returns Promise resolving to the create response
+ */
+export async function createNewBranch(
+  valId: string,
+  options: {
+    name: string;
+    branchId?: string;
+  },
+): Promise<ReturnType<typeof sdk.vals.branches.create>> {
+  const { name, branchId } = options;
+
+  return await sdk.vals.branches.create(valId, {
+    name,
+    branchId,
+  });
 }
 
 /**
@@ -104,7 +253,12 @@ export async function valItemExists(
   version: number,
 ): Promise<boolean> {
   try {
-    const item = await getValItem(valId, branchId, version, filePath);
+    const item = await getValItem(
+      valId,
+      branchId,
+      version,
+      asPosixPath(filePath),
+    );
     return item !== undefined;
   } catch (e) {
     if (e instanceof ValTown.APIError && e.status === 404) {
@@ -119,7 +273,7 @@ export async function valItemExists(
  * @param valId - The ID of the Val containing the file
  * @param options - The options object
  * @param options.branchId - The ID of the Val branch to reference
- * @param [options.version] - The version of the Val for the file being found (optional)
+ * @param options.version - The version of the Val for the file being found (optional)
  * @param options.filePath - The file path to locate
  * @returns Promise resolving to the file data or undefined if not found
  */
@@ -130,9 +284,10 @@ export const getValItem = memoize(async (
   filePath: string,
 ): Promise<ValTown.Vals.FileRetrieveResponse | undefined> => {
   const valItems = await listValItems(valId, branchId, version);
+  const normalizedPath = asPosixPath(filePath);
 
   for (const filepath of valItems) {
-    if (filepath.path === filePath) return filepath;
+    if (filepath.path === normalizedPath) return filepath;
   }
 
   return undefined;
@@ -141,11 +296,11 @@ export const getValItem = memoize(async (
 /**
  * Get the content of a Val item.
  *
- * @param {string} valId The ID of the Val
- * @param {string} branchId The ID of the Val branch to reference
- * @param {number} version The version of the Val
- * @param {string} filePath The path to the file
- * @returns {Promise<string>} Promise resolving to the file content
+ * @param valId The ID of the Val
+ * @param branchId The ID of the Val branch to reference
+ * @param version The version of the Val
+ * @param filePath The path to the file
+ * @returns Promise resolving to the file content
  */
 export const getValItemContent = memoize(
   async (
@@ -155,7 +310,11 @@ export const getValItemContent = memoize(
     filePath: string,
   ): Promise<string> => {
     return await sdk.vals.files
-      .getContent(valId, { path: filePath, branch_id: branchId, version })
+      .getContent(valId, {
+        path: asPosixPath(filePath),
+        branch_id: branchId,
+        version,
+      })
       .then((resp) => resp.text());
   },
 );
@@ -215,21 +374,112 @@ export async function canWriteToVal(valId: string) {
 }
 
 /**
- * Get the latest version of a branch.
+ * Deletes a Val file at the specified path.
+ *
+ * @param valId The ID of the Val containing the file to delete
+ * @param options Delete options
+ * @param options.path The path of the file to delete
+ * @param options.branchId The ID of the branch to delete from
+ * @param options.recursive Whether to recursively delete directories (optional)
+ * @returns Promise resolving to the delete response
  */
-export async function getLatestVersion(valId: string, branchId: string) {
-  return (await sdk.vals.branches.retrieve(valId, branchId)).version;
+export async function deleteValItem(
+  valId: string,
+  options: {
+    path: string;
+    branchId: string;
+    recursive?: boolean;
+  },
+): Promise<ReturnType<typeof sdk.vals.files.delete>> {
+  const { path, branchId, recursive } = options;
+
+  return await sdk.vals.files.delete(valId, {
+    path: asPosixPath(path),
+    branch_id: branchId,
+    recursive: !!recursive,
+  });
 }
 
 /**
- * Generate a random (valid) Val name. Useful for tests.
+ * Updates a Val file with the provided content and metadata.
+ *
+ * @param valId The ID of the Val to update
+ * @param options Update options
+ * @param options.path The current path of the file
+ * @param options.branchId The ID of the branch to update
+ * @param options.content The new content for the file
+ * @param options.name The new name for the file (optional)
+ * @param options.parentPath The new parent path for the file (optional)
+ * @param options.type The type of the file (optional)
+ * @returns Promise resolving to the update response
  */
-export function randomValName(label = "") {
-  return `a${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}_${label}`;
+export async function updateValFile(
+  valId: string,
+  options: {
+    path: string;
+    branchId: string;
+    content?: string;
+    name?: string;
+    parentPath?: string | null;
+    type?: ValFileType;
+  },
+): Promise<ReturnType<typeof sdk.vals.files.update>> {
+  const { path, branchId, content, name, parentPath, type } = options;
+
+  return await sdk.vals.files.update(valId, {
+    path: asPosixPath(path),
+    branch_id: branchId,
+    content,
+    name,
+    parent_path: parentPath ? asPosixPath(parentPath) : parentPath,
+    type,
+  });
 }
 
 /**
- * Get the owner of the API key used to auth the current ValTown instance.
+ * Creates a new Val item with the provided content and metadata.
+ *
+ * @param valId The ID of the Val to create the file in
+ * @param options Create options
+ * @param options.path The path for the new file
+ * @param options.branchId The ID of the branch to create in
+ * @param options.content The content for the file (optional for directories)
+ * @param options.type The type of the file
+ * @returns Promise resolving to the create response
+ */
+export async function createValItem(
+  valId: string,
+  options:
+    & { path: string; branchId: string }
+    & ({ type: "directory" } | { content: string; type: ValFileType }),
+): Promise<ReturnType<typeof sdk.vals.files.create>> {
+  if (options.type === "directory") {
+    // For directories, content is not needed
+    return await sdk.vals.files.create(valId, {
+      path: asPosixPath(options.path),
+      branch_id: options.branchId,
+      type: options.type,
+    });
+  }
+
+  // For files, content is needed
+  return await sdk.vals.files.create(valId, {
+    path: asPosixPath(options.path),
+    branch_id: options.branchId,
+    content: options.content,
+    type: options.type,
+  });
+}
+
+/**
+ * Deletes a Val file at the specified path.
+ *
+ * @param valId The ID of the Val containing the file to delete
+ * @param options Delete options
+ * @param options.path The path of the file to delete
+ * @param options.branchId The ID of the branch to delete from
+ * @param options.recursive Whether to recursively delete directories (optional)
+ * @returns Promise resolving to the delete response
  */
 export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
@@ -319,4 +569,4 @@ export async function fileIdToValFile(
   return await sdk.files.retrieve(fileId);
 }
 
-export default sdk;
+export { sdk as _sdk };

@@ -1,9 +1,12 @@
-import sdk, {
+import {
   branchNameToBranch,
   fileIdToValFile,
+  getBranch,
   getCurrentUser,
   getLogsForTraces,
   getTraces,
+  listBranches,
+  valNameToVal,
 } from "~/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -66,15 +69,13 @@ export const tailCmd = new Command()
     if (valUri) {
       const user = await getCurrentUser();
       const parsed = parseValUrl(valUri, user.username!);
-      const val = await sdk.alias.username.valName.retrieve(
+      const val = await valNameToVal(
         parsed.ownerName,
         parsed.valName,
       );
 
       if (!branchName) {
-        const branchesInVal = await Array.fromAsync(
-          sdk.vals.branches.list(val.id, {}),
-        );
+        const branchesInVal = await listBranches(val.id);
         branchIds = branchesInVal.map((b) => b.id);
       } else {
         const branch = await branchNameToBranch(val.id, branchName);
@@ -98,7 +99,7 @@ export const tailCmd = new Command()
     } else {
       const vt = VTClient.from(await findVtRoot(Deno.cwd()));
       const vtState = await vt.getMeta().loadVtState();
-      const currentBranchData = await sdk.vals.branches.retrieve(
+      const currentBranchData = await getBranch(
         vtState.val.id,
         vtState.branch.id,
       );
