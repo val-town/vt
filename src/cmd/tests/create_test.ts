@@ -299,7 +299,7 @@ Deno.test({
       let proc: Deno.ChildProcess | null = null;
       let stdout: string[] = [];
 
-      t.step("create Val without --org-name", async () => {
+      await t.step("create Val without --org-name", async () => {
         const newValName = randomValName();
         const [newStdout, newProc] = streamVtCommand(
           ["create", newValName],
@@ -311,7 +311,7 @@ Deno.test({
         assertStringIncludes(stdout.join("\n"), "organization you are a");
       });
 
-      t.step(
+      await t.step(
         "Enter 'enter key' to select personal account (the default)",
         async () => {
           assert(proc);
