@@ -10,8 +10,9 @@ import sdk, {
   listValItems,
   randomValName,
 } from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { delay } from "@std/async";
 
 Deno.test({
   name: "create Val with existing directory name",
@@ -31,7 +32,10 @@ Deno.test({
           await Deno.mkdir(emptyDirPath);
 
           // Should succeed with empty directory
-          await runVtCommand(["create", emptyDirValName], tmpDir);
+          await runVtCommand(
+            ["create", emptyDirValName, "--org-name", "me"],
+            tmpDir,
+          );
           emptyDirVal = await sdk.alias.username.valName.retrieve(
             user.username!,
             emptyDirValName,
@@ -58,6 +62,8 @@ Deno.test({
           const [stdout, _] = await runVtCommand([
             "create",
             nonEmptyDirValName,
+            "--org-name",
+            "me",
           ], tmpDir);
           assertStringIncludes(
             stdout,
@@ -82,7 +88,10 @@ Deno.test({
     try {
       await doWithTempDir(async (tmpDir) => {
         await c.step("create a new val", async () => {
-          await runVtCommand(["create", newValName], tmpDir);
+          await runVtCommand(
+            ["create", newValName, "--org-name", "me"],
+            tmpDir,
+          );
 
           newVal = await sdk.alias.username.valName.retrieve(
             user.username!,
@@ -123,6 +132,8 @@ Deno.test({
             "create",
             newValName,
             "--private",
+            "--org-name",
+            "me",
           ], tmpDir);
 
           newVal = await sdk.alias.username.valName.retrieve(
@@ -168,6 +179,8 @@ Deno.test({
           await runVtCommand([
             "create",
             newValName,
+            "--org-name",
+            "me",
           ], tmpDir);
 
           newVal = await sdk.alias.username.valName.retrieve(
@@ -235,6 +248,8 @@ Deno.test({
           ".",
           "--upload-if-exists",
           "--no-editor-files",
+          "--org-name",
+          "me",
         ], tmpDir);
 
         newVal = await sdk.alias.username.valName.retrieve(
@@ -271,6 +286,43 @@ Deno.test({
           "ignored-file.txt should be ignored and not uploaded to Val",
         );
       });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "Get prompted for org to create Val in",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      let proc: Deno.ChildProcess | null = null;
+      let stdout: string[] = [];
+
+      t.step("create Val without --org-name", async () => {
+        const newValName = randomValName();
+        const [newStdout, newProc] = streamVtCommand(
+          ["create", newValName],
+          tmpDir,
+        );
+        proc = newProc;
+        stdout = newStdout;
+        await delay(500); // wait a bit to get prompt data
+        assertStringIncludes(stdout.join("\n"), "organization you are a");
+      });
+
+      t.step(
+        "Enter 'enter key' to select personal account (the default)",
+        async () => {
+          assert(proc);
+          const stdin = proc.stdin.getWriter();
+          await stdin.write(new TextEncoder().encode("\n"));
+          stdin.releaseLock();
+          await proc.status; // wait for process to finish
+        },
+      );
+
+      assertStringIncludes(stdout.join("\n"), "Val created at");
     });
   },
   sanitizeResources: false,
