@@ -30,6 +30,8 @@ export interface CreateParams {
   description?: string;
   /** Privacy setting for the val. Defaults to that of the Val being remixed. */
   privacy?: ValPrivacy;
+  /** Organization you are a member of to create the new Val in. */
+  orgId?: string;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
 }
@@ -49,6 +51,7 @@ export async function create(
     description = "",
     privacy = "private",
     gitignoreRules,
+    orgId,
   } = params;
 
   await ensureDir(sourceDir);
@@ -58,6 +61,7 @@ export async function create(
     name: valName,
     description,
     privacy,
+    orgId,
   });
   const newBranch = await branchNameToBranch(
     newVal.id,

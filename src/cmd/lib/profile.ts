@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
 import wrap from "word-wrap";
 import { ansi } from "@cliffy/ansi";
 
@@ -14,13 +14,8 @@ export const profileCmd = new Command()
       const user = await getCurrentUser();
 
       // TODO: Use the async generator when we change this to `.list`
-      const orgNames: string[] = [];
-      let cursor = 0;
-      do {
-        const res = await sdk.orgs.retrieve({ limit: 100, offset: cursor });
-        res.data.map((o) => o.username).forEach((name) => orgNames.push(name));
-        cursor += res.data.length;
-      } while (orgNames.length < cursor && cursor < 1000);
+      const orgNames: string[] = (await getAllMemberOrgs())
+        .map((org) => org.username!); // usernames used to be optional, they aren't anymore but that hasn't propagated
 
       spinner.stop();
 
@@ -47,7 +42,9 @@ export const profileCmd = new Command()
 
       if (user.tier === "pro") {
         console.log(
-          `Thank you for being a ${colors.yellow(colors.bold("Pro"))} member! 🚀`,
+          `Thank you for being a ${
+            colors.yellow(colors.bold("Pro"))
+          } member! 🚀`,
         );
       } else {
         console.log(
