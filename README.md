@@ -262,8 +262,8 @@ One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 `<System Configuration Directory>/vt/config.yaml`. Right now, this file only
 stores your `config.yaml`, and some experimental options.
 
-This config can also be overridden locally for specific Vals when you are in
-a `.vt` directory, by using `vt config set [-g for global]` (otherwise the global
+This config can also be overridden locally for specific Vals when you are in a
+`.vt` directory, by using `vt config set [-g for global]` (otherwise the global
 config is modified). This can be useful if someone shares an API key with you so
 you can collaborate on a Val. You can view all configuration options with
 `vt config`, and all the ones you've set with `vt config get`.
