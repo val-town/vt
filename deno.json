@@ -32,7 +32,7 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/fs": "jsr:@std/fs@^1.0.19",
     "@std/path": "jsr:@std/path@^1.1.2",
-    "@valtown/sdk": "jsr:@valtown/sdk@^1.13.1",
+    "@valtown/sdk": "jsr:@valtown/sdk@^1.14.0",
     "xdg-portable": "jsr:@404wolf/xdg-portable@^0.1.0",
     "highlight.js": "npm:highlight.js@^11.11.1",
     "strip-ansi": "npm:strip-ansi@^7.1.2",
