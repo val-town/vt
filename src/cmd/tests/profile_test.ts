@@ -1,6 +1,6 @@
 import { runVtCommand } from "~/cmd/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
-import { assert, assertStringIncludes } from "@std/assert";
+import { assertStringIncludes } from "@std/assert";
 
 Deno.test({
   name: "profile command shows current user information",
@@ -16,7 +16,7 @@ Deno.test({
           "Head over to https://www.val.town/pricing",
         );
         assertStringIncludes(output, "You're logged in as");
-        assert(!output.includes("member of")); // not a member of any orgs
+        assertStringIncludes(output, "member of"); // they are a member of an org
       });
     });
   },
