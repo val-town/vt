@@ -1,17 +1,21 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
-import { getCurrentUser } from "~/sdk.ts";
+import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
-import { Confirm } from "@cliffy/prompt";
+import { Confirm, Input } from "@cliffy/prompt";
 import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
   .name("create")
   .description("Create a new Val")
   .arguments("<valName:string> [targetDir:string]")
+  .option(
+    "--org-name <org:string>",
+    'Create the Val under an organization you are a member of, or "me" for your personal account',
+  )
   .option("--public", "Create as public Val (default)", {
     conflicts: ["private", "unlisted"],
   })
@@ -63,13 +67,7 @@ vt checkout main`,
       description,
       editorFiles,
       uploadIfExists,
-    }: {
-      public?: boolean;
-      private?: boolean;
-      unlisted?: boolean;
-      description?: string;
-      editorFiles?: boolean;
-      uploadIfExists?: boolean;
+      orgName,
     },
     valName: string,
     targetDir?: string,
@@ -80,6 +78,48 @@ vt checkout main`,
 
       // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
+
+      // If they don't specify an org, including not specifying "me," we check
+      // if they are a member of any orgs. If they are, then we offer for them
+      // to choose one or "me" interactively.
+      //
+      // We allow specifying "me" explicitly to mean personal account with the
+      // flag to avoid the prompt (which is useful in testing).
+      if (!orgName) {
+        const orgs = await getAllMemberOrgs();
+        const orgNames = orgs.map((o) => o.username!);
+        const orgIds = orgs.map((o) => o.id!);
+        if (orgNames.length > 0) {
+          spinner.stop();
+          const orgOrMe = await Input.prompt({
+            message:
+              "Would you like to create the new Val under an organization you are a member of, or your personal account?",
+            default: "Personal Account",
+            list: true, // Show all the options
+            suggestions: ["Personal Account", ...orgNames],
+          });
+          if (orgOrMe !== "Personal Account") {
+            // Org usernames are unique, but not in time, so we can use it to grab the index
+            // (a little janky, but it's what cliffy gives us)
+            orgName = orgIds[orgNames.indexOf(orgOrMe)];
+          } else {
+            orgName = "me"; // remap to magic "me" value
+          }
+        }
+      } else if (orgName !== "me") {
+        const orgs = await getAllMemberOrgs();
+        const org = orgs.find((o) => o.username === orgName);
+        if (!org) {
+          throw new Error(
+            `You are not a member of an organization with the name "${orgName}"`,
+          );
+        }
+        orgName = org.id!;
+      }
+
+      if (orgName && orgName === "me") {
+        orgName = undefined; // remap to undefined for personal account, which is the API default
+      }
 
       try {
         try {

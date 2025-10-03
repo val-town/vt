@@ -235,6 +235,15 @@ export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
 
+/**
+ * Get all organizations the current user is a member of.
+ *
+ * @returns All organizations the current user is a member of
+ */
+export async function getAllMemberOrgs() {
+  return await Array.fromAsync(sdk.orgs.list({}));
+}
+
 export async function* getTraces({
   frequency = 1000,
   signal,

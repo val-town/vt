@@ -253,11 +253,12 @@ export default class VTClient {
   /**
    * Create a new Val Town Val and initialize a VT instance for it.
    *
-   * @param options - The options for creating a new val
-   * @param options.rootPath - The root path where the VT instance will be initialized
-   * @param options.valName - The name of the Val to create
-   * @param options.username - The username of the Val owner
-   * @param options.privacy - The privacy setting for the val
+   * @param options The options for creating a new val
+   * @param options.rootPath The root path where the VT instance will be initialized
+   * @param options.valName The name of the Val to create
+   * @param options.username The username of the Val owner
+   * @param options.privacy The privacy setting for the val
+   * @param option.orgId Organization name to create the val under
    * @param [options.description] - Optional description for the val
    * @returns A new VTClient instance
    */
@@ -267,6 +268,7 @@ export default class VTClient {
     username,
     privacy,
     description,
+    orgId,
     skipSafeDirCheck = false,
   }: {
     rootPath: string;
@@ -274,6 +276,7 @@ export default class VTClient {
     username: string;
     privacy: "public" | "private" | "unlisted";
     description?: string;
+    orgId?: string;
     skipSafeDirCheck: boolean;
   }): Promise<VTClient> {
     if (!skipSafeDirCheck) {
@@ -293,6 +296,7 @@ export default class VTClient {
       valName,
       privacy,
       description,
+      orgId,
       gitignoreRules,
     });
 

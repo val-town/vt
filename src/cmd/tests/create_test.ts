@@ -1,4 +1,9 @@
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  AssertionError,
+  assertStringIncludes,
+} from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
@@ -10,8 +15,9 @@ import sdk, {
   listValItems,
   randomValName,
 } from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import { delay } from "@std/async";
 
 Deno.test({
   name: "create Val with existing directory name",
@@ -31,7 +37,10 @@ Deno.test({
           await Deno.mkdir(emptyDirPath);
 
           // Should succeed with empty directory
-          await runVtCommand(["create", emptyDirValName], tmpDir);
+          await runVtCommand(
+            ["create", emptyDirValName, "--org-name", "me"],
+            tmpDir,
+          );
           emptyDirVal = await sdk.alias.username.valName.retrieve(
             user.username!,
             emptyDirValName,
@@ -58,6 +67,8 @@ Deno.test({
           const [stdout, _] = await runVtCommand([
             "create",
             nonEmptyDirValName,
+            "--org-name",
+            "me",
           ], tmpDir);
           assertStringIncludes(
             stdout,
@@ -82,7 +93,10 @@ Deno.test({
     try {
       await doWithTempDir(async (tmpDir) => {
         await c.step("create a new val", async () => {
-          await runVtCommand(["create", newValName], tmpDir);
+          await runVtCommand(
+            ["create", newValName, "--org-name", "me"],
+            tmpDir,
+          );
 
           newVal = await sdk.alias.username.valName.retrieve(
             user.username!,
@@ -123,6 +137,8 @@ Deno.test({
             "create",
             newValName,
             "--private",
+            "--org-name",
+            "me",
           ], tmpDir);
 
           newVal = await sdk.alias.username.valName.retrieve(
@@ -168,6 +184,8 @@ Deno.test({
           await runVtCommand([
             "create",
             newValName,
+            "--org-name",
+            "me",
           ], tmpDir);
 
           newVal = await sdk.alias.username.valName.retrieve(
@@ -235,6 +253,8 @@ Deno.test({
           ".",
           "--upload-if-exists",
           "--no-editor-files",
+          "--org-name",
+          "me",
         ], tmpDir);
 
         newVal = await sdk.alias.username.valName.retrieve(
@@ -273,5 +293,30 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "Get prompted for org to create Val in",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await t.step("Create Val without --org-name", async () => {
+        const newValName = randomValName();
+        const [stdout, _proc] = streamVtCommand(
+          ["create", newValName],
+          tmpDir,
+        );
+
+        for (let i = 0; i < 100; i++) { // wait a bit to get prompt data
+          if (stdout.join("\n").includes("organization you are a")) return;
+          await delay(50);
+        }
+
+        throw new AssertionError("Was never prompted for org to create Val in");
+      });
+    });
+  },
+  sanitizeOps: false,
   sanitizeResources: false,
 });
