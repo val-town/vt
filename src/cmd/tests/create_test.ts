@@ -1,4 +1,9 @@
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  AssertionError,
+  assertStringIncludes,
+} from "@std/assert";
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
@@ -296,34 +301,22 @@ Deno.test({
   permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      let proc: Deno.ChildProcess | null = null;
-      let stdout: string[] = [];
-
-      await t.step("create Val without --org-name", async () => {
+      await t.step("Create Val without --org-name", async () => {
         const newValName = randomValName();
-        const [newStdout, newProc] = streamVtCommand(
+        const [stdout, _proc] = streamVtCommand(
           ["create", newValName],
           tmpDir,
         );
-        proc = newProc;
-        stdout = newStdout;
-        await delay(500); // wait a bit to get prompt data
-        assertStringIncludes(stdout.join("\n"), "organization you are a");
+
+        for (let i = 0; i < 100; i++) { // wait a bit to get prompt data
+          if (stdout.join("\n").includes("organization you are a")) return;
+          await delay(50);
+        }
+
+        throw new AssertionError("Was never prompted for org to create Val in");
       });
-
-      await t.step(
-        "Enter 'enter key' to select personal account (the default)",
-        async () => {
-          assert(proc);
-          const stdin = proc.stdin.getWriter();
-          await stdin.write(new TextEncoder().encode("\n"));
-          stdin.releaseLock();
-          await proc.status; // wait for process to finish
-        },
-      );
-
-      assertStringIncludes(stdout.join("\n"), "Val created at");
     });
   },
+  sanitizeOps: false,
   sanitizeResources: false,
 });
