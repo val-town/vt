@@ -235,17 +235,13 @@ export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
 
+/**
+ * Get all organizations the current user is a member of.
+ * 
+ * @returns All organizations the current user is a member of
+ */
 export async function getAllMemberOrgs() {
-  // TODO: Use the async generator when we change this to `.list`
-  const orgs: Awaited<ReturnType<typeof sdk.orgs.retrieve>>["data"] = [];
-  let cursor = 0;
-  do {
-    const res = await sdk.orgs.retrieve({ limit: 100, offset: cursor });
-    res.data.forEach((o) => orgs.push(o));
-    cursor += res.data.length;
-  } while (orgs.length < cursor && cursor < 1000);
-
-  return orgs;
+  return await Array.fromAsync(sdk.orgs.list({}));
 }
 
 export async function* getTraces({
