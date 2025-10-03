@@ -237,7 +237,7 @@ export const getCurrentUser = memoize(async () => {
 
 /**
  * Get all organizations the current user is a member of.
- * 
+ *
  * @returns All organizations the current user is a member of
  */
 export async function getAllMemberOrgs() {
