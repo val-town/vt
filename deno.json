@@ -42,7 +42,7 @@
     "emphasize": "npm:emphasize@^7.0.0",
     "kia": "jsr:@jonasschiano/kia@0.0.120",
     "open": "npm:open@^10.2.0",
-    "zod": "npm:zod@^4.1.11",
+    "zod": "npm:zod@^3.24.2",
     "~/": "./src/",
     "~/companion/": "./companion/"
   },
