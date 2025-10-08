@@ -84,3 +84,21 @@ Deno.test({
   },
   sanitizeResources: false,
 });
+
+Deno.test({
+  name: "config shows globalIgnoreFiles",
+  permissions: "inherit",
+  async fn() {
+    await doWithTempDir(async (tmpDir) => {
+      const [configOutput] = await runVtCommand(
+        ["config"],
+        tmpDir,
+        { env: { "XDG_CONFIG_HOME": tmpDir } },
+      );
+
+      assertStringIncludes(configOutput, "globalIgnoreFiles");
+      // The goal is just to make sure that this prints something that is reasonable correct.
+    });
+  },
+  sanitizeResources: false,
+});
