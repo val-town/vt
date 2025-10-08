@@ -18,6 +18,8 @@ export async function registerOutdatedWarning() {
     const lastSawAsLatestVersion = localStorage.getItem(SAW_AS_LATEST_VERSION);
     if (lastSawAsLatestVersion !== list.latest) {
       addEventListener("unload", () => { // The last thing logged
+        if (Deno.args.includes("upgrade")) return; // Don't show when they are upgrading
+
         localStorage.setItem(SAW_AS_LATEST_VERSION, currentVersion);
         console.log(
           `A new version of vt is available: ${
