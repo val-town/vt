@@ -10,6 +10,7 @@ import {
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
+import { vtState } from "~/vt/VTState.ts";
 
 await ensureGlobalVtConfig();
 
@@ -17,9 +18,9 @@ async function isApiKeyValid(): Promise<boolean> {
   // Since we run this on every invocation of vt, it makes sense to only check
   // if the api key is still valid every so often.
 
-  const lastAuthAt = localStorage.getItem(AUTH_CACHE_LOCALSTORE_ENTRY);
+  const lastAuthAt = await vtState.getItem(AUTH_CACHE_LOCALSTORE_ENTRY);
   const hoursSinceLastAuth = lastAuthAt
-    ? (new Date().getTime() - new Date(lastAuthAt).getTime())
+    ? new Date().getTime() - new Date(lastAuthAt).getTime()
     : Infinity;
   if (hoursSinceLastAuth < AUTH_CACHE_TTL) return true;
 
@@ -31,7 +32,10 @@ async function isApiKeyValid(): Promise<boolean> {
   });
 
   if (resp.ok) {
-    localStorage.setItem(AUTH_CACHE_LOCALSTORE_ENTRY, new Date().toISOString());
+    await vtState.setItem(
+      AUTH_CACHE_LOCALSTORE_ENTRY,
+      new Date().toISOString(),
+    );
     return true;
   }
 
@@ -39,7 +43,7 @@ async function isApiKeyValid(): Promise<boolean> {
 }
 
 async function ensureValidApiKey() {
-  if (Deno.env.has(API_KEY_KEY) && await isApiKeyValid()) return;
+  if (Deno.env.has(API_KEY_KEY) && (await isApiKeyValid())) return;
 
   {
     const { apiKey } = await globalConfig.loadConfig();

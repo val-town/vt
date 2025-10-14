@@ -7,6 +7,7 @@ import {
 } from "~/consts.ts";
 import manifest from "../../deno.json" with { type: "json" };
 import { colors } from "@cliffy/ansi/colors";
+import { vtState } from "../vt/VTState.ts";
 
 const provider = new JsrProvider({ package: JSR_ENTRY_NAME });
 
@@ -15,15 +16,18 @@ export async function registerOutdatedWarning() {
   const list = await provider.getVersions(JSR_ENTRY_NAME);
   const currentVersion = manifest.version;
   if (list.latest !== currentVersion) {
-    const lastSawAsLatestVersion = localStorage.getItem(SAW_AS_LATEST_VERSION);
+    const lastSawAsLatestVersion = await vtState.getItem(SAW_AS_LATEST_VERSION);
     if (lastSawAsLatestVersion !== list.latest) {
-      addEventListener("unload", () => { // The last thing logged
+      addEventListener("unload", async () => {
+        // The last thing logged
         if (Deno.args.includes("upgrade")) return; // Don't show when they are upgrading
 
-        localStorage.setItem(SAW_AS_LATEST_VERSION, currentVersion);
+        await vtState.setItem(SAW_AS_LATEST_VERSION, currentVersion);
         console.log(
           `A new version of vt is available: ${
-            colors.bold(list.latest)
+            colors.bold(
+              list.latest,
+            )
           }! Run \`${colors.bold("vt upgrade")}\` to update.`,
         );
       });
