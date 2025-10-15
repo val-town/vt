@@ -7,7 +7,7 @@ import {
 } from "~/consts.ts";
 import manifest from "../../deno.json" with { type: "json" };
 import { colors } from "@cliffy/ansi/colors";
-import { vtState } from "../vt/VTState.ts";
+import { vtState } from "~/vt/VTState.ts";
 
 const provider = new JsrProvider({ package: JSR_ENTRY_NAME });
 
@@ -24,11 +24,9 @@ export async function registerOutdatedWarning() {
 
         await vtState.setItem(SAW_AS_LATEST_VERSION, currentVersion);
         console.log(
-          `A new version of vt is available: ${
-            colors.bold(
-              list.latest,
-            )
-          }! Run \`${colors.bold("vt upgrade")}\` to update.`,
+          `A new version of vt is available: ${colors.bold(
+            list.latest,
+          )}! Run \`${colors.bold("vt upgrade")}\` to update.`,
         );
       });
     }
