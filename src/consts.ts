@@ -19,8 +19,11 @@ export const META_FOLDER_NAME = ".vt";
 export const ENTRYPOINT_NAME = "vt.ts";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
+/** The directory that contains GLOBAL_VT_META_FILE_PATH */
+export const GLOBAL_VT_META_PATH = join(xdg.cache(), PROGRAM_NAME);
 export const GLOBAL_VT_META_FILE_PATH = join(
-  GLOBAL_VT_CONFIG_PATH,
+  xdg.cache(),
+  PROGRAM_NAME,
   "upgrade-status.json",
 );
 

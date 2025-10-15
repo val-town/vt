@@ -2,18 +2,19 @@ import type z from "zod";
 import {
   AUTH_CACHE_LOCALSTORE_ENTRY,
   GLOBAL_VT_META_FILE_PATH,
+  GLOBAL_VT_META_PATH,
   SAW_AS_LATEST_VERSION,
 } from "../consts.ts";
 import { VTCheckCacheFile } from "~/vt/vt/schemas.ts";
+import { ensureDir } from "@std/fs";
 
 /**
- * Cheap singleton that takes the place of localStorage but writes to a
- * file within the global configuration directory.
- *
- * Used for caching the results of authentication and upgrade checks.
+ * Cheap singleton that stores state about authentication and upgrade
+ * checking in a JSON file in the XDG cache directory.
  */
 class VTCheckCache {
   async #read() {
+    await ensureDir(GLOBAL_VT_META_PATH);
     try {
       const text = await Deno.readTextFile(GLOBAL_VT_META_FILE_PATH);
       const json = JSON.parse(text);
