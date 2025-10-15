@@ -21,7 +21,7 @@ export const META_IGNORE_FILE_NAME = ".vtignore";
 export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
 export const GLOBAL_VT_META_FILE_PATH = join(
   GLOBAL_VT_CONFIG_PATH,
-  "state.json",
+  "upgrade-status.json",
 );
 
 export const DEFAULT_WRAP_WIDTH = 80;
