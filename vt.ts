@@ -2,24 +2,20 @@
 import "@std/dotenv/load";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
-import {
-  API_KEY_KEY,
-  AUTH_CACHE_LOCALSTORE_ENTRY,
-  AUTH_CACHE_TTL,
-} from "~/consts.ts";
+import { API_KEY_KEY, AUTH_CACHE_TTL } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
+import { vtCheckCache } from "~/vt/VTCheckCache.ts";
 
 await ensureGlobalVtConfig();
 
 async function isApiKeyValid(): Promise<boolean> {
   // Since we run this on every invocation of vt, it makes sense to only check
   // if the api key is still valid every so often.
-
-  const lastAuthAt = localStorage.getItem(AUTH_CACHE_LOCALSTORE_ENTRY);
+  const lastAuthAt = await vtCheckCache.getAuthChecked();
   const hoursSinceLastAuth = lastAuthAt
-    ? (new Date().getTime() - new Date(lastAuthAt).getTime())
+    ? new Date().getTime() - lastAuthAt.getTime()
     : Infinity;
   if (hoursSinceLastAuth < AUTH_CACHE_TTL) return true;
 
@@ -31,7 +27,7 @@ async function isApiKeyValid(): Promise<boolean> {
   });
 
   if (resp.ok) {
-    localStorage.setItem(AUTH_CACHE_LOCALSTORE_ENTRY, new Date().toISOString());
+    await vtCheckCache.setAuthCheckedToNow();
     return true;
   }
 
@@ -39,7 +35,7 @@ async function isApiKeyValid(): Promise<boolean> {
 }
 
 async function ensureValidApiKey() {
-  if (Deno.env.has(API_KEY_KEY) && await isApiKeyValid()) return;
+  if (Deno.env.has(API_KEY_KEY) && (await isApiKeyValid())) return;
 
   {
     const { apiKey } = await globalConfig.loadConfig();
