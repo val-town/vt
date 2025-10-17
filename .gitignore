@@ -16,3 +16,4 @@ tinker
 # End of https://www.toptal.com/developers/gitignore/api/deno
 
 .DS_Store
+.nvim.lua
