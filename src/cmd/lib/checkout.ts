@@ -8,7 +8,6 @@ import { tty } from "@cliffy/ansi/tty";
 import sdk, {
   branchNameToBranch,
   canWriteToVal,
-  getCurrentUser,
   getLatestVersion,
 } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
@@ -76,7 +75,6 @@ export const checkoutCmd = new Command()
           const rootPath = await findVtRoot(Deno.cwd());
           const vt = VTClient.from(rootPath);
           const vtState = await vt.getMeta().loadVtState();
-          const user = await getCurrentUser();
 
           // Get the current branch data
           const currentBranchData = await sdk.vals.branches
