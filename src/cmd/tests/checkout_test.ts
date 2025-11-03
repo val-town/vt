@@ -551,7 +551,6 @@ Deno.test({
   sanitizeExit: false,
 });
 
-
 Deno.test({ // similar to other tests but for an org val.
   name: "Can checkout new branch in an org",
   permissions: "inherit",
@@ -632,4 +631,4 @@ Deno.test({ // similar to other tests but for an org val.
   },
   sanitizeResources: false,
   sanitizeExit: false,
-});  
+});
