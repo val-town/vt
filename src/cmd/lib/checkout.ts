@@ -7,6 +7,7 @@ import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
 import sdk, {
   branchNameToBranch,
+  canWriteToVal,
   getCurrentUser,
   getLatestVersion,
 } from "~/sdk.ts";
@@ -127,10 +128,7 @@ export const checkoutCmd = new Command()
 
           try {
             // If they are creating a new branch, ensure that they are the owner of this Val
-            if (
-              isNewBranch &&
-              (await sdk.vals.retrieve(vtState.val.id)).author.id !== user.id
-            ) {
+            if (!(await canWriteToVal(vtState.val.id))) {
               throw new Error(
                 "You are not the owner of this Val, you cannot make a new branch.",
               );

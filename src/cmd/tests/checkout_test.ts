@@ -550,3 +550,86 @@ Deno.test({
   sanitizeResources: false,
   sanitizeExit: false,
 });
+
+
+Deno.test({ // similar to other tests but for an org val.
+  name: "Can checkout new branch in an org",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(
+        async ({ val, branch }) => {
+          const fullPath = join(tmpDir, val.name);
+
+          await t.step("create initial file on main branch", async () => {
+            await sdk.vals.files.create(
+              val.id,
+              {
+                path: "main.ts",
+                content: "// Main branch in org",
+                branch_id: branch.id,
+                type: "script",
+              },
+            );
+          });
+
+          await t.step("clone the org val", async () => {
+            await runVtCommand(
+              ["clone", val.name, "--no-editor-files"],
+              tmpDir,
+            );
+
+            assert(
+              await exists(join(fullPath, "main.ts")),
+              "main.ts should exist after clone",
+            );
+          });
+
+          await t.step("create new branch with checkout -b", async () => {
+            const [checkoutOutput] = await runVtCommand([
+              "checkout",
+              "-b",
+              "org-feature-branch",
+            ], fullPath);
+
+            assertStringIncludes(
+              checkoutOutput,
+              'Created and switched to new branch "org-feature-branch"',
+            );
+          });
+
+          await t.step("verify we're on the new branch in org", async () => {
+            const [statusOutput] = await runVtCommand(["status"], fullPath);
+            assertStringIncludes(statusOutput, "On branch org-feature-branch@");
+
+            await Deno.writeTextFile(
+              join(fullPath, "org-feature.ts"),
+              "// Feature file in org branch",
+            );
+          });
+
+          await t.step("push changes and verify branch creation", async () => {
+            await runVtCommand(["push"], fullPath);
+
+            await runVtCommand(["checkout", "main"], fullPath);
+
+            assert(
+              !(await exists(join(fullPath, "org-feature.ts"))),
+              "org-feature.ts should not exist on main branch",
+            );
+
+            await runVtCommand(["checkout", "org-feature-branch"], fullPath);
+
+            assert(
+              await exists(join(fullPath, "org-feature.ts")),
+              "org-feature.ts should exist on org-feature-branch",
+            );
+          });
+        },
+        { inOrg: true },
+      );
+    });
+  },
+  sanitizeResources: false,
+  sanitizeExit: false,
+});  
