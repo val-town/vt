@@ -34,6 +34,9 @@ export const statusCmd = new Command()
       );
       console.log();
 
+      // Note that for historical reasons, there is a `vt.status` method, but
+      // this is literally just a dry push right now.
+
       console.log(displayFileStateChanges(await vt.pull({ dryRun: true }), {
         headerText: "Changes you can pull:",
         emptyMessage: "No changes locally to pull.",
