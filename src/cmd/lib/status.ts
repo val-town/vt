@@ -34,8 +34,14 @@ export const statusCmd = new Command()
       );
       console.log();
 
-      console.log(displayFileStateChanges(await vt.status(), {
-        headerText: "Local Changes:",
+      console.log(displayFileStateChanges(await vt.pull({ dryRun: true }), {
+        headerText: "Changes you can pull:",
+        emptyMessage: "No changes locally to pull.",
+        summaryText: "Changes to be pulled:",
+      }));
+
+      console.log(displayFileStateChanges(await vt.push({ dryRun: true }), {
+        headerText: "Changes you can push:",
         emptyMessage: "No changes locally to push.",
         summaryText: "Changes to be pushed:",
       }));
