@@ -103,7 +103,13 @@ export function displayFileStateChanges(
                 file,
                 includeTypes ? file.type : undefined,
                 maxTypeLength,
-              ),
+              ) + (file.status === "modified"
+                ? (
+                  file.where === "remote"
+                    ? colors.dim(" (modified remotely)")
+                    : colors.dim(" (modified locally)")
+                )
+                : ""),
           );
         }
       }

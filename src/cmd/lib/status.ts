@@ -37,16 +37,25 @@ export const statusCmd = new Command()
       // Note that for historical reasons, there is a `vt.status` method, but
       // this is literally just a dry push right now.
 
-      console.log(displayFileStateChanges(await vt.pull({ dryRun: true }), {
+      const [pullResult, pushResult] = await Promise.all([
+        vt.pull({ dryRun: true }),
+        vt.push({ dryRun: true }),
+      ]);
+
+      console.log(displayFileStateChanges(pullResult, {
         headerText: "Changes you can pull:",
         emptyMessage: "No changes locally to pull.",
         summaryText: "Changes to be pulled:",
+        includeSummary: false,
       }));
 
-      console.log(displayFileStateChanges(await vt.push({ dryRun: true }), {
+      console.log("---");
+
+      console.log(displayFileStateChanges(pushResult, {
         headerText: "Changes you can push:",
         emptyMessage: "No changes locally to push.",
         summaryText: "Changes to be pushed:",
+        includeSummary: false,
       }));
     });
   });
