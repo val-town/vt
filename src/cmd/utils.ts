@@ -3,6 +3,7 @@ import { join } from "@std/path";
 import Kia from "kia";
 import { colors } from "@cliffy/ansi/colors";
 import { toListBranchesCmdMsg } from "~/cmd/lib/utils/messages.ts";
+import { authedWithEnvNote } from "./lib/utils/authedWithEnvNote.ts";
 
 /**
  * Determines the clone path based on the provided directory and Val name
@@ -24,7 +25,7 @@ export function getClonePath(
  * @param error The error to be processed
  * @returns A cleaned error message
  */
-export function sanitizeErrors(error: unknown): string {
+export async function sanitizeErrors(error: unknown): Promise<string> {
   if (error instanceof ValTown.APIError) {
     let suffixedExtra = "";
 
@@ -41,12 +42,14 @@ export function sanitizeErrors(error: unknown): string {
       }
     } else if (error.status === 401) {
       suffixedExtra =
-        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`";
+        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`\n\n" +
+        await authedWithEnvNote();
     }
 
     if (error.message.includes("required permissions")) {
       suffixedExtra +=
-        "To set a new API key, use `vt config set apiKey new_api_key`";
+        "To set a new API key, use `vt config set apiKey new_api_key`\n\n" +
+        await authedWithEnvNote();
     }
 
     // Remove leading numbers from error message
@@ -83,7 +86,7 @@ export async function doWithSpinner<T>(
   callback: (spinner: Kia) => Promise<T>,
   options: {
     autostart?: boolean;
-    cleanError?: (error: unknown) => string;
+    cleanError?: (error: unknown) => string | Promise<string>;
     exitOnError?: boolean;
   } = {},
 ): Promise<T> {
@@ -110,7 +113,7 @@ export async function doWithSpinner<T>(
     const cleanedErrorMessage = cleanError(e);
 
     // Fail the spinner with the cleaned error message
-    spinner?.fail(cleanedErrorMessage);
+    spinner?.fail(await cleanedErrorMessage);
 
     if (exitOnError) Deno.exit(1);
 

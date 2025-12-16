@@ -13,6 +13,7 @@ import { findVtRoot } from "~/vt/vt/utils.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { displayVersionRange } from "~/cmd/lib/utils/displayVersionRange.ts";
 import VTCompanion from "~/vt/VTCompanion.ts";
+import { authedWithEnvNote } from "./utils/authedWithEnvNote.ts";
 
 export const watchCmd = new Command()
   .name("watch")
@@ -43,7 +44,8 @@ export const watchCmd = new Command()
         console.log(valToWatch.author.id, user.id);
         throw new Error(
           "You do not have write access to this Val, you cannot watch." +
-            "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.",
+            "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.\n\n" +
+            await authedWithEnvNote(),
         );
       }
 
