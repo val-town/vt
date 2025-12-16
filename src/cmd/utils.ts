@@ -113,7 +113,7 @@ export async function doWithSpinner<T>(
     const cleanedErrorMessage = cleanError(e);
 
     // Fail the spinner with the cleaned error message
-    spinner?.fail(await cleanedErrorMessage);
+    spinner?.fail(cleanedErrorMessage);
 
     if (exitOnError) Deno.exit(1);
 
