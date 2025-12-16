@@ -31,8 +31,8 @@ export const pushCmd = new Command()
         if (!(await canWriteToVal(valToPush.id))) {
           throw new Error(
             "You do not have write access to this Val, you cannot push." +
-              "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork.\n\n" +
-              await authedWithEnvNote(),
+              "\nTo make changes to this Val, go to the website, fork the Val, and clone the fork." +
+              authedWithEnvNote(),
           );
         }
 

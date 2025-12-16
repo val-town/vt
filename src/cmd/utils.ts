@@ -25,7 +25,7 @@ export function getClonePath(
  * @param error The error to be processed
  * @returns A cleaned error message
  */
-export async function sanitizeErrors(error: unknown): Promise<string> {
+export function sanitizeErrors(error: unknown): string {
   if (error instanceof ValTown.APIError) {
     let suffixedExtra = "";
 
@@ -42,14 +42,14 @@ export async function sanitizeErrors(error: unknown): Promise<string> {
       }
     } else if (error.status === 401) {
       suffixedExtra =
-        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`\n\n" +
-        await authedWithEnvNote();
+        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`" +
+        authedWithEnvNote();
     }
 
     if (error.message.includes("required permissions")) {
       suffixedExtra +=
-        "To set a new API key, use `vt config set apiKey new_api_key`\n\n" +
-        await authedWithEnvNote();
+        "To set a new API key, use `vt config set apiKey new_api_key`" +
+        authedWithEnvNote();
     }
 
     // Remove leading numbers from error message
@@ -86,7 +86,7 @@ export async function doWithSpinner<T>(
   callback: (spinner: Kia) => Promise<T>,
   options: {
     autostart?: boolean;
-    cleanError?: (error: unknown) => string | Promise<string>;
+    cleanError?: (error: unknown) => string;
     exitOnError?: boolean;
   } = {},
 ): Promise<T> {
