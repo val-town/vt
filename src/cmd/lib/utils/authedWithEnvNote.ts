@@ -1,7 +1,8 @@
 import { colors } from "@cliffy/ansi/colors";
 import { ENV_VAR_SET_FROM } from "@valtown/vt";
+import { API_KEY_KEY } from "../../../consts.ts";
 
-const MESSAGE_PREFIX = "Note that `vt` is using a `VAL_TOWN_API_KEY` ";
+const MESSAGE_PREFIX = `Note that \`vt\` is using a \`${API_KEY_KEY}\` `;
 
 /**
  * An ANSI message indicating if the API key is being loaded from environment
