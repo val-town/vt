@@ -559,7 +559,7 @@ Deno.test({ // similar to other tests but for an org val.
       await doWithNewVal(async ({ val }) => {
         await t.step("clone the Val and modify it", async () => {
           // Clone the Val (defaults to main branch)
-          await runVtCommand(
+          const [stdout, code] = await runVtCommand(
             ["clone", val.name, "--no-editor-files"],
             tmpDir,
           );
@@ -568,7 +568,7 @@ Deno.test({ // similar to other tests but for an org val.
 
           assert(
             await exists(fullPath),
-            "Val should be cloned successfully in org context",
+            `Val wasn't cloned successfully in org context: ${stdout} with code ${code}`,
           );
 
           await t.step("create and checkout new branch with -b", async () => {
