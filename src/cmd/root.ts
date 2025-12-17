@@ -28,5 +28,4 @@ cmd.command("list", cmds.listCmd);
 cmd.command("tail", cmds.tailCmd);
 cmd.command("completions", new CompletionsCommand());
 
-
 export { cmd };
