@@ -550,3 +550,46 @@ Deno.test({
   sanitizeResources: false,
   sanitizeExit: false,
 });
+
+Deno.test({ // similar to other tests but for an org val.
+  name: "Can checkout new branch in an org",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val }) => {
+        await t.step("clone the Val and modify it", async () => {
+          // Clone the Val (defaults to main branch)
+          const [stdout, code] = await runVtCommand(
+            ["clone", val.name, "--no-editor-files"],
+            tmpDir,
+          );
+
+          const fullPath = join(tmpDir, val.name);
+
+          assert(
+            await exists(fullPath),
+            `Val wasn't cloned successfully in org context: ${stdout} with code ${code}`,
+          );
+
+          await t.step("create and checkout new branch with -b", async () => {
+            const [checkoutOutput] = await runVtCommand([
+              "checkout",
+              "-b",
+              "org-feature-branch",
+            ], fullPath);
+            assertStringIncludes(
+              checkoutOutput,
+              'Created and switched to new branch "org-feature-branch"',
+            );
+
+            const [statusOutput] = await runVtCommand(["status"], fullPath);
+            assertStringIncludes(statusOutput, "On branch org-feature-branch@");
+            assert(await exists(join(fullPath, "org-feature-branch.ts")));
+          });
+        });
+      }, { inOrg: true });
+    });
+  },
+  sanitizeResources: false,
+  sanitizeExit: false,
+});
