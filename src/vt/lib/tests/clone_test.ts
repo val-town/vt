@@ -2,7 +2,7 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import sdk, { getLatestVersion, getValItem } from "~/sdk.ts";
 import { clone } from "~/vt/lib/clone.ts";
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { exists } from "@std/fs";
 import type { ValFileType } from "~/types.ts";
@@ -222,3 +222,88 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  {
+    name: "test remote modification is `where: remote` in result",
+    permissions: "inherit",
+    async fn(t) {
+      await doWithNewVal(async ({ val, branch }) => {
+        await doWithTempDir(async (tempDir) => {
+          const filePath = "status-test.js";
+          const initialContent = "console.log('Initial content');";
+          const modifiedContent = "console.log('Modified content');";
+
+          await t.step("create a file and clone the val", async () => {
+            // Create the file in the val
+            await sdk.vals.files.create(
+              val.id,
+              {
+                path: filePath,
+                content: initialContent,
+                branch_id: branch.id,
+                type: "file",
+              },
+            );
+
+            // Clone the Val to the temp directory
+            const result = await clone({
+              targetDir: tempDir,
+              valId: val.id,
+              branchId: branch.id,
+              version: 1,
+            });
+
+            // Assert that the file shows as added
+            const fileStatus = result.itemStateChanges.all().find(
+              (change) => change.path === filePath,
+            );
+
+            assert(fileStatus, "File status should be present");
+            assert(
+              fileStatus.status === "created",
+              "File should be marked as created",
+            );
+          });
+
+          await t.step("modify file remotely and check status", async () => {
+            // Modify the file remotely
+            await sdk.vals.files.update(
+              val.id,
+              {
+                path: filePath,
+                content: modifiedContent,
+                branch_id: branch.id,
+              },
+            );
+
+            // Clone again to get the updated status
+            const result = await clone({
+              targetDir: tempDir,
+              valId: val.id,
+              branchId: branch.id,
+              version: await getLatestVersion(val.id, branch.id),
+            });
+
+            // Assert that the file shows as remotely modified
+            const fileStatus = result.itemStateChanges.all().find(
+              (change) => change.path === filePath,
+            );
+
+            assert(fileStatus, "File status should be present");
+            assert(
+              fileStatus.status === "modified",
+              "File should be marked as modified",
+            );
+
+            assertEquals(
+              fileStatus?.where,
+              "remote",
+              "Remote modification should be detected as 'where: remote'",
+            );
+          });
+        });
+      });
+    },
+  },
+);
