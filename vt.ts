@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-net --allow-sys --allow-run
-import "@std/dotenv/load";
+import { loadSync } from "@std/dotenv";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
 import { API_KEY_KEY, AUTH_CACHE_TTL } from "~/consts.ts";
@@ -7,6 +7,22 @@ import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
 import { vtCheckCache } from "~/vt/VTCheckCache.ts";
+
+/**
+ * Where the API key was set from.
+ * "dotenv" -> from a .env file
+ * "env" -> from the environment variable
+ * "file" -> from the vt config file (default)
+ */
+export let ENV_VAR_SET_FROM: "dotenv" | "env" | "file" = "file";
+const envVars = loadSync();
+const prevEnvVar = Deno.env.get(API_KEY_KEY);
+if (!prevEnvVar && envVars[API_KEY_KEY]) {
+  Deno.env.set(API_KEY_KEY, envVars[API_KEY_KEY]);
+  ENV_VAR_SET_FROM = "dotenv";
+} else if (prevEnvVar) {
+  ENV_VAR_SET_FROM = "env";
+}
 
 await ensureGlobalVtConfig();
 
@@ -73,12 +89,14 @@ async function startVt(...args: string[]) {
 }
 
 if (import.meta.main) {
-  if (Deno.env.get("CI") !== "true") {
-    await registerOutdatedWarning();
-  }
-  await ensureValidApiKey();
-  sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
-  await startVt();
+  (async () => {
+    if (Deno.env.get("CI") !== "true") {
+      await registerOutdatedWarning();
+    }
+    await ensureValidApiKey();
+    sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
+    await startVt();
+  })();
 }
 
 export * from "./mod.ts";

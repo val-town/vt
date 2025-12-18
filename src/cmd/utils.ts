@@ -3,6 +3,7 @@ import { join } from "@std/path";
 import Kia from "kia";
 import { colors } from "@cliffy/ansi/colors";
 import { toListBranchesCmdMsg } from "~/cmd/lib/utils/messages.ts";
+import { authedWithEnvNote } from "./lib/utils/authedWithEnvNote.ts";
 
 /**
  * Determines the clone path based on the provided directory and Val name
@@ -41,12 +42,14 @@ export function sanitizeErrors(error: unknown): string {
       }
     } else if (error.status === 401) {
       suffixedExtra =
-        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`";
+        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`" +
+        authedWithEnvNote();
     }
 
     if (error.message.includes("required permissions")) {
       suffixedExtra +=
-        "To set a new API key, use `vt config set apiKey new_api_key`";
+        "To set a new API key, use `vt config set apiKey new_api_key`" +
+        authedWithEnvNote();
     }
 
     // Remove leading numbers from error message
