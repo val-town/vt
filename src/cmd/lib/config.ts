@@ -151,12 +151,14 @@ export const configSetCmd = new Command()
           }
 
           spinner.succeed(
-            `Set ${colors.bold(`${key}=${value}`)} in ${
-              useGlobal ? "global" : "local"
-            } configuration`,
+            value === ""
+              ? `Unset ${colors.bold(`${key}`)}`
+              : `Set ${colors.bold(`${key}=${value}`)} in ${
+                useGlobal ? "global" : "local"
+              } configuration`,
           );
 
-          if (key === "apiKey") {
+          if (key === "apiKey" && value !== "" && !useGlobal) {
             await offerToAddToGitignore();
           }
         } catch (e) {

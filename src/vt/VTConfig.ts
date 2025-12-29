@@ -8,7 +8,7 @@ import {
 } from "~/consts.ts";
 import * as path from "@std/path";
 import { ensureDir, exists } from "@std/fs";
-import { DefaultVTConfig, VTConfigSchema } from "~/vt/vt/schemas.ts";
+import { DefaultVTConfig, VTConfigSchema, VTConfigSchemaOverlay } from "~/vt/vt/schemas.ts";
 import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
 import type z from "zod";
 import { findVtRoot } from "~/vt/vt/utils.ts";
@@ -118,9 +118,9 @@ export default class VTConfig {
    */
   public async saveLocalConfig(
     config: Record<string, unknown>,
-  ): Promise<z.infer<typeof VTConfigSchema>> {
+  ): Promise<z.infer<typeof VTConfigSchemaOverlay>> {
     // Validate the configuration against the schema
-    const validatedConfig = VTConfigSchema.strict().parse(config);
+    const validatedConfig = VTConfigSchemaOverlay.parse(config);
 
     // Ensure the metadata directory exists
     await ensureDir(path.join(this.#localConfigPath, META_FOLDER_NAME));
