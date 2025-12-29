@@ -38,7 +38,6 @@
     "strip-ansi": "npm:strip-ansi@^7.1.2",
     "word-wrap": "npm:word-wrap@^1.2.5",
     "zod-deep-partial": "npm:zod-deep-partial@^1.2.0",
-    "zod-to-json-schema": "npm:zod-to-json-schema@^3.24.6",
     "zod-validation-error": "npm:zod-validation-error@^4.0.2",
     "emphasize": "npm:emphasize@^7.0.0",
     "kia": "jsr:@jonasschiano/kia@0.0.120",

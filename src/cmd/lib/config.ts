@@ -5,7 +5,6 @@ import { doWithSpinner } from "~/cmd/utils.ts";
 import { removeNestedProperty, setNestedProperty } from "~/utils.ts";
 import { stringify as stringifyYaml } from "@std/yaml";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { printYaml } from "~/cmd/styles.ts";
 import { fromError } from "zod-validation-error";
 import z from "zod";
@@ -22,8 +21,7 @@ import { Confirm, Select } from "@cliffy/prompt";
 import { execSync } from "node:child_process";
 
 function showConfigOptions() {
-  // deno-lint-ignore no-explicit-any
-  const jsonSchema = zodToJsonSchema(VTConfigSchema) as any;
+  const jsonSchema = VTConfigSchema.toJSONSchema({ unrepresentable: "any" });
   delete jsonSchema["$schema"];
 
   // deno-lint-ignore no-explicit-any

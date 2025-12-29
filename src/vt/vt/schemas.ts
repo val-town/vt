@@ -1,5 +1,5 @@
 import { join } from "@std/path";
-import { z } from "zod";
+import { z } from "zod/v4";
 import {
   AUTH_CACHE_LOCALSTORE_ENTRY,
   DEFAULT_EDITOR_TEMPLATE,

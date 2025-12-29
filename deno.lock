@@ -61,7 +61,6 @@
     "npm:strip-ansi@^7.1.2": "7.1.2",
     "npm:word-wrap@^1.2.5": "1.2.5",
     "npm:zod-deep-partial@^1.2.0": "1.2.0_zod@4.2.1",
-    "npm:zod-to-json-schema@^3.24.6": "3.25.1_zod@4.2.1",
     "npm:zod-validation-error@^4.0.2": "4.0.2_zod@4.2.1",
     "npm:zod@^4.2.1": "4.2.1"
   },
@@ -457,12 +456,6 @@
         "zod"
       ]
     },
-    "zod-to-json-schema@3.25.1_zod@4.2.1": {
-      "integrity": "sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==",
-      "dependencies": [
-        "zod"
-      ]
-    },
     "zod-validation-error@4.0.2_zod@4.2.1": {
       "integrity": "sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==",
       "dependencies": [
@@ -526,7 +519,6 @@
       "npm:strip-ansi@^7.1.2",
       "npm:word-wrap@^1.2.5",
       "npm:zod-deep-partial@^1.2.0",
-      "npm:zod-to-json-schema@^3.24.6",
       "npm:zod-validation-error@^4.0.2",
       "npm:zod@^4.2.1"
     ]
