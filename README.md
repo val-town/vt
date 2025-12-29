@@ -206,7 +206,7 @@ $ curl https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run
 Hello GET https://maxm--df1d09da00cd11f0a0de569c3dd06744.web.val.run/
 ```
 
-### Watching for Changes
+## Watching for Changes
 
 Oftentimes you'll end up in a workflow that looks like
 
@@ -250,7 +250,7 @@ One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 - `vt branch` lists all branches.
 - `vt branch -D` deletes a branch. You can't delete the branch you are on.
 
-### Management
+## Management
 
 - `vt list` lists all your Val Town Vals
 - `vt delete` deletes the current Val of the folder you are in (with
@@ -274,6 +274,12 @@ Right now, we offer the following configuration options:
   that might cause you to lose local state, like `vt pull`.
 - `editorTemplate`: The Val URI for the editor files that you are prompted about
   when you run a `vt clone`, `vt remix`, or `vt create`.
+  
+### Multiple Accounts
+
+`vt` supports project-scoped account configuration via this system. You can set
+local configuration options for a single `vt` folder using the `--local` flag.
+To set a local API key for a folder, use `vt config set --local apiKey xxxMY_ALT_API_KEYxxx`
 
 ## LLMs
 

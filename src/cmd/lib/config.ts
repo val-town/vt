@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import VTConfig, { globalConfig } from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { getNestedProperty, setNestedProperty } from "~/utils.ts";
+import { setNestedProperty } from "~/utils.ts";
 import { stringify as stringifyYaml } from "@std/yaml";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -10,11 +10,16 @@ import { printYaml } from "~/cmd/styles.ts";
 import { fromError } from "zod-validation-error";
 import z from "zod";
 import { colors } from "@cliffy/ansi/colors";
-import { DEFAULT_WRAP_AMOUNT, GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
+import {
+  DEFAULT_WRAP_AMOUNT,
+  GLOBAL_VT_CONFIG_PATH,
+  LOCAL_VT_CONFIG_PATH,
+} from "~/consts.ts";
 import { join } from "@std/path";
 import wrap from "word-wrap";
 import { openEditorAt } from "~/cmd/lib/utils/openEditorAt.ts";
-import { Select } from "@cliffy/prompt";
+import { Confirm, Select } from "@cliffy/prompt";
+import { execSync } from "node:child_process";
 
 function showConfigOptions() {
   // deno-lint-ignore no-explicit-any
@@ -40,6 +45,40 @@ function showConfigOptions() {
   console.log(colors.green("All available options:"));
   console.log();
   printYaml(stringifyYaml(jsonSchema["properties"]));
+}
+
+/**
+ * If the user tries to add an API secret to their local vt config file, offer
+ * to add the config file to their local gitignore.
+ */
+async function offerToAddToGitignore() {
+  // Check if we're in a git repository
+  try {
+    const gitRoot = execSync("git rev-parse --show-toplevel", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "ignore"],
+    }).trim();
+
+    const addToIgnore = await Confirm.prompt(
+      "You are adding an API secret to your local config file, and we noticed you have a Git repo set up for this folder.\n" +
+        `Would you like to add \`${LOCAL_VT_CONFIG_PATH}\`. to your \`.gitignore\`?`,
+    );
+
+    if (addToIgnore) {
+      let gitignoreContent = "";
+      try {
+        gitignoreContent = await Deno.readTextFile(join(gitRoot, ".gitignore"));
+      } catch (e) {
+        if (e instanceof Deno.errors.AlreadyExists) {
+          // ignore, we will create
+        } else throw e;
+      }
+      gitignoreContent += LOCAL_VT_CONFIG_PATH;
+      await Deno.writeTextFile(join(gitRoot, ".gitignore"), gitignoreContent);
+    }
+  } catch {
+    // Not in a git repository, skip
+  }
 }
 
 export const configWhereCmd = new Command()
@@ -111,6 +150,7 @@ export const configSetCmd = new Command()
             validatedConfig = await vtConfig.saveLocalConfig(updatedConfig);
           }
 
+<<<<<<< Updated upstream
           if (JSON.stringify(config) !== JSON.stringify(validatedConfig)) {
             spinner.succeed(
               `Set ${colors.bold(`${key}=${value}`)} in ${
@@ -125,6 +165,17 @@ export const configSetCmd = new Command()
                 }\` to view config options`,
             );
           }
+=======
+          if (key === "apiKey") {
+            await offerToAddToGitignore();
+          }
+
+          spinner.succeed(
+            `Set ${colors.bold(`${key}=${value}`)} in ${
+              colors.bold(useGlobal ? "global" : "local")
+            } configuration`,
+          );
+>>>>>>> Stashed changes
         } catch (e) {
           if (e instanceof z.ZodError) {
             throw new Error(
