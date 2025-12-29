@@ -89,6 +89,22 @@ export async function branchNameToBranch(
 }
 
 /**
+ * Converts an organization name to its corresponding organization ID.
+ *
+ * @param orgName The name of the organization to look up
+ * @returns Promise resolving to the organization ID
+ * @throws if the organization is not found or if the API request fails
+ */
+export async function orgNameToOrgId(orgName: string): Promise<string> {
+  const allMyOrgs = await Array.fromAsync(sdk.orgs.list({}));
+  const org = allMyOrgs.find((org) => org.username === orgName);
+
+  if (!org) throw new Error(`Organization "${orgName}" not found`);
+
+  return org.id;
+}
+
+/**
  * Checks if a file exists at the specified path in a val
  *
  * @param valId The ID of the Val containing the file

@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
-import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
+import { getAllMemberOrgs, getCurrentUser, orgNameToOrgId } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
@@ -144,14 +144,24 @@ vt checkout main`,
           }
         }
 
-        const vt = await VTClient.create({
-          rootPath: clonePath,
-          valName,
-          username: user.username!,
-          privacy,
-          description,
-          skipSafeDirCheck: true,
-        });
+        const vt = await (orgName
+          ? VTClient.create({
+            rootPath: clonePath,
+            valName,
+            username: user.username!,
+            orgId: await orgNameToOrgId(orgName),
+            privacy,
+            description,
+            skipSafeDirCheck: true,
+          })
+          : VTClient.create({
+            rootPath: clonePath,
+            valName,
+            username: user.username!,
+            privacy,
+            description,
+            skipSafeDirCheck: true,
+          }));
 
         if (editorFiles) {
           spinner.stop();
