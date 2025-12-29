@@ -280,7 +280,11 @@ Right now, we offer the following configuration options:
 `vt` supports project-scoped account configuration via this system. You can set
 local configuration options for a single `vt` folder using the `--local` flag.
 To set a local API key for a folder, use
-`vt config set --local apiKey xxxMY_ALT_API_KEYxxx`
+`vt config set --local apiKey xxxMY_ALT_API_KEYxxx`. This will store your API
+key for use in `vt` in `.vt/config.yaml`, rather than your global configuration.
+
+You can clear a config value by using `vt config set property ""` (empty
+string).
 
 ## LLMs
 

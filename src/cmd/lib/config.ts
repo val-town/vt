@@ -2,7 +2,7 @@ import { Command } from "@cliffy/command";
 import VTConfig, { globalConfig } from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { setNestedProperty } from "~/utils.ts";
+import { removeNestedProperty, setNestedProperty } from "~/utils.ts";
 import { stringify as stringifyYaml } from "@std/yaml";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -51,7 +51,6 @@ function showConfigOptions() {
  * If the user tries to add an API secret to their local vt config file, offer
  * to add the config file to their local gitignore.
  */
-
 async function offerToAddToGitignore() {
   const gitRoot = execSync("git rev-parse --show-toplevel", {
     encoding: "utf-8",
@@ -116,7 +115,10 @@ export const configWhereCmd = new Command()
 
 export const configSetCmd = new Command()
   .description("Set a configuration value")
-  .option("--local", "Set in the local configuration (val-specific)")
+  .option(
+    "--local",
+    'Set in the local configuration (val-specific). Leave value blank "" to unset.',
+  )
   .arguments("<key:string> <value:string>")
   .example(
     "Set your valtown API key (global)",
@@ -136,7 +138,10 @@ export const configSetCmd = new Command()
         const vtConfig = new VTConfig(vtRoot);
 
         const config = await vtConfig.loadConfig();
-        const updatedConfig = setNestedProperty(config, key, value);
+
+        const updatedConfig = value === ""
+          ? removeNestedProperty(config, key)
+          : setNestedProperty(config, key, value);
 
         try {
           if (useGlobal) {

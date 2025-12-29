@@ -105,6 +105,34 @@ export function setNestedProperty(
 }
 
 /**
+ * Removes a value at a nested property path and returns a new object.
+ * The original object is not modified.
+ *
+ * @param obj - The source object
+ * @param path - Dot-separated property path (e.g., 'user.address.city')
+ * @returns A new object with the specified path removed
+ */
+export function removeNestedProperty(
+  obj: Record<string, unknown>,
+  path: string,
+): Record<string, unknown> {
+  const result = structuredClone(obj);
+
+  const parts = path.split(".");
+  parts.reduce((current, part, index, array) => {
+    if (index === array.length - 1) {
+      // Last part - delete the property
+      delete current[part];
+    } else if (current[part] && typeof current[part] === "object") {
+      return current[part] as Record<string, unknown>;
+    }
+    return current;
+  }, result as Record<string, unknown>);
+
+  return result;
+}
+
+/**
  * Checks if a directory is empty asynchronously.
  *
  * @param path Path to the directory to check
