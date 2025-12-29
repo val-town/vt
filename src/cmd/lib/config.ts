@@ -51,33 +51,40 @@ function showConfigOptions() {
  * If the user tries to add an API secret to their local vt config file, offer
  * to add the config file to their local gitignore.
  */
+
 async function offerToAddToGitignore() {
-  // Check if we're in a git repository
-  try {
-    const gitRoot = execSync("git rev-parse --show-toplevel", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "ignore"],
-    }).trim();
+  const gitRoot = execSync("git rev-parse --show-toplevel", {
+    encoding: "utf-8",
+    stdio: ["pipe", "pipe", "ignore"],
+  }).trim();
 
-    const addToIgnore = await Confirm.prompt(
-      "You are adding an API secret to your local config file, and we noticed you have a Git repo set up for this folder.\n" +
-        `Would you like to add \`${LOCAL_VT_CONFIG_PATH}\`. to your \`.gitignore\`?`,
-    );
+  const addToIgnore = await Confirm.prompt(
+    "You are adding an API secret to your local config file, and we noticed you have a Git repo set up for this folder.\n" +
+      `Would you like to add \`${LOCAL_VT_CONFIG_PATH}\` to your \`.gitignore\`?`,
+  );
 
-    if (addToIgnore) {
-      let gitignoreContent = "";
-      try {
-        gitignoreContent = await Deno.readTextFile(join(gitRoot, ".gitignore"));
-      } catch (e) {
-        if (e instanceof Deno.errors.AlreadyExists) {
-          // ignore, we will create
-        } else throw e;
+  if (addToIgnore) {
+    let gitignoreContent = "";
+    const gitignorePath = join(gitRoot, ".gitignore");
+
+    try {
+      gitignoreContent = await Deno.readTextFile(gitignorePath);
+      // Add a newline if the file doesn't end with one
+      if (gitignoreContent.length > 0 && !gitignoreContent.endsWith("\n")) {
+        gitignoreContent += "\n";
       }
-      gitignoreContent += LOCAL_VT_CONFIG_PATH;
-      await Deno.writeTextFile(join(gitRoot, ".gitignore"), gitignoreContent);
+    } catch (e) {
+      if (!(e instanceof Deno.errors.NotFound)) {
+        // If error is something other than "file not found", rethrow it
+        throw e;
+      }
+      // If file doesn't exist, we'll create it with empty content
     }
-  } catch {
-    // Not in a git repository, skip
+
+    // Add the path to gitignore
+    gitignoreContent += LOCAL_VT_CONFIG_PATH + "\n";
+    await Deno.writeTextFile(gitignorePath, gitignoreContent);
+    console.log(`Added ${LOCAL_VT_CONFIG_PATH} to .gitignore`);
   }
 }
 
@@ -130,52 +137,23 @@ export const configSetCmd = new Command()
 
         const config = await vtConfig.loadConfig();
         const updatedConfig = setNestedProperty(config, key, value);
-        const oldProperty = getNestedProperty(config, key, null) as
-          | string
-          | null;
 
-        if (oldProperty !== null && oldProperty.toString() === value) {
-          throw new Error(
-            `Property ${colors.bold(key)} is already set to ${
-              colors.bold(oldProperty)
-            }`,
-          );
-        }
-
-        let validatedConfig: z.infer<typeof VTConfigSchema>;
         try {
           if (useGlobal) {
-            validatedConfig = await vtConfig.saveGlobalConfig(updatedConfig);
+            await vtConfig.saveGlobalConfig(updatedConfig);
           } else {
-            validatedConfig = await vtConfig.saveLocalConfig(updatedConfig);
-          }
-
-<<<<<<< Updated upstream
-          if (JSON.stringify(config) !== JSON.stringify(validatedConfig)) {
-            spinner.succeed(
-              `Set ${colors.bold(`${key}=${value}`)} in ${
-                useGlobal ? "global" : "local"
-              } configuration`,
-            );
-          } else {
-            throw new Error(
-              `Property ${colors.bold(key)} is not valid.` +
-                `\n  Use \`${
-                  colors.bold("vt config options")
-                }\` to view config options`,
-            );
-          }
-=======
-          if (key === "apiKey") {
-            await offerToAddToGitignore();
+            await vtConfig.saveLocalConfig(updatedConfig);
           }
 
           spinner.succeed(
             `Set ${colors.bold(`${key}=${value}`)} in ${
-              colors.bold(useGlobal ? "global" : "local")
+              useGlobal ? "global" : "local"
             } configuration`,
           );
->>>>>>> Stashed changes
+
+          if (key === "apiKey") {
+            await offerToAddToGitignore();
+          }
         } catch (e) {
           if (e instanceof z.ZodError) {
             throw new Error(
