@@ -110,8 +110,9 @@ vt checkout main`,
         const orgs = await getAllMemberOrgs();
         const org = orgs.find((o) => o.username === orgName);
         if (!org) {
+          const orgNames = orgs.map((o) => `"${o.username}`).join("\", ") + "\"";
           throw new Error(
-            `You are not a member of an organization with the name "${orgName}"`,
+            `You are not a member of an organization with the name "${orgName}".\nYou are a member of: ${orgNames}`,
           );
         }
         orgName = org.id!;
@@ -149,7 +150,7 @@ vt checkout main`,
             rootPath: clonePath,
             valName,
             username: user.username!,
-            orgId: await orgNameToOrgId(orgName),
+            orgId: orgName,
             privacy,
             description,
             skipSafeDirCheck: true,
