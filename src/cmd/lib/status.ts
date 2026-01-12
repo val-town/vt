@@ -47,7 +47,6 @@ export const statusCmd = new Command()
         emptyMessage: "Local state matches remote state.",
         summaryText: "Changes between local and remote:",
         includeSummary: false,
-        includeTypes: false,
         includeStatuses: false,
       }));
 

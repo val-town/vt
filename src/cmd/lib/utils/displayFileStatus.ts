@@ -156,9 +156,7 @@ export function displayFileStateChanges(
     for (const [type, files] of fileStateChangesWithoutWarnings.entries()) {
       if (type !== "not_modified" && files.length > 0) {
         const typeColor = STATUS_STYLES[type];
-
         const coloredType = typeColor.color(type);
-
         output.push("  " + files.length + " " + coloredType);
       }
     }
@@ -211,7 +209,7 @@ function formatPathDisplay(
   },
   includeStatus: boolean,
 ): string {
-  const colorFn = includeStatus ? styleConfig.color : ValItemColors[file.type];
+  const colorFn = includeStatus ? styleConfig.color : (text: string) => text;
 
   if (file.status === "renamed") {
     const oldPathFormatted = join(
