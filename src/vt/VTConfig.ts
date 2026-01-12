@@ -11,7 +11,7 @@ import { ensureDir, exists } from "@std/fs";
 import {
   DefaultVTConfig,
   VTConfigSchema,
-  VTConfigSchemaOverlay,
+  VTConfigDeepPartial,
 } from "~/vt/vt/schemas.ts";
 import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
 import type z from "zod";
@@ -122,9 +122,9 @@ export default class VTConfig {
    */
   public async saveLocalConfig(
     config: Record<string, unknown>,
-  ): Promise<z.infer<typeof VTConfigSchemaOverlay>> {
+  ): Promise<z.infer<typeof VTConfigDeepPartial>> {
     // Validate the configuration against the schema
-    const validatedConfig = VTConfigSchemaOverlay.parse(config);
+    const validatedConfig = VTConfigDeepPartial.parse(config);
 
     // Ensure the metadata directory exists
     await ensureDir(path.join(this.#localConfigPath, META_FOLDER_NAME));

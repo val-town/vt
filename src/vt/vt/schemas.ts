@@ -7,7 +7,7 @@ import {
   META_IGNORE_FILE_NAME,
   SAW_AS_LATEST_VERSION,
 } from "~/consts.ts";
-import { zodDeepPartial } from "zod-deep-partial";
+import { zodDeepPartial } from "../zodDeepPartial.ts";
 
 /**
  * JSON schema for the state.json file for the .vt folder.
@@ -80,7 +80,7 @@ export const VTConfigSchema = z.object({
   editorTemplate: z.string().optional(), // a Val URI
 });
 
-export const VTConfigSchemaOverlay = zodDeepPartial(VTConfigSchema);
+export const VTConfigDeepPartial = zodDeepPartial(VTConfigSchema);
 
 export const DefaultVTConfig: z.infer<typeof VTConfigSchema> = {
   apiKey: null,
