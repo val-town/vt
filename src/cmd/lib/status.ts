@@ -52,16 +52,15 @@ export const statusCmd = new Command()
       }));
 
       if (statusResult.changes() > 0) {
-        console.log()
+        console.log();
         console.log(
           wrap(
             `Your local state differs from the website. \`${PROGRAM_NAME}\` cannot yet automatically sync differences.` +
-            `In order to sync your state, you must either:\n\n` +
-            `- Push all of your changes to Val Town by using \`vt push\`\n` +
-            `- Pull all your changes from the website using \`vt pull\`\n\n` +
-            `You can simulate a push or pull by including \`--dry-run\`.`,
-          { width: DEFAULT_WRAP_WIDTH, indent: "" },
-
+              `In order to sync your state, you must either:\n\n` +
+              `- Push all of your changes to Val Town by using \`vt push\`\n` +
+              `- Pull all your changes from the website using \`vt pull\`\n\n` +
+              `You can simulate a push or pull by including \`--dry-run\`.`,
+            { width: DEFAULT_WRAP_WIDTH, indent: "" },
           ),
         );
       }
