@@ -23,6 +23,7 @@ import type {
  * @param options.showEmpty Whether to show output when there are no changes
  * @param options.includeSummary Whether to display the summary
  * @param options.includeTypes Whether to display the (detected) types of the files
+ * @param options.includeStatuses Whether to display the status indicators (added, modified, etc.)
  * @param options.showWarnings Whether to display warnings associated with files
  * @returns string The formatted output string
  */
@@ -35,6 +36,7 @@ export function displayFileStateChanges(
     showEmpty?: boolean;
     includeSummary?: boolean;
     includeTypes?: boolean;
+    includeStatuses?: boolean;
     showWarnings?: boolean;
   },
 ): string {
@@ -45,6 +47,7 @@ export function displayFileStateChanges(
     showEmpty = true,
     includeSummary = true,
     includeTypes = true,
+    includeStatuses = true,
     showWarnings = true,
   } = options;
   const output: string[] = [];
@@ -103,6 +106,7 @@ export function displayFileStateChanges(
                 file,
                 includeTypes ? file.type : undefined,
                 maxTypeLength,
+                includeStatuses,
               ) + (file.status === "modified"
                 ? (
                   file.where === "remote"
@@ -130,6 +134,7 @@ export function displayFileStateChanges(
           file,
           includeTypes ? file.type : undefined,
           maxTypeLength,
+          includeStatuses,
         ),
       );
 
@@ -151,7 +156,9 @@ export function displayFileStateChanges(
     for (const [type, files] of fileStateChangesWithoutWarnings.entries()) {
       if (type !== "not_modified" && files.length > 0) {
         const typeColor = STATUS_STYLES[type];
+
         const coloredType = typeColor.color(type);
+
         output.push("  " + files.length + " " + coloredType);
       }
     }
@@ -175,18 +182,19 @@ function formatStatus(
   file: ItemStatus,
   type?: ValItemType,
   maxTypeLength: number = 0,
+  includeStatus: boolean = true,
 ): string {
   const styleConfig = STATUS_STYLES[file.status];
 
   // Format path section
-  const pathDisplay = formatPathDisplay(file, styleConfig);
+  const pathDisplay = formatPathDisplay(file, styleConfig, includeStatus);
 
   // Format type indicator if provided
   const typeIndicator = formatTypeIndicator(type, maxTypeLength);
 
   // Construct the final formatted string with all parts that exist
   const parts = [
-    styleConfig.color(styleConfig.prefix),
+    includeStatus ? styleConfig.color(styleConfig.prefix) : null,
     typeIndicator,
     pathDisplay,
   ].filter(Boolean);
@@ -195,19 +203,25 @@ function formatStatus(
 }
 
 // Format the path display section based on file status
-function formatPathDisplay(file: ItemStatus, styleConfig: {
-  color: (text: string) => string;
-  prefix: string;
-}): string {
+function formatPathDisplay(
+  file: ItemStatus,
+  styleConfig: {
+    color: (text: string) => string;
+    prefix: string;
+  },
+  includeStatus: boolean,
+): string {
+  const colorFn = includeStatus ? styleConfig.color : ValItemColors[file.type];
+
   if (file.status === "renamed") {
     const oldPathFormatted = join(
       dirname(file.oldPath),
-      styleConfig.color(basename(file.oldPath)),
+      colorFn(basename(file.oldPath)),
     );
 
     const newPathFormatted = join(
       dirname(file.path),
-      styleConfig.color(basename(file.path)),
+      colorFn(basename(file.path)),
     );
 
     const similarityText = colors.gray(
@@ -221,7 +235,7 @@ function formatPathDisplay(file: ItemStatus, styleConfig: {
 
   return join(
     dirname(file.path),
-    styleConfig.color(basename(file.path)),
+    colorFn(basename(file.path)),
   );
 }
 
