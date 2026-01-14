@@ -10,8 +10,8 @@ import * as path from "@std/path";
 import { ensureDir, exists } from "@std/fs";
 import {
   DefaultVTConfig,
-  VTConfigSchema,
   VTConfigDeepPartial,
+  VTConfigSchema,
 } from "~/vt/vt/schemas.ts";
 import { parse as parseYaml, stringify as stringifyYaml } from "@std/yaml";
 import type z from "zod";
