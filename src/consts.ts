@@ -8,7 +8,7 @@ export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
-export const ALWAYS_IGNORE_PATTERNS: string[] = [".vt", ".env"];
+export const ALWAYS_IGNORE_PATTERNS: string[] = [".vt", ".env", "node_modules"];
 
 export const DEFAULT_IGNORE_PATTERNS: string[] = ["*~", "*.swp", ".env"];
 

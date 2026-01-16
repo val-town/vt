@@ -101,9 +101,8 @@ Deno.test({
           const [output] = await runVtCommand(["status"], fullPath);
 
           assertStringIncludes(output, "On branch main@0..1..2");
-
-          // Verify output contains the new sections for remote changes
-          assertStringIncludes(output, "Changes you can pull:");
+          assertStringIncludes(output, "Changes between local and remote:");
+          assertStringIncludes(output, "remote-file.js");
         });
       });
     });

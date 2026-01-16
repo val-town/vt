@@ -1,4 +1,5 @@
 import { Command } from "@cliffy/command";
+import { CompletionsCommand } from "@cliffy/command/completions";
 import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "~/cmd/lib/mod.ts";
 import { upgradeCmd } from "./upgrade.ts";
@@ -25,5 +26,6 @@ cmd.command("config", cmds.configCmd);
 cmd.command("delete", cmds.deleteCmd);
 cmd.command("list", cmds.listCmd);
 cmd.command("tail", cmds.tailCmd);
+cmd.command("completions", new CompletionsCommand());
 
 export { cmd };
