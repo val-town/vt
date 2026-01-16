@@ -49,12 +49,9 @@ Deno.test({
 
           assertStringIncludes(output, "On branch main@");
 
-          // Verify output contains the new sections
-          assertStringIncludes(output, "Changes you can push:");
-
-          // Verify output contains information about modified and new files
-          assertStringIncludes(output, "M (file  ) test.js");
-          assertStringIncludes(output, "A (script) new-file.js");
+          assertStringIncludes(output, "Changes between local and remote:");
+          assertStringIncludes(output, "(file  ) test.js (modified locally)");
+          assertStringIncludes(output, "(script) new-file.js");
         });
       });
     });
