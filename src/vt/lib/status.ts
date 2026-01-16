@@ -91,7 +91,7 @@ export async function status(params: StatusParams): Promise<StatusResult> {
         const localStat = await Deno.stat(path.join(targetDir, localFile.path));
 
         // File exists in both places, check if modified
-        const isModified = isFileModified({
+        const [isModified, where] = isFileModified({
           localContent: localFile.content!, // We know it isn't a dir, so there should be content
           localMtime: localFile.mtime,
           remoteContent: valFileInfo.content!,
@@ -103,9 +103,7 @@ export async function status(params: StatusParams): Promise<StatusResult> {
             type: localFile.type,
             path: localFile.path,
             status: "modified",
-            where: localStat.mtime!.getTime() > valFileInfo.mtime
-              ? "local"
-              : "remote",
+            where,
             mtime: localStat.mtime!.getTime(),
             content: localFile.content,
             warnings: await getItemWarnings(localFilePath),

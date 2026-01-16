@@ -84,11 +84,14 @@ export function isFileModified({
   localMtime: number;
   remoteContent: string;
   remoteMtime: number;
-}): boolean {
-  if (localMtime === remoteMtime) return false;
+}): [boolean, "local" | "remote"] {
+  if (localMtime === remoteMtime) return [false, "local"];
 
   // If mtime indicates a possible change, check content
-  return localContent !== remoteContent;
+  return [
+    localContent !== remoteContent,
+    localMtime > remoteMtime ? "local" : "remote",
+  ];
 }
 
 /**
