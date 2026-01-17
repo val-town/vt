@@ -2,23 +2,26 @@ import { Command } from "@cliffy/command";
 import VTConfig, { globalConfig } from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { getNestedProperty, setNestedProperty } from "~/utils.ts";
+import { removeNestedProperty, setNestedProperty } from "~/utils.ts";
 import { stringify as stringifyYaml } from "@std/yaml";
 import { VTConfigSchema } from "~/vt/vt/schemas.ts";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { printYaml } from "~/cmd/styles.ts";
 import { fromError } from "zod-validation-error";
 import z from "zod";
 import { colors } from "@cliffy/ansi/colors";
-import { DEFAULT_WRAP_AMOUNT, GLOBAL_VT_CONFIG_PATH } from "~/consts.ts";
+import {
+  DEFAULT_WRAP_AMOUNT,
+  GLOBAL_VT_CONFIG_PATH,
+  LOCAL_VT_CONFIG_PATH,
+} from "~/consts.ts";
 import { join } from "@std/path";
 import wrap from "word-wrap";
 import { openEditorAt } from "~/cmd/lib/utils/openEditorAt.ts";
-import { Select } from "@cliffy/prompt";
+import { Confirm, Select } from "@cliffy/prompt";
+import { execSync } from "node:child_process";
 
 function showConfigOptions() {
-  // deno-lint-ignore no-explicit-any
-  const jsonSchema = zodToJsonSchema(VTConfigSchema) as any;
+  const jsonSchema = VTConfigSchema.toJSONSchema({ unrepresentable: "any" });
   delete jsonSchema["$schema"];
 
   // deno-lint-ignore no-explicit-any
@@ -40,6 +43,46 @@ function showConfigOptions() {
   console.log(colors.green("All available options:"));
   console.log();
   printYaml(stringifyYaml(jsonSchema["properties"]));
+}
+
+/**
+ * If the user tries to add an API secret to their local vt config file, offer
+ * to add the config file to their local gitignore.
+ */
+async function offerToAddToGitignore() {
+  const gitRoot = execSync("git rev-parse --show-toplevel", {
+    encoding: "utf-8",
+    stdio: ["pipe", "pipe", "ignore"],
+  }).trim();
+
+  const addToIgnore = await Confirm.prompt(
+    "You are adding an API secret to your local config file, and we noticed you have a Git repo set up for this folder.\n" +
+      `Would you like to add \`${LOCAL_VT_CONFIG_PATH}\` to your \`.gitignore\`?`,
+  );
+
+  if (addToIgnore) {
+    let gitignoreContent = "";
+    const gitignorePath = join(gitRoot, ".gitignore");
+
+    try {
+      gitignoreContent = await Deno.readTextFile(gitignorePath);
+      // Add a newline if the file doesn't end with one
+      if (gitignoreContent.length > 0 && !gitignoreContent.endsWith("\n")) {
+        gitignoreContent += "\n";
+      }
+    } catch (e) {
+      if (!(e instanceof Deno.errors.NotFound)) {
+        // If error is something other than "file not found", rethrow it
+        throw e;
+      }
+      // If file doesn't exist, we'll create it with empty content
+    }
+
+    // Add the path to gitignore
+    gitignoreContent += LOCAL_VT_CONFIG_PATH + "\n";
+    await Deno.writeTextFile(gitignorePath, gitignoreContent);
+    console.log(`Added ${LOCAL_VT_CONFIG_PATH} to .gitignore`);
+  }
 }
 
 export const configWhereCmd = new Command()
@@ -70,7 +113,10 @@ export const configWhereCmd = new Command()
 
 export const configSetCmd = new Command()
   .description("Set a configuration value")
-  .option("--local", "Set in the local configuration (val-specific)")
+  .option(
+    "--local",
+    'Set in the local configuration (val-specific). Leave value blank "" to unset.',
+  )
   .arguments("<key:string> <value:string>")
   .example(
     "Set your valtown API key (global)",
@@ -90,40 +136,28 @@ export const configSetCmd = new Command()
         const vtConfig = new VTConfig(vtRoot);
 
         const config = await vtConfig.loadConfig();
-        const updatedConfig = setNestedProperty(config, key, value);
-        const oldProperty = getNestedProperty(config, key, null) as
-          | string
-          | null;
 
-        if (oldProperty !== null && oldProperty.toString() === value) {
-          throw new Error(
-            `Property ${colors.bold(key)} is already set to ${
-              colors.bold(oldProperty)
-            }`,
-          );
-        }
+        const updatedConfig = value === ""
+          ? removeNestedProperty(config, key)
+          : setNestedProperty(config, key, value);
 
-        let validatedConfig: z.infer<typeof VTConfigSchema>;
         try {
           if (useGlobal) {
-            validatedConfig = await vtConfig.saveGlobalConfig(updatedConfig);
+            await vtConfig.saveGlobalConfig(updatedConfig);
           } else {
-            validatedConfig = await vtConfig.saveLocalConfig(updatedConfig);
+            await vtConfig.saveLocalConfig(updatedConfig);
           }
 
-          if (JSON.stringify(config) !== JSON.stringify(validatedConfig)) {
-            spinner.succeed(
-              `Set ${colors.bold(`${key}=${value}`)} in ${
+          spinner.succeed(
+            value === ""
+              ? `Unset ${colors.bold(`${key}`)}`
+              : `Set ${colors.bold(`${key}=${value}`)} in ${
                 useGlobal ? "global" : "local"
               } configuration`,
-            );
-          } else {
-            throw new Error(
-              `Property ${colors.bold(key)} is not valid.` +
-                `\n  Use \`${
-                  colors.bold("vt config options")
-                }\` to view config options`,
-            );
+          );
+
+          if (key === "apiKey" && value !== "" && !useGlobal) {
+            await offerToAddToGitignore();
           }
         } catch (e) {
           if (e instanceof z.ZodError) {
