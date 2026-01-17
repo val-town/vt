@@ -60,7 +60,6 @@
     "npm:open@^10.2.0": "10.2.0",
     "npm:strip-ansi@^7.1.2": "7.1.2",
     "npm:word-wrap@^1.2.5": "1.2.5",
-    "npm:zod-deep-partial@^1.2.0": "1.2.0_zod@4.2.1",
     "npm:zod-validation-error@^4.0.2": "4.0.2_zod@4.2.1",
     "npm:zod@^4.2.1": "4.2.1"
   },
@@ -450,12 +449,6 @@
         "is-wsl"
       ]
     },
-    "zod-deep-partial@1.2.0_zod@4.2.1": {
-      "integrity": "sha512-dXfte+/YN0aFYs0kMGz6xfPQWEYNaKz/LsbfxrbwL+oY3l/aR9HOBTyWCpHZ5AJXMGWKSq+0X0oVPpRliUFcjQ==",
-      "dependencies": [
-        "zod"
-      ]
-    },
     "zod-validation-error@4.0.2_zod@4.2.1": {
       "integrity": "sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==",
       "dependencies": [
@@ -518,7 +511,6 @@
       "npm:open@^10.2.0",
       "npm:strip-ansi@^7.1.2",
       "npm:word-wrap@^1.2.5",
-      "npm:zod-deep-partial@^1.2.0",
       "npm:zod-validation-error@^4.0.2",
       "npm:zod@^4.2.1"
     ]
