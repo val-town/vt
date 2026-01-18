@@ -1,12 +1,13 @@
 # Val Town CLI
 
-VT is a cli to work with Vals in the [Val Town](https://val.town) platform.
+`vt` is the official CLI to work with projects on the
+[Val Town](https://val.town) platform.
 
-![Vt in action!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744915159083_recording.gif)
+![Vt in action!](https://filedumpthing.val.run/blob/blob_file_1744915159083_recording.gif)
 
 ```
 Usage:   vt    
-Version:x0.x.xx
+Version: 0.1.43
 
 Options:
 
@@ -15,22 +16,28 @@ Options:
 
 Commands:
 
+  upgrade                                          - Upgrade vt executable to latest or given version.     
   clone     [valUri] [targetDir] [branchName]      - Clone a Val                                           
   push                                             - Push local changes to a Val                           
   pull                                             - Pull the latest changes for the current Val           
   status                                           - Show the working tree status                          
   branch                                           - List or delete branches                               
-  checkout  [existingBranchName]                   - Check out a different branch                          
+  checkout  <existingBranchName>                   - Check out a different branch                          
   watch                                            - Watch for changes and automatically sync with Val Town
   browse                                           - Open a Val's main page in a web browser               
   create    <valName> [targetDir]                  - Create a new Val                                      
   remix     <fromValUri> [newValName] [targetDir]  - Remix a Val                                           
   config                                           - Manage vt configuration                               
   delete                                           - Delete the current Val                                
-  list                                             - List all your Vals
+  list      [offset]                               - List all your Vals                                    
+  tail      [valUri] [branchName]                  - Stream logs of a Val
 ```
 
 ## Installation
+
+`vt` is built with the Deno TypeScript runtime. To use `vt`, you need to make
+sure you have `Deno` installed. To install `Deno`, see
+[their installation page](https://docs.deno.com/runtime/getting_started/installation/).
 
 To install or update to the latest version, run:
 
@@ -49,10 +56,10 @@ To authenticate with `val.town`, just run `vt`, and you should get the dialog
 ```
 Welcome to the Val Town CLI!
 
-  VT is a companion CLI to interface with Val Town vals.
+  VT is a companion CLI to interface with Val Town Vals.
 
   With this CLI, you can:
-  - Create and manage Val Town vals
+  - Create and manage Val Town Vals
   - Push and pull changes between your local system and Val Town
   - Watch a directory to keep it automatically synced with Val Town
   - And more!
@@ -62,8 +69,8 @@ Welcome to the Val Town CLI!
 ? Would you like to open val.town/settings/api in a browser to get an API key? (y/n) ›
 ```
 
-Respond yes, and ensure you select to create an API key with user read & val
-read+write permissions.
+Respond yes, and ensure you select to create an API key with user read, val
+read+write, and telemetry read permissions.
 
 Alternatively, you can set the `VAL_TOWN_API_KEY` environment variable to
 authenticate. Either as an environment variable, or place it in a .env in your
@@ -92,7 +99,7 @@ $ vt remix std/reactHonoStarter myNewWebsite
 $ cd myNewWebsite
 ```
 
-![Your new Val!](https://wolf-imagedumper.web.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
+![Your new Val!](https://filedumpthing.val.run/blob/blob_file_1744521935175_7f04c371-d619-4062-8bc6-941d56a23eed.png)
 
 Alternatively, you can use `vt create` to create a new empty val. If you don't
 specify a path, the name of the Val will automatically be used.
@@ -116,7 +123,7 @@ those packages installed (or "cached"). Occasionally you'll want to run
 `deno cache .` to make sure that all the libraries you use in your Val Town val
 are installed locally.
 
-![Making changes](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
+![Making changes](https://filedumpthing.val.run/blob/blob_file_1744522002151_95d9436e-9e8b-4361-880f-bf6d7e970741.png)
 
 Let's start editing our val! Fire up your favorite editor, and then make a
 change to `README.md`.
@@ -151,7 +158,7 @@ until you run `vt push`. If you don't want this behavior, then you can delete
 them and add `deno.json` and `.vtignore` to the `.vtignore`(the `.vtignore` will
 respect itself being ignored!).
 
-![Browse the Val on the website](https://wolf-imagedumper.web.val.run/blob/blob_file_1744522722640_recording.gif)
+![Browse the Val on the website](https://filedumpthing.val.run/blob/blob_file_1744522722640_recording.gif)
 
 Now run `vt browse` to see your file in the Val Town website UI. We advise you
 use `vt` in conjunction with the Val Town website. The CLI can do a lot, but not
@@ -159,17 +166,17 @@ everything.
 
 Sometimes, when working locally you want to create a specific type of val. In
 general, `vt` does not touch the metadata of your vals (this means that metadata
-like `cron` settings in general should get preserved when using `vt`. One
+like `cron` settings in general should get preserved when using `vt`). One
 exception to this is the type of vals created when uploading **new** files with
 `vt`.
 
-Now that we've written our text file, let's create a new HTTP val. Create new
+Now that we've written our text file, let's create a new HTTP val. Create a new
 file with the `.http.tsx` extension and we'll automatically create it as an HTTP
 val with an endpoint. Any file with "http" in the name is detected to be an http
 val, so `_http.tsx` also would work.
 
 ```bash
-$touch index.http.tsx
+$ touch index.http.tsx
 $ vt push
 
 Changes pushed:
@@ -211,9 +218,22 @@ Oftentimes you'll end up in a workflow that looks like
 `vt`'s solution to tightening this loop is `vt watch`. With `vt watch`, `vt`
 will automatically run `vt push` when any Val files are modified **locally**.
 
-To get automatic website reloading, check out
-[this live reload middleware](https://www.val.town/x/stevekrouse/live-reload)
-that works by polling Val Town for updates.
+To have your tabs automatically reload, `vt` features a companion browser
+extension. This extension is available via the Chrome or Mozilla web store.
+
+- [Chrome Web Store Link](https://chromewebstore.google.com/detail/vt-companion/jjpaicfaaobmjlcppnooejnjnbefalfo)
+- [Mozilla Web Store Link](https://addons.mozilla.org/en-US/firefox/addon/vt-companion/)
+
+When you run `vt watch`, you can load a `*.val.run` website, and as you edit the
+project and the `vt watch` pushes changes, the tab should reload. `vt
+watch`
+should inform you when your browser is connected.
+
+![Connecting to the CLI](https://filedumpthing.val.run/blob?key=blob_file_1748617655943_9a5c5688-be2e-45be-9747-f9a0e8ba9621.gif)
+
+If you are using a custom domain or for some reason automatic connection does
+not work, you can pin the browser extension, and then right click it, and press
+the "Connect to VT" button.
 
 ### Branching Out
 
@@ -242,8 +262,8 @@ One common Val Town Val workflow is branching out. `vt`'s `checkout` and
 `<System Configuration Directory>/vt/config.yaml`. Right now, this file only
 stores your `config.yaml`, and some experimental options.
 
-This config can also be overridden locally for specific Vals by, when you are in
-a `.vt` directory, using `vt config set [-g for global]` (otherwise the global
+This config can also be overridden locally for specific Vals when you are in a
+`.vt` directory, by using `vt config set [-g for global]` (otherwise the global
 config is modified). This can be useful if someone shares an API key with you so
 you can collaborate on a Val. You can view all configuration options with
 `vt config`, and all the ones you've set with `vt config get`.

@@ -8,16 +8,9 @@ export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 
-export const ALWAYS_IGNORE_PATTERNS: string[] = [
-  ".vt",
-  ".env",
-];
+export const ALWAYS_IGNORE_PATTERNS: string[] = [".vt", ".env", "node_modules"];
 
-export const DEFAULT_IGNORE_PATTERNS: string[] = [
-  "*~",
-  "*.swp",
-  ".env",
-];
+export const DEFAULT_IGNORE_PATTERNS: string[] = ["*~", "*.swp", ".env"];
 
 export const DEFAULT_VAL_PRIVACY = "public";
 export const META_STATE_FILE_NAME = "state.json";
@@ -26,9 +19,18 @@ export const META_FOLDER_NAME = ".vt";
 export const ENTRYPOINT_NAME = "vt.ts";
 export const META_IGNORE_FILE_NAME = ".vtignore";
 export const GLOBAL_VT_CONFIG_PATH = join(xdg.config(), PROGRAM_NAME);
+/** The directory that contains GLOBAL_VT_META_FILE_PATH */
+export const GLOBAL_VT_META_PATH = join(xdg.cache(), PROGRAM_NAME);
+export const GLOBAL_VT_META_FILE_PATH = join(
+  xdg.cache(),
+  PROGRAM_NAME,
+  "upgrade-status.json",
+);
 
 export const DEFAULT_WRAP_WIDTH = 80;
 export const MAX_WALK_UP_LEVELS = 100;
+
+export const DEFAULT_WRAP_AMOUNT = 80;
 
 export const FIRST_VERSION_NUMBER = 0;
 
@@ -44,10 +46,10 @@ export const STATUS_STYLES: Record<
 };
 
 export const WARNING_MESSAGES: Record<ItemWarning, string> = {
-  "bad_name": "Invalid file name",
-  "binary": "File has binary content",
-  "empty": "File is empty",
-  "too_large": "File is too large",
+  bad_name: "Invalid file name",
+  binary: "File has binary content",
+  empty: "File is empty",
+  too_large: "File is too large",
 };
 
 export const DEFAULT_VAL_TYPE = "script";
@@ -64,21 +66,21 @@ export const ValItems = [
 export const JSON_INDENT_SPACES = 4;
 
 export const ValItemColors: Record<ValItemType, (s: string) => string> = {
-  "script": (s: string) => colors.rgb24(s, 0x4287f5),
-  "http": (s: string) => colors.rgb24(s, 0x22c55e),
-  "interval": (s: string) => colors.rgb24(s, 0xd946ef),
-  "email": (s: string) => colors.rgb24(s, 0x8b5cf6),
-  "file": (s: string) => colors.dim(s),
-  "directory": (s: string) => colors.dim(s),
+  script: (s: string) => colors.rgb24(s, 0x4287f5),
+  http: (s: string) => colors.rgb24(s, 0x22c55e),
+  interval: (s: string) => colors.rgb24(s, 0xd946ef),
+  email: (s: string) => colors.rgb24(s, 0x8b5cf6),
+  file: (s: string) => colors.dim(s),
+  directory: (s: string) => colors.dim(s),
 };
 
 export const TypeToTypeStr: Record<ValItemType, string> = {
-  "script": "script",
-  "http": "http",
-  "email": "email",
-  "interval": "cron",
-  "file": "file",
-  "directory": "directory",
+  script: "script",
+  http: "http",
+  email: "email",
+  interval: "cron",
+  file: "file",
+  directory: "directory",
 };
 
 export const VAL_TOWN_VAL_URL_REGEX = /val\.town\/x\/([^\/]+)\/([^\/]+)/;
@@ -92,15 +94,32 @@ export const GET_API_KEY_URL = "https://www.val.town/settings/api";
 export const VT_README_URL =
   "https://github.com/val-town/vt/blob/main/README.md";
 export const TYPE_PRIORITY: Record<ValItemType, number> = {
-  "script": 0,
-  "email": 1,
-  "http": 2,
-  "directory": 3,
-  "file": 4,
-  "interval": 5,
+  script: 0,
+  email: 1,
+  http: 2,
+  directory: 3,
+  file: 4,
+  interval: 5,
 };
 
-export const VAL_ITEM_NAME_REGEX = new RegExp("^[a-zA-Z0-9\\-_.]+$");
+export const VAL_ITEM_NAME_REGEX = /^[a-zA-Z0-9\-_.]+$/;
 export const MAX_FILENAME_LENGTH = 80;
 export const MAX_FILE_CHARS = 80_000;
 export const DEFAULT_EDITOR_TEMPLATE = "std/vtEditorFiles";
+
+export const AUTH_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+export const AUTH_CACHE_LOCALSTORE_ENTRY = "vt_last_auth_cache";
+
+/** The latest version they were notified they could upgrade to */
+export const SAW_AS_LATEST_VERSION = "saw_as_latest_version";
+
+export const JSR_ENTRY_NAME = "@valtown/vt";
+
+export const VT_MINIMUM_FLAGS = [
+  "--allow-read",
+  "--allow-write",
+  "--allow-env",
+  "--allow-net",
+  "--allow-sys",
+  "--allow-run",
+];

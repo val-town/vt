@@ -1,4 +1,8 @@
-import sdk, { branchNameToBranch, randomValName } from "~/sdk.ts";
+import sdk, {
+  branchNameToBranch,
+  getAllMemberOrgs,
+  randomValName,
+} from "~/sdk.ts";
 
 export interface ExpectedValInode {
   path: string;
@@ -20,12 +24,14 @@ export async function doWithNewVal<T>(
       branch: { id: string; version: number };
     },
   ) => Promise<T>,
+  { inOrg }: { inOrg?: boolean } = { inOrg: false },
 ): Promise<T> {
   // Create a blank Val with a random name
   const val = await sdk.vals.create({
     name: randomValName(),
     description: "This is a test val",
     privacy: "public",
+    orgId: inOrg ? (await getAllMemberOrgs()).at(0)?.id : undefined,
   });
 
   // Get the main branch ID

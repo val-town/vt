@@ -1,23 +1,30 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
-import { API_KEY_KEY, DEFAULT_BRANCH_NAME } from "~/consts.ts";
+import manifest from "../deno.json" with { type: "json" };
+import { API_KEY_KEY } from "~/consts.ts";
+import { delay } from "@std/async";
 
-const sdk = new ValTown({ bearerToken: Deno.env.get(API_KEY_KEY)! });
+const sdk = new ValTown({
+  // Must get set in vt.ts entrypoint if not set as an env var!
+  // It needs to be passed here though as *something*
+  bearerToken: Deno.env.get(API_KEY_KEY) ?? crypto.randomUUID(),
+  defaultHeaders: { "x-vt-version": String(manifest.version) },
+});
 
 /**
  * Checks if a Val exists.
  *
- * @param {string} valId The ID of the Val to check
- * @returns {Promise<boolean>} True if the Val exists, false otherwise
+ * @param projectId - The ID of the project to check
+ * @returns Promise resolving to whether the project exists
  */
 export async function valExists(valId: string): Promise<boolean>;
 /**
  * Checks if a Val exists.
  *
- * @param {object} options Val identification options
- * @param {string} options.username The username of the Val owner
- * @param {string} options.valName The name of the Val to check
- * @returns {Promise<boolean>} Promise resolving to true if the Val exists, false otherwise
+ * @param options Val identification options
+ * @param options.username The username of the Val owner
+ * @param options.valName The name of the Val to check
+ * @returns Promise resolving to true if the Val exists, false otherwise
  */
 export async function valExists(options: {
   username: string;
@@ -48,9 +55,9 @@ export async function valExists(
 /**
  * Checks if a branch with the given name exists in a val.
  *
- * @param {string} valId The ID of the Val to check
- * @param {string} branchName The name of the branch to check for
- * @returns {Promise<boolean>} Promise resolving to true if the branch exists, false otherwise
+ * @param valId The ID of the Val to check
+ * @param branchName The name of the branch to check for
+ * @returns Promise resolving to true if the branch exists, false otherwise
  */
 export async function branchExists(
   valId: string,
@@ -65,10 +72,10 @@ export async function branchExists(
 /**
  * Converts a branch name to its corresponding branch ID for a given val.
  *
- * @param {string} valId The ID of the Val containing the branch
- * @param {string} branchName The name of the branch to look up
- * @returns {Promise} Promise resolving to the branch ID
- * @throws {Deno.errors.NotFound} if the branch is not found or if the API request fails
+ * @param valId The ID of the Val containing the branch
+ * @param branchName The name of the branch to look up
+ * @returns Promise resolving to the branch ID
+ * @throws if the branch is not found or if the API request fails
  */
 export async function branchNameToBranch(
   valId: string,
@@ -78,17 +85,17 @@ export async function branchNameToBranch(
     if (branch.name == branchName) return branch;
   }
 
-  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in val`);
+  throw new Deno.errors.NotFound(`Branch "${branchName}" not found in Val`);
 }
 
 /**
  * Checks if a file exists at the specified path in a val
  *
- * @param {string} valId The ID of the Val containing the file
- * @param {string} filePath The file path to check
- * @param {string} branchId The ID of the Val branch to reference
- * @param {number} version The version of the Val to check
- * @returns {Promise<boolean>} Promise resolving to true if the file exists, false otherwise
+ * @param valId The ID of the Val containing the file
+ * @param filePath The file path to check
+ * @param branchId The ID of the Val branch to reference
+ * @param version The version of the Val to check
+ * @returns Promise resolving to true if the file exists, false otherwise
  */
 export async function valItemExists(
   valId: string,
@@ -109,12 +116,12 @@ export async function valItemExists(
 /**
  * Converts a file path to its corresponding Val item for a given val.
  *
- * @param {string} valId - The ID of the Val containing the file
- * @param {object} options - The options object
- * @param {string} options.branchId - The ID of the Val branch to reference
- * @param {number} [options.version] - The version of the Val for the file being found (optional)
- * @param {string} options.filePath - The file path to locate
- * @returns {Promise<ValTown.Vals.FileRetrieveResponse|undefined>} Promise resolving to the file data or undefined if not found
+ * @param valId - The ID of the Val containing the file
+ * @param options - The options object
+ * @param options.branchId - The ID of the Val branch to reference
+ * @param [options.version] - The version of the Val for the file being found (optional)
+ * @param options.filePath - The file path to locate
+ * @returns Promise resolving to the file data or undefined if not found
  */
 export const getValItem = memoize(async (
   valId: string,
@@ -132,39 +139,80 @@ export const getValItem = memoize(async (
 });
 
 /**
-  * Lists all file paths in a Val with pagination support.
-  *
-  * @param {string} valId The ID of the val.
-  * @param {Object} params The parameters for listing Val items.
-  * @param {string} params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for
- root.
-  * @param {string} [params.branch_id] The ID of the Val branch to reference. Defaults to main.
-  * @param {number} [params.version] - The version of the val. Defaults to latest.
-  * @param {boolean} [params.options.recursive] Whether to recursively list files in subdirectories.
-  * @returns {Promise<ValTown.Vals.FileRetrieveResponse[]>} Promise resolving to a Set of file paths.
-  */
+ * Get the content of a Val item.
+ *
+ * @param {string} valId The ID of the Val
+ * @param {string} branchId The ID of the Val branch to reference
+ * @param {number} version The version of the Val
+ * @param {string} filePath The path to the file
+ * @returns {Promise<string>} Promise resolving to the file content
+ */
+export const getValItemContent = memoize(
+  async (
+    valId: string,
+    branchId: string,
+    version: number,
+    filePath: string,
+  ): Promise<string> => {
+    return await sdk.vals.files
+      .getContent(valId, { path: filePath, branch_id: branchId, version })
+      .then((resp) => resp.text());
+  },
+);
+
+/**
+ * Lists all file paths in a Val with pagination support.
+ *
+ * @param valId ID of the val
+ * @param params Parameters for listing Val items
+ * @param params.path Path to a file or directory (e.g. 'dir/subdir/file.ts'). Pass in an empty string for root.
+ * @param [params.branch_id] The ID of the Val branch to reference. Defaults to main.
+ * @param [params.version] - The version of the val. Defaults to latest.
+ * @param [params.options.recursive] Whether to recursively list files in subdirectories
+ * @returns Promise resolving to a Set of file paths
+ */
 export const listValItems = memoize(async (
   valId: string,
   branchId: string,
   version: number,
 ): Promise<ValTown.Vals.FileRetrieveResponse[]> => {
-  const files: ValTown.Vals.FileRetrieveResponse[] = [];
-
-  branchId = branchId ||
-    (await branchNameToBranch(valId, DEFAULT_BRANCH_NAME)
-      .then((resp) => resp.id))!;
-
-  for await (
-    const file of sdk.vals.files.retrieve(valId, {
+  return await Array.fromAsync(
+    sdk.vals.files.retrieve(valId, {
       path: "",
       branch_id: branchId,
       version,
       recursive: true,
-    })
-  ) files.push(file);
-
-  return files;
+    }),
+  );
 });
+
+export async function canWriteToVal(valId: string) {
+  // There's no way to check if we can write to the Val without actually trying
+  // to write to it. So we try to write a random file (a uuid, so that they
+  // don't already have that file) and catch any errors.
+  //
+  // In `vt push`, we could technically just wait for an error to get thrown,
+  // but API errors about not having permissions aren't specific, so we'd need
+  // to wrap specific mutation promises to rethrow the error.
+  //
+  // If we get a 403 or 401, we know we can't write to it
+  // If we get a 404, we know the Val doesn't exist, and may also be able to see
+  // in the message if it's a permissions issue
+  try {
+    const randomPath = crypto.randomUUID();
+    await sdk.vals.files.update(valId, { path: randomPath });
+    // Success means that we broke someone's file. Oops!
+    throw new Error(
+      `Got an unexpected response when trying to check write permissions. ${randomPath} may have gotten overwritten.`,
+    );
+  } catch (e) {
+    if (e instanceof ValTown.APIError) {
+      if (e.status === 403 || e.status === 401) return false;
+      if (e.status === 404) return !e.message.includes("Not authorized");
+      else throw e;
+    } else throw e;
+  }
+}
 
 /**
  * Get the latest version of a branch.
@@ -186,5 +234,98 @@ export function randomValName(label = "") {
 export const getCurrentUser = memoize(async () => {
   return await sdk.me.profile.retrieve();
 });
+
+/**
+ * Get all organizations the current user is a member of.
+ *
+ * @returns All organizations the current user is a member of
+ */
+export async function getAllMemberOrgs() {
+  return await Array.fromAsync(sdk.orgs.list({}));
+}
+
+export async function* getTraces({
+  frequency = 1000,
+  signal,
+  ...params
+}: {
+  frequency?: number;
+  signal?: AbortSignal;
+} & Partial<ValTown.Telemetry.Traces.TraceListParams>): AsyncGenerator<
+  ValTown.Telemetry.Traces.TraceListResponse.Data
+> {
+  let cursor = new Date();
+
+  while (true) {
+    while (true) {
+      if (signal?.aborted) break;
+
+      const resp = await sdk.telemetry.traces.list({
+        ...params,
+        limit: 50,
+        start: cursor.toISOString(),
+        order_by: "end_time",
+        direction: "asc",
+      });
+      yield* resp.data;
+
+      const nextUrl = resp.links.next;
+      if (!nextUrl) break;
+
+      const nextStart = new URL(nextUrl).searchParams.get("start");
+      if (!nextStart) break;
+
+      cursor = new Date(nextStart);
+    }
+
+    await delay(frequency);
+  }
+}
+
+/**
+ * Get all logs for a specific trace ID.
+ *
+ * @param traceId The trace ID to get logs for
+ * @returns AsyncGenerator yielding all log entries for the trace
+ */
+export async function* getLogsForTraces(
+  traceIds: string[],
+): AsyncGenerator<ValTown.Telemetry.Logs.LogListResponse.Data> {
+  let nextUrl: string | undefined;
+
+  do {
+    const nextStart = nextUrl
+      ? new URL(nextUrl).searchParams.get("start")
+      : undefined;
+
+    const response = await sdk.telemetry.logs.list({
+      limit: 1,
+      trace_ids: traceIds,
+      ...(nextUrl && nextStart && {
+        start: nextStart,
+      }),
+      direction: "asc",
+    });
+
+    yield* response.data;
+
+    nextUrl = response.links.next;
+  } while (nextUrl);
+}
+
+/**
+ * Converts a file ID to its corresponding Val file for a given val.
+ *
+ * @param valId The ID of the Val containing the file
+ * @param branchId The ID of the Val branch to reference
+ * @param fileId The ID of the file to retrieve
+ * @returns Promise resolving to the Val file data
+ * @throws if the file is not found or if the API request fails
+ */
+export async function fileIdToValFile(
+  fileId: string,
+): Promise<ValTown.Vals.FileRetrieveResponse> {
+  return await sdk.files.retrieve(fileId);
+}
 
 export default sdk;

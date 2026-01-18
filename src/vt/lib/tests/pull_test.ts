@@ -206,7 +206,7 @@ Deno.test({
 
         await t.step("perform dry run pull", async () => {
           // Run pull with dryRun option
-          const fileStateChanges = await pull({
+          const { itemStateChanges } = await pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -216,12 +216,12 @@ Deno.test({
 
           // Verify result contains expected changes
           assertEquals(
-            fileStateChanges.created.length,
+            itemStateChanges.created.length,
             1,
             "dry run should detect one file to create",
           );
           assertEquals(
-            fileStateChanges.created[0].path,
+            itemStateChanges.created[0].path,
             vtFilePath,
             "correct file path should be detected",
           );
@@ -257,7 +257,7 @@ Deno.test({
           );
 
           // Run pull with dryRun option
-          const fileStateChanges = await pull({
+          const { itemStateChanges } = await pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -267,12 +267,12 @@ Deno.test({
 
           // Verify result contains expected modifications
           assertEquals(
-            fileStateChanges.modified.length,
+            itemStateChanges.modified.length,
             1,
             "dry run should detect one file to modify",
           );
           assertEquals(
-            fileStateChanges.modified[0].path,
+            itemStateChanges.modified[0].path,
             vtFilePath,
             "correct file path should be detected for modification",
           );
@@ -312,8 +312,8 @@ Deno.test({
         });
 
         await t.step("pull that creates directories", async () => {
-          // Pull the Val to the temp directory
-          const firstPullChanges = await pull({
+          // Pull the project to the temp directory
+          const { itemStateChanges: firstPullChanges } = await pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,
@@ -339,7 +339,7 @@ Deno.test({
 
         await t.step("pull that should not detect changes", async () => {
           // Pull again - should not detect changes
-          const secondPullChanges = await pull({
+          const { itemStateChanges: secondPullChanges } = await pull({
             targetDir: tempDir,
             valId: val.id,
             branchId: branch.id,

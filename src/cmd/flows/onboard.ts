@@ -22,7 +22,7 @@ function welcomeToVt(): void {
 
   console.log(wrap(
     colors.bold("VT") +
-      " is a companion CLI to interface with Val Town vals.",
+      " is a companion CLI to interface with Val Town Vals.",
     { width: DEFAULT_WRAP_WIDTH },
   ));
   console.log();
@@ -30,7 +30,7 @@ function welcomeToVt(): void {
   console.log(wrap("With this CLI, you can:", { width: DEFAULT_WRAP_WIDTH }));
 
   [
-    "Create and manage Val Town vals",
+    "Create and manage Val Town Vals",
     "Push and pull changes between your local system and Val Town",
     "Watch a directory to keep it automatically synced with Val Town",
     "And more!",
@@ -68,7 +68,9 @@ export async function onboardFlow(
   });
 
   if (goToWebsite) {
-    console.log("Ensure you select user read & Val read+write permissions");
+    console.log(
+      "Ensure you select user read, Val read+write, and telemetry read permissions",
+    );
     await delay(500);
     await open(GET_API_KEY_URL);
     console.log(`Browser opened to ${GET_API_KEY_URL}`);
@@ -84,8 +86,8 @@ export async function onboardFlow(
   const apiKey = await Secret.prompt({
     message: "Please enter your Val Town API key:",
     validate: (input) => {
-      if (input.length !== 33) {
-        return "API key must be exactly 33 characters long";
+      if (!(input.length === 32 || input.length === 33)) {
+        return "API key must be 32-33 characters long";
       }
       return true;
     },

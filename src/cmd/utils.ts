@@ -1,6 +1,8 @@
 import ValTown from "@valtown/sdk";
 import { join } from "@std/path";
 import Kia from "kia";
+import { colors } from "@cliffy/ansi/colors";
+import { toListBranchesCmdMsg } from "~/cmd/lib/utils/messages.ts";
 
 /**
  * Determines the clone path based on the provided directory and Val name
@@ -19,19 +21,46 @@ export function getClonePath(
 /**
  * Clean and transform error messages
  *
- * @param error - The error to be processed
+ * @param error The error to be processed
  * @returns A cleaned error message
  */
 export function sanitizeErrors(error: unknown): string {
   if (error instanceof ValTown.APIError) {
-    // Remove leading numbers from error message and convert to sentence case
-    const cleanedMessage = error.message.replace(/^\d+\s+/, "");
-    return cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1);
+    let suffixedExtra = "";
+
+    if (error.status === 404) {
+      if (error.message.toLowerCase().includes("branch")) {
+        suffixedExtra = "You may have deleted the current branch. " +
+          "To recover, check out a branch that still exists. " +
+          toListBranchesCmdMsg;
+      }
+      if (error.message.toLowerCase().includes("project")) {
+        suffixedExtra = "You may have deleted the current Val. " +
+          "This folder is no longer usable with `vt`. " +
+          "If you have important files, create a new Val and copy them over.";
+      }
+    } else if (error.status === 401) {
+      suffixedExtra =
+        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`";
+    }
+
+    if (error.message.includes("required permissions")) {
+      suffixedExtra +=
+        "To set a new API key, use `vt config set apiKey new_api_key`";
+    }
+
+    // Remove leading numbers from error message
+    const cleanedMessage = error.message
+      .replace(/^\d+\s+/, "")
+      .replace(/[pP]roject/, "Val");
+    const message = colors.red(
+      cleanedMessage.charAt(0).toUpperCase() + cleanedMessage.slice(1) +
+        (suffixedExtra.length > 0 ? ".\n" : "."),
+    ) + colors.yellow(suffixedExtra);
+    return message;
   }
 
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
 
   // For any other type of error, convert to string
   return String(error);
@@ -40,12 +69,13 @@ export function sanitizeErrors(error: unknown): string {
 /**
  * Execute a function with a spinner, ensuring it stops after execution.
  *
+ * @template T The return type of the callback function
  * @param spinnerText - Initial spinner text
  * @param callback - Function to execute with the spinner
- * @param options - Optional configuration for spinner behavior
- * @param options.autostart - Whether to start the spinner automatically (default: true)
- * @param options.cleanError - Function to clean error messages (default: sanitizeErrors)
- * @param options.exitOnError - Whether to exit on error (default: true)
+ * @param Optional configuration for spinner behavior
+ * @param options.autostart Whether to start the spinner automatically
+ * @param Function to clean error messages
+ * @param options.exitOnError Whether to exit on error
  * @returns The result of the callback function
  */
 export async function doWithSpinner<T>(
@@ -72,6 +102,10 @@ export async function doWithSpinner<T>(
 
     return await callback(spinner);
   } catch (e) {
+    if (Deno.env.get("VT_DEBUG") === "true") {
+      throw e;
+    }
+
     // Use the provided or default error cleaning function
     const cleanedErrorMessage = cleanError(e);
 

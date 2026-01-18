@@ -30,6 +30,8 @@ export interface CreateParams {
   description?: string;
   /** Privacy setting for the val. Defaults to that of the Val being remixed. */
   privacy?: ValPrivacy;
+  /** Organization you are a member of to create the new Val in. */
+  orgId?: string;
   /** A list of gitignore rules. */
   gitignoreRules?: string[];
 }
@@ -37,8 +39,7 @@ export interface CreateParams {
 /**
  * Creates a new Val Town Val from a local directory.
  *
- * @param {CreateParams} params Options for create operation.
- *
+ * @param params Options for create operation.
  * @returns Promise that resolves with changes that were applied during the push operation and the new Val ID.
  */
 export async function create(
@@ -50,6 +51,7 @@ export async function create(
     description = "",
     privacy = "private",
     gitignoreRules,
+    orgId,
   } = params;
 
   await ensureDir(sourceDir);
@@ -59,6 +61,7 @@ export async function create(
     name: valName,
     description,
     privacy,
+    orgId,
   });
   const newBranch = await branchNameToBranch(
     newVal.id,

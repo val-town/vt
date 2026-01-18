@@ -73,7 +73,10 @@ export const cloneCmd = new Command()
         }
 
         // Map vals to name format for selection
-        const valNames = vals.map((p) => p.name);
+        const valNames = vals
+          // Only show vals owned by the user (not orgs that the user is in)
+          .filter((p) => p.author.id === user.id)
+          .map((p) => p.name);
 
         const selectedVal = await Input.prompt({
           message: "Choose a Val to clone",

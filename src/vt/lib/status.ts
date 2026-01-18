@@ -1,4 +1,4 @@
-import sdk, { listValItems } from "~/sdk.ts";
+import { getValItemContent, listValItems } from "~/sdk.ts";
 import { getValItemType, shouldIgnore } from "~/vt/lib/paths.ts";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
@@ -13,6 +13,12 @@ import {
 } from "~/vt/lib/utils/ItemStatusManager.ts";
 import { join } from "@std/path";
 import { isFileModified } from "~/vt/lib/utils/misc.ts";
+import { exists } from "@std/fs";
+
+/** Result of status operation  */
+export interface StatusResult {
+  itemStateChanges: ItemStatusManager;
+}
 
 /**
  * Parameters for scanning a directory and determining the status of files compared to the Val Town val.
@@ -38,7 +44,7 @@ export interface StatusParams {
  * @param params Options for status operation.
  * @returns Promise that resolves to a FileState object containing categorized files.
  */
-export async function status(params: StatusParams): Promise<ItemStatusManager> {
+export async function status(params: StatusParams): Promise<StatusResult> {
   const {
     targetDir,
     valId,
@@ -48,7 +54,6 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
   } = params;
   const result = new ItemStatusManager();
 
-  // Get all files
   const localFiles = await getLocalFiles({
     valId,
     branchId,
@@ -61,6 +66,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     branchId,
     version,
     gitignoreRules,
+    targetDir,
   });
   const valFileMap = new Map(valFiles.map((file) => [file.path, file]));
 
@@ -83,12 +89,13 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     } else {
       if (localFile.type !== "directory") {
         const localStat = await Deno.stat(path.join(targetDir, localFile.path));
+
         // File exists in both places, check if modified
         const isModified = isFileModified({
-          srcContent: localFile.content!, // We know it isn't a dir, so there should be content
-          srcMtime: localFile.mtime,
-          dstContent: valFileInfo.content!,
-          dstMtime: valFileInfo.mtime,
+          localContent: localFile.content!, // We know it isn't a dir, so there should be content
+          localMtime: localFile.mtime,
+          remoteContent: valFileInfo.content!,
+          remoteMtime: valFileInfo.mtime,
         });
 
         if (isModified) {
@@ -141,7 +148,7 @@ export async function status(params: StatusParams): Promise<ItemStatusManager> {
     }
   }
 
-  return result.consolidateRenames();
+  return { itemStateChanges: result.consolidateRenames() };
 }
 
 async function getValFiles({
@@ -149,27 +156,50 @@ async function getValFiles({
   branchId,
   version,
   gitignoreRules,
+  targetDir,
 }: {
   valId: string;
   branchId: string;
   version: number;
   gitignoreRules?: string[];
+  targetDir: string;
 }): Promise<ItemInfo[]> {
   return Promise.all(
     (await listValItems(valId, branchId, version))
       .filter((file) => !shouldIgnore(file.path, gitignoreRules))
-      .map(async (file): Promise<ItemInfo> => ({
-        path: file.path,
-        type: file.type,
-        mtime: new Date(file.updatedAt).getTime(),
-        content: file.type === "directory"
-          ? undefined
-          : await sdk.vals.files.getContent(valId, {
-            path: file.path,
-            branch_id: branchId,
+      .map(async (file): Promise<ItemInfo> => {
+        let itemContent: string | undefined;
+
+        const localFileMTime = await exists(join(targetDir, file.path))
+          ? (await Deno
+            .stat(join(targetDir, file.path))
+            .then((stat) => !stat.isDirectory && stat.mtime!.getTime()))
+          : undefined;
+        const remoteFileMTime = new Date(file.updatedAt).getTime();
+
+        const definitelyIsNotModified = file.type === "directory" ||
+          localFileMTime === remoteFileMTime;
+
+        if (definitelyIsNotModified && file.type !== "directory") {
+          // If the file is not modified, we can fetch its content from the local copy
+          itemContent = await Deno.readTextFile(join(targetDir, file.path));
+        } else if (file.type !== "directory") {
+          // If the file is modified, we need to fetch its content from Val
+          itemContent = await getValItemContent(
+            valId,
+            branchId,
             version,
-          }).then((resp) => resp.text()),
-      })),
+            file.path,
+          );
+        }
+
+        return ({
+          path: file.path,
+          type: file.type,
+          mtime: new Date(file.updatedAt).getTime(),
+          content: itemContent,
+        });
+      }),
   );
 }
 
@@ -195,14 +225,10 @@ async function getLocalFiles({
       if (shouldIgnore(relativePath, gitignoreRules)) return null;
       if (entry.path === targetDir) return null;
 
-      // Store the path and its modification time
       const localStat = await Deno.stat(entry.path);
 
-      // It seems like it might be a Deno bug, but sometimes we will try to
-      // read a file and will get an "it is a directory" error.
       const fileContent = await Deno.readTextFile(entry.path)
         .catch((_e) => undefined);
-      const isDirectory = entry.isDirectory || fileContent === undefined;
 
       return {
         path: relativePath,
@@ -213,7 +239,7 @@ async function getLocalFiles({
           relativePath,
         )),
         mtime: localStat.mtime!.getTime(),
-        content: isDirectory ? undefined : fileContent,
+        content: entry.isDirectory ? undefined : fileContent,
       };
     })());
   }

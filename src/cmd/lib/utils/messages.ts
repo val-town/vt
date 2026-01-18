@@ -19,3 +19,5 @@ export function ensureAddEditorFiles(editorTemplate: string) {
     return "Would you like `vt` to add editor files to this val?";
   }
 }
+
+export const toListBranchesCmdMsg = "Use `vt branch` to list branches.";

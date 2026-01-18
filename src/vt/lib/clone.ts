@@ -1,4 +1,4 @@
-import sdk, { listValItems } from "~/sdk.ts";
+import { getValItemContent, listValItems } from "~/sdk.ts";
 import { shouldIgnore } from "~/vt/lib/paths.ts";
 import { ensureDir, exists } from "@std/fs";
 import { dirname } from "@std/path/dirname";
@@ -114,7 +114,7 @@ async function createFile(
   targetRoot: string,
   valId: string,
   branchId: string,
-  version: number | undefined = undefined,
+  version: number,
   file: ValTown.Vals.FileRetrieveResponse,
   changes: ItemStatusManager,
   dryRun: boolean,
@@ -159,17 +159,18 @@ async function createFile(
 
     // Get its content for modification checking
     const localContent = await Deno.readTextFile(join(originalRoot, path));
-    const valContent = await sdk.vals.files.getContent(valId, {
-      path,
-      branch_id: branchId,
+    const valContent = await getValItemContent(
+      valId,
+      branchId,
       version,
-    }).then((resp) => resp.text());
+      path,
+    );
 
     const modified = isFileModified({
-      srcContent: localContent,
-      srcMtime: localMtime,
-      dstContent: valContent,
-      dstMtime: valMtime,
+      remoteContent: valContent,
+      remoteMtime: valMtime,
+      localContent: localContent,
+      localMtime: localMtime,
     });
 
     if (modified) {
@@ -205,10 +206,12 @@ async function createFile(
   if (fileStatus.status === "not_modified") {
     await Deno.copyFile(join(originalRoot, path), join(targetRoot, path));
   } else {
-    const content = await sdk.vals.files.getContent(
+    const content = await getValItemContent(
       valId,
-      { path: file.path, branch_id: branchId, version },
-    ).then((resp) => resp.text());
+      branchId,
+      version,
+      file.path,
+    );
 
     await Deno.writeTextFile(join(targetRoot, path), content);
   }

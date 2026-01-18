@@ -212,7 +212,7 @@ Deno.test({
         "--no-editor-files",
       ], tmpDir);
 
-      assertStringIncludes(out, "Val not found");
+      assertStringIncludes(out, "This val could not be found");
     });
   },
   sanitizeResources: false,
@@ -226,10 +226,30 @@ Deno.test({
       await doWithNewVal(async ({ val }) => {
         const fullPath = join(tmpDir, val.name);
 
-        const [outputLines, cloneChild] = streamVtCommand(["clone"], tmpDir);
-        await waitForStable(outputLines);
+        let outputLines: string[] = [];
+        let cloneChild: Deno.ChildProcess | null = null;
+
+        // Run the clone command such that a Val in an org has been recently touched
+        await doWithNewVal(async () => {
+          const [_outputLines, _cloneChild] = streamVtCommand(
+            ["clone"],
+            tmpDir,
+          );
+          outputLines = _outputLines;
+          cloneChild = _cloneChild;
+
+          await waitForStable(outputLines);
+
+          // Make sure that "OrgVal" is not in the list (this is a val in an org we are in)
+          assert(
+            !outputLines.join("\n").includes("OrgVal"),
+            "OrgVal should not be listed",
+          );
+        }, { inOrg: true });
 
         await t.step("use interactive clone", async () => {
+          assert(cloneChild);
+
           let stdin = cloneChild.stdin.getWriter();
           await stdin.write(new TextEncoder().encode(val.name + "\n"));
           stdin.releaseLock();

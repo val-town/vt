@@ -64,14 +64,14 @@ export type ForkCheckoutParams = BaseCheckoutParams & {
 /**
  * Checks out a specific existing branch of a val.
  * @param params Options for the checkout operation.
- * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information.
+ * @returns Promise that resolves with checkout information.
  */
 export function checkout(params: BranchCheckoutParams): Promise<CheckoutResult>;
 
 /**
   * Creates a new branch from a val's branch and checks it out.
   * @param params Options for the checkout operation.
-  * @returns {Promise<CheckoutResult>} A promise that resolves with checkout information (including the new branch
+  * @returns Promise that resolves with checkout information (including the new branch
  details).
   */
 export function checkout(params: ForkCheckoutParams): Promise<CheckoutResult>;
@@ -194,7 +194,7 @@ async function handleBranchCheckout(
       );
 
       // Clone the target branch into the temporary directory
-      const pullResult = await pull({
+      const { itemStateChanges: pullResult } = await pull({
         targetDir: tmpDir,
         valId: params.valId,
         branchId: toBranch.id,

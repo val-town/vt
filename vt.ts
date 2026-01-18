@@ -2,23 +2,40 @@
 import "@std/dotenv/load";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
-import { API_KEY_KEY } from "~/consts.ts";
+import { API_KEY_KEY, AUTH_CACHE_TTL } from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
+import sdk from "~/sdk.ts";
+import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
+import { vtCheckCache } from "~/vt/VTCheckCache.ts";
 
 await ensureGlobalVtConfig();
 
 async function isApiKeyValid(): Promise<boolean> {
+  // Since we run this on every invocation of vt, it makes sense to only check
+  // if the api key is still valid every so often.
+  const lastAuthAt = await vtCheckCache.getAuthChecked();
+  const hoursSinceLastAuth = lastAuthAt
+    ? new Date().getTime() - lastAuthAt.getTime()
+    : Infinity;
+  if (hoursSinceLastAuth < AUTH_CACHE_TTL) return true;
+
   const apiKey = Deno.env.get(API_KEY_KEY);
   if (!apiKey) return false;
 
   const resp = await fetch("https://api.val.town/v1/me", {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
+
+  if (resp.ok) {
+    await vtCheckCache.setAuthCheckedToNow();
+    return true;
+  }
+
   return resp.status !== 401;
 }
 
 async function ensureValidApiKey() {
-  if (Deno.env.has(API_KEY_KEY) && await isApiKeyValid()) return;
+  if (Deno.env.has(API_KEY_KEY) && (await isApiKeyValid())) return;
 
   {
     const { apiKey } = await globalConfig.loadConfig();
@@ -33,10 +50,9 @@ async function ensureValidApiKey() {
           " This happens when it expires or is revoked.",
       );
       console.log();
-      await onboardFlow({ showWelcome: false });
-    } else {
-      console.log("Let's set up your Val Town API key.");
       await onboardFlow();
+    } else {
+      await onboardFlow({ showWelcome: true });
     }
   }
 
@@ -51,12 +67,18 @@ async function ensureValidApiKey() {
   }
 }
 
-async function startVt() {
+async function startVt(...args: string[]) {
   const vt = (await import("~/cmd/root.ts")).cmd;
-  await vt.parse(Deno.args);
+  await vt.parse([...Deno.args, ...args]);
 }
 
 if (import.meta.main) {
+  if (Deno.env.get("CI") !== "true") {
+    await registerOutdatedWarning();
+  }
   await ensureValidApiKey();
+  sdk.bearerToken = Deno.env.get(API_KEY_KEY) ?? sdk.bearerToken;
   await startVt();
 }
+
+export * from "./mod.ts";

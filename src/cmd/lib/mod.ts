@@ -11,3 +11,5 @@ export { pushCmd } from "./push.ts";
 export { statusCmd } from "./status.ts";
 export { watchCmd } from "./watch.ts";
 export { configCmd } from "./config.ts";
+export { tailCmd } from "./tail.ts";
+export { profileCmd } from "./profile.ts";
