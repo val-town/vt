@@ -76,6 +76,7 @@ vt checkout main`,
       const user = await getCurrentUser();
       const clonePath = getClonePath(targetDir, valName);
 
+      // Determine privacy setting (defaults to public)
       const privacy = isPrivate ? "private" : unlisted ? "unlisted" : "public";
 
       // If they don't specify an org, including not specifying "me," we check
