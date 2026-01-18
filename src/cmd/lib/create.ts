@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
-import { getAllMemberOrgs, getCurrentUser, orgNameToOrgId } from "~/sdk.ts";
+import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
