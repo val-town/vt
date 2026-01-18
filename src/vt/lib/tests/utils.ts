@@ -28,7 +28,7 @@ type ValInfoSolo = ValInfoBase;
  * @param op Function that takes a val, branch, and returns a Promise
  * @returns Promise that resolves to the result of the operation
  */
- // @ts-ignore overload signature mismatch
+// @ts-ignore overload signature mismatch
 export async function doWithNewVal<T>(
   op: (valInfo: ValInfoSolo) => Promise<T>,
   options?: { inOrg?: false },
