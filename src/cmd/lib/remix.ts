@@ -180,7 +180,7 @@ async function remixCurrentDirectory({
     valName: newValName,
     privacy,
     description,
-    requireEmptyDir: false,
+    skipSafeDirCheck: true,
   });
 
   if (editorFiles) await newVt.addEditorTemplate();
