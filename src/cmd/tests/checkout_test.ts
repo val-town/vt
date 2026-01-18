@@ -556,11 +556,11 @@ Deno.test({ // similar to other tests but for an org val.
   permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
-      await doWithNewVal(async ({ val }) => {
+      await doWithNewVal(async ({ val, org }) => {
         await t.step("clone the Val and modify it", async () => {
           // Clone the Val (defaults to main branch)
           const [stdout, code] = await runVtCommand(
-            ["clone", val.name, "--no-editor-files"],
+            ["clone", `${org.handle}/${val.name}`, "--no-editor-files"],
             tmpDir,
           );
 
