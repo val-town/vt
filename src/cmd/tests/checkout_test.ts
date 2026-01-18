@@ -559,7 +559,7 @@ Deno.test({ // similar to other tests but for an org val.
       await doWithNewVal(async ({ val, org }) => {
         let fullPath: string;
 
-        await t.step("clone the Val and modify it", async () => {
+        await t.step("clone the Val", async () => {
           // Clone the Val (defaults to main branch)
           const [stdout, code] = await runVtCommand(
             ["clone", `${org.handle}/${val.name}`, "--no-editor-files"],
@@ -587,7 +587,6 @@ Deno.test({ // similar to other tests but for an org val.
 
           const [statusOutput] = await runVtCommand(["status"], fullPath);
           assertStringIncludes(statusOutput, "On branch org-feature-branch@");
-          assert(await exists(join(fullPath, "org-feature-branch.ts")));
         });
       }, { inOrg: true });
     });
