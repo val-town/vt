@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
-import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
+import { getAllMemberOrgs } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
@@ -73,7 +73,6 @@ vt checkout main`,
     targetDir?: string,
   ) => {
     await doWithSpinner("Creating new Val...", async (spinner) => {
-      const user = await getCurrentUser();
       const clonePath = getClonePath(targetDir, valName);
 
       // Determine privacy setting (defaults to public)
@@ -149,7 +148,6 @@ vt checkout main`,
           ? VTClient.create({
             rootPath: clonePath,
             valName,
-            username: user.username!,
             orgId: orgName,
             privacy,
             description,
@@ -158,7 +156,6 @@ vt checkout main`,
           : VTClient.create({
             rootPath: clonePath,
             valName,
-            username: user.username!,
             privacy,
             description,
             skipSafeDirCheck: true,
