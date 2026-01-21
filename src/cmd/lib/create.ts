@@ -5,7 +5,7 @@ import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
-import { Confirm, Input } from "@cliffy/prompt";
+import { Confirm, Input, Select } from "@cliffy/prompt";
 import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
@@ -91,12 +91,12 @@ vt checkout main`,
         const orgIds = orgs.map((o) => o.id!);
         if (orgNames.length > 0) {
           spinner.stop();
-          const orgOrMe = await Input.prompt({
+          const orgOrMe = await Select.prompt({
+            search: true,
             message:
               "Would you like to create the new Val under an organization you are a member of, or your personal account?",
             default: "Personal Account",
-            list: true, // Show all the options
-            suggestions: ["Personal Account", ...orgNames],
+            options: ["Personal Account", ...orgNames],
           });
           if (orgOrMe !== "Personal Account") {
             // Org usernames are unique, but not in time, so we can use it to grab the index
