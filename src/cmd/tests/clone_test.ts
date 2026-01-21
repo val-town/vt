@@ -168,16 +168,19 @@ Deno.test({
           await runVtCommand([
             "create",
             valName,
+            "--org-name",
+            "me",
             join(tmpDir, "unused_" + crypto.randomUUID()),
           ], tmpDir);
         });
 
         const targetDir = join(tmpDir, "test-val-dir");
 
+        console.log(`${user.username}/${valName}`);
         await t.step("clone the new val", async () => {
           const [output] = await runVtCommand([
             "clone",
-            valName,
+            `${user.username}/${valName}`,
             targetDir,
             "--no-editor-files",
           ], tmpDir);
