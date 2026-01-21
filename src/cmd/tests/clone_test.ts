@@ -177,7 +177,7 @@ Deno.test({
         await t.step("clone the new val", async () => {
           const [output] = await runVtCommand([
             "clone",
-            valName,
+            `${user.username}/${valName}`,
             targetDir,
             "--no-editor-files",
           ], tmpDir);
