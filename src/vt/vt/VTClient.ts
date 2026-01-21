@@ -265,7 +265,6 @@ export default class VTClient {
   public static async create({
     rootPath,
     valName,
-    username,
     privacy,
     description,
     orgId,
@@ -273,7 +272,6 @@ export default class VTClient {
   }: {
     rootPath: string;
     valName: string;
-    username: string;
     privacy: "public" | "private" | "unlisted";
     description?: string;
     orgId?: string;
@@ -306,8 +304,7 @@ export default class VTClient {
 
     // Clone and return the VTClient
     return await VTClient.clone({
-      username,
-      valName,
+      valId: newValId,
       rootPath,
       skipSafeDirCheck: true, // Already checked above
     });

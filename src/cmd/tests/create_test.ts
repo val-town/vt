@@ -247,7 +247,7 @@ Deno.test({
 
       await t.step("create Val in current directory", async () => {
         // Create Val in current directory using "."
-        await runVtCommand([
+        const [_stdout, code] = await runVtCommand([
           "create",
           newValName,
           ".",
@@ -256,6 +256,7 @@ Deno.test({
           "--org-name",
           "me",
         ], tmpDir);
+        assertEquals(code, 0);
 
         newVal = await sdk.alias.username.valName.retrieve(
           user.username!,

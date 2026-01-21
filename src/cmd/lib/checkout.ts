@@ -7,7 +7,7 @@ import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
 import sdk, {
   branchNameToBranch,
-  getCurrentUser,
+  canWriteToVal,
   getLatestVersion,
 } from "~/sdk.ts";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
@@ -75,7 +75,6 @@ export const checkoutCmd = new Command()
           const rootPath = await findVtRoot(Deno.cwd());
           const vt = VTClient.from(rootPath);
           const vtState = await vt.getMeta().loadVtState();
-          const user = await getCurrentUser();
 
           // Get the current branch data
           const currentBranchData = await sdk.vals.branches
@@ -127,10 +126,7 @@ export const checkoutCmd = new Command()
 
           try {
             // If they are creating a new branch, ensure that they are the owner of this Val
-            if (
-              isNewBranch &&
-              (await sdk.vals.retrieve(vtState.val.id)).author.id !== user.id
-            ) {
+            if (isNewBranch && !(await canWriteToVal(vtState.val.id))) {
               throw new Error(
                 "You are not the owner of this Val, you cannot make a new branch.",
               );
