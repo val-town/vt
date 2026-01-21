@@ -126,7 +126,7 @@ export const checkoutCmd = new Command()
 
           try {
             // If they are creating a new branch, ensure that they are the owner of this Val
-            if (!(await canWriteToVal(vtState.val.id))) {
+            if (isNewBranch && !(await canWriteToVal(vtState.val.id))) {
               throw new Error(
                 "You are not the owner of this Val, you cannot make a new branch.",
               );
