@@ -13,3 +13,5 @@ export { watchCmd } from "./watch.ts";
 export { configCmd } from "./config.ts";
 export { tailCmd } from "./tail.ts";
 export { profileCmd } from "./profile.ts";
+export { loginCmd } from "./login.ts";
+export { logoutCmd } from "./logout.ts";
