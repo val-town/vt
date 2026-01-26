@@ -27,10 +27,10 @@ export const profileCmd = new Command()
       }`;
       if (orgNames.length > 0) {
         currentlyLoggedInMsg += ` and a member of ${
-          colors.bold(
-            orgNames.map((n) => ansi.link(`@${n}`, orgUsernameToOrgLink(n)))
-              .join(", "),
+          orgNames.map((n) =>
+            colors.bold(ansi.link(`@${n}`, orgUsernameToOrgLink(n)).toString())
           )
+            .join(", ")
         }`;
       }
       currentlyLoggedInMsg += ".";
