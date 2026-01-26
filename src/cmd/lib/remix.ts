@@ -160,7 +160,6 @@ async function remixCurrentDirectory({
   privacy,
   description,
   editorFiles,
-  user,
 }: {
   privacy: "public" | "private" | "unlisted";
   description?: string;
@@ -173,9 +172,7 @@ async function remixCurrentDirectory({
   const val = await sdk.vals.retrieve(valId);
 
   const newValName = await generateUniqueProjectName(val.name);
-  console.log("newValName", newValName);
   const newVt = await VTClient.create({
-    username: user.username!,
     rootPath: currentVt.rootPath,
     valName: newValName,
     privacy,
