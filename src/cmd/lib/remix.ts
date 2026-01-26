@@ -157,6 +157,7 @@ async function remixSpecificProject({
 }
 
 async function remixCurrentDirectory({
+  user,
   privacy,
   description,
   editorFiles,
@@ -173,6 +174,7 @@ async function remixCurrentDirectory({
 
   const newValName = await generateUniqueProjectName(val.name);
   const newVt = await VTClient.create({
+    username: user.username!,
     rootPath: currentVt.rootPath,
     valName: newValName,
     privacy,
