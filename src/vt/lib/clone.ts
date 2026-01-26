@@ -166,7 +166,7 @@ async function createFile(
       path,
     );
 
-    const modified = isFileModified({
+    const [modified, where] = isFileModified({
       remoteContent: valContent,
       remoteMtime: valMtime,
       localContent: localContent,
@@ -180,7 +180,7 @@ async function createFile(
         status: "modified",
         mtime: localMtime,
         content: localContent,
-        where: "local",
+        where,
       };
     } else {
       fileStatus = {
