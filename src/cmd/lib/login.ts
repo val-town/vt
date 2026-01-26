@@ -9,7 +9,10 @@ import { setAuthCacheValid } from "~/loginCache.ts";
 export const loginCmd = new Command()
   .name("login")
   .description("Login to Val Town using your browser")
-  .option("--local", "Save credentials to local configuration instead of global")
+  .option(
+    "--local",
+    "Save credentials to local configuration instead of global",
+  )
   .action(async ({ local }: { local?: boolean }) => {
     try {
       // Perform the OIDC login flow
@@ -39,7 +42,7 @@ export const loginCmd = new Command()
         if (local) {
           if (!vtRoot) {
             throw new Error(
-              "Cannot save local configuration - not in a Val Town project directory"
+              "Cannot save local configuration - not in a Val Town project directory",
             );
           }
           await vtConfig.saveLocalConfig(updatedConfig);
@@ -55,7 +58,10 @@ export const loginCmd = new Command()
 
       console.log(colors.green("Successfully logged in to Val Town! 🎉"));
     } catch (error) {
-      console.error(colors.red("Login failed:"), error instanceof Error ? error.message : String(error));
+      console.error(
+        colors.red("Login failed:"),
+        error instanceof Error ? error.message : String(error),
+      );
       Deno.exit(1);
     }
   });

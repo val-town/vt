@@ -13,7 +13,9 @@ export const logoutCmd = new Command()
   .action(async ({ local, global }: { local?: boolean; global?: boolean }) => {
     try {
       if (local && global) {
-        console.error(colors.red("Cannot specify both --local and --global flags"));
+        console.error(
+          colors.red("Cannot specify both --local and --global flags"),
+        );
         Deno.exit(1);
       }
 
@@ -41,7 +43,7 @@ export const logoutCmd = new Command()
             clearedFrom.push("local");
           } else if (local) {
             throw new Error(
-              "Cannot clear local configuration - not in a Val Town project directory or no local config exists"
+              "Cannot clear local configuration - not in a Val Town project directory or no local config exists",
             );
           }
         }
@@ -61,7 +63,10 @@ export const logoutCmd = new Command()
 
       console.log(colors.green("Successfully logged out from Val Town! 👋"));
     } catch (error) {
-      console.error(colors.red("Logout failed:"), error instanceof Error ? error.message : String(error));
+      console.error(
+        colors.red("Logout failed:"),
+        error instanceof Error ? error.message : String(error),
+      );
       Deno.exit(1);
     }
   });

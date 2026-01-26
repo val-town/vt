@@ -2,7 +2,11 @@
 import "@std/dotenv/load";
 import { ensureGlobalVtConfig, globalConfig } from "~/vt/VTConfig.ts";
 import { onboardFlow } from "~/cmd/flows/onboard.ts";
-import { API_KEY_KEY, AUTH_CACHE_TTL, VAL_TOWN_API_BASE_URL } from "~/consts.ts";
+import {
+  API_KEY_KEY,
+  AUTH_CACHE_TTL,
+  VAL_TOWN_API_BASE_URL,
+} from "~/consts.ts";
 import { colors } from "@cliffy/ansi/colors";
 import sdk from "~/sdk.ts";
 import { registerOutdatedWarning } from "~/cmd/upgrade.ts";
