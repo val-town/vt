@@ -26,8 +26,6 @@ async function isApiKeyValid(): Promise<boolean> {
 
   const apiKey = Deno.env.get(API_KEY_KEY);
   if (!apiKey) return false;
-  console.log(apiKey);
-  console.log(`${VAL_TOWN_API_BASE_URL}/v1/me`);
 
   const resp = await fetch(`${VAL_TOWN_API_BASE_URL}/v1/me`, {
     headers: { Authorization: `Bearer ${apiKey}` },
