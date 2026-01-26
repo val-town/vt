@@ -2,7 +2,7 @@ import * as client from "openid-client";
 import {
   IS_LOCAL_ENV,
   OAUTH_SCOPES,
-  VAL_TOWN_API_BASE_URL,
+  VAL_TOWN_OAUTH_API_URL,
   VT_CLIENT_NAME,
 } from "~/consts.ts";
 import open from "open";
@@ -11,7 +11,7 @@ import Kia from "kia";
 
 export async function getClientConfig() {
   return await client.discovery(
-    new URL(`${VAL_TOWN_API_BASE_URL}/oauth`),
+    new URL(`${VAL_TOWN_OAUTH_API_URL}/oauth`),
     VT_CLIENT_NAME,
     { allowInsecureRequests: true },
     undefined,
