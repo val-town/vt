@@ -7,7 +7,7 @@ import {
 } from "~/consts.ts";
 import open from "open";
 import { colors } from "@cliffy/ansi/colors";
-import Kia from "https://jsr.io/@jonasschiano/kia/0.0.120/kia.ts";
+import Kia from "kia";
 
 export async function getClientConfig() {
   return await client.discovery(

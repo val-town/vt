@@ -19,11 +19,15 @@ async function isApiKeyValid(): Promise<boolean> {
   // Since we run this on every invocation of vt, it makes sense to only check
   // if the api key is still valid every so often.
   const lastAuthAt = await getLastAuthCheck();
-  const hoursSinceLastAuth = lastAuthAt ? Date.now() - Date.now() : Infinity;
+  const hoursSinceLastAuth = lastAuthAt
+    ? new Date().getTime() - lastAuthAt.getTime()
+    : Infinity;
   if (hoursSinceLastAuth < AUTH_CACHE_TTL) return true;
 
   const apiKey = Deno.env.get(API_KEY_KEY);
   if (!apiKey) return false;
+  console.log(apiKey)
+  console.log(`${VAL_TOWN_API_BASE_URL}/v1/me`)
 
   const resp = await fetch(`${VAL_TOWN_API_BASE_URL}/v1/me`, {
     headers: { Authorization: `Bearer ${apiKey}` },
