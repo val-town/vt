@@ -1,13 +1,14 @@
 import ValTown from "@valtown/sdk";
 import { memoize } from "@std/cache";
 import manifest from "../deno.json" with { type: "json" };
-import { API_KEY_KEY } from "~/consts.ts";
+import { API_KEY_KEY, IS_LOCAL_ENV } from "~/consts.ts";
 import { delay } from "@std/async";
 
 const sdk = new ValTown({
   // Must get set in vt.ts entrypoint if not set as an env var!
   // It needs to be passed here though as *something*
   bearerToken: Deno.env.get(API_KEY_KEY) ?? crypto.randomUUID(),
+  baseURL: IS_LOCAL_ENV ? "http://localhost:3001" : "https://api.val.town",
   defaultHeaders: { "x-vt-version": String(manifest.version) },
 });
 

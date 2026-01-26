@@ -26,6 +26,8 @@ cmd.command("config", cmds.configCmd);
 cmd.command("delete", cmds.deleteCmd);
 cmd.command("list", cmds.listCmd);
 cmd.command("tail", cmds.tailCmd);
+cmd.command("login", cmds.loginCmd);
+cmd.command("logout", cmds.logoutCmd);
 cmd.command("completions", new CompletionsCommand());
 
 export { cmd };

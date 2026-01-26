@@ -33,6 +33,7 @@
     "@std/fs": "jsr:@std/fs@^1.0.19",
     "@std/path": "jsr:@std/path@^1.1.2",
     "@valtown/sdk": "jsr:@valtown/sdk@^2.0.0",
+    "openid-client": "npm:openid-client@^6.8.1",
     "xdg-portable": "jsr:@404wolf/xdg-portable@^0.1.0",
     "highlight.js": "npm:highlight.js@^11.11.1",
     "strip-ansi": "npm:strip-ansi@^7.1.2",

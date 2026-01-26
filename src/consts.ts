@@ -4,9 +4,20 @@ import { join } from "@std/path";
 import xdg from "xdg-portable";
 import type { ItemWarning } from "~/vt/lib/utils/ItemStatusManager.ts";
 
+export const IS_LOCAL_ENV = Deno.env.get("VT_LOCAL") === "1";
 export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
+export const VT_CLIENT_NAME = "val_town_vt";
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
+export const VAL_TOWN_API_BASE_URL = IS_LOCAL_ENV
+  ? "http://localhost:3001"
+  : "https://api.val.town";
+export const VAL_TOWN_OAUTH_API_URL = IS_LOCAL_ENV
+  ? "http://localhost:3000"
+  : "https://val.town";
+
+export const OAUTH_SCOPES =
+  "openid offline_access project_rw user_r telemetry_r";
 
 export const ALWAYS_IGNORE_PATTERNS: string[] = [".vt", ".env", "node_modules"];
 

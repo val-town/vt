@@ -1,7 +1,5 @@
 import { Confirm } from "@cliffy/prompt";
-import { Secret } from "@cliffy/prompt/secret";
 import { colors } from "@cliffy/ansi/colors";
-import open from "open";
 import {
   DEFAULT_WRAP_WIDTH,
   GET_API_KEY_URL,
@@ -12,6 +10,7 @@ import { ensureDir } from "@std/fs";
 import wrap from "word-wrap";
 import { globalConfig } from "~/vt/VTConfig.ts";
 import { delay } from "@std/async";
+import { oicdLoginFlow } from "../../oauth.ts";
 
 /**
  * Displays a welcome message that says what vt is and what it can do.
@@ -64,48 +63,37 @@ export async function onboardFlow(
 
   const goToWebsite: boolean = await Confirm.prompt({
     message:
-      `Would you like to open val.town/settings/api in a browser to get an API key?`,
+      `We can log you in automatically! Would you like to proceed to vt's login page in your browser?\n`,
   });
 
   if (goToWebsite) {
+    await delay(300);
+    const tokens = await oicdLoginFlow();
+
+    // Set the API key in the environment for the current session
+    Deno.env.set("VAL_TOWN_API_KEY", tokens.access_token);
+
+    // Ensure the global config directory exists
+    await ensureDir(GLOBAL_VT_CONFIG_PATH);
+
+    // Add the API key to the config
+    globalConfig.saveGlobalConfig({
+      apiKey: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+    });
+
+    console.log(colors.green("API key saved to global config file!"));
     console.log(
-      "Ensure you select user read, Val read+write, and telemetry read permissions",
+      "To learn how to get started, " +
+        `head over to ${VT_README_URL}`,
     );
-    await delay(500);
-    await open(GET_API_KEY_URL);
-    console.log(`Browser opened to ${GET_API_KEY_URL}`);
+    console.log();
   } else {
     console.log();
     console.log(
       "You can get an API key at " + GET_API_KEY_URL +
-        " with Val read/write permissions",
+        " with user read, val read + write, telemetry read permissions, " +
+        "and come back and run `vt config set apiKey <your new API key>` when you are ready.",
     );
   }
-
-  console.log();
-  const apiKey = await Secret.prompt({
-    message: "Please enter your Val Town API key:",
-    validate: (input) => {
-      if (!(input.length === 32 || input.length === 33)) {
-        return "API key must be 32-33 characters long";
-      }
-      return true;
-    },
-  });
-
-  // Set the API key in the environment for the current session
-  Deno.env.set("VAL_TOWN_API_KEY", apiKey);
-
-  // Ensure the global config directory exists
-  await ensureDir(GLOBAL_VT_CONFIG_PATH);
-
-  // Add the API key to the config
-  globalConfig.saveGlobalConfig({ apiKey });
-
-  console.log(colors.green("API key saved to global config file!"));
-  console.log(
-    "To learn how to get started, " +
-      `head over to ${VT_README_URL}`,
-  );
-  console.log();
 }
