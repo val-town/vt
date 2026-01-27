@@ -1,11 +1,11 @@
 import { Command } from "@cliffy/command";
 import { basename } from "@std/path";
 import VTClient, { assertSafeDirectory } from "~/vt/vt/VTClient.ts";
-import { getAllMemberOrgs, getCurrentUser } from "~/sdk.ts";
+import { getAllMemberOrgs } from "~/sdk.ts";
 import { APIError } from "@valtown/sdk";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
 import { ensureAddEditorFiles } from "~/cmd/lib/utils/messages.ts";
-import { Confirm, Input } from "@cliffy/prompt";
+import { Confirm, Select } from "@cliffy/prompt";
 import { DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
 
 export const createCmd = new Command()
@@ -73,7 +73,6 @@ vt checkout main`,
     targetDir?: string,
   ) => {
     await doWithSpinner("Creating new Val...", async (spinner) => {
-      const user = await getCurrentUser();
       const clonePath = getClonePath(targetDir, valName);
 
       // Determine privacy setting (defaults to public)
@@ -91,12 +90,12 @@ vt checkout main`,
         const orgIds = orgs.map((o) => o.id!);
         if (orgNames.length > 0) {
           spinner.stop();
-          const orgOrMe = await Input.prompt({
+          const orgOrMe = await Select.prompt({
+            search: true,
             message:
               "Would you like to create the new Val under an organization you are a member of, or your personal account?",
             default: "Personal Account",
-            list: true, // Show all the options
-            suggestions: ["Personal Account", ...orgNames],
+            options: ["Personal Account", ...orgNames],
           });
           if (orgOrMe !== "Personal Account") {
             // Org usernames are unique, but not in time, so we can use it to grab the index
@@ -110,8 +109,9 @@ vt checkout main`,
         const orgs = await getAllMemberOrgs();
         const org = orgs.find((o) => o.username === orgName);
         if (!org) {
+          const orgNames = orgs.map((o) => `"${o.username}`).join('", ') + '"';
           throw new Error(
-            `You are not a member of an organization with the name "${orgName}"`,
+            `You are not a member of an organization with the name "${orgName}".\nYou are a member of: ${orgNames}`,
           );
         }
         orgName = org.id!;
@@ -144,14 +144,22 @@ vt checkout main`,
           }
         }
 
-        const vt = await VTClient.create({
-          rootPath: clonePath,
-          valName,
-          username: user.username!,
-          privacy,
-          description,
-          skipSafeDirCheck: true,
-        });
+        const vt = await (orgName
+          ? VTClient.create({
+            rootPath: clonePath,
+            valName,
+            orgId: orgName,
+            privacy,
+            description,
+            skipSafeDirCheck: true,
+          })
+          : VTClient.create({
+            rootPath: clonePath,
+            valName,
+            privacy,
+            description,
+            skipSafeDirCheck: true,
+          }));
 
         if (editorFiles) {
           spinner.stop();

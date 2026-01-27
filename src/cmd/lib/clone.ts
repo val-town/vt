@@ -59,8 +59,8 @@ export const cloneCmd = new Command()
           "Loading vals...",
           async (spinner) => {
             const [allVals, _] = await arrayFromAsyncN(
-              sdk.me.vals.list({}),
-              500,
+              sdk.me.vals.list({ limit: 100 }),
+              400,
             );
             spinner.stop();
             return allVals;

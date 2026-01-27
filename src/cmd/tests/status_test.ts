@@ -49,13 +49,9 @@ Deno.test({
 
           assertStringIncludes(output, "On branch main@");
 
-          // Verify output contains information about modified and new files
-          assertStringIncludes(output, "M (file  ) test.js");
-          assertStringIncludes(output, "A (script) new-file.js");
-
-          // Check for summary counts
-          assertStringIncludes(output, "created"); // we don't really know how many because of editor template files
-          assertStringIncludes(output, "1 modified");
+          assertStringIncludes(output, "Changes between local and remote:");
+          assertStringIncludes(output, "(file  ) test.js (modified locally)");
+          assertStringIncludes(output, "(script) new-file.js");
         });
       });
     });
@@ -105,6 +101,8 @@ Deno.test({
           const [output] = await runVtCommand(["status"], fullPath);
 
           assertStringIncludes(output, "On branch main@0..1..2");
+          assertStringIncludes(output, "Changes between local and remote:");
+          assertStringIncludes(output, "remote-file.js");
         });
       });
     });
