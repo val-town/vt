@@ -656,7 +656,9 @@ export async function assertSafeDirectory(rootPath: string) {
   // If the directory exists, that is only OK if it is empty
   if (await exists(rootPath) && !await dirIsEmpty(rootPath)) {
     throw new Error(
-      `"${relative(Deno.cwd(), rootPath)}" already exists and is not empty`,
+      `Directory "${
+        relative(Deno.cwd(), rootPath) || "."
+      }" already exists and is not empty`,
     );
   }
 }
