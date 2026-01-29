@@ -3,21 +3,33 @@ import { VAL_TOWN_VAL_URL_REGEX } from "~/consts.ts";
 /**
  * Parses a Val identifier from various formats:
  * - username/valName or @username/valName
- * - valName (using currentUsername)
+ * - valName (using currentUsername if provided)
  * - Any val.town URL containing /x/username/valName
  *
- * @param valUri - The Val identifier to parse
- * @param currentUsername - Fallback username if not specified
+ * @param {string} valUri - The Val identifier to parse
+ * @param {string} currentUsername - Fallback username if not specified in valUri
  * @returns The extracted ownerName and valName
  * @throws Error on invalid format
  */
 export function parseValUri(
   valUri: string,
-): { ownerName: string | undefined; valName: string };
-export function parseValUri(
-  valUri: string,
   currentUsername: string,
 ): { ownerName: string; valName: string };
+
+/**
+ * Parses a Val identifier from various formats:
+ * - username/valName or @username/valName
+ * - valName (ownerName will be undefined)
+ * - Any val.town URL containing /x/username/valName
+ *
+ * @param {string} valUri - The Val identifier to parse
+ * @returns The extracted ownerName (if present) and valName
+ * @throws Error on invalid format
+ */
+export function parseValUri(
+  valUri: string,
+): { ownerName: string | undefined; valName: string };
+
 export function parseValUri(
   valUri: string,
   currentUsername?: string,
