@@ -19,6 +19,9 @@ export async function getClientConfig() {
   );
 }
 
+/** Whether we went through a login session */
+export let loggedInInSession = false;
+
 export async function oicdLoginFlow() {
   const config = await getClientConfig();
 
@@ -52,6 +55,7 @@ export async function oicdLoginFlow() {
 
   if (spinner?.isSpinning()) {
     spinner.succeed("Login successful!");
+    loggedInInSession = true;
   }
 
   return tokens;

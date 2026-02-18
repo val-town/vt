@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { colors } from "@cliffy/ansi/colors";
 import { doWithSpinner } from "~/cmd/utils.ts";
-import { oicdLoginFlow } from "~/oauth.ts";
+import { loggedInInSession, oicdLoginFlow } from "~/oauth.ts";
 import VTConfig from "~/vt/VTConfig.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { setAuthCacheValid } from "~/loginCache.ts";
@@ -15,6 +15,10 @@ export const loginCmd = new Command()
   )
   .action(async ({ local }: { local?: boolean }) => {
     try {
+      if (loggedInInSession) {
+        return;
+      }
+
       // Perform the OIDC login flow
       const tokens = await oicdLoginFlow();
 
