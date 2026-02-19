@@ -14,7 +14,7 @@ export const VAL_TOWN_API_BASE_URL = IS_LOCAL_ENV
   : "https://api.val.town";
 export const VAL_TOWN_OAUTH_API_URL = IS_LOCAL_ENV
   ? "http://localhost:3000"
-  : "https://val.town";
+  : "https://www.val.town";
 
 export const OAUTH_SCOPES =
   "openid offline_access project_rw user_r telemetry_r";
