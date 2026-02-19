@@ -54,10 +54,16 @@ export const VTStateSchema = z
 export const VTConfigSchema = z.object({
   apiKey: z
     .string()
-    .refine((val) => val === null || val.length === 32 || val.length === 33, {
-      message: "API key must be 32-33 characters long when provided",
-    })
+    .refine(
+      (val) =>
+        val === null || val.length === 32 || val.length === 33 ||
+        val.length === 43,
+      { // 43 is for oauth
+        message: "API key must be 32-33 characters long when provided",
+      },
+    )
     .nullable(),
+  refreshToken: z.string().nullable().optional(),
   globalIgnoreFiles: z
     .preprocess((input) => {
       if (typeof input === "string") {

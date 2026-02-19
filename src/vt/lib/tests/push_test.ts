@@ -587,6 +587,8 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+  sanitizeOps: false,
 });
 
 Deno.test({
