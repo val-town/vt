@@ -230,12 +230,12 @@ async function getLocalFiles({
 
       return {
         path: relativePath,
-        type: (entry.isDirectory ? "directory" : await getValItemType(
+        type: entry.isDirectory ? "directory" : await getValItemType(
           valId,
           branchId,
           version,
           relativePath,
-        )),
+        ),
         mtime: localStat.mtime!.getTime(),
         content: entry.isDirectory ? undefined : fileContent,
       };
