@@ -90,6 +90,20 @@ export async function branchNameToBranch(
 }
 
 /**
+ * Converts a val name to its corresponding val data.
+ *
+ * @param username The username of the Val owner
+ * @param valName The name of the Val to look up
+ * @returns Promise resolving to the Val data
+ */
+export async function valNameToVal(
+  username: string,
+  valName: string,
+) {
+  return await sdk.alias.username.valName.retrieve(username, valName);
+}
+
+/**
  * Checks if a file exists at the specified path in a val
  *
  * @param valId The ID of the Val containing the file
@@ -328,5 +342,38 @@ export async function fileIdToValFile(
 ): Promise<ValTown.Vals.FileRetrieveResponse> {
   return await sdk.files.retrieve(fileId);
 }
+
+/**
+ * Get typeahead for Val names or organization names.
+ *
+ * @param prefix - A string in the format "org" or "org/val" to get typeahead suggestions
+ * @returns Promise resolving to an array of typeahead suggestions
+ */
+export const typeaheadValNames = memoize(async (
+  prefix: string,
+): Promise<string[]> => {
+  const parts = prefix.split("/");
+
+  if (parts.length === 1) {
+    // Typeahead for organization name
+    const response = await fetch(
+      `https://api.val.town/v2/orgs/typeahead/${parts[0]}`,
+      { headers: { "x-vt-version": String(manifest.version) } },
+    );
+    const data = await response.json() as { items: string[] };
+    return data.items;
+  } else {
+    // Typeahead for val name (org/val)
+    const [org, val] = parts;
+    const response = await fetch(
+      `https://api.val.town/v2/vals/typeahead/${org}/${val}`,
+      {
+        headers: { "x-vt-version": String(manifest.version) },
+      },
+    );
+    const data = await response.json() as { items: string[] };
+    return data.items.map((valName) => `${org}/${valName}`);
+  }
+});
 
 export default sdk;
