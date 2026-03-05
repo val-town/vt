@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.1.0",
-    "@types/firefox-webext-browser": "^120.0.4",
+    "@types/firefox-webext-browser": "^143.0.0",
     "@types/fs-extra": "^11.0.4",
     "@types/webextension-polyfill": "^0.12.3",
     "nodemon": "^3.1.10",
