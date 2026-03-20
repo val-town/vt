@@ -23,7 +23,7 @@ jobs:
         run: deno task fmt:check
 
       - name: Run deno tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           command: deno task test:lib
           max_attempts: 2
@@ -41,7 +41,7 @@ jobs:
           deno-version: v2.x
 
       - name: Run deno tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           command: deno task test:cmd
           max_attempts: 2
