@@ -54,7 +54,7 @@ async function ensureValidApiKey() {
       if (refreshToken) {
         try {
           const newTokens = await refreshTokens(refreshToken);
-          globalConfig.saveGlobalConfig({
+          await globalConfig.saveGlobalConfig({
             apiKey: newTokens.access_token,
             refreshToken: newTokens.refresh_token,
           });
