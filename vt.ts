@@ -51,23 +51,19 @@ async function ensureValidApiKey() {
       if (await isApiKeyValid()) return;
 
       // Attempt to refresh if there is a refresh token
-      try {
-        if (refreshToken) {
+      if (refreshToken) {
+        try {
           const newTokens = await refreshTokens(refreshToken);
           globalConfig.saveGlobalConfig({
             apiKey: newTokens.access_token,
             refreshToken: newTokens.refresh_token,
           });
           Deno.env.set(API_KEY_KEY, newTokens.access_token);
-          if (!await isApiKeyValid()) {
-            throw Error("Refreshed API key is invalid");
-          }
+          if (await isApiKeyValid()) return;
+        } catch {
+          // Refresh failed (expired/revoked refresh token, network error, etc.)
+          // Fall through to re-login
         }
-      } catch (e: unknown) {
-        if (Error.isError(e) && e.message !== "Refreshed API key is invalid") {
-          throw e;
-        }
-        // We'll make them get a new one
       }
 
       console.log(
