@@ -1,15 +1,13 @@
-import { Confirm } from "@cliffy/prompt";
 import { colors } from "@cliffy/ansi/colors";
 import {
+  API_KEY_KEY,
   DEFAULT_WRAP_WIDTH,
-  GET_API_KEY_URL,
   GLOBAL_VT_CONFIG_PATH,
   VT_README_URL,
 } from "~/consts.ts";
 import { ensureDir } from "@std/fs";
 import wrap from "word-wrap";
 import { globalConfig } from "~/vt/VTConfig.ts";
-import { delay } from "@std/async";
 import { oicdLoginFlow } from "../../oauth.ts";
 
 /**
@@ -40,13 +38,15 @@ function welcomeToVt(): void {
 
 /**
  * The onboarding flow for users using vt for the first time. This handles
- * walking the user through setting their API key and informing them on how to
- * get started.
+ * walking the user through authenticating via OAuth device authorization flow
+ * and informing them on how to get started.
+ *
+ * OAuth is the default authentication method. Users who need to use an API
+ * key directly (e.g., for CI environments) can use:
+ *   `vt config set apiKey <key>`
  *
  * @param options Options for the onboarding flow
  * @param options.showWelcome Whether to show the welcome message
- * @param options.showApiKeyPrompt Whether to show the API key prompt
- * @param options.openBrowser Whether to open the browser to get the API key
  */
 export async function onboardFlow(
   options?: { showWelcome?: boolean },
@@ -56,28 +56,22 @@ export async function onboardFlow(
   if (options.showWelcome) {
     welcomeToVt();
     console.log();
-
-    console.log("  To get started, you need to authenticate with Val Town.");
-    console.log();
   }
 
-  const goToWebsite: boolean = await Confirm.prompt({
-    message:
-      `We can log you in automatically! Would you like to proceed to vt's login page in your browser?\n`,
-  });
+  console.log("  To get started, you need to authenticate with Val Town.");
+  console.log();
 
-  if (goToWebsite) {
-    await delay(300);
+  try {
     const tokens = await oicdLoginFlow();
 
     // Set the API key in the environment for the current session
-    Deno.env.set("VAL_TOWN_API_KEY", tokens.access_token);
+    Deno.env.set(API_KEY_KEY, tokens.access_token);
 
     // Ensure the global config directory exists
     await ensureDir(GLOBAL_VT_CONFIG_PATH);
 
     // Add the API key to the config
-    globalConfig.saveGlobalConfig({
+    await globalConfig.saveGlobalConfig({
       apiKey: tokens.access_token,
       refreshToken: tokens.refresh_token,
     });
@@ -88,12 +82,25 @@ export async function onboardFlow(
         `head over to ${VT_README_URL}`,
     );
     console.log();
-  } else {
+  } catch (error) {
+    // If the device auth flow fails (e.g., no browser, network issues),
+    // fall back to showing the manual API key instructions.
     console.log();
     console.log(
-      "You can get an API key at " + GET_API_KEY_URL +
-        " with user read, val read + write, telemetry read permissions, " +
-        "and come back and run `vt config set apiKey <your new API key>` when you are ready.",
+      colors.yellow(
+        "Automatic login failed" +
+          (error instanceof Error ? `: ${error.message}` : "."),
+      ),
+    );
+    console.log();
+    console.log(
+      "You can authenticate manually by running:\n" +
+        colors.cyan("  vt login") +
+        "\n\nor by setting an API key directly:\n" +
+        colors.cyan("  vt config set apiKey <your API key>") +
+        "\n\nYou can generate an API key at " +
+        colors.cyan("https://www.val.town/settings/api") +
+        " with user read, val read + write, telemetry read permissions.",
     );
   }
 }

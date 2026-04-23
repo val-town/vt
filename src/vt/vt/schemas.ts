@@ -59,7 +59,8 @@ export const VTConfigSchema = z.object({
         val === null || val.length === 32 || val.length === 33 ||
         val.length === 43,
       { // 43 is for oauth
-        message: "API key must be 32-33 characters long when provided",
+        message:
+          "API key must be 32-33 characters, or a 43-character OAuth token",
       },
     )
     .nullable(),

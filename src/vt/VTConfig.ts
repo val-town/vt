@@ -181,7 +181,9 @@ export async function ensureGlobalVtConfig(): Promise<void> {
     // be overwriting anything)
     if (Deno.env.has(API_KEY_KEY)) {
       const apiKey = Deno.env.get(API_KEY_KEY)!; // (!, we just checked)
-      if (apiKey.length == 32 || apiKey.length == 33) {
+      if (apiKey.length == 32 || apiKey.length == 33 || apiKey.length == 43) {
+        // 32-33 chars: traditional API keys (vtwn_...)
+        // 43 chars: OAuth access tokens
         startingConfig.apiKey = apiKey;
       } else startingConfig.apiKey = "0".repeat(32);
     }
