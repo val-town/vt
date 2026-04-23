@@ -98,7 +98,12 @@ if (import.meta.main) {
     await registerOutdatedWarning();
   }
 
-  if (!["logout"].includes(Deno.args[0])) {
+  // Commands that don't require authentication:
+  // - logout: clearing credentials shouldn't need valid credentials
+  // - login: this IS the auth flow; requiring auth first is circular
+  // - upgrade: updating the CLI binary doesn't need API access
+  const authExemptCommands = ["logout", "login", "upgrade"];
+  if (!authExemptCommands.includes(Deno.args[0])) {
     await ensureValidApiKey();
   }
 

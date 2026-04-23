@@ -41,12 +41,12 @@ export function sanitizeErrors(error: unknown): string {
       }
     } else if (error.status === 401) {
       suffixedExtra =
-        "You may need to re-authenticate. To set a new API key, use `vt config set apiKey new_api_key`";
+        "You may need to re-authenticate. Run `vt login` to log in again, or use `vt config set apiKey <key>` to set an API key directly.";
     }
 
     if (error.message.includes("required permissions")) {
       suffixedExtra +=
-        "To set a new API key, use `vt config set apiKey new_api_key`";
+        "Run `vt login` to re-authenticate, or use `vt config set apiKey <key>` to set an API key directly.";
     }
 
     // Remove leading numbers from error message
