@@ -8,6 +8,7 @@ import { exists } from "@std/fs";
 import { join } from "@std/path";
 import type ValTown from "@valtown/sdk";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import sdk, {
   branchNameToBranch,
   getCurrentUser,
@@ -319,5 +320,44 @@ Deno.test({
     });
   },
   sanitizeOps: false,
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "create Val in org using orgName/valName format",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ org }) => {
+        const newValName = randomValName();
+        let newVal: ValTown.Val | null = null;
+
+        await t.step(
+          "create a new val in org using orgName/valName",
+          async () => {
+            await runVtCommand(
+              ["create", `${org.handle}/${newValName}`],
+              tmpDir,
+            );
+
+            newVal = await sdk.alias.username.valName.retrieve(
+              org.handle,
+              newValName,
+            );
+
+            assertEquals(newVal.name, newValName);
+            assertEquals(newVal.author.username, org.handle);
+          },
+        );
+
+        await t.step("make sure the Val is cloned", async () => {
+          assert(
+            await exists(join(tmpDir, newValName)),
+            "val was not cloned to target",
+          );
+        });
+      }, { inOrg: true });
+    });
+  },
   sanitizeResources: false,
 });
