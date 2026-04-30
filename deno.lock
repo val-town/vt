@@ -57,7 +57,7 @@
     "npm:@types/node@*": "22.12.0",
     "npm:emphasize@7": "7.0.0",
     "npm:highlight.js@^11.11.1": "11.11.1",
-    "npm:open@^10.2.0": "10.2.0",
+    "npm:open@11": "11.0.0",
     "npm:openid-client@^6.8.1": "6.8.1",
     "npm:strip-ansi@^7.1.2": "7.1.2",
     "npm:word-wrap@^1.2.5": "1.2.5",
@@ -358,11 +358,11 @@
     "chalk@5.4.1": {
       "integrity": "sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w=="
     },
-    "default-browser-id@5.0.0": {
-      "integrity": "sha512-A6p/pu/6fyBcA1TRz/GqWYPViplrftcW2gZC9q79ngNCKAeR/X3gcEdXQHl4KNXV+3wgIJ1CPkJQ3IHM6lcsyA=="
+    "default-browser-id@5.0.1": {
+      "integrity": "sha512-x1VCxdX4t+8wVfd1so/9w+vQ4vx7lKd2Qp5tDRutErwmR85OgmfX7RlLRMWafRMY7hbEiXIbudNrjOAPa/hL8Q=="
     },
-    "default-browser@5.2.1": {
-      "integrity": "sha512-WY/3TUME0x3KPYdRRxEJJvXRHV4PyPoUsxtZa78lwItwRQRHhd2U9xOscaT/YTf8uCXIAjeJOFBVEh/7FtD8Xg==",
+    "default-browser@5.5.0": {
+      "integrity": "sha512-H9LMLr5zwIbSxrmvikGuI/5KGhZ8E2zH3stkMgM5LpOWDutGM2JZaj460Udnf1a+946zc7YBgrqEWwbk7zHvGw==",
       "dependencies": [
         "bundle-name",
         "default-browser-id"
@@ -399,6 +399,9 @@
       "integrity": "sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ==",
       "bin": true
     },
+    "is-in-ssh@1.0.0": {
+      "integrity": "sha512-jYa6Q9rH90kR1vKB6NM7qqd1mge3Fx4Dhw5TVlK1MUBqhEOuCagrEHMevNuCcbECmXZ0ThXkRm+Ymr51HwEPAw=="
+    },
     "is-inside-container@1.0.0": {
       "integrity": "sha512-KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA==",
       "dependencies": [
@@ -406,8 +409,8 @@
       ],
       "bin": true
     },
-    "is-wsl@3.1.0": {
-      "integrity": "sha512-UcVfVfaK4Sc4m7X3dUSoHoozQGBEFeDC+zVo06t98xe8CzHSZZBekNXH+tu0NalHolcJ/QAGqS46Hef7QXBIMw==",
+    "is-wsl@3.1.1": {
+      "integrity": "sha512-e6rvdUCiQCAuumZslxRJWR/Doq4VpPR82kqclvcS0efgt430SlGIk05vdCN58+VrzgtIcfNODjozVielycD4Sw==",
       "dependencies": [
         "is-inside-container"
       ]
@@ -426,12 +429,14 @@
     "oauth4webapi@3.8.3": {
       "integrity": "sha512-pQ5BsX3QRTgnt5HxgHwgunIRaDXBdkT23tf8dfzmtTIL2LTpdmxgbpbBm0VgFWAIDlezQvQCTgnVIUmHupXHxw=="
     },
-    "open@10.2.0": {
-      "integrity": "sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==",
+    "open@11.0.0": {
+      "integrity": "sha512-smsWv2LzFjP03xmvFoJ331ss6h+jixfA4UUV/Bsiyuu4YJPfN+FIQGOIiv4w9/+MoHkfkJ22UIaQWRVFRfH6Vw==",
       "dependencies": [
         "default-browser",
         "define-lazy-prop",
+        "is-in-ssh",
         "is-inside-container",
+        "powershell-utils",
         "wsl-utils"
       ]
     },
@@ -442,8 +447,11 @@
         "oauth4webapi"
       ]
     },
-    "run-applescript@7.0.0": {
-      "integrity": "sha512-9by4Ij99JUr/MCFBUkDKLWK3G9HVXmabKz9U5MlIAIuvuzkiOicRYs8XJLxX+xahD+mLiiCYDqF9dKAgtzKP1A=="
+    "powershell-utils@0.1.0": {
+      "integrity": "sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A=="
+    },
+    "run-applescript@7.1.0": {
+      "integrity": "sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q=="
     },
     "strip-ansi@7.1.2": {
       "integrity": "sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==",
@@ -457,10 +465,11 @@
     "word-wrap@1.2.5": {
       "integrity": "sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA=="
     },
-    "wsl-utils@0.1.0": {
-      "integrity": "sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw==",
+    "wsl-utils@0.3.1": {
+      "integrity": "sha512-g/eziiSUNBSsdDJtCLB8bdYEUMj4jR7AGeUo96p/3dTafgjHhpF4RiCFPiRILwjQoDXx5MqkBr4fwWtR3Ky4Wg==",
       "dependencies": [
-        "is-wsl"
+        "is-wsl",
+        "powershell-utils"
       ]
     },
     "zod-validation-error@4.0.2_zod@4.2.1": {
@@ -522,7 +531,7 @@
       "jsr:@valtown/sdk@2",
       "npm:emphasize@7",
       "npm:highlight.js@^11.11.1",
-      "npm:open@^10.2.0",
+      "npm:open@11",
       "npm:openid-client@^6.8.1",
       "npm:strip-ansi@^7.1.2",
       "npm:word-wrap@^1.2.5",
