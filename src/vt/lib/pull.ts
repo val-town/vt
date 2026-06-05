@@ -94,7 +94,7 @@ export function pull(params: PullParams): Promise<PushResult> {
       // Scan the temp directory to identify files that should be deleted
       const pathsToDelete: string[] = [];
       for await (const entry of walk(tmpDir)) {
-        const relativePath = relative(tmpDir, entry.path);
+        const relativePath = relative(tmpDir, entry.path).replaceAll("\\", "/");
         const targetDirPath = join(targetDir, relativePath);
         const tmpDirPath = entry.path;
 

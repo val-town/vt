@@ -194,7 +194,7 @@ function formatStatus(
   const parts = [
     includeStatus ? styleConfig.color(styleConfig.prefix) : null,
     typeIndicator,
-    pathDisplay,
+    pathDisplay.replaceAll("\\", "/"),
   ].filter(Boolean);
 
   return parts.join(" ");
