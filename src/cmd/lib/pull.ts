@@ -29,8 +29,8 @@ export const pullCmd = new Command()
         const fileStateChanges = await vt.pull({ dryRun: true });
         let prepareForResult = () => {};
         if (
-          fileStateChanges.deleted.length > 0 ||
-          fileStateChanges.modified.length > 0 && !force
+          (fileStateChanges.deleted.length > 0 ||
+            fileStateChanges.modified.length > 0) && !force
         ) {
           spinner.stop();
 
