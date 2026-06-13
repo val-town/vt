@@ -19,7 +19,12 @@ export const VAL_TOWN_OAUTH_API_URL = IS_LOCAL_ENV
 export const OAUTH_SCOPES =
   "openid offline_access project_rw user_r telemetry_r";
 
-export const ALWAYS_IGNORE_PATTERNS: string[] = [".vt", ".env", "node_modules"];
+export const ALWAYS_IGNORE_PATTERNS: string[] = [
+  ".vt",
+  ".git",
+  ".env",
+  "node_modules",
+];
 
 export const DEFAULT_IGNORE_PATTERNS: string[] = ["*~", "*.swp", ".env"];
 

@@ -96,5 +96,7 @@ export function shouldIgnore(
   // All the libraries for this kinda suck, but this mostly works. Note that
   // there might still be bugs in the gitignore logic.
   const gitignore = compileGitignore(gitignoreRules.join("\n"));
-  return gitignore.denies(pathToCheck);
+  // Also check with a trailing slash so that directory-only patterns (like
+  // ".github/") match directory paths, which are walked without one.
+  return gitignore.denies(pathToCheck) || gitignore.denies(pathToCheck + "/");
 }
