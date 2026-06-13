@@ -89,6 +89,12 @@ vt checkout main`,
         const orgNames = orgs.map((o) => o.username!);
         const orgIds = orgs.map((o) => o.id!);
         if (orgNames.length > 0) {
+          if (!Deno.stdin.isTerminal()) {
+            throw new Error(
+              "You are a member of organizations, but the account picker requires an interactive terminal.\n" +
+                'Pass --org-name to choose an organization, or --org-name "me" for your personal account.',
+            );
+          }
           spinner.stop();
           const orgOrMe = await Select.prompt({
             search: true,
