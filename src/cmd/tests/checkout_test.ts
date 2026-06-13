@@ -2,7 +2,7 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
+import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
 import { assert, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
@@ -379,32 +379,41 @@ Deno.test({
           );
         });
 
-        await t.step("checkout with warning about local changes", async () => {
-          // Try checking out to feature branch - should see warning about local changes
-          const [checkoutOutput, _] = await runVtCommand([
-            "checkout",
-            "feature",
-          ], fullPath);
+        await t.step(
+          "checkout warns and exits when stdin is not a terminal",
+          async () => {
+            // Try checking out to feature branch - because stdin is not a
+            // terminal (the test harness pipes it), the confirmation cannot be
+            // shown, so it should tell the user to re-run with --force and exit
+            // non-zero instead of hanging.
+            const [output, proc] = streamVtCommand(
+              ["checkout", "feature"],
+              fullPath,
+            );
+            const status = await proc.status;
 
-          assertStringIncludes(
-            checkoutOutput,
-            "proceed with checkout anyway",
-            "should see warning about dangerous changes",
-          );
-          assertStringIncludes(checkoutOutput, "shared.ts");
-        });
+            const text = output.join("\n");
+            assertStringIncludes(text, "shared.ts");
+            assertStringIncludes(
+              text,
+              "Re-run with --force",
+              "should tell the user to re-run with --force",
+            );
+            assert(!status.success, "checkout should exit non-zero");
+          },
+        );
 
         await t.step("force checkout overrides local changes", async () => {
           // Try with force option
           const [forceCheckoutOutput] = await runVtCommand([
             "checkout",
-            "main",
+            "feature",
             "-f",
           ], fullPath);
 
           assertStringIncludes(
             forceCheckoutOutput,
-            'Switched to branch "main"',
+            'Switched to branch "feature"',
           );
         });
       });
@@ -513,38 +522,55 @@ Deno.test({
           await sdk.vals.branches.delete(val.id, tempBranch.id);
         });
 
-        await t.step("attempt checkout after branch deletion", async () => {
-          // Try to checkout to main - should show warning about deleted branch
-          // Note that runVtCommand will spam yes to proceed
-          const [checkoutOutput, exitCode] = await runVtCommand([
-            "checkout",
-            "main",
-          ], fullPath);
+        await t.step(
+          "checkout after branch deletion warns and exits without --force",
+          async () => {
+            // Try to checkout to main without --force. Because the current
+            // branch was deleted and stdin is not a terminal (the test harness
+            // pipes it), the confirmation cannot be shown, so it should tell the
+            // user to re-run with --force and exit non-zero.
+            const [output, proc] = streamVtCommand(
+              ["checkout", "main"],
+              fullPath,
+            );
+            const status = await proc.status;
 
-          assertStringIncludes(
-            checkoutOutput,
-            "The branch you currently are no longer exists",
-            "should warn about current branch being deleted",
-          );
+            assertStringIncludes(
+              output.join("\n"),
+              "Re-run with --force",
+              "should tell the user to re-run with --force",
+            );
+            assert(!status.success, "checkout should exit non-zero");
+          },
+        );
 
-          assertStringIncludes(
-            checkoutOutput,
-            'Switched to branch "main"',
-            "should successfully switch to main branch",
-          );
+        await t.step(
+          "force checkout after branch deletion switches to main",
+          async () => {
+            const [checkoutOutput, exitCode] = await runVtCommand([
+              "checkout",
+              "main",
+              "-f",
+            ], fullPath);
 
-          assert(exitCode === 0, "checkout command should succeed");
+            assertStringIncludes(
+              checkoutOutput,
+              'Switched to branch "main"',
+              "should successfully switch to main branch",
+            );
+            assert(exitCode === 0, "checkout command should succeed");
 
-          // Verify we're now on main branch
-          const [statusOutput] = await runVtCommand(["status"], fullPath);
-          assertStringIncludes(statusOutput, "On branch main@");
+            // Verify we're now on main branch
+            const [statusOutput] = await runVtCommand(["status"], fullPath);
+            assertStringIncludes(statusOutput, "On branch main@");
 
-          // Verify main.ts exists
-          assert(
-            await exists(join(fullPath, "main.ts")),
-            "main.ts should exist after checkout to main",
-          );
-        });
+            // Verify main.ts exists
+            assert(
+              await exists(join(fullPath, "main.ts")),
+              "main.ts should exist after checkout to main",
+            );
+          },
+        );
       });
     });
   },

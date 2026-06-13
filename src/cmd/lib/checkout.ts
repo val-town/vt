@@ -94,7 +94,7 @@ export const checkoutCmd = new Command()
               );
             }
 
-            const shouldProceed = await confirmOrExit(
+            const shouldProceed = force || await confirmOrExit(
               {
                 message: colors.yellow(
                   currentBranchDoesntExistMsg +
