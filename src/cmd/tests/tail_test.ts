@@ -60,12 +60,20 @@ Deno.test({
           assert(resp.ok, "Response should be OK");
           assert(await resp.text() === "OK", "Response body should be 'OK'");
 
-          await delay(1000);
+          // Log delivery has latency (the trace has to be ingested before it
+          // can be tailed), so poll the streamed output until every expected
+          // line shows up rather than asserting after a single fixed wait.
+          const expected = [
+            "HTTP GET https://",
+            "200 main.ts",
+            "X-Custom-Header",
+          ];
+          await waitForLines(outputLines, expected);
 
           const logsOutput = outputLines.join("\n");
-          assertStringIncludes(logsOutput, "HTTP GET https://");
-          assertStringIncludes(logsOutput, "200 main.ts");
-          assertStringIncludes(logsOutput, "X-Custom-Header");
+          for (const expectedLine of expected) {
+            assertStringIncludes(logsOutput, expectedLine);
+          }
         });
       });
     });
@@ -81,4 +89,27 @@ async function waitForTailToStart(outputLines: string[]) {
     !outputLines.some((line) => line.includes("Press Ctrl+C to stop."))
   );
   await delay(1000);
+}
+
+/**
+ * Polls a growing array of output lines until every expected substring has
+ * appeared, or a deadline elapses. Returns as soon as all are present so the
+ * test stays fast in the common case while tolerating log-delivery latency.
+ *
+ * @param outputLines The array being filled by the streamed process output
+ * @param expected Substrings that must each appear somewhere in the output
+ * @param deadlineMs How long to wait before giving up (default 20s)
+ */
+async function waitForLines(
+  outputLines: string[],
+  expected: string[],
+  deadlineMs: number = 20_000,
+): Promise<void> {
+  const start = Date.now();
+  while (true) {
+    const output = outputLines.join("\n");
+    if (expected.every((line) => output.includes(line))) return;
+    if (Date.now() - start > deadlineMs) return; // let the asserts report which line is missing
+    await delay(250);
+  }
 }

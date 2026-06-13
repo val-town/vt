@@ -3,6 +3,17 @@ name: VT Testing
 on:
   push:
 
+# The cmd tests run against a single shared live test account. Running two VT
+# Testing workflows at once (e.g. two near-simultaneous merges) makes them
+# create/delete vals and stream logs concurrently, which slows the shared
+# account down and flakes the live-API tests. Serialize runs per ref so they
+# do not step on each other. We queue rather than cancel because each run's
+# tests clean up the vals they create in a `finally`; cancelling a run
+# mid-flight skips that cleanup and orphans test vals.
+concurrency:
+  group: vt-testing-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   CI: true
 
@@ -44,7 +55,10 @@ jobs:
         uses: nick-fields/retry@v3
         with:
           command: deno task test:cmd
-          max_attempts: 2
+          # The cmd suite hits the live API and is the flakiest; allow one extra
+          # retry as a cheap backstop. Tradeoff: a genuinely-broken commit takes
+          # longer to report red, but a transient blip no longer fails the run.
+          max_attempts: 3
           timeout_seconds: 2000
         env:
           VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY_2 }}
