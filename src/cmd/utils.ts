@@ -2,7 +2,28 @@ import ValTown from "@valtown/sdk";
 import { join } from "@std/path";
 import Kia from "kia";
 import { colors } from "@cliffy/ansi/colors";
+import { Confirm } from "@cliffy/prompt";
 import { toListBranchesCmdMsg } from "~/cmd/lib/utils/messages.ts";
+
+/**
+ * Like `Confirm.prompt`, but fails fast instead of hanging forever when stdin
+ * is not a terminal (e.g. CI, piped/closed stdin). cliffy's prompt loops on EOF
+ * and never resolves, so we surface a helpful hint and exit 1 instead.
+ *
+ * @param options Options passed through to `Confirm.prompt`
+ * @param nonInteractiveHint Message shown when stdin is not interactive
+ * @returns The user's confirmation when interactive
+ */
+export async function confirmOrExit(
+  options: Parameters<typeof Confirm.prompt>[0],
+  nonInteractiveHint: string,
+): Promise<boolean> {
+  if (!Deno.stdin.isTerminal()) {
+    console.error(colors.red(nonInteractiveHint));
+    Deno.exit(1);
+  }
+  return await Confirm.prompt(options);
+}
 
 /**
  * Determines the clone path based on the provided directory and Val name
