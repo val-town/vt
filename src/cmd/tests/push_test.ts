@@ -2,7 +2,7 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
-import { assertStringIncludes } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
@@ -174,12 +174,13 @@ Deno.test({
 
         await t.step("try to push binary file and verify failure", async () => {
           // Run push command and expect failure
-          const [pushOutput] = await runVtCommand(["push"], fullPath);
+          const [pushOutput, exitCode] = await runVtCommand(["push"], fullPath);
 
           // Verify the push failed due to binary file
           assertStringIncludes(pushOutput, "binary_file.bin");
           assertStringIncludes(pushOutput, "File has binary content");
           assertStringIncludes(pushOutput, "Failed to push everything");
+          assertEquals(exitCode, 1);
         });
       });
     });
