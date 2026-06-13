@@ -69,7 +69,7 @@ export async function runVtCommand(
     });
 
     // If autoConfirm is enabled, send "yes\n" repeatedly to stdin
-    let autoConfirmInterval: number | undefined;
+    let autoConfirmInterval: ReturnType<typeof setInterval> | undefined;
 
     const cleanup = () => {
       if (autoConfirmInterval) {
