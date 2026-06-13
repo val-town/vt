@@ -1,9 +1,15 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { removeAllEditorFiles, runVtCommand } from "~/cmd/tests/utils.ts";
-import { assertStringIncludes } from "@std/assert";
+import {
+  removeAllEditorFiles,
+  runVtCommand,
+  streamVtCommand,
+} from "~/cmd/tests/utils.ts";
+import { assert, assertStringIncludes } from "@std/assert";
+import { AssertionError } from "@std/assert";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
+import { delay } from "@std/async";
 
 Deno.test({
   name: "pull command with no changes",
@@ -63,5 +69,71 @@ Deno.test({
       });
     });
   },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "pull exits non-zero with a --force hint when stdin is not interactive",
+  permissions: "inherit",
+  async fn(t) {
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val, branch }) => {
+        await t.step("clone the val", async () => {
+          await runVtCommand(["clone", val.name], tmpDir);
+        });
+
+        const fullPath = join(tmpDir, val.name);
+
+        await t.step("create a tracked file", async () => {
+          await sdk.vals.files.create(val.id, {
+            path: "note.ts",
+            content: "export const x = 1;\n",
+            branch_id: branch.id,
+            type: "file",
+          });
+          await runVtCommand(["pull"], fullPath);
+        });
+
+        await t.step("diverge local and remote", async () => {
+          // Edit the file remotely...
+          await sdk.vals.files.update(val.id, {
+            path: "note.ts",
+            content: "export const x = 999;\n",
+            branch_id: branch.id,
+          });
+          // ...and locally, so a pull would overwrite local changes.
+          await Deno.writeTextFile(
+            join(fullPath, "note.ts"),
+            "export const x = 2;\n",
+          );
+        });
+
+        await t.step("pull with non-interactive stdin fails fast", async () => {
+          // streamVtCommand spawns with piped (non-TTY) stdin and never writes
+          // to it. Before the fix, the confirmation prompt would busy-loop
+          // forever instead of exiting.
+          const [output, proc] = streamVtCommand(["pull"], fullPath);
+
+          const status = await Promise.race([
+            proc.status,
+            delay(15_000).then(() => "timeout" as const),
+          ]);
+
+          if (status === "timeout") {
+            try {
+              proc.kill();
+            } catch { /* already exited */ }
+            throw new AssertionError(
+              "vt pull hung instead of failing fast on non-interactive stdin",
+            );
+          }
+
+          assert(!status.success, "expected pull to exit non-zero");
+          assertStringIncludes(output.join("\n"), "Re-run with --force");
+        });
+      });
+    });
+  },
+  sanitizeOps: false,
   sanitizeResources: false,
 });

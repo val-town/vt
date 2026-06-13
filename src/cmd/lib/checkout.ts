@@ -1,9 +1,8 @@
 import { Command } from "@cliffy/command";
-import { doWithSpinner } from "~/cmd/utils.ts";
+import { confirmOrExit, doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { colors } from "@cliffy/ansi/colors";
-import { Confirm } from "@cliffy/prompt";
 import { tty } from "@cliffy/ansi/tty";
 import sdk, {
   branchNameToBranch,
@@ -95,14 +94,17 @@ export const checkoutCmd = new Command()
               );
             }
 
-            const shouldProceed = await Confirm.prompt({
-              message: colors.yellow(
-                currentBranchDoesntExistMsg +
-                  "It is possible that you have made changes locally since " +
-                  "the branch got deleted.\nDo you want to proceed with checkout anyway?",
-              ),
-              default: false,
-            });
+            const shouldProceed = await confirmOrExit(
+              {
+                message: colors.yellow(
+                  currentBranchDoesntExistMsg +
+                    "It is possible that you have made changes locally since " +
+                    "the branch got deleted.\nDo you want to proceed with checkout anyway?",
+                ),
+                default: false,
+              },
+              "The branch you are on no longer exists. Re-run with --force to check out anyway.",
+            );
             if (!shouldProceed) {
               console.log(skippedCheckoutMsg);
               Deno.exit(0);
@@ -229,13 +231,16 @@ export const checkoutCmd = new Command()
                 console.log();
 
                 // Ask for confirmation to proceed despite dirty state
-                const shouldProceed = await Confirm.prompt({
-                  message: colors.yellow(
-                    "Val has unpushed changes. " +
-                      "Do you want to proceed with checkout anyway?",
-                  ),
-                  default: false,
-                });
+                const shouldProceed = await confirmOrExit(
+                  {
+                    message: colors.yellow(
+                      "Val has unpushed changes. " +
+                        "Do you want to proceed with checkout anyway?",
+                    ),
+                    default: false,
+                  },
+                  "Val has unpushed changes that would be overwritten. Re-run with --force to check out anyway.",
+                );
 
                 // Exit if user doesn't want to proceed
                 if (!shouldProceed) {

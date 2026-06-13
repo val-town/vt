@@ -1,9 +1,8 @@
 import { Command } from "@cliffy/command";
-import { doWithSpinner } from "~/cmd/utils.ts";
+import { confirmOrExit, doWithSpinner } from "~/cmd/utils.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { findVtRoot } from "~/vt/vt/utils.ts";
 import { tty } from "@cliffy/ansi/tty";
-import { Confirm } from "@cliffy/prompt";
 import { colors } from "@cliffy/ansi/colors";
 import { displayFileStateChanges } from "~/cmd/lib/utils/displayFileStatus.ts";
 import { noChangesDryRunMsg } from "~/cmd/lib/utils/messages.ts";
@@ -50,12 +49,15 @@ export const pullCmd = new Command()
           if (dryRun) return;
 
           // Ask for confirmation to proceed despite dirty state
-          const shouldProceed = await Confirm.prompt({
-            message:
-              "There are changes being pulled that would overwrite the local state." +
-              " Are you sure you want to proceed?",
-            default: false,
-          });
+          const shouldProceed = await confirmOrExit(
+            {
+              message:
+                "There are changes being pulled that would overwrite the local state." +
+                " Are you sure you want to proceed?",
+              default: false,
+            },
+            "There are local changes that would be overwritten. Re-run with --force to pull anyway.",
+          );
           if (!shouldProceed) {
             Deno.exit(0);
           } else {
