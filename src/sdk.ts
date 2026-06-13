@@ -209,8 +209,17 @@ export async function canWriteToVal(valId: string) {
   } catch (e) {
     if (e instanceof ValTown.APIError) {
       if (e.status === 403 || e.status === 401) return false;
-      if (e.status === 404) return !e.message.includes("Not authorized");
-      else throw e;
+      if (e.status === 404) {
+        // The probe writes to a random, nonexistent path, so a 404 is expected
+        // either way — we distinguish on which thing was not found. A val we can
+        // write to reports the missing file ("File not found"); a val we can't
+        // access reports the missing val ("Project not found"; older API builds
+        // said "Not authorized"). Only the latter means we can't write.
+        const detail = (e.error as { error?: string } | null)?.error ??
+          e.message;
+        return !(detail.includes("Project not found") ||
+          detail.includes("Not authorized"));
+      } else throw e;
     } else throw e;
   }
 }
