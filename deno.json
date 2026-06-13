@@ -48,7 +48,6 @@
   },
   "compilerOptions": {
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "verbatimModuleSyntax": true
+    "noUnusedParameters": true
   }
 }

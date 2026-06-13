@@ -10,13 +10,9 @@ Deno.test({
       await t.step("run profile command", async () => {
         const [output] = await runVtCommand(["profile"], tmpDir);
 
-        assertStringIncludes(output, "You're on the");
-        assertStringIncludes(
-          output,
-          "Head over to https://www.val.town/pricing",
-        );
         assertStringIncludes(output, "You're logged in as");
         assertStringIncludes(output, "member of"); // they are a member of an org
+        assertStringIncludes(output, "Pro member"); // the test account is on the Pro plan
       });
     });
   },
