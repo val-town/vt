@@ -60,7 +60,7 @@ export async function doAtomically<T>(
       });
     }
   } finally {
-    cleanup();
+    await cleanup();
   }
   return result;
 }
