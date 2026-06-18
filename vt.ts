@@ -121,7 +121,9 @@ if (import.meta.main) {
   // Importing here resolves the same cached module that startVt() uses; we read
   // the registered command names to decide whether auth is needed.
   const { cmd } = await import("~/cmd/root.ts");
-  const knownCommands = new Set(cmd.getCommands().map((c) => c.getName()));
+  const knownCommands = new Set(
+    cmd.getCommands().flatMap((c) => [c.getName(), ...c.getAliases()]),
+  );
 
   if (
     !isHelpOnlyInvocation(Deno.args, knownCommands) &&

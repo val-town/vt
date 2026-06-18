@@ -26,6 +26,27 @@ Deno.test({
 });
 
 Deno.test({
+  // A command alias (`me` -> `profile`) is a real command, not an unknown one,
+  // so auth must NOT be skipped for it.
+  name: "command alias still requires auth",
+  permissions: "inherit",
+  async fn() {
+    await doWithTempDir(async (tmpDir) => {
+      const [output, code] = await runVtCommand(["me"], tmpDir, {
+        env: noAuthEnv,
+      });
+
+      // Auth was enforced: it fails with the invalid key rather than printing
+      // the help (which a wrongly-skipped "unknown command" path would, along
+      // with the plugin note).
+      assertEquals(code, 1);
+      assertNotMatch(output, /Val Town plugin/);
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
   name: "unknown command works without valid auth",
   permissions: "inherit",
   async fn() {
