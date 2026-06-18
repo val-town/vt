@@ -3,6 +3,12 @@
 `vt` is the official CLI to work with projects on the
 [Val Town](https://val.town) platform.
 
+> **Using an AI agent?** We strongly recommend the
+> [Val Town plugin](https://docs.val.town/guides/prompting/plugin/) instead of
+> `vt`. It exposes many more tools (direct file edits, logs, traces, SQLite,
+> blobs, branches, and more — no local checkout required), is actively
+> developed, and ships skills that teach your agent how to build on Val Town.
+
 ![Vt in action!](https://filedumpthing.val.run/blob/blob_file_1744915159083_recording.gif)
 
 ```

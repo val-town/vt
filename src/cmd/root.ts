@@ -3,12 +3,24 @@ import { CompletionsCommand } from "@cliffy/command/completions";
 import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "~/cmd/lib/mod.ts";
 import { upgradeCmd } from "./upgrade.ts";
+import { PLUGIN_RECOMMENDATION } from "~/consts.ts";
 
 const cmd = new Command()
   .name("vt")
   .version(manifest.version)
   .help({ colors: Deno.stdout.isTerminal() })
   .action(() => cmd.showHelp());
+
+// Append a plugin recommendation whenever the top-level help is shown. Cliffy
+// prints the help on a bare `vt`, on `--help`, and on an unknown command, so
+// this is a low-frequency surface that reliably reaches AI agents reaching for
+// the CLI. We print the note ourselves (always to stdout) rather than baking it
+// into the help body, which Cliffy routes to stderr on the unknown-command path.
+const showHelp = cmd.showHelp.bind(cmd);
+cmd.showHelp = (options) => {
+  showHelp(options);
+  console.log("\n" + PLUGIN_RECOMMENDATION);
+};
 
 cmd.command("profile", cmds.profileCmd);
 cmd.command("upgrade", upgradeCmd);

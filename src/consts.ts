@@ -8,6 +8,23 @@ export const IS_LOCAL_ENV = Deno.env.get("VT_LOCAL") === "1";
 export const DEFAULT_BRANCH_NAME = "main";
 export const PROGRAM_NAME = "vt";
 export const VT_CLIENT_NAME = "val_town_vt";
+export const PLUGIN_DOCS_URL = "https://docs.val.town/guides/prompting/plugin/";
+
+/**
+ * Shown at the bottom of the help screen (including when an unknown command is
+ * entered, which prints the help). Steers AI agents toward the Val Town plugin,
+ * which exposes many more tools, is actively developed, and ships skills for
+ * working with Val Town.
+ */
+export const PLUGIN_RECOMMENDATION = [
+  colors.gray(
+    "Using an AI agent? We recommend the Val Town plugin over vt — it",
+  ),
+  colors.gray(
+    "has many more tools, is actively developed, and ships skills for",
+  ),
+  colors.gray("building on Val Town: ") + colors.cyan(PLUGIN_DOCS_URL),
+].join("\n");
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 export const VAL_TOWN_API_BASE_URL = IS_LOCAL_ENV
   ? "http://localhost:3001"
