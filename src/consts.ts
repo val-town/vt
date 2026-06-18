@@ -15,15 +15,19 @@ export const PLUGIN_DOCS_URL = "https://docs.val.town/guides/prompting/plugin/";
  * entered, which prints the help). Steers AI agents toward the Val Town plugin,
  * which exposes many more tools, is actively developed, and ships skills for
  * working with Val Town.
+ *
+ * Colors are only applied when stdout is a terminal, matching the main help
+ * (`.help({ colors: Deno.stdout.isTerminal() })`). Agents typically pipe
+ * stdout, so this keeps the note plain text for them rather than leaking raw
+ * ANSI escape codes.
  */
+const styleHelp = Deno.stdout.isTerminal();
+const gray = (s: string) => styleHelp ? colors.gray(s) : s;
+const cyan = (s: string) => styleHelp ? colors.cyan(s) : s;
 export const PLUGIN_RECOMMENDATION = [
-  colors.gray(
-    "Using an AI agent? We recommend the Val Town plugin over vt — it",
-  ),
-  colors.gray(
-    "has many more tools, is actively developed, and ships skills for",
-  ),
-  colors.gray("building on Val Town: ") + colors.cyan(PLUGIN_DOCS_URL),
+  gray("Using an AI agent? We recommend the Val Town plugin over vt — it"),
+  gray("has many more tools, is actively developed, and ships skills for"),
+  gray("building on Val Town: ") + cyan(PLUGIN_DOCS_URL),
 ].join("\n");
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 export const VAL_TOWN_API_BASE_URL = IS_LOCAL_ENV
