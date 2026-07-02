@@ -219,7 +219,10 @@ async function getLocalFiles({
   for await (const entry of fs.walk(targetDir)) {
     filePromises.push((async () => {
       // Check if this is on the ignore list
-      const relativePath = path.relative(targetDir, entry.path);
+      const relativePath = path.relative(targetDir, entry.path).replaceAll(
+        "\\",
+        "/",
+      );
       if (shouldIgnore(relativePath, gitignoreRules)) return null;
       if (entry.path === targetDir) return null;
 
