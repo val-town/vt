@@ -207,7 +207,10 @@ async function handleBranchCheckout(
       // Scan the target directory to identify files that need to be deleted
       const pathsToDelete: string[] = [];
       for await (const entry of walk(params.targetDir)) {
-        const relativePath = relative(params.targetDir, entry.path).replaceAll("\\", "/");
+        const relativePath = relative(params.targetDir, entry.path).replaceAll(
+          "\\",
+          "/",
+        );
         const targetDirPath = entry.path;
         const tmpDirPath = join(tmpDir, relativePath);
 
