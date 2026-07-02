@@ -93,12 +93,42 @@ async function startVt(...args: string[]) {
   await vt.parse([...Deno.args, ...args]);
 }
 
+/**
+ * Whether the invocation only produces help or version output, which never
+ * needs a network round trip. Skipping auth for these keeps `vt`, `vt --help`,
+ * `vt --version`, and unknown/typo'd commands working (and showing the plugin
+ * recommendation) without first hitting an auth wall — which matters for agents
+ * that haven't configured a key yet.
+ */
+function isHelpOnlyInvocation(
+  args: string[],
+  knownCommands: Set<string>,
+): boolean {
+  const first = args[0];
+  if (!first) return true; // bare `vt` prints the help
+  if (["-h", "--help", "-V", "--version"].includes(first)) return true;
+  // A leading non-flag token that isn't a known command makes Cliffy print the
+  // help (and then error), so it needs no auth either.
+  if (!first.startsWith("-") && !knownCommands.has(first)) return true;
+  return false;
+}
+
 if (import.meta.main) {
   if (Deno.env.get("CI") !== "true") {
     await registerOutdatedWarning();
   }
 
-  if (!["logout"].includes(Deno.args[0])) {
+  // Importing here resolves the same cached module that startVt() uses; we read
+  // the registered command names to decide whether auth is needed.
+  const { cmd } = await import("~/cmd/root.ts");
+  const knownCommands = new Set(
+    cmd.getCommands().flatMap((c) => [c.getName(), ...c.getAliases()]),
+  );
+
+  if (
+    !isHelpOnlyInvocation(Deno.args, knownCommands) &&
+    !["logout"].includes(Deno.args[0])
+  ) {
     await ensureValidApiKey();
   }
 

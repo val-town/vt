@@ -61,7 +61,13 @@ export async function runVtCommand(
     deadlineMs?: number;
   } = {},
 ): Promise<[string, number]> {
-  const { autoConfirm = true, deadlineMs = 8_000 } = options;
+  // The deadline is a safety net that force-kills a hung process; it is not
+  // the happy path. Commands that exit on their own (the common case, including
+  // the fail-fast non-interactive ones) are unaffected. A generous value keeps
+  // slow-but-legitimate live-API calls from being killed mid-run when the
+  // shared test account is under load, which truncates output and flakes
+  // assertions (e.g. empty captured output).
+  const { autoConfirm = true, deadlineMs = 20_000 } = options;
 
   return await doWithTempDir(async (tmpDir) => {
     const process = runVtProc(args, cwd, {
@@ -69,7 +75,7 @@ export async function runVtCommand(
     });
 
     // If autoConfirm is enabled, send "yes\n" repeatedly to stdin
-    let autoConfirmInterval: number | undefined;
+    let autoConfirmInterval: ReturnType<typeof setInterval> | undefined;
 
     const cleanup = () => {
       if (autoConfirmInterval) {

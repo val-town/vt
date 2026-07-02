@@ -298,7 +298,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Get prompted for org to create Val in",
+  name: "Get told to use --org-name when stdin is not interactive",
   permissions: "inherit",
   async fn(t) {
     await doWithTempDir(async (tmpDir) => {
@@ -309,12 +309,14 @@ Deno.test({
           tmpDir,
         );
 
-        for (let i = 0; i < 100; i++) { // wait a bit to get prompt data
-          if (stdout.join("\n").includes("organization you are a")) return;
+        for (let i = 0; i < 100; i++) { // wait a bit to get the error
+          if (stdout.join("\n").includes("--org-name")) return;
           await delay(50);
         }
 
-        throw new AssertionError("Was never prompted for org to create Val in");
+        throw new AssertionError(
+          "Was never told to use --org-name to choose an account",
+        );
       });
     });
   },

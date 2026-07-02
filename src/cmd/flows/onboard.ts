@@ -1,6 +1,7 @@
 import { Confirm } from "@cliffy/prompt";
 import { colors } from "@cliffy/ansi/colors";
 import {
+  API_KEY_KEY,
   DEFAULT_WRAP_WIDTH,
   GET_API_KEY_URL,
   GLOBAL_VT_CONFIG_PATH,
@@ -52,6 +53,16 @@ export async function onboardFlow(
   options?: { showWelcome?: boolean },
 ): Promise<void> {
   options = options || {};
+
+  if (!Deno.stdin.isTerminal()) {
+    console.error(
+      colors.red("Authentication required, but stdin is not interactive."),
+    );
+    console.error(
+      `Set the ${API_KEY_KEY} environment variable to an API key from ${GET_API_KEY_URL}`,
+    );
+    Deno.exit(1);
+  }
 
   if (options.showWelcome) {
     welcomeToVt();

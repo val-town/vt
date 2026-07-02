@@ -65,6 +65,7 @@ export const pushCmd = new Command()
           console.log();
           if (statusResult.hasWarnings()) {
             spinner.warn("Failed to push everything");
+            Deno.exit(1);
           } else {
             spinner.succeed("Successfully pushed local changes");
           }
