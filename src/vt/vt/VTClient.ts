@@ -140,7 +140,7 @@ export default class VTClient {
 
     await vt.getMeta().saveVtState({
       val: { id: valId },
-      branch: { id: branch.id, version: version },
+      branch: { id: branch.id, name: branch.name, version: version },
     });
 
     return vt;
@@ -427,7 +427,7 @@ export default class VTClient {
     // Save the VT state
     await vt.getMeta().saveVtState({
       val: { id: valId },
-      branch: { id: branch.id, version },
+      branch: { id: branch.id, name: branch.name, version },
     });
 
     // Perform the clone
@@ -608,6 +608,7 @@ export default class VTClient {
         if (!baseParams.dryRun) {
           if (result.toBranch) {
             vtState.branch.id = result.toBranch.id;
+            vtState.branch.name = result.toBranch.name;
             vtState.branch.version = FIRST_VERSION_NUMBER; // Set version to 1 for the new branch
           }
         }
@@ -637,6 +638,7 @@ export default class VTClient {
       if (!baseParams.dryRun) {
         if (result.toBranch) {
           vtState.branch.id = result.toBranch.id;
+          vtState.branch.name = result.toBranch.name;
           vtState.branch.version = result.toBranch.version; // Use the target branch's version
         }
       }
