@@ -1,7 +1,12 @@
 import { join, relative } from "@std/path";
 import { walk } from "@std/fs";
 import stripAnsi from "strip-ansi";
-import { DEFAULT_BRANCH_NAME, DEFAULT_EDITOR_TEMPLATE } from "~/consts.ts";
+import {
+  DEFAULT_BRANCH_NAME,
+  DEFAULT_EDITOR_TEMPLATE,
+  META_FOLDER_NAME,
+  META_STATE_FILE_NAME,
+} from "~/consts.ts";
 import sdk, {
   branchNameToBranch,
   getCurrentUser,
@@ -40,6 +45,21 @@ export function runVtProc(
   });
 
   return command.spawn();
+}
+
+/**
+ * Reads the branch name persisted in a Val's local VT state file.
+ */
+export async function readPersistedBranchName(
+  rootPath: string,
+): Promise<string | undefined> {
+  const state = JSON.parse(
+    await Deno.readTextFile(
+      join(rootPath, META_FOLDER_NAME, META_STATE_FILE_NAME),
+    ),
+  ) as { branch: { name?: string } };
+
+  return state.branch.name;
 }
 
 /**
