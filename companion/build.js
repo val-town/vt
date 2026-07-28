@@ -56,8 +56,7 @@ async function build() {
   esbuild.stop();
 }
 
-const isMain =
-  process.argv[1] &&
+const isMain = process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMain) {

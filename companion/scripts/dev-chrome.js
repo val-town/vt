@@ -3,10 +3,10 @@ import * as fs from "fs-extra";
 import { watch } from "node:fs";
 import { spawn } from "node:child_process";
 import {
+  copyStaticFiles,
+  getEsbuildOptions,
   outputDir,
   publicDir,
-  getEsbuildOptions,
-  copyStaticFiles,
 } from "../build.js";
 
 const browserType = "chrome";
