@@ -21,6 +21,6 @@
     "@types/firefox-webext-browser": "^143.0.0",
     "@types/fs-extra": "^11.0.4",
     "@types/webextension-polyfill": "^0.12.3",
-    "typescript": "^5.3.3"
+    "typescript": "^7.0.0"
   }
 }
