@@ -144,11 +144,6 @@ export const checkoutCmd = new Command()
               },
             );
 
-            // Note that if they try to check out to the same branch, we can't
-            // even figure that out, because we store the branch ID, not the
-            // branch name. So this warning, while useful, won't show up if they
-            // are checking out FROM a branch that has been deleted and currently
-            // does not exist.
             if (currentBranchData.name === branchName) {
               spinner.warn(
                 `You are already on branch "${dryCheckoutResult.fromBranch.name}"`,

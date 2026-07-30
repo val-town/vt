@@ -12,6 +12,7 @@ import { ENTRYPOINT_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { parseValUri } from "~/cmd/lib/utils/parsing.ts";
 import { delay } from "@std/async";
+import VTMeta from "~/vt/vt/VTMeta.ts";
 
 /**
  * Creates and spawns a Deno child process for the vt.ts script.
@@ -40,6 +41,15 @@ export function runVtProc(
   });
 
   return command.spawn();
+}
+
+/**
+ * Reads the branch name persisted in a Val's local VT state file.
+ */
+export async function readPersistedBranchName(
+  rootPath: string,
+): Promise<string | undefined> {
+  return (await new VTMeta(rootPath).loadVtState()).branch.name;
 }
 
 /**
