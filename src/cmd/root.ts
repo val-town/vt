@@ -3,7 +3,7 @@ import { CompletionsCommand } from "@cliffy/command/completions";
 import manifest from "../../deno.json" with { type: "json" };
 import * as cmds from "~/cmd/lib/mod.ts";
 import { upgradeCmd } from "./upgrade.ts";
-import { PLUGIN_RECOMMENDATION } from "~/consts.ts";
+import { CLAUDE_CODE_PLUGIN_HINT, PLUGIN_RECOMMENDATION } from "~/consts.ts";
 
 const cmd = new Command()
   .name("vt")
@@ -20,6 +20,16 @@ const showHelp = cmd.showHelp.bind(cmd);
 cmd.showHelp = (options) => {
   showHelp(options);
   console.log("\n" + PLUGIN_RECOMMENDATION);
+
+  // When running inside Claude Code, emit a plugin install hint on its own line
+  // to stderr. Claude Code detects this marker, strips it from the output before
+  // the model sees it, and prompts the user once to install the official Val
+  // Town plugin. It is gated on CLAUDECODE so it never reaches a human terminal,
+  // and goes to stderr so it stays out of stdout pipelines.
+  // https://code.claude.com/docs/en/plugin-hints
+  if (Deno.env.get("CLAUDECODE")) {
+    console.error(CLAUDE_CODE_PLUGIN_HINT);
+  }
 };
 
 cmd.command("profile", cmds.profileCmd);
