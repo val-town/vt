@@ -2,14 +2,63 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk, { getCurrentUser } from "~/sdk.ts";
 import { runVtCommand } from "~/cmd/tests/utils.ts";
-import { assert, assertStringIncludes } from "@std/assert";
+import { assert, assertMatch, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import { META_FOLDER_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
-  name: "remix command basic functionality",
-  permissions: "inherit",
+  name: "remix command from current directory",
+  async fn(t) {
+    const user = await getCurrentUser();
+
+    await doWithTempDir(async (tmpDir) => {
+      await doWithNewVal(async ({ val }) => {
+        const fullPath = join(tmpDir, val.name);
+
+        // Clone the source project to the temp dir
+        await runVtCommand([
+          "clone",
+          `${user.username}/${val.name}`,
+        ], tmpDir);
+
+        await t.step("remix from current directory", async () => {
+          const [output] = await runVtCommand(["remix"], fullPath);
+
+          // Check that the output contains the expected pattern
+          assertMatch(
+            output,
+            new RegExp(
+              `Remixed current Val to public Val "@${user
+                .username!}/[\\w_]+"`,
+            ),
+          );
+
+          // Extract the actual remixed project name from the output
+          const remixPattern = new RegExp(`@${user.username}/([\\w_]+)`);
+          const match = output.match(remixPattern);
+          assert(
+            match && match[1],
+            "could not extract remixed Val name from output",
+          );
+
+          const actualRemixedProjectName = match[1];
+
+          // Clean up the remixed project
+          const { id } = await sdk.alias.username.valName.retrieve(
+            user.username!,
+            actualRemixedProjectName,
+          );
+          await sdk.vals.delete(id);
+        });
+      });
+    });
+  },
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "remix a specific project uri",
   async fn(t) {
     const user = await getCurrentUser();
 
