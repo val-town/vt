@@ -1,7 +1,7 @@
 import { Command } from "@cliffy/command";
 import { Input } from "@cliffy/prompt/input";
 import { colors } from "@cliffy/ansi/colors";
-import sdk, { getCurrentUser } from "~/sdk.ts";
+import sdk, { getCurrentUser, typeaheadValNames, valNameToVal } from "~/sdk.ts";
 import VTClient from "~/vt/vt/VTClient.ts";
 import { relative } from "@std/path";
 import { doWithSpinner, getClonePath } from "~/cmd/utils.ts";
@@ -55,41 +55,27 @@ export const cloneCmd = new Command()
 
       // If no Val URI is provided, show interactive Val selection
       if (!valUri) {
-        const vals = await doWithSpinner(
-          "Loading vals...",
-          async (spinner) => {
-            const [allVals, _] = await arrayFromAsyncN(
-              sdk.me.vals.list({ limit: 100 }),
-              400,
-            );
-            spinner.stop();
-            return allVals;
-          },
-        );
-
-        if (vals.length === 0) {
-          console.log(colors.yellow("You don't have any Vals yet."));
-          return;
-        }
-
-        // Map vals to name format for selection
-        const valNames = vals
-          // Only show vals owned by the user (not orgs that the user is in)
-          .filter((p) => p.author.id === user.id)
-          .map((p) => p.name);
-
+        let suggestions = new Set();
         const selectedVal = await Input.prompt({
           message: "Choose a Val to clone",
           list: true,
           info: true,
-          suggestions: valNames,
+          validate: (input) => {
+            const split = input.split("/");
+            return suggestions.has(input) && (split.length === 2) &&
+              split[1].length !== 0;
+          },
+          suggestions: async (prefix) => {
+            suggestions = new Set(
+              await typeaheadValNames(prefix || `${user.username}/`),
+            );
+            return Array.from(suggestions) as (string | number)[];
+          },
         });
 
-        const val = vals.find((p) => p.name === selectedVal);
-        if (!val) {
-          console.log(colors.red("Val not found"));
-          return;
-        }
+        const parts = selectedVal.split("/");
+        let [handle, valName] = parts;
+        const val = await valNameToVal(handle, valName);
 
         ownerName = val.author.username || user.username!;
         valName = val.name;
