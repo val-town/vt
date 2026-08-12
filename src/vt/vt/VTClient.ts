@@ -24,6 +24,7 @@ import {
 import { exists, walk } from "@std/fs";
 import ValTown from "@valtown/sdk";
 import { skillList } from "@valtown/skills";
+import { generateAgentsMd } from "~/vt/lib/agentsMd.ts";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
 import type { ValPrivacy } from "~/types.ts";
@@ -101,13 +102,9 @@ export default class VTClient {
 
     const agentsPath = join(this.rootPath, "AGENTS.md");
     if (!(await exists(agentsPath))) {
-      // Skills ship with YAML frontmatter for the plugin; AGENTS.md is plain
-      // markdown agent context, so we strip frontmatter and concatenate bodies.
-      const agentsMd = `# Val Town Agent Instructions\n\n` +
-        `This file is auto-generated from the Val Town plugin skills. It contains the current platform guidance for building on Val Town.\n\n\n` +
-        skillList.map((skill) => `---\n\n${skill.body}`).join("\n\n").trim() +
-        "\n";
-      await Deno.writeTextFile(agentsPath, agentsMd);
+      // Synthesize a short, current AGENTS.md from the plugin skills rather than
+      // copying a potentially stale one from the editor template Val.
+      await Deno.writeTextFile(agentsPath, generateAgentsMd(skillList));
     }
   }
 
