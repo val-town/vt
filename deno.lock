@@ -61,7 +61,7 @@
     "npm:openid-client@^6.8.1": "6.8.1",
     "npm:strip-ansi@^7.1.2": "7.1.2",
     "npm:word-wrap@^1.2.5": "1.2.5",
-    "npm:zod-validation-error@^4.0.2": "4.0.2_zod@4.2.1",
+    "npm:zod-validation-error@5": "5.0.0_zod@4.2.1",
     "npm:zod@^4.2.1": "4.2.1"
   },
   "jsr": {
@@ -463,8 +463,8 @@
         "is-wsl"
       ]
     },
-    "zod-validation-error@4.0.2_zod@4.2.1": {
-      "integrity": "sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==",
+    "zod-validation-error@5.0.0_zod@4.2.1": {
+      "integrity": "sha512-hmk+pkyKq7Q71PiWVSDUc3VfpzpvcRHZ3QPw9yEMVvmtCekaMeOHnbr3WbxfrgEnQTv6haGP4cmv0Ojmihzsxw==",
       "dependencies": [
         "zod"
       ]
@@ -526,7 +526,7 @@
       "npm:openid-client@^6.8.1",
       "npm:strip-ansi@^7.1.2",
       "npm:word-wrap@^1.2.5",
-      "npm:zod-validation-error@^4.0.2",
+      "npm:zod-validation-error@5",
       "npm:zod@^4.2.1"
     ]
   }

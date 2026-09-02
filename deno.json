@@ -38,7 +38,7 @@
     "highlight.js": "npm:highlight.js@^11.11.1",
     "strip-ansi": "npm:strip-ansi@^7.1.2",
     "word-wrap": "npm:word-wrap@^1.2.5",
-    "zod-validation-error": "npm:zod-validation-error@^4.0.2",
+    "zod-validation-error": "npm:zod-validation-error@^5.0.0",
     "emphasize": "npm:emphasize@^7.0.0",
     "kia": "jsr:@jonasschiano/kia@0.0.120",
     "open": "npm:open@^10.2.0",
