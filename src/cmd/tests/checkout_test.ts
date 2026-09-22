@@ -2,8 +2,12 @@ import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import { join } from "@std/path";
 import sdk from "~/sdk.ts";
-import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
-import { assert, assertStringIncludes } from "@std/assert";
+import {
+  readPersistedBranchName,
+  runVtCommand,
+  streamVtCommand,
+} from "~/cmd/tests/utils.ts";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
 import type ValTown from "@valtown/sdk";
 
@@ -50,6 +54,12 @@ Deno.test({
             tmpDir,
           );
 
+          assertEquals(
+            await readPersistedBranchName(fullPath),
+            "main",
+            "clone should persist the checked-out branch name",
+          );
+
           // Make a remote change to main branch after cloning
           await sdk.vals.files.update(
             val.id,
@@ -83,6 +93,12 @@ Deno.test({
           assert(
             await exists(join(fullPath, "feature.ts")),
             "feature.ts should exist after checkout; we're not on feature branch",
+          );
+
+          assertEquals(
+            await readPersistedBranchName(fullPath),
+            "feature-branch",
+            "checkout should persist the target branch name",
           );
 
           const [statusOutput] = await runVtCommand(["status"], fullPath);
@@ -146,6 +162,12 @@ Deno.test({
           assertStringIncludes(
             checkoutOutput,
             'Created and switched to new branch "feature-with-changes"',
+          );
+
+          assertEquals(
+            await readPersistedBranchName(fullPath),
+            "feature-with-changes",
+            "checkout -b should persist the new branch name",
           );
         });
 
