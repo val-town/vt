@@ -23,6 +23,8 @@ import {
 } from "~/consts.ts";
 import { exists, walk } from "@std/fs";
 import ValTown from "@valtown/sdk";
+import { skillList } from "@valtown/skills";
+import { generateAgentsMd } from "~/vt/lib/agentsMd.ts";
 import { dirIsEmpty } from "~/utils.ts";
 import VTConfig from "~/vt/VTConfig.ts";
 import type { ValPrivacy } from "~/types.ts";
@@ -86,14 +88,24 @@ export default class VTClient {
       DEFAULT_BRANCH_NAME,
     );
 
+    // Ignore the template's AGENTS.md so we can inject the latest version from
+    // the plugin skills. This keeps the editor files in sync with the skills
+    // without forcing users to adopt a stale template Val copy.
     await clone({
       targetDir: this.rootPath,
       valId: templateVal.id,
       branchId: templateBranch.id,
       version: templateBranch.version,
       overwrite: false,
-      gitignoreRules: [],
+      gitignoreRules: ["AGENTS.md"],
     });
+
+    const agentsPath = join(this.rootPath, "AGENTS.md");
+    if (!(await exists(agentsPath))) {
+      // Synthesize a short, current AGENTS.md from the plugin skills rather than
+      // copying a potentially stale one from the editor template Val.
+      await Deno.writeTextFile(agentsPath, generateAgentsMd(skillList));
+    }
   }
 
   /**
