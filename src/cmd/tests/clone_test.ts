@@ -8,6 +8,7 @@ import {
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import {
+  readPersistedBranchName,
   runVtCommand,
   streamVtCommand,
   waitForStable,
@@ -15,6 +16,7 @@ import {
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 import sdk, { getCurrentUser, randomValName } from "~/sdk.ts";
 import type { ValFileType } from "~/types.ts";
+import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 
 Deno.test({
   name: "clone preserves custom deno.json and .vtignore",
@@ -129,6 +131,12 @@ Deno.test({
           ], tmpDir);
           assertStringIncludes(output, "cloned to");
 
+          assertEquals(
+            await readPersistedBranchName(cloneDir),
+            DEFAULT_BRANCH_NAME,
+            "clone should persist the checked-out branch name",
+          );
+
           // Verify the files exist
           const testJsExists = await exists(join(cloneDir, "test.js"));
           assertEquals(testJsExists, true, "test.js should exist");
@@ -146,6 +154,29 @@ Deno.test({
             innerContent,
             "export function test() { return 'Hello from test_inner'; }",
             "content of test_inner.js should match",
+          );
+        });
+
+        await t.step("clone a non-default branch", async () => {
+          const branchName = "feature-branch";
+          await sdk.vals.branches.create(
+            val.id,
+            { name: branchName, branchId: branch.id },
+          );
+
+          const cloneDir = join(tmpDir, "feature-clone");
+          await runVtCommand([
+            "clone",
+            val.name,
+            cloneDir,
+            branchName,
+            "--no-editor-files",
+          ], tmpDir);
+
+          assertEquals(
+            await readPersistedBranchName(cloneDir),
+            branchName,
+            "clone should persist a non-default checked-out branch name",
           );
         });
       });

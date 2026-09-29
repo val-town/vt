@@ -112,6 +112,7 @@ export const cloneCmd = new Command()
           rootPath: clonePath,
           valName,
           username: ownerName,
+          branchName,
         });
 
         if (editorFiles) {

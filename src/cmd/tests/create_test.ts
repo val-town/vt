@@ -15,7 +15,11 @@ import sdk, {
   listValItems,
   randomValName,
 } from "~/sdk.ts";
-import { runVtCommand, streamVtCommand } from "~/cmd/tests/utils.ts";
+import {
+  readPersistedBranchName,
+  runVtCommand,
+  streamVtCommand,
+} from "~/cmd/tests/utils.ts";
 import { DEFAULT_BRANCH_NAME } from "~/consts.ts";
 import { delay } from "@std/async";
 
@@ -111,6 +115,12 @@ Deno.test({
           assert(
             await exists(join(tmpDir, newValName)),
             "val was not cloned to target",
+          );
+
+          assertEquals(
+            await readPersistedBranchName(join(tmpDir, newValName)),
+            DEFAULT_BRANCH_NAME,
+            "create should persist the initial branch name",
           );
         });
       });

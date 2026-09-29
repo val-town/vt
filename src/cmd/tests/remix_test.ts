@@ -1,10 +1,10 @@
 import { doWithNewVal } from "~/vt/lib/tests/utils.ts";
 import { join } from "@std/path";
 import sdk, { getCurrentUser } from "~/sdk.ts";
-import { runVtCommand } from "~/cmd/tests/utils.ts";
-import { assert, assertStringIncludes } from "@std/assert";
+import { readPersistedBranchName, runVtCommand } from "~/cmd/tests/utils.ts";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { exists } from "@std/fs";
-import { META_FOLDER_NAME } from "~/consts.ts";
+import { DEFAULT_BRANCH_NAME, META_FOLDER_NAME } from "~/consts.ts";
 import { doWithTempDir } from "~/vt/lib/utils/misc.ts";
 
 Deno.test({
@@ -43,6 +43,12 @@ Deno.test({
           assert(
             await exists(join(remixedValPath, META_FOLDER_NAME)),
             "remixed Val should have .vt metadata folder",
+          );
+
+          assertEquals(
+            await readPersistedBranchName(remixedValPath),
+            DEFAULT_BRANCH_NAME,
+            "remix should persist the initial branch name",
           );
         });
 

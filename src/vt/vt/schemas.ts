@@ -32,6 +32,14 @@ export const VTStateSchema = z
       .catch({ id: "" }),
     branch: z.object({
       id: z.string().uuid(),
+      // Store the exact Val Town branch name in JSON so shell prompts and
+      // other local tooling can read it without making an API call.
+      //
+      // Keep this optional so existing checkouts created before this field was
+      // added continue to load; new state writes populate it whenever the
+      // branch is known. JSON.stringify will safely escape control characters
+      // if a branch name is displayed by bash/zsh prompt integrations.
+      name: z.string().optional(),
       version: z.number().gte(0),
     }),
     lastRun: z.object({
