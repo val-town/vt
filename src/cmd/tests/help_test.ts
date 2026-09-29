@@ -1,18 +1,44 @@
-import { assertStringIncludes } from "@std/assert";
+import {
+  assertArrayIncludes,
+  assertEquals,
+  assertStringIncludes,
+} from "@std/assert";
 import { cmd } from "~/cmd/root.ts";
-import { PLUGIN_DOCS_URL } from "~/consts.ts";
+import { CLAUDE_CODE_PLUGIN_HINT, PLUGIN_DOCS_URL } from "~/consts.ts";
 
-/** Runs `fn` with console.log captured, returning everything it printed. */
-async function captureLog(fn: () => void | Promise<void>): Promise<string> {
+/** Runs `fn` with `console[method]` captured, returning everything it printed. */
+async function capture(
+  method: "log" | "error",
+  fn: () => void | Promise<void>,
+): Promise<string> {
   const lines: string[] = [];
-  const original = console.log;
-  console.log = (...args: unknown[]) => void lines.push(args.join(" "));
+  const original = console[method];
+  console[method] = (...args: unknown[]) => void lines.push(args.join(" "));
   try {
     await fn();
   } finally {
-    console.log = original;
+    console[method] = original;
   }
   return lines.join("\n");
+}
+
+/** Runs `fn` with console.log captured, returning everything it printed. */
+const captureLog = (fn: () => void | Promise<void>) => capture("log", fn);
+
+/** Runs `fn` with the CLAUDECODE env var set to `value` (restored afterward). */
+async function withClaudeCode<T>(
+  value: string | undefined,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  const original = Deno.env.get("CLAUDECODE");
+  if (value === undefined) Deno.env.delete("CLAUDECODE");
+  else Deno.env.set("CLAUDECODE", value);
+  try {
+    return await fn();
+  } finally {
+    if (original === undefined) Deno.env.delete("CLAUDECODE");
+    else Deno.env.set("CLAUDECODE", original);
+  }
 }
 
 Deno.test("help screen recommends the Val Town plugin", async () => {
@@ -21,6 +47,25 @@ Deno.test("help screen recommends the Val Town plugin", async () => {
 
   assertStringIncludes(output, "Val Town plugin");
   assertStringIncludes(output, PLUGIN_DOCS_URL);
+});
+
+Deno.test("emits the Claude Code plugin hint when running inside Claude Code", async () => {
+  const errors = await withClaudeCode(
+    "1",
+    () => capture("error", () => cmd.showHelp()),
+  );
+
+  // The hint must be on its own line for Claude Code to act on it.
+  assertArrayIncludes(errors.split("\n"), [CLAUDE_CODE_PLUGIN_HINT]);
+});
+
+Deno.test("omits the plugin hint outside Claude Code", async () => {
+  const errors = await withClaudeCode(
+    undefined,
+    () => capture("error", () => cmd.showHelp()),
+  );
+
+  assertEquals(errors.includes("claude-code-hint"), false);
 });
 
 Deno.test("unknown command prints the plugin recommendation", async () => {

@@ -29,6 +29,21 @@ export const PLUGIN_RECOMMENDATION = [
   gray("has many more tools, is actively developed, and ships skills for"),
   gray("building on Val Town: ") + cyan(PLUGIN_DOCS_URL),
 ].join("\n");
+
+/** The Val Town plugin's identifier (name@marketplace) in the official Anthropic marketplace. */
+export const CLAUDE_CODE_PLUGIN_ID = "valtown@claude-plugins-official";
+
+/**
+ * Claude Code plugin hint. When `vt` runs inside Claude Code (detected via the
+ * CLAUDECODE env var), printing this self-closing marker on its own line to
+ * stderr prompts the user — once — to install the official Val Town plugin.
+ * Claude Code strips the line from the output before it reaches the model, so
+ * it never appears in the conversation and is not counted toward token usage.
+ *
+ * See https://code.claude.com/docs/en/plugin-hints.
+ */
+export const CLAUDE_CODE_PLUGIN_HINT =
+  `<claude-code-hint v="1" type="plugin" value="${CLAUDE_CODE_PLUGIN_ID}" />`;
 export const API_KEY_KEY = "VAL_TOWN_API_KEY";
 export const VAL_TOWN_API_BASE_URL = IS_LOCAL_ENV
   ? "http://localhost:3001"
